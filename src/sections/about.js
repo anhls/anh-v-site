@@ -38,7 +38,7 @@ export function buildAbout(root, about) {
       <div class="about__spacer"></div>
       <div class="about__sticky">
         <div class="about__block">
-          <svg class="about__icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+          <!-- Phosphor "arrow-right" (regular), MIT licence --><svg class="about__icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg>
           <span class="about__label">${about.label}</span>
           <p class="about__text">${html}</p>
         </div>

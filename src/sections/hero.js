@@ -1,6 +1,6 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { HERO } from '../timeline.js';
+import { HERO, TICKER } from '../timeline.js';
 
 // The hero is a background layer for the whole page: absolute, 730vh tall, with a CSS sticky 100vh block
 // holding the mask. No GSAP pin: a ScrollTrigger just scrubs the mask/strip timeline over page scroll.
@@ -9,8 +9,8 @@ export function buildHero(root, hero) {
   const captions = hero.captions
     .map((c) => `<li><span>${c.title}</span><span>${c.client}</span><span>${c.role}</span></li>`)
     .join('');
-  // The ticker item is one SVG (dot + "Click Anywhere" baked in), 237px wide at 1920. 10 per half so the loop covers the screen.
-  const items = Array.from({ length: 10 }, () => `<img class="ticker__item" src="${hero.ticker}" alt="" />`).join('');
+  // The ticker item is one SVG (dot + "Click Anywhere" baked in), 182px wide at 1920. TICKER.perHalf per half so the loop covers the screen.
+  const items = Array.from({ length: TICKER.perHalf }, () => `<img class="ticker__item" src="${hero.ticker}" alt="" />`).join('');
 
   root.insertAdjacentHTML('afterbegin', `
     <div class="hero" id="hero">
@@ -24,7 +24,7 @@ export function buildHero(root, hero) {
             <div class="hero__overlay"></div>
           </div>
           <div class="hero__sec hero__s1">
-            <video class="hero__video" src="${hero.video}" autoplay muted loop playsinline></video>
+            <video class="hero__video" src="${hero.video}" autoplay muted loop playsinline preload="auto"></video>
             <div class="ticker" aria-hidden="true"><div class="ticker__track">${items}${items}</div></div>
           </div>
         </div>
@@ -47,8 +47,8 @@ export function buildHero(root, hero) {
   const vhPx = (n) => () => (window.innerHeight * n) / 100;
   const vhTop = (n) => () => (window.innerHeight * n) / 100; // page-scroll position in px
 
-  // Ticker loops on its own.
-  gsap.to(track, { xPercent: -50, duration: 40, ease: 'none', repeat: -1 });
+  // Ticker loops on its own, leftward, at TICKER.speedVwPerSec (one half = perHalf items).
+  gsap.to(track, { xPercent: -50, duration: (TICKER.perHalf * TICKER.itemVw) / TICKER.speedVwPerSec, ease: 'none', repeat: -1 });
 
   // 1vh of page scroll = 0.01s of timeline, so the scrubbed range maps onto the timeline 1:1.
   const [r0, r1] = HERO.range;

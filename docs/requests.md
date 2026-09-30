@@ -96,8 +96,20 @@ Cowork measured both sites at the same scroll points. Hero strip, captions, Abou
 Re-measure at 1920x1080 against the numbers above, check 1440x900 and 2560x1440, commit, log the before/after numbers in status.md, stop for preview.
 (Anh confirmed the hero video plays in the real browser.)
 
-## Later (not yet): media optimisation
-Waits for Anh's original files. Convert the two GIFs to MP4/WebM loops, serve images as WebP/AVIF sized to display size (srcset), preload only hero media, lazy-load archive and project images, compress the hero video and add a poster frame, preload the Clash Display woff2.
+## R8 [done]: Loader tightening + small fixes (ticker speed, wordmark delay, smoothing switch, spellings, icon, click sound)
+The loader already uses real progress (no fixed timer, unlike Framer's 1.8s fake count). Tighten it:
+1. No double video download: track the real hero <video> element on the page (loadeddata = first frame ready) instead of creating a second hidden video.
+2. Video cap 10s -> about 4s (LOADER.videoCapMs). The video keeps streaming after the loader leaves.
+3. Minimum display time about 1s (LOADER.minMs) so "Loading visual language" doesn't just flash on a cached/fast load. Anh can change it in timeline.js.
+4. Per-word roll-in (open since R3): each word of "Loading visual language" rises into place from below its own clipped line, staggered, as on the live site (Framer Loader Comp: words start ~70px below and rise to centre; states Start -> Arrive -> Leave). Watch the live intro on https://www.anh-v.com (reload with the browser pane VISIBLE) for timing, stagger and the exit, and match it. Transforms/opacity only.
+5. Ticker speed (not part of the loader, added here): measure the live "Click Anywhere" ticker speed on https://www.anh-v.com (px per second at 1920, pane visible) and match it; currently 40s per half, set by eye. Put it in timeline.js.
+6. Wordmark grow-back delay (not part of the loader, added here): nav.js reverses only when window.scrollY < 5px, so with Lenis smoothing the wordmark waits for the glide to finish. Use Lenis's target position (lenis.targetScroll) for the check, so it starts growing the moment the user scrolls up to the top, and shrinks as soon as the target leaves the top. Same 1.1s expo.out animation. Keep the threshold in timeline.js (NAV).
+7. Double smoothing, make it comparable (not part of the loader, added here): Lenis smoothing + HERO.scrub 0.25 both smooth the hero. Add a URL switch so Anh can compare in the browser: ?scrub=tight uses scrub: true, default stays 0.25. Mention in status.md how to try it. Anh picks one afterwards and the switch gets removed.
+8. Caption spellings (Anh confirmed): "Sulwashoo" -> "Sulwhasoo" everywhere (hero captions, client names). Keep "Di De Tro Ve 09" as it is: Cowork checked the Clash Display font file and it has no glyphs for ể, ở, ề, so Anh chose to leave it unaccented.
+9. About icon: Anh sent the original (a plain white right arrow, thin stroke, no box; the dark rounded square with blue outline in the screenshot is just Framer's selection UI). Framer's built-in icons are Phosphor, so use Phosphor "arrow-right" (MIT licence, regular weight) as inline SVG at 16px, currentColor. Replace the hand-drawn arrow.
+10. Click sound (Anh confirmed): there is NO background music. The audio file only plays when someone clicks inside the "Click Anywhere" area (top 100vh, same area as the click image spawner), once per click. Live file: https://assets.mixkit.co/music/preview/mixkit-tech-house-vibes-130.mp3 (Framer Audio settings: loop off, start offset 10, volume 100). Check on the live site what a click does exactly (restart from the offset each click, or keep playing), note it in status.md, and wire the hook to the click area only. Don't hotlink mixkit in the final build: leave data.hero.clickSound pointing to it for now with a TODO; Anh will decide whether to self-host that file (check the Mixkit licence) or supply her own.
+11. Overlay-2 confirmed: black fade (transparent to black over the bottom half). Remove the "guessed" note.
+Put the loader numbers (minMs, videoCapMs, roll duration/stagger) in timeline.js as LOADER. Test with a cold cache and with cache, commit, log, stop for preview.
 
-## To decide during preview: double smoothing
-Lenis smoothing + hero scrub 0.25 both smooth the motion (the hero trails the scroll slightly). Try scrub: true vs 0.25 side by side with anh-v.com; Anh picks.
+## Later (not yet): media optimisation (see HANDOFF "Media checklist")
+Waits for Anh's original files. Convert the two GIFs to MP4/WebM loops, serve images as WebP/AVIF sized to display size (srcset), preload only hero media, lazy-load archive and project images, compress the hero video and add a poster frame, preload the Clash Display woff2.

@@ -8,6 +8,7 @@ import { buildHero } from './sections/hero.js';
 import { buildAbout } from './sections/about.js';
 import { buildPlaceholders } from './sections/placeholders.js';
 import { initNav } from './effects/nav.js';
+import { initClickSound } from './effects/clicksound.js';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -22,12 +23,14 @@ const app = document.getElementById('app');
 buildHero(app, data.hero);
 buildAbout(app, data.about);
 buildPlaceholders(app);
-initNav(data.hero.wordmark);
+initNav(data.hero.wordmark, lenis);
+initClickSound(data.hero.clickSound);
 
 // Loader first: hold scrolling until the hero media is ready.
 window.scrollTo(0, 0);
 lenis.stop();
-const heroAssets = [data.hero.video, data.hero.image, ...data.hero.gallery, data.hero.wordmark, data.hero.ticker];
+// (The hero video is tracked by the loader from the <video> already on the page, so it is not listed here.)
+const heroAssets = [data.hero.image, ...data.hero.gallery, data.hero.wordmark, data.hero.ticker];
 runLoader(data.loader.text, heroAssets).then(() => {
   lenis.start();
   ScrollTrigger.refresh();

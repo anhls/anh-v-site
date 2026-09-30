@@ -14,12 +14,28 @@ export const SECTIONS = {
   footer: [620, 730],
 };
 
+// Loader. Times in seconds unless marked ms. Arrive/leave/wipe measured on the live intro (1920x1080).
+// Words rise 1.1em (70px at 64px) from below their own clipped line, staggered, hold, then rise out;
+// the black backdrop then collapses upward (its bottom edge rises while the top lifts 120px).
+export const LOADER = {
+  minMs: 1000,      // shortest time the loader stays up, so it does not just flash on a cached load
+  videoCapMs: 4000, // stop waiting for the hero video's first frame after this (it keeps streaming)
+  arrive: { rise: 1.1, duration: 0.52, stagger: 0.09, ease: 'power2.inOut' },
+  leave: { duration: 0.5, stagger: 0.09, ease: 'power2.inOut' }, // last word leaves first
+  wipe: { delay: 0.23, duration: 0.72, ease: 'power2.inOut', liftVh: 11.1 }, // delay counted from the start of leave
+};
+
+// "Click Anywhere" ticker. Live: items are 182 x 9 px (9.479vw x 0.469vw at 1920), moving left at 100px/s = 5.21vw/s.
+export const TICKER = { speedVwPerSec: 5.21, itemVw: 182 / 19.2, perHalf: 12 };
+
 // Nav + wordmark switch: time-based, fires when scrollY (px) reaches this and reverses at 0.
 export const NAV = { thresholdPx: 5 };
 
 // Hero mask + strip. The mask timeline is scrubbed over `range`; overlays have their own range (runs past it).
 export const HERO = {
-  scrub: 0.25,
+  // Temporary comparison switch: open the site with ?scrub=tight to scrub the hero with no smoothing (scrub: true).
+  // Lenis already smooths the scroll, so this shows whether 0.25 is double smoothing. Anh picks one, then remove this.
+  scrub: new URLSearchParams(window.location.search).get('scrub') === 'tight' ? true : 0.25,
   range: [0, 585],
   overlay: [490, 630],
   // Mask size. `at` is [start, end] in vh of page scroll. Fitted to widths measured on the live site

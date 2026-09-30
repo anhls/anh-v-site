@@ -79,7 +79,7 @@ Footer: 110vh, "Go Back To Top" link with a line animation, at the right.
 34 parallax loops on every frame (each reads computed style), plus a per-item scroll loop with layout reads via a hosted lazyScrollAnimation module, per-letter React state on scroll, ~6.7 MB home transfer (two GIFs = 3.3 MB), fixed 1920 layout (viewport meta width=1920), 1100 DOM nodes.
 
 ## Assets
-Use images/video currently on framerusercontent.com as placeholders; request originals (transparent PNGs for cut-out objects). Background music is hotlinked from a free-music site: needs Anh's own licensed file. Fonts: Clash Display (confirmed; variable woff2 + license in public/fonts). Colors: black background, off-white text (approx #ece9e2, sample from live site).
+Use images/video currently on framerusercontent.com as placeholders; request originals (transparent PNGs for cut-out objects). No background music. The mixkit mp3 is a click sound: it plays only when someone clicks inside the "Click Anywhere" area (top 100vh). Decide later: self-host it (check the Mixkit licence) or use Anh's own file. Fonts: Clash Display (confirmed; variable woff2 + license in public/fonts). Colors: black background, off-white text (approx #ece9e2, sample from live site).
 
 ## Responsive plan (later)
 Desktop >=1024 scaled from 1920 reference; tablet 600-1024 fewer cards, no mouse parallax; phone <600 own layout (wireframes approved in concept): intro with real progress, hero wordmark scaled to width, tap-to-spawn (max ~4), pinned image shrink, per-word About reveal, ~10-12 drifting cards, vertical sticky project index, centered clients, single-column project page. Drop cursor trail and mouse parallax on touch. Respect prefers-reduced-motion. Test at 360, 390, 768, 1024, 1440, 1920, 2560.
@@ -89,3 +89,21 @@ Desktop >=1024 scaled from 1920 reference; tablet 600-1024 fewer cards, no mouse
 2. Build home page sections in order, then Bitis template.
 3. Side-by-side compare with https://www.anh-v.com and tune timing by eye.
 4. Set up GitHub + Cloudflare Pages previews.
+
+## Media checklist (originals Anh will supply, drop into E:\PORTFOLIO\New portfolio\_site-media\, outside the repo)
+Highest quality available; the build makes the small web versions. Placeholders from framerusercontent.com are used until then.
+- Hero video (#1 section): original master (.mp4 or .mov).
+- Hero image 2 (#2 section) and the 3 images of #3 section, in stacking order (bottom, middle, top). Note: in the rebuild these are also the images behind PRJ-01/02/03.
+- Wordmark "^ V": SVG (or the .ai it came from).
+- 4 caption hover images (one per hero caption: Techcombank Priority, Di De Tro Ve 09, Sulwhasoo, Similac).
+- 35 archive card images (see docs/framer-extract/cards.json for sizes/order); cut-out objects as transparent PNG. 3 of them are GIFs on the live site (150x84, 343x343, 219x219): send the source video/frames if possible, they become short MP4/WebM loops.
+- Click sound: keep the mixkit file or send your own.
+- Project page media (Bitis first): later.
+
+## Media status (2026-10-01, sorted by Cowork)
+Originals copied (not moved) from D:\Work\PORTFOLIO 2025 into ../_site-media/ (hero, captions, archive, brand, motion-sources). ../_site-media/sources.tsv maps every file to its original path and the live framerusercontent URL it replaces (matched by image fingerprint, all near-exact).
+- Hero #3 images are the project images: top = Techcombank (credit card), middle = Bitis (billboard), bottom = Sulwhasoo (phone). They peel in PRJ-01, 02, 03 order.
+- Wordmark: brand/wordmark.svg, fill #eae8e5 (likely the site's off-white; the brief's #ece9e2 was sampled by eye).
+- Ticker: brand/ticker.svg has live text (ClashDisplay-Regular 12px, not outlined), so it can simply be real HTML text in Clash Display.
+- Card GIFs: card 30 has a source video (motion-sources/Final_VIS3.mp4), card 25 a 121-frame PNG sequence (motion-sources/watch_anim/), card 6 only the original GIF.
+- Missing: hero #2 image (the portrait of Anh on the red wall) and a higher-res hero video (only the 720x540 file used live was found).

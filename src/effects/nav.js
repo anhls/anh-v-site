@@ -19,7 +19,9 @@ const LINKS = {
 const DURATION = 1.1;
 const EASE = 'expo.out';
 
-export function initNav(wordmarkSrc) {
+// `lenis` is optional: with it, the switch follows Lenis's target position, so the wordmark reacts the moment
+// the user scrolls toward/away from the top instead of waiting for the smooth-scroll glide to finish.
+export function initNav(wordmarkSrc, lenis) {
   const img = document.createElement('img');
   img.className = 'wordmark';
   img.src = wordmarkSrc;
@@ -49,9 +51,12 @@ export function initNav(wordmarkSrc) {
     links.forEach((a) => gsap.to(a, { x: linkX(a, isScrolled), duration: DURATION, ease: EASE, overwrite: true }));
   };
 
-  window.addEventListener('scroll', () => {
-    const shouldBeScrolled = window.scrollY >= NAV.thresholdPx;
+  const check = () => {
+    const pos = lenis ? lenis.targetScroll : window.scrollY;
+    const shouldBeScrolled = pos >= NAV.thresholdPx;
     if (shouldBeScrolled !== scrolled) go(shouldBeScrolled);
-  }, { passive: true });
+  };
+  window.addEventListener('scroll', check, { passive: true });
+  if (lenis) lenis.on('scroll', check);
   window.addEventListener('resize', () => place(scrolled));
 }
