@@ -33,3 +33,8 @@ Desktop must look right at 1440x900, 1920x1080 and 2560x1440. Tablet/phone get t
 5. Letter/word animations: split text once at build time, animate the spans as a group with transform/opacity (stagger or a scrubbed timeline). No per-letter JS work on each scroll event.
 6. No reload-on-resize (Framer's Force_Reload files). On resize: ScrollTrigger.refresh() and re-read cached measurements.
 General: animate only transform and opacity where possible. The hero mask's width/height tween is the one agreed exception.
+
+## Keeping usage low
+- Only read docs/requests.md (open work), CLAUDE.md, and the parts of HANDOFF.md / framer-extract/motion-spec.md the request points to. docs/archive/ is history: don't read it unless asked.
+- After each motion or layout change, run `npm run compare` (dev server running; one-time setup `npm i -D playwright-core`) and paste only its summary line and mismatch lines into status.md. Don't hand-measure the live site in the browser panel unless the script can't cover it.
+- status.md entries: 8 lines max. When a request is done, move it from requests.md into docs/archive/.

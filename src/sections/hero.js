@@ -1,4 +1,5 @@
 import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { HERO, SPRING, TICKER } from '../timeline.js';
 import { springLayer } from '../effects/springs.js';
 
@@ -72,14 +73,7 @@ export function buildHero(root, hero) {
     const { yvh, ...rest } = p;
     return yvh === undefined ? rest : { ...rest, y: vhPx(yvh) };
   };
-  // Ease, optionally starting part-way in (easeFrom 0..1), renormalised so it still runs 0 -> 1.
-  const easeOf = (t) => {
-    if (!t.ease) return 'none';
-    if (!t.easeFrom) return t.ease;
-    const base = gsap.parseEase(t.ease);
-    const b0 = base(t.easeFrom);
-    return (p) => (base(t.easeFrom + p * (1 - t.easeFrom)) - b0) / (1 - b0);
-  };
+  const easeOf = (t) => t.ease || 'none';
   const add = (timeline, target, t) => {
     const pos = t.at[0] / 100;
     const vars = { ...conv(t.to), ease: easeOf(t), duration: (t.at[1] - t.at[0]) / 100 };
@@ -98,7 +92,7 @@ export function buildHero(root, hero) {
   // Spring-chased layers: each gets a proxy target, filled by tlS, and one springLayer that writes the DOM.
   const proxies = {};
   const springOf = {};
-  [...HERO.strip, ...HERO.float].filter((t) => t.spring).forEach((t) => {
+  HERO.strip.filter((t) => t.spring).forEach((t) => {
     if (!proxies[t.el]) { proxies[t.el] = {}; springOf[t.el] = t.spring; }
     // Declare the animated properties up front (y for `yvh`, plus scale) so the spring layer always knows them.
     [t.from, t.to].forEach((p) => {
@@ -126,6 +120,23 @@ export function buildHero(root, hero) {
       },
     });
   });
+
+  // Mask float: the two wrappers' targets come straight from the scroll position (no scrub, no timeline), so the
+  // only lag is the spring itself. Linear between the start and end of each range, held after.
+  const floats = HERO.float.map((f) => ({ f, target: { y: 0 } }));
+  const setFloatTargets = (scrollPx) => {
+    const v = (scrollPx / window.innerHeight) * 100;
+    floats.forEach(({ f, target }) => {
+      const p = Math.min(1, Math.max(0, (v - f.at[0]) / (f.at[1] - f.at[0])));
+      target.y = ((f.from.yvh + (f.to.yvh - f.from.yvh) * p) * window.innerHeight) / 100;
+    });
+  };
+  setFloatTargets(window.scrollY);
+  floats.forEach(({ f, target }) => {
+    const node = el[f.el];
+    springLayer({ target, springs: { y: SPRING[f.spring] }, apply: (v) => { node.style.transform = `translate3d(0, ${v.y}px, 0)`; } });
+  });
+  ScrollTrigger.create({ start: 0, end: 'max', onUpdate: (self) => setFloatTargets(self.scroll()), onRefresh: (self) => setFloatTargets(self.scroll()) });
 
   // Overlays darken over their own range, which runs past the mask timeline; chased through a spring.
   const ov = { opacity: 0 };

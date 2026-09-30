@@ -5,22 +5,21 @@
 //
 // LINKED TIMINGS. Ranges that belong together are written as offsets from ONE shared anchor (the constants just
 // below), so moving the anchor moves its partners. Everything else is a plain number and moves on its own.
-//   MASK_SHRINK   the mask's first shrink starts      -> mask shrink [MASK_SHRINK, +56]
+//   MASK_SHRINK   the mask's first shrink starts      -> mask shrink [MASK_SHRINK, +70]
 //                                                       About reveal [MASK_SHRINK + 54, +23 long]
-//   MASK_RESHAPE  the mask reshapes to 25vw x 40vh    -> that reshape [MASK_RESHAPE, +36]
-//                                                       mask float, outer wrapper up [MASK_RESHAPE - 8.8, +49.5]
-//   S3_RISE       section #3 rises into the mask      -> that rise [S3_RISE, +40]
-//                                                       mask float, inner wrapper back down [S3_RISE - 0.7, +23.3]
-//   PEEL_1        top hero image (gallery2) peels     -> that peel [PEEL_1, +60]
-//                                                       project index swap 1: Techcombank -> Bitis [PEEL_1 + 3.6, +34.7]
-//   PEEL_2        2nd hero image (gallery1) peels     -> that peel [PEEL_2, +55]
-//                                                       project index swap 2: Bitis -> Sulwhasoo [PEEL_2 - 1.5, +34.9]
+//   MASK_RESHAPE  the mask reshapes to 25vw x 40vh    -> that reshape [MASK_RESHAPE, +35]
+//   S3_RISE       section #3 rises into the mask      -> that rise [S3_RISE, +28]
+//   SWAP_1        project index swap 1 (Techcombank -> Bitis)  -> that swap [SWAP_1, +34.7]
+//                                                       top hero image (gallery2) peel [SWAP_1, +34.7] (same trigger)
+//   SWAP_2        project index swap 2 (Bitis -> Sulwhasoo)    -> that swap [SWAP_2, +34.9]
+//                                                       2nd hero image (gallery1) peel [SWAP_2, +34.9] (same trigger)
+// The mask float (two wrappers) is measured on its own and is NOT linked: outer [128.2, +49.5], inner [189.3, +23.3].
 // To retime a pair, change the anchor. To nudge only one partner relative to the other, change its offset.
 const MASK_SHRINK = 0;
-const MASK_RESHAPE = 137;
-const S3_RISE = 190;
-const PEEL_1 = 315;
-const PEEL_2 = 405;
+const MASK_RESHAPE = 150;
+const S3_RISE = 196;
+const SWAP_1 = 318.6;
+const SWAP_2 = 403.5;
 const span = (start, length) => [+start.toFixed(2), +(start + length).toFixed(2)];
 
 export const TOTAL = 730; // page height in vh
@@ -86,27 +85,27 @@ export const HERO = {
   scrub: 0.25, // decided: the loose scrub (a little lag behind the scroll)
   range: [0, 585],
   overlay: { at: [490, 630], spring: 'overlay' },
-  // Mask size. `at` is [start, end] in vh of page scroll. Fitted to widths measured on the live site
-  // (R7): the live GSAP mask runs earlier than the Framer code numbers (0-70 / 150-185 / 500-585).
-  // `easeFrom` starts the ease part-way in, which reproduces the live scrub lag at the start of the first tween.
+  // Mask size. `at` is [start, end] in vh of page scroll. These are Framer's own code numbers (0-70 / 150-185 /
+  // 500-585); with scrub 0.25 they reproduce the widths measured on the live site in a real 1920x1080 window (R11).
   mask: [
-    { at: span(MASK_SHRINK, 56), from: { width: '100vw', height: '100vh' }, to: { width: '17vw', height: '50vh' }, ease: 'expo.inOut', easeFrom: 0.15 },
-    { at: span(MASK_RESHAPE, 36), to: { width: '25vw', height: '40vh' }, ease: 'expo.out' },
-    { at: [490, 571], to: { width: '100vw', height: '100vh' }, ease: 'expo.inOut' },
+    { at: span(MASK_SHRINK, 70), from: { width: '100vw', height: '100vh' }, to: { width: '17vw', height: '50vh' }, ease: 'expo.inOut' },
+    { at: span(MASK_RESHAPE, 35), to: { width: '25vw', height: '40vh' }, ease: 'expo.out' },
+    { at: [500, 585], to: { width: '100vw', height: '100vh' }, ease: 'expo.inOut' },
   ],
   // The mask floats: two wrappers around it move vertically (centre path 50% -> 22% -> 50% of the screen height).
   float: [
-    { el: 'floatOuter', at: span(MASK_RESHAPE - 8.8, 49.5), from: { yvh: 0 }, to: { yvh: -27.78 }, spring: 'floatOuter' },
-    { el: 'floatInner', at: span(S3_RISE - 0.7, 23.3), from: { yvh: 0 }, to: { yvh: 27.78 }, spring: 'floatInner' },
+    // Targets come straight from the scroll position (no scrub), so only the spring adds lag.
+    { el: 'floatOuter', at: span(128.2, 49.5), from: { yvh: 0 }, to: { yvh: -27.78 }, spring: 'floatOuter' },
+    { el: 'floatInner', at: span(189.3, 23.3), from: { yvh: 0 }, to: { yvh: 27.78 }, spring: 'floatInner' },
   ],
   // Strip inside the mask. `yvh` is translateY in vh; other props go straight to GSAP.
   strip: [
     { el: 's1', at: [40, 140], from: { yvh: 0, scale: 1.3 }, to: { yvh: -185.2, scale: 1 } },
     { el: 's2', at: [0, 90], from: { yvh: 55.6, scale: 2 }, to: { yvh: 0, scale: 1 } },
-    { el: 's3', at: span(S3_RISE, 40), from: { yvh: 125, scale: 1.2 }, to: { yvh: 0, scale: 1.1 }, spring: 's3' },
+    { el: 's3', at: span(S3_RISE, 28), from: { yvh: 125, scale: 1.2 }, to: { yvh: 0, scale: 1.1 }, spring: 's3' },
     { el: 's3', at: [300, 520], to: { scale: 1.2 }, spring: 's3' },
-    { el: 'gallery2', at: span(PEEL_1, 60), from: { yvh: 0 }, to: { yvh: -138.9 }, spring: 'peel1' },
-    { el: 'gallery1', at: span(PEEL_2, 55), from: { yvh: 0 }, to: { yvh: -138.9 }, spring: 'peel2' },
+    { el: 'gallery2', at: span(SWAP_1, 34.7), from: { yvh: 0 }, to: { yvh: -138.9 }, spring: 'peel1' },
+    { el: 'gallery1', at: span(SWAP_2, 34.9), from: { yvh: 0 }, to: { yvh: -138.9 }, spring: 'peel2' },
   ],
   // Details that were missing: the video fades up and the ticker fades out while it rises (no springs).
   details: {
@@ -130,7 +129,7 @@ export const ABOUT = {
 // linear with scroll and chased through a spring. Each swap is linked to a hero image peel
 // (top image = Techcombank, then Bitis, then Sulwhasoo).
 export const INDEX = {
-  swap: [span(PEEL_1 + 3.6, 34.7), span(PEEL_2 - 1.5, 34.9)], // [row1 -> row2, row2 -> row3]
+  swap: [span(SWAP_1, 34.7), span(SWAP_2, 34.9)], // [row1 -> row2, row2 -> row3]; the hero image peels use the same ranges
   travelVh: 18.52, // how far a row moves (200px at 1080); characters rise from the same distance
   // Per-character appear effects. They play ONCE per page load, in time (not scrubbed), when a row arrives:
   // row 1 when it is 50% in view, row 2 at the start of swap 1, row 3 at the start of swap 2.

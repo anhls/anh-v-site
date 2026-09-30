@@ -7,7 +7,7 @@ Source: the compiled page code on anh-v.com (Framer publishes every scroll effec
 2. Springs on scroll effects: most Framer scroll-linked transforms are NOT locked to the scroll. The scroll gives a target value (piecewise linear between trigger points) and each layer CHASES that target through its own spring. Different springs = different lag = the "weight" and parallax feel. Scroll ranges measured on the page were the settled targets, so they stay; the springs are what was missing.
 3. The mask floats vertically (section 3 below). The rebuild kept it centred.
 
-Spring notation below: stiffness / damping / mass (Framer/motion units). Implement with one shared requestAnimationFrame loop: per layer, `target = map(scrollVh)`, then integrate `a = (-k*(x-target) - c*v)/m` per frame (semi-implicit Euler, dt clamped to 1/30s). Transforms/opacity only. Layers with "no spring" follow the target directly.
+Spring notation below: stiffness / damping / mass (Framer/motion units). Implement with one shared requestAnimationFrame loop: per layer, `target = map(scrollVh)`, then integrate `a = (-k*(x-target) - c*v)/m` with dt in seconds (the rebuild uses the exact closed-form spring solution, so it is refresh-rate independent and stable for stiff springs). Transforms/opacity only. Layers with "no spring" follow the target directly.
 
 ## 2. Hero strip (inside the mask)
 | Layer | Scroll range (vh) | Values | Spring |
@@ -16,10 +16,10 @@ Spring notation below: stiffness / damping / mass (Framer/motion units). Impleme
 | video element | 0-90 | opacity 0.15 to 0.8 | none |
 | ticker | 0-90 | opacity 1 to 0, y 0 to -500px (on top of its own 0.5 opacity) | none |
 | #2 section (portrait) | 0-90 | y 600px to 0, scale 2 to 1 | none |
-| #3 section | 190-230 | y 1350px to 0, scale 1.2 to 1.1 | 891 / 90 / 0.5 |
+| #3 section | 196-224 | y 1350px to 0, scale 1.2 to 1.1 | 891 / 90 / 0.5 |
 | #3 section | 300-520 | scale 1.1 to 1.2 | 891 / 90 / 0.5 |
-| #3 top image (Techcombank) | 315-375 | y 0 to -1500px | 148 / 39 / 0.1 (bounce 0.2) |
-| #3 middle image (Bitis) | 405-460 | y 0 to -1500px | 148 / 38 / 0.1 |
+| #3 top image (Techcombank) | 318.6-353.3 (same trigger as index swap 1) | y 0 to -1500px | 148 / 39 / 0.1 (bounce 0.2) |
+| #3 middle image (Bitis) | 403.5-438.4 (same trigger as index swap 2) | y 0 to -1500px | 148 / 38 / 0.1 |
 | Overlay (black 90%) + Overlay-2 (bottom black fade) | 490-630 | opacity 0 to 1 | 500 / 60 / 1 |
 px values are at 1080px viewport height (vh = px / 10.8).
 
@@ -63,3 +63,6 @@ Variant transitions are tweens with an overshoot ease cubic-bezier(.59,.25,.12,1
 
 ## 9. Page end
 On live, the hero mask layer disappears at ~585vh (GSAP pin ends) while the overlay is only at ~0.68, so the image pops away. The rebuild keeps the hero under the overlay to 630vh (smoother). Keep the rebuild behaviour unless Anh says otherwise.
+
+## 10. Mask resize (GSAP) timing
+Verified in headless Chrome at a real 1920x1080: live follows Framer's code exactly, [0,70] expo.inOut, [150,185] expo.out, [500,585] expo.inOut, scrub 0.25. Earlier fits made in the scaled in-app browser panel were wrong.

@@ -1,0 +1,13 @@
+# Archived: R11 (finished 2026-10-01)
+
+## R11 [done]: R10 corrections from Cowork's preview (headless Chrome, real 1920x1080, both sites, 2s settle per point)
+Result: s1, s2, video, overlay, About position/reveal, index rows (settled AND their spring motion over time), float path and nav all match live. Speed unchanged (60fps median, 7% slow frames; live 73%). Fix these:
+1. Mask resize timing: revert to Framer's code numbers. Measured live widths (vw): 25vh 94.3, 30vh 84.4, 35vh 58.5, 40vh 32.6, 45vh 22.7, 50vh 18.8, 55vh 17.5; 151vh 18.5, 154 21.3, 157 23.0, 160 23.9, 168 24.8, 176 25.0; 515vh 25.2, 525 26.9, 535 36.2, 545 75.0, 555 95.2, 565 99.3, 575 100. That is exactly [0,70] expo.inOut, [150,185] expo.out, [500,585] expo.inOut with scrub 0.25 (e.g. predicted 84.2 at 30vh). The R7 fit (0-56 with easeFrom, 137-173, 490-571) came from the in-app browser panel, whose emulated viewport skewed scroll timing: drop it and remove easeFrom. Keep the About reveal anchored where it is (its measured 54-77 still matches).
+2. Peel ranges: the two gallery peels share their triggers with the index swaps: top peel 318.6-353.3, middle peel 403.5-438.4 (not 315-375 / 405-460). Live settled: 330vh -492px, 345vh -1140px, 360vh -1500px. Link them to the same anchors as the swaps.
+3. #3 section rise: live is 196-224vh (1350px at 196, 1060 at 202, 775 at 208, 486 at 214, 196 at 220, 0 at 226), rebuild 190-230. Set [196, 224] (scale 1.2 to 1.1 same range).
+4. Mask float lag: live reaches its new position within ~0.1s of a scroll jump (125 to 165vh: 29.4% at 93ms); rebuild takes ~0.5s (47.5 at 40ms, 32 at 200ms, 29.4 at 530ms). The float targets must come straight from scroll (no scrub) so only the spring (891/90/0.5, 648/58/1) adds lag.
+5. Ticker opacity (compare script says it already matches when ancestors are included; just confirm visually): live ticker is 0.5 at the top and fades to 0 (0.42 at 15vh, 0.25 at 45vh, 0 at 90vh). Rebuild reads 1.0 on the .ticker element with its parent at 1.0: check the static 0.5 is actually applied somewhere in the chain; total must be 0.5 x (1 - progress).
+6. Small: About text top at 15/30vh is live 113.9/100.1, rebuild 109.4/94.4 (matches from 45vh on). Live moves at ~0.7x from the very top, then catches up by 45vh. Optional: start the drift at 0.
+Measuring note for everyone: use a real 1920x1080 window (or headless), not the scaled browser panel, for scroll-timing measurements.
+First: `npm i -D playwright-core`, start the dev server, run `npm run compare` (baseline: 336/352 within tolerance, 16 mismatches, all items 1-3 and 6). Goal after the fixes: 0 mismatches except optional item 6. Commit, log (8 lines max, paste the summary line), move R11 to docs/archive/, stop.
+
