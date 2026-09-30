@@ -111,5 +111,32 @@ The loader already uses real progress (no fixed timer, unlike Framer's 1.8s fake
 11. Overlay-2 confirmed: black fade (transparent to black over the bottom half). Remove the "guessed" note.
 Put the loader numbers (minMs, videoCapMs, roll duration/stagger) in timeline.js as LOADER. Test with a cold cache and with cache, commit, log, stop for preview.
 
+## R9 [done]: Pass-check fixes + project index section (190-590vh)
+Cowork pass check (2026-10-01): headless Chromium at 1920x1080, same scroll script on both sites. Rebuild: 60fps median, 8% slow frames, 138 DOM nodes, 1.5 MB. Live Framer: 30fps median, 73% slow frames, 1179 nodes, 15 MB. Desktop 1366 to 3440 wide looks consistent. Portrait tablet/phone not designed yet (expected; see "Later: responsive").
+
+### Part A: fixes
+1. Smoothing decided: Anh prefers the loose scrub. Keep HERO.scrub = 0.25 and remove the ?scrub=tight switch.
+2. Loader start delay decided: no artificial delay (the roll starts immediately, as now).
+3. Loader waits for too much on slow connections. Measured cold cache: fast 2.4s, slow 4G 10s, 3G 35s, because it waits for all 4 hero images (about 1.5 MB). Only wait for what is visible on the first screen: font, wordmark, ticker, hero video first frame. Start loading #2/#3 images right after (they are not visible before ~40vh of scroll). Add LOADER.maxMs = 5000: the loader never stays longer than that. Re-test fast / slow 4G / 3G with DevTools throttling and log the times.
+4. Linked timings (Anh wants to retime things later without breaking pairs). In timeline.js, express ranges that belong together as offsets from one shared anchor, so moving the anchor moves its partners: e.g. INDEX swap 1 = gallery2 peel start + offset, INDEX swap 2 = gallery1 peel start + offset, and the About reveal relative to the mask's first shrink. Add a short comment block at the top of timeline.js listing which ranges are linked. Independent ranges stay as plain numbers.
+
+### Part B: project index (measured on anh-v.com at 1920x1080)
+- Layout: section 190-590vh = 50vh blank + 100vh sticky block (z-index 6, over the hero mask). So the rows scroll up into place from 190 to 240vh, then stay until the section ends.
+- Three rows stacked in the SAME place: each is a full-width band 64px tall (6vh), top 508px (47vh), overflow hidden (the band clips its content).
+  - Label "PRJ - 01/02/03": 12px, white, left 60px (3.125vw), y 534px.
+  - Title: Clash Display 500, 80px (4.167vw, use clamp), line-height 0.8em, letter-spacing -0.01em, centred. Titles: Techcombank Priority, Bitis DDTV SS09, Sulwhasoo Launch. Links to /work/tcb-priority, /work/bitis09, /work/sulwhasoo (live only links the first two; link all three).
+  - Year 2025 / 2024 / 2023: 12px, right 60px, y 534px.
+- Swap motion (label, title and year of a row move together, linear with scroll, clipped by the band):
+  - 318.6-353.3vh: row 1 goes 0 to -200px (-18.52vh, up and out), row 2 goes +200px to 0 (up from below).
+  - 403.5-438.4vh: row 2 goes 0 to -200px, row 3 goes +200px to 0.
+  - Rows 2 and 3 start at +200px (hidden below the band).
+  - These swaps pair with the hero's image peels (gallery2 315-375, gallery1 405-460): top image = Techcombank, then Bitis, then Sulwhasoo. Use the anchors from Part A item 4.
+- Letter roll: the live titles are split into letter spans, but Cowork saw NO per-letter motion (not on scroll, first appear or hover); the whole row slides as one block. Build the block slide as live. Add INDEX.letterStagger (default 0 = off): when > 0, letters of the incoming title rise with that stagger (seconds of scroll-timeline), outgoing ones leave the same way, so Anh can try it. Split letters once at build time, transforms only.
+- Use data.json projects (index, title, year, slug) as the source; no hard-coded text.
+Test at 1440x900, 1920x1080, 2560x1440 against the numbers above, commit, log before/after in status.md, stop for preview.
+
+## Later: responsive (tablet/phone)
+Structure is ready (vw/vh units, timeline.js, CSS custom properties), but portrait screens need their own values: mask 17vw x 50vh becomes a thin strip, About runs to 15 lines on a phone, captions crowd. Also use small/large viewport units (svh/lvh) for the sticky blocks and ScrollTrigger.config({ ignoreMobileResize: true }) so the mobile address bar doesn't make things jump. Follow HANDOFF "Responsive plan".
+
 ## Later (not yet): media optimisation (see HANDOFF "Media checklist")
 Waits for Anh's original files. Convert the two GIFs to MP4/WebM loops, serve images as WebP/AVIF sized to display size (srcset), preload only hero media, lazy-load archive and project images, compress the hero video and add a poster frame, preload the Clash Display woff2.

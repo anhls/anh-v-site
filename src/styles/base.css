@@ -21,6 +21,12 @@
   --about-top: 34.44vh;
   --about-indent: 17.19vw;
   --about-label-size: clamp(0.625rem, 0.625vw, 1rem);
+
+  /* Project index (measured at 1920x1080: title 80px, band 64px tall at y 508, label/year 12px at x 60 / y 534) */
+  --index-size: clamp(2.5rem, 4.167vw, 8rem);
+  --index-x: 3.125vw;
+  --index-top: 47.04vh;
+  --index-label-size: clamp(0.625rem, 0.625vw, 1rem);
 }
 
 *,
@@ -269,6 +275,37 @@ html.lenis, html.lenis body { height: auto; }
 .index { position: relative; z-index: 4; }
 .index__blank { height: 50vh; }
 .index__sticky { position: sticky; top: 0; height: 100vh; z-index: 6; }
+/* Three bands in the same place; each clips its row, which slides up/down inside it (src/sections/project-index.js). */
+.index__band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--index-top);
+  height: calc(var(--index-size) * 0.8);
+  overflow: hidden;
+  color: #fff;
+  pointer-events: none; /* only the showing row (.is-active) takes clicks */
+}
+.index__band.is-active { pointer-events: auto; }
+.index__title {
+  display: block;
+  text-align: center;
+  white-space: nowrap;
+  font-size: var(--index-size);
+  font-weight: 500;
+  line-height: 0.8;
+  letter-spacing: -0.01em;
+}
+.index__char { display: inline-block; will-change: transform; }
+.index__label,
+.index__year {
+  position: absolute;
+  top: calc(var(--index-size) * 0.325); /* 26px at 80px: the label sits 26px below the band top */
+  font-size: var(--index-label-size);
+  line-height: 1;
+}
+.index__label { left: var(--index-x); }
+.index__year { right: var(--index-x); }
 .clients { position: relative; z-index: 4; }
 .clients__sticky { position: sticky; top: 0; height: 100vh; }
 .archive { position: absolute; left: 0; right: 0; z-index: 4; pointer-events: none; }

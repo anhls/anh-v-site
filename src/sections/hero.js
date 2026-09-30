@@ -17,9 +17,9 @@ export function buildHero(root, hero) {
       <div class="hero__pin">
         <div class="hero__wrapper">
           <!-- Strip inside the mask (measured on anh-v.com). Stacking: s1 on top, s3 middle, s2 bottom. Each fills the mask. -->
-          <div class="hero__sec hero__s2"><img src="${hero.image}" alt="" /></div>
+          <div class="hero__sec hero__s2"><img data-src="${hero.image}" alt="" /></div>
           <div class="hero__sec hero__s3">
-            ${hero.gallery.map((src, i) => `<img class="hero__gallery" style="z-index:${i}" src="${src}" alt="" />`).join('')}
+            ${hero.gallery.map((src, i) => `<img class="hero__gallery" style="z-index:${i}" data-src="${src}" alt="" />`).join('')}
             <div class="hero__overlay2"></div>
             <div class="hero__overlay"></div>
           </div>
@@ -100,4 +100,11 @@ export function buildHero(root, hero) {
       invalidateOnRefresh: true,
     },
   });
+
+  // Images #2 and #3 are not visible before ~40vh of scroll, so they start loading only after the loader is ready.
+  return {
+    loadDeferred() {
+      root.querySelectorAll('img[data-src]').forEach((img) => { img.src = img.dataset.src; img.removeAttribute('data-src'); });
+    },
+  };
 }

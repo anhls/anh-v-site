@@ -7,6 +7,7 @@ import { runLoader } from './effects/loader.js';
 import { buildHero } from './sections/hero.js';
 import { buildAbout } from './sections/about.js';
 import { buildPlaceholders } from './sections/placeholders.js';
+import { buildIndex } from './sections/project-index.js';
 import { initNav } from './effects/nav.js';
 import { initClickSound } from './effects/clicksound.js';
 
@@ -18,20 +19,22 @@ lenis.on('scroll', ScrollTrigger.update);
 gsap.ticker.add((time) => lenis.raf(time * 1000));
 gsap.ticker.lagSmoothing(0);
 
-// Sections are added here one by one (about, archive, index, clients, footer come next).
+// Sections are added here one by one (archive, clients, footer come next).
 const app = document.getElementById('app');
-buildHero(app, data.hero);
+const hero = buildHero(app, data.hero);
 buildAbout(app, data.about);
 buildPlaceholders(app);
+buildIndex(app, data.projects);
 initNav(data.hero.wordmark, lenis);
 initClickSound(data.hero.clickSound);
 
-// Loader first: hold scrolling until the hero media is ready.
+// Loader first: hold scrolling until what is visible on the first screen is ready.
 window.scrollTo(0, 0);
 lenis.stop();
-// (The hero video is tracked by the loader from the <video> already on the page, so it is not listed here.)
-const heroAssets = [data.hero.image, ...data.hero.gallery, data.hero.wordmark, data.hero.ticker];
-runLoader(data.loader.text, heroAssets).then(() => {
+// The loader only waits for the wordmark, ticker, font and the hero video's first frame (the <video> is on the page already).
+// Images #2/#3 start loading once the loader is ready (hero.loadDeferred).
+const firstScreen = [data.hero.wordmark, data.hero.ticker];
+runLoader(data.loader.text, firstScreen, hero.loadDeferred).then(() => {
   lenis.start();
   ScrollTrigger.refresh();
 });

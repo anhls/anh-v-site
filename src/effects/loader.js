@@ -5,8 +5,10 @@ import { LOADER } from '../timeline.js';
 // (staggered), holds while the page loads, then rises out, and the black backdrop collapses upward.
 // A "Loading — 39%" label follows the cursor. Progress is real: fonts, hero images and the hero <video>
 // already on the page (first frame = loadeddata, capped at LOADER.videoCapMs). Nothing is downloaded twice.
+// `urls` = only what is visible on the first screen. The loader never stays longer than LOADER.maxMs.
+// `onReady` is called as soon as the loader has what it needs (so the caller can start loading the rest).
 // Returns a promise that resolves once the loader is gone. Numbers live in src/timeline.js (LOADER).
-export function runLoader(text, urls) {
+export function runLoader(text, urls, onReady) {
   const el = document.createElement('div');
   el.className = 'loader';
   el.innerHTML = `
@@ -60,7 +62,12 @@ export function runLoader(text, urls) {
   const minTime = new Promise((r) => setTimeout(r, Math.max(0, LOADER.minMs - (performance.now() - started))));
   const arrived = new Promise((r) => arriving.eventCallback('onComplete', r));
 
-  return Promise.all([fonts, loadVideo(), ...urls.map(loadImage), minTime, arrived])
+  // Ready = everything visible on the first screen has loaded, or LOADER.maxMs has passed, whichever is first.
+  const ready = Promise.all([fonts, loadVideo(), ...urls.map(loadImage)]);
+  const capped = new Promise((r) => setTimeout(r, Math.max(0, LOADER.maxMs - (performance.now() - started))));
+
+  return Promise.all([Promise.race([ready, capped]), minTime, arrived])
+    .then(() => { if (onReady) onReady(); })
     .then(() => new Promise((r) => gsap.to(shown, { v: 100, duration: 0.3, onUpdate: show, onComplete: r })))
     .then(() => new Promise((resolve) => {
       window.removeEventListener('mousemove', onMove);
