@@ -1,0 +1,46 @@
+{
+  "site": {
+    "title": "Anh V",
+    "nav": [
+      { "label": "About", "href": "#2section" },
+      { "label": "Works", "href": "#archive" },
+      { "label": "Contact", "href": "#contact" }
+    ]
+  },
+  "about": { "text": "" },
+  "spawnerImages": [],
+  "archiveCards": [],
+  "projects": [
+    {
+      "slug": "tcb-priority", "index": "PRJ-01", "title": "Techcombank Priority", "client": "Techcombank",
+      "year": 2025, "live": true, "hero": { "type": "video", "src": "" }, "details": {}, "media": [], "chapters": []
+    },
+    {
+      "slug": "bitis09", "index": "PRJ-02", "title": "Bitis DDTV SS09", "client": "Bitis",
+      "year": 2024, "live": true,
+      "hero": { "type": "video", "src": "" },
+      "details": { "role": "", "credits": [] },
+      "media": [{ "type": "image", "src": "", "layout": "full", "caption": "" }],
+      "chapters": [{ "title": "", "media": [] }]
+    },
+    {
+      "slug": "sulwhasoo", "index": "PRJ-03", "title": "Sulwhasoo Launch", "client": "Sulwhasoo",
+      "year": 2023, "live": true, "hero": { "type": "video", "src": "" }, "details": {}, "media": [], "chapters": []
+    },
+    {
+      "slug": "similac", "index": "", "title": "Similac Virgo", "client": "Similac",
+      "year": 2024, "live": true, "hero": { "type": "video", "src": "" }, "details": {}, "media": [], "chapters": []
+    },
+    {
+      "slug": "forbes", "index": "", "title": "Forbes Vanguard", "client": "Forbes",
+      "year": null, "live": true, "hero": { "type": "video", "src": "" }, "details": {}, "media": [], "chapters": []
+    }
+  ],
+  "clients": [
+    { "name": "Forbes Vanguard", "slug": "forbes" },
+    { "name": "Techcombank Priority", "slug": "tcb-priority" },
+    { "name": "Sulwhasoo", "slug": "sulwhasoo" },
+    { "name": "Similac Virgo 2024", "slug": "similac" },
+    { "name": "Bitis Season 09", "slug": "bitis09" }
+  ]
+}
