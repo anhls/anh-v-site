@@ -10,11 +10,12 @@ import { buildPlaceholders } from './sections/placeholders.js';
 import { buildIndex } from './sections/project-index.js';
 import { initNav } from './effects/nav.js';
 import { initClickSound } from './effects/clicksound.js';
+import { SCROLL } from './timeline.js';
 
 gsap.registerPlugin(ScrollTrigger);
 
 // Lenis drives the scroll; GSAP's ticker feeds it so pinned sections stay in sync.
-const lenis = new Lenis();
+const lenis = new Lenis({ duration: SCROLL.duration, easing: SCROLL.easing }); // Framer "Intensity 30"; tune in timeline.js
 lenis.on('scroll', ScrollTrigger.update);
 gsap.ticker.add((time) => lenis.raf(time * 1000));
 gsap.ticker.lagSmoothing(0);

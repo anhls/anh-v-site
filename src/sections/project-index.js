@@ -1,30 +1,38 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { INDEX } from '../timeline.js';
+import { INDEX, SPRING } from '../timeline.js';
+import { springLayer } from '../effects/springs.js';
+import { bezier } from '../util/bezier.js';
 
 // Project index (190-590vh): the 100vh sticky block (filled here) holds three rows stacked in the SAME place.
-// Each row is a full-width band that clips its content: label (PRJ - 01), title (centred) and year move together.
-// Two swaps slide one row up and out while the next rises from below, linear with scroll. The swap ranges come
-// from src/timeline.js (INDEX.swap) and are linked to the hero image peels there.
+// Each row is a full-width band that clips its content: label (PRJ - 01), title (centred) and year.
+// Two things move them, both driven from src/timeline.js (INDEX):
+//   1. Row blocks: two swaps slide one row up and out while the next rises from below, linear with scroll,
+//      chased through a spring (SPRING.indexRow). Linked to the hero image peels there.
+//   2. Characters: every character rises from 200px below its band, in TIME, once per page load, when its row
+//      arrives (row 1 at 50% in view, row 2 at the start of swap 1, row 3 at the start of swap 2).
 export function buildIndex(root, projects) {
   const list = projects.filter((p) => p.index); // the projects that have an index number (PRJ-01..03)
   const sticky = root.querySelector('.index__sticky');
   if (!sticky || list.length === 0) return;
 
-  const letters = (title) => [...title].map((c) => `<span class="index__char" aria-hidden="true">${c === ' ' ? '&nbsp;' : c}</span>`).join('');
+  const chars = (text, cls) => [...String(text)].map((c) => `<span class="index__char ${cls}" aria-hidden="true">${c === ' ' ? '&nbsp;' : c}</span>`).join('');
   sticky.innerHTML = list.map((p) => `
     <a class="index__band" href="/work/${p.slug}.html" aria-label="${p.title}, ${p.year}">
-      <span class="index__label">${p.index.replace('-', ' - ')}</span>
-      <span class="index__title">${letters(p.title)}</span>
-      <span class="index__year">${p.year ?? ''}</span>
+      <span class="index__inner">
+        <span class="index__label">${chars(p.index.replace('-', ' - '), 'is-side')}</span>
+        <span class="index__title">${chars(p.title, 'is-title')}</span>
+        <span class="index__year">${chars(p.year ?? '', 'is-side')}</span>
+      </span>
     </a>`).join('');
 
   const bands = [...sticky.querySelectorAll('.index__band')];
   const rows = bands.map((band) => ({
     band,
-    block: [band.querySelector('.index__label'), band.querySelector('.index__title'), band.querySelector('.index__year')],
-    sides: [band.querySelector('.index__label'), band.querySelector('.index__year')],
-    chars: [...band.querySelectorAll('.index__char')],
+    inner: band.querySelector('.index__inner'),
+    side: [...band.querySelectorAll('.index__char.is-side')],
+    title: [...band.querySelectorAll('.index__char.is-title')],
+    target: { y: 0 },
   }));
 
   const vh = (n) => () => (window.innerHeight * n) / 100;
@@ -32,42 +40,34 @@ export function buildIndex(root, projects) {
   const swaps = INDEX.swap.slice(0, rows.length - 1);
   const base = swaps[0][0];
   const end = swaps[swaps.length - 1][1];
-  const stagger = INDEX.letterStagger;
 
+  // --- 1. Row blocks ---------------------------------------------------------------------------------------
+  // A scrubbed timeline writes each row's target y; a spring layer per row chases it and moves the block.
   const tl = gsap.timeline({
     defaults: { ease: 'none' },
     scrollTrigger: { start: vh(base), end: vh(end), scrub: true, invalidateOnRefresh: true },
   });
-
-  // Rise/leave for one row. `incoming` rises from below (+travel -> 0), otherwise it leaves upward (0 -> -travel).
-  const move = (row, incoming, at, len) => {
-    const from = incoming ? { y: travel } : { y: 0 };
-    const to = incoming ? { y: 0 } : { y: () => -travel() };
-    // A later "leaving" tween must not reset a row that an earlier tween already moved.
-    const opts = { immediateRender: incoming };
-    if (stagger > 0) {
-      // Labels and years slide as a block; the title's letters rise one after another, finishing at the end of the range.
-      tl.fromTo(row.sides, from, { ...to, duration: len, ...opts }, at);
-      const n = row.chars.length;
-      // Keep the whole stagger inside the swap range: long titles get a smaller step, the last letter ends with the range.
-      const step = Math.min(stagger, (len * 0.75) / Math.max(1, n - 1));
-      const each = len - step * (n - 1);
-      if (incoming) {
-        tl.set(row.chars, { y: travel, immediateRender: true }, 0); // all letters start below the band
-        tl.to(row.chars, { y: 0, duration: each, stagger: step }, at);
-      } else {
-        tl.fromTo(row.chars, { y: 0 }, { y: () => -travel(), duration: each, stagger: step, immediateRender: false }, at);
-      }
-    } else {
-      tl.fromTo(row.block, from, { ...to, duration: len, ...opts }, at);
-    }
-  };
-
   swaps.forEach(([a, b], i) => {
     const at = (a - base) / 100;
     const len = (b - a) / 100;
-    move(rows[i], false, at, len);
-    move(rows[i + 1], true, at, len);
+    // Row i leaves upward; row i+1 rises from below. A later "leaving" tween must not reset a row an earlier tween moved.
+    tl.fromTo(rows[i].target, { y: 0 }, { y: () => -travel(), duration: len, immediateRender: i === 0 }, at);
+    tl.fromTo(rows[i + 1].target, { y: travel }, { y: 0, duration: len }, at);
+  });
+  rows.forEach((row) => {
+    springLayer({ target: row.target, springs: { y: SPRING.indexRow }, apply: (v) => gsap.set(row.inner, { y: v.y }) });
+  });
+
+  // --- 2. Characters ---------------------------------------------------------------------------------------
+  // All characters start hidden below their band; the rise plays once when the row arrives.
+  rows.forEach((row) => gsap.set([...row.side, ...row.title], { y: travel }));
+  const { side, titleFirst, titleNext } = INDEX.text;
+  const rise = (els, cfg) => gsap.to(els, { y: 0, duration: cfg.duration, stagger: cfg.stagger, ease: bezier(...cfg.ease) });
+  const arrive = (row, titleCfg) => { rise(row.side, side); rise(row.title, titleCfg); };
+
+  ScrollTrigger.create({ trigger: rows[0].band, start: 'center bottom', once: true, onEnter: () => arrive(rows[0], titleFirst) });
+  swaps.forEach(([a], i) => {
+    ScrollTrigger.create({ start: vh(a), end: 'max', once: true, onEnter: () => arrive(rows[i + 1], titleNext) });
   });
 
   // Only the row that is showing can be clicked (the bands sit on top of each other).

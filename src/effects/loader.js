@@ -1,5 +1,6 @@
 import { gsap } from 'gsap';
 import { LOADER } from '../timeline.js';
+import { bezier } from '../util/bezier.js';
 
 // Full-screen loader. "Loading visual language": each word rises into place from below its own clipped line
 // (staggered), holds while the page loads, then rises out, and the black backdrop collapses upward.
@@ -22,6 +23,7 @@ export function runLoader(text, urls, onReady) {
   const label = el.querySelector('.loader__label');
   const num = label.querySelector('span');
   const { arrive, leave, wipe } = LOADER;
+  const curve = bezier(...LOADER.ease); // Framer's overshoot curve: words rise slightly past their spot, then settle
   const started = performance.now();
 
   // Label follows the cursor (eased). Sits top-left until the mouse moves.
@@ -32,7 +34,7 @@ export function runLoader(text, urls, onReady) {
   window.addEventListener('mousemove', onMove);
 
   // Words rise in.
-  const arriving = gsap.fromTo(words, { y: `${arrive.rise}em` }, { y: 0, duration: arrive.duration, stagger: arrive.stagger, ease: arrive.ease });
+  const arriving = gsap.fromTo(words, { y: `${arrive.rise}em` }, { y: 0, duration: arrive.duration, stagger: arrive.stagger, ease: curve });
 
   // Progress.
   const video = document.querySelector('.hero__video');
@@ -73,7 +75,8 @@ export function runLoader(text, urls, onReady) {
       window.removeEventListener('mousemove', onMove);
       const out = gsap.timeline({ onComplete: () => { el.remove(); resolve(); } });
       out.to(label, { opacity: 0, duration: 0.3, ease: 'power1.out' }, 0)
-        .to([...words].reverse(), { y: `-${arrive.rise}em`, duration: leave.duration, stagger: leave.stagger, ease: leave.ease }, 0)
-        .to(bg, { scaleY: 0, y: `-${wipe.liftVh}vh`, duration: wipe.duration, ease: wipe.ease }, wipe.delay);
+        .to([...words].reverse(), { y: `-${arrive.rise}em`, duration: leave.duration, stagger: leave.stagger, ease: curve }, 0)
+        // The backdrop uses the same curve but never overshoots: a scaleY below 0 would flip it open again.
+        .to(bg, { scaleY: 0, y: `-${wipe.liftVh}vh`, duration: wipe.duration, ease: (t) => Math.min(1, curve(t)) }, wipe.delay);
     }));
 }

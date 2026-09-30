@@ -135,6 +135,21 @@ Cowork pass check (2026-10-01): headless Chromium at 1920x1080, same scroll scri
 - Use data.json projects (index, title, year, slug) as the source; no hard-coded text.
 Test at 1440x900, 1920x1080, 2560x1440 against the numbers above, commit, log before/after in status.md, stop for preview.
 
+## R10 [done]: Motion fidelity pass (springs, float, smooth scroll, text effects)
+Read docs/framer-extract/motion-spec.md first: it is extracted from the published Framer code (exact springs, eases, triggers) plus measured ranges. Anh's priority: the organic floating feel and weight, which the rebuild is missing.
+1. Smooth scroll: Lenis duration 3 with easing t => Math.min(1, 1.001 - 2 ** (-10 * t)) (Framer "Intensity 30"). Put it in timeline.js as SCROLL so Anh can tune it (e.g. 2.5).
+2. Spring layer: one shared rAF loop (Architecture rule 3) that lets a layer chase its scroll-mapped target through a spring (stiffness/damping/mass from the spec). Apply to: #3 section, the two gallery peels, overlays, project index rows. #1/#2 sections stay direct. All springs live in timeline.js next to their ranges.
+3. Mask vertical float (spec section 3): outer wrapper y 0 to -27.78vh over 128.2-177.7 (spring 891/90/0.5), inner wrapper y 0 to +27.78vh over 189.3-212.6 (spring 648/58/1). Link both to anchors in timeline.js. Verify the mask centre path: 50% until ~128vh, 22% at ~178-189, back to 50% by ~213.
+4. Missing hero details: video opacity 0.15 to 0.8 and ticker opacity 1 to 0 + y 0 to -500px, both over 0-90vh (no spring).
+5. About: soft opacity transition (~0.2s) on each word; ABOUT arrow loop (x 0 to 30px, 1s, ease .44,0,.56,1, mirror, 0.5s pause).
+6. Project index: replace INDEX.letterStagger with the real time-based per-character appear effects from spec section 5 (once per load). Row blocks keep the scroll ranges, now with spring 500/60/1.
+7. Nav: switch transition to spring 650/100/0.7 (same end positions); return to the BIG wordmark state when the footer comes into view (spec section 6). Links: hover roll spring (bounce 0.2, 0.4s).
+8. Loader: use the real curves (0.8s, delays 0/0.1/0.2 per word; 1s with delays 0/0.3 for the backdrop; ease cubic-bezier(.59,.25,.12,1.17)).
+Performance guard: after this, run the same 60fps check as before (rebuild was 60fps median / 8% slow frames). Springs must not read layout per frame. Test at 1440x900, 1920x1080, 2560x1440, commit, log, stop for preview. Anh will judge the feel side by side with anh-v.com.
+
+## R11 (next): clients + footer
+To be written after R10 (clients hover states and image cursors are in motion-spec section 8).
+
 ## Later: responsive (tablet/phone)
 Structure is ready (vw/vh units, timeline.js, CSS custom properties), but portrait screens need their own values: mask 17vw x 50vh becomes a thin strip, About runs to 15 lines on a phone, captions crowd. Also use small/large viewport units (svh/lvh) for the sticky blocks and ScrollTrigger.config({ ignoreMobileResize: true }) so the mobile address bar doesn't make things jump. Follow HANDOFF "Responsive plan".
 

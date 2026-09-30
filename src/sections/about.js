@@ -1,6 +1,7 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ABOUT, SECTIONS } from '../timeline.js';
+import { bezier } from '../util/bezier.js';
 
 // About: 90vh spacer, then a 100vh sticky block (top 0). Words fade 0.2 -> 1 as the page scrolls
 // through ABOUT.reveal (vh of page scroll, from src/timeline.js), moving forward through the text.
@@ -8,26 +9,7 @@ import { ABOUT, SECTIONS } from '../timeline.js';
 const SOFT = 1; // how many words are mid-fade at once (the soft edge of the wave); live is ~1 letter
 const MIN_OPACITY = 0.2;
 
-// cubic-bezier(0.4, 0, 0.2, 1) as a function of x -> y (Newton + bisection).
-function bezier(x1, y1, x2, y2) {
-  const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
-  const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
-  const sx = (t) => ((ax * t + bx) * t + cx) * t;
-  const sy = (t) => ((ay * t + by) * t + cy) * t;
-  return (x) => {
-    if (x <= 0) return 0;
-    if (x >= 1) return 1;
-    let lo = 0, hi = 1, t = x;
-    for (let i = 0; i < 24; i++) {
-      const v = sx(t);
-      if (Math.abs(v - x) < 1e-5) break;
-      if (v < x) lo = t; else hi = t;
-      t = (lo + hi) / 2;
-    }
-    return sy(t);
-  };
-}
-const ease = bezier(0.4, 0, 0.2, 1);
+const ease = bezier(0.4, 0, 0.2, 1); // the reveal wave eases each word in
 
 export function buildAbout(root, about) {
   const words = about.text.trim().split(/\s+/);
@@ -46,6 +28,8 @@ export function buildAbout(root, about) {
     </section>`);
 
   const section = root.querySelector('.about');
+  const fade = ABOUT.wordFade;
+  section.style.setProperty('--about-word-fade', `${fade.duration}s cubic-bezier(${fade.ease.join(',')})`);
   const els = [...section.querySelectorAll('.about__word')];
   const n = els.length;
   const last = new Array(n).fill(-1);
@@ -76,5 +60,24 @@ export function buildAbout(root, about) {
     y: () => (ScrollTrigger.maxScroll(window) - startPx()) * (1 - speed),
     ease: 'none',
     scrollTrigger: { start: startPx, end: 'max', scrub: true, invalidateOnRefresh: true },
+  });
+
+  // The ABOUT arrow nudges right and back, forever (x 0 to 30px, 1s, mirrored, 0.5s pause between legs).
+  // Paused while the section is off screen so it costs nothing.
+  const { xVw, duration, pause, ease: arrowEase } = ABOUT.arrow;
+  const nudge = gsap.to(section.querySelector('.about__icon'), {
+    x: `${xVw}vw`,
+    duration,
+    ease: bezier(...arrowEase),
+    repeat: -1,
+    yoyo: true,
+    repeatDelay: pause,
+    paused: true,
+  });
+  ScrollTrigger.create({
+    trigger: section,
+    start: 'top bottom',
+    end: 'bottom top',
+    onToggle: (self) => (self.isActive ? nudge.play() : nudge.pause()),
   });
 }

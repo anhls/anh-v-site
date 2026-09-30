@@ -120,6 +120,15 @@ html.lenis, html.lenis body { height: auto; }
   display: grid;
   place-items: center;
 }
+/* Two wrappers around the mask that float it vertically (translateY by springs). Each keeps the mask centred. */
+.hero__float,
+.hero__float2 {
+  display: grid;
+  place-items: center;
+  width: 100vw;
+  height: 100vh;
+  will-change: transform;
+}
 .hero__wrapper {
   position: relative;
   width: 100vw;
@@ -164,18 +173,17 @@ html.lenis, html.lenis body { height: auto; }
   pointer-events: none;
 }
 
+/* .ticker moves/fades with the scroll (GSAP: opacity 1 to 0, y 0 to -500px); .ticker__clip holds its own 0.5 opacity. */
 .ticker {
   position: absolute;
-  opacity: 0.5;
   left: 0;
   right: 0;
-  top: 50%;
-  height: 0.469vw; /* 9px at 1920 */
-  transform: translateY(-50%); /* vertically centred in the 1st section */
+  top: calc(50% - 0.2345vw); /* vertically centred in the 1st section (height 0.469vw) */
+  height: 0.469vw;           /* 9px at 1920 */
   z-index: 2;
-  overflow: hidden;
   pointer-events: none;
 }
+.ticker__clip { height: 100%; overflow: hidden; opacity: 0.5; }
 .ticker__track { display: flex; width: max-content; }
 /* Each item is one SVG, 182 x 9 px at 1920 (the live page shows it 1.3x bigger because the first section is scaled 1.3x). */
 .ticker__item {
@@ -229,9 +237,8 @@ html.lenis, html.lenis body { height: auto; }
   overflow: hidden;
   line-height: 18px;
 }
-.nav .roll { display: block; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+.nav .roll { display: block; will-change: transform; } /* nav.js moves it with a spring on hover */
 .nav .roll span { display: block; height: 18px; }
-.nav a:hover .roll { transform: translateY(-18px); }
 
 /* About: 190vh = 90vh spacer + 100vh sticky block. Label/icon offsets are in em of the About font size. */
 .about { position: relative; }
@@ -249,7 +256,8 @@ html.lenis, html.lenis body { height: auto; }
   color: #fff;
 }
 .about__text { margin: 0; text-indent: var(--about-indent); }
-.about__word { will-change: opacity; }
+/* Each word eases its opacity (duration/ease set by about.js from ABOUT.wordFade) so the reveal is soft. */
+.about__word { will-change: opacity; transition: opacity var(--about-word-fade, 0.2s cubic-bezier(0.4, 0, 0.2, 1)); }
 .about__label {
   position: absolute;
   left: calc(var(--about-size) * 0.453); /* 29px at 64px */
@@ -265,6 +273,7 @@ html.lenis, html.lenis body { height: auto; }
   top: 0.125em;  /* 8px */
   width: 0.25em; /* 16px */
   height: 0.25em;
+  will-change: transform; /* the arrow nudges right and back in a loop (about.js) */
 }
 
 /* About sits above the hero layer (z 4); its sticky block is z 3 */
@@ -287,6 +296,8 @@ html.lenis, html.lenis body { height: auto; }
   pointer-events: none; /* only the showing row (.is-active) takes clicks */
 }
 .index__band.is-active { pointer-events: auto; }
+/* The row block (label + title + year) slides as one; project-index.js moves it with a spring. */
+.index__inner { position: absolute; inset: 0; display: block; will-change: transform; }
 .index__title {
   display: block;
   text-align: center;
