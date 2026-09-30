@@ -3,6 +3,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { INDEX, SPRING } from '../timeline.js';
 import { springLayer } from '../effects/springs.js';
 import { bezier } from '../util/bezier.js';
+import { dist, scrollPx } from '../scale.js';
 
 // Project index (190-590vh): the 100vh sticky block (filled here) holds three rows stacked in the SAME place.
 // Each row is a full-width band that clips its content: label (PRJ - 01), title (centred) and year.
@@ -35,24 +36,19 @@ export function buildIndex(root, projects) {
     target: { y: 0 },
   }));
 
-  const vh = (n) => () => (window.innerHeight * n) / 100;
-  const travel = vh(INDEX.travelVh);
-  const swaps = INDEX.swap.slice(0, rows.length - 1);
-  const base = swaps[0][0];
-  const end = swaps[swaps.length - 1][1];
+  const travel = () => dist(INDEX.travelVh); // a capped distance: 200px above 1080
+  const swaps = INDEX.swap.slice(0, rows.length - 1); // px-based ranges (see src/scale.js)
 
   // --- 1. Row blocks ---------------------------------------------------------------------------------------
-  // A scrubbed timeline writes each row's target y; a spring layer per row chases it and moves the block.
-  const tl = gsap.timeline({
-    defaults: { ease: 'none' },
-    scrollTrigger: { start: vh(base), end: vh(end), scrub: true, invalidateOnRefresh: true },
-  });
+  // One scrubbed timeline per swap writes the rows' target y; a spring layer per row chases it and moves the block.
   swaps.forEach(([a, b], i) => {
-    const at = (a - base) / 100;
-    const len = (b - a) / 100;
+    const tl = gsap.timeline({
+      defaults: { ease: 'none' },
+      scrollTrigger: { start: () => scrollPx(a), end: () => scrollPx(b), scrub: true, invalidateOnRefresh: true },
+    });
     // Row i leaves upward; row i+1 rises from below. A later "leaving" tween must not reset a row an earlier tween moved.
-    tl.fromTo(rows[i].target, { y: 0 }, { y: () => -travel(), duration: len, immediateRender: i === 0 }, at);
-    tl.fromTo(rows[i + 1].target, { y: travel }, { y: 0, duration: len }, at);
+    tl.fromTo(rows[i].target, { y: 0 }, { y: () => -travel(), duration: 1, immediateRender: i === 0 }, 0);
+    tl.fromTo(rows[i + 1].target, { y: travel }, { y: 0, duration: 1 }, 0);
   });
   rows.forEach((row) => {
     springLayer({ target: row.target, springs: { y: SPRING.indexRow }, apply: (v) => gsap.set(row.inner, { y: v.y }) });
@@ -67,7 +63,7 @@ export function buildIndex(root, projects) {
 
   ScrollTrigger.create({ trigger: rows[0].band, start: 'center bottom', once: true, onEnter: () => arrive(rows[0], titleFirst) });
   swaps.forEach(([a], i) => {
-    ScrollTrigger.create({ start: vh(a), end: 'max', once: true, onEnter: () => arrive(rows[i + 1], titleNext) });
+    ScrollTrigger.create({ start: () => scrollPx(a), end: 'max', once: true, onEnter: () => arrive(rows[i + 1], titleNext) });
   });
 
   // Only the row that is showing can be clicked (the bands sit on top of each other).
@@ -76,8 +72,8 @@ export function buildIndex(root, projects) {
     start: 0,
     end: 'max',
     onUpdate: (self) => {
-      const y = (self.scroll() / window.innerHeight) * 100;
-      const now = swaps.filter(([a, b]) => y >= (a + b) / 2).length;
+      const y = self.scroll();
+      const now = swaps.filter(([a, b]) => y >= (scrollPx(a) + scrollPx(b)) / 2).length;
       if (now !== active) { active = now; bands.forEach((b, i) => b.classList.toggle('is-active', i === now)); }
     },
   });

@@ -1,6 +1,7 @@
 import { gsap } from 'gsap';
 import { LOADER } from '../timeline.js';
 import { bezier } from '../util/bezier.js';
+import { dist } from '../scale.js';
 
 // Full-screen loader. "Loading visual language": each word rises into place from below its own clipped line
 // (staggered), holds while the page loads, then rises out, and the black backdrop collapses upward.
@@ -77,6 +78,6 @@ export function runLoader(text, urls, onReady) {
       out.to(label, { opacity: 0, duration: 0.3, ease: 'power1.out' }, 0)
         .to([...words].reverse(), { y: `-${arrive.rise}em`, duration: leave.duration, stagger: leave.stagger, ease: curve }, 0)
         // The backdrop uses the same curve but never overshoots: a scaleY below 0 would flip it open again.
-        .to(bg, { scaleY: 0, y: `-${wipe.liftVh}vh`, duration: wipe.duration, ease: (t) => Math.min(1, curve(t)) }, wipe.delay);
+        .to(bg, { scaleY: 0, y: () => -dist(wipe.liftVh), duration: wipe.duration, ease: (t) => Math.min(1, curve(t)) }, wipe.delay);
     }));
 }

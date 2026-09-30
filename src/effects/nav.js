@@ -2,6 +2,7 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { NAV, SPRING } from '../timeline.js';
 import { springLayer, springFromBounce } from './springs.js';
+import { capW, capH } from '../scale.js';
 
 // Nav + AV wordmark. Measured on the live site at 1920x1080 (see docs/HANDOFF.md, docs/framer-extract/motion-spec.md).
 // Two states: BIG (wordmark bottom-left, links spread out) and SMALL (wordmark top-left, links grouped right).
@@ -14,7 +15,7 @@ const ASPECT = 1572 / 345; // wordmark width / height
 const BASE_W = 81.875;     // base box width in vw (the bottom-left start state, 1572px)
 const WORDMARK = {
   big: { x: 0 },
-  small: { x: 3.125, y: 3.241, width: 8.802 }, // x in vw, y in vh, width in vw (169px wide, x 60, y 35)
+  small: { x: 3.125, y: 3.241, width: 8.802 }, // x in capped vw, y in capped vh, width in vw (169px wide, x 60, y 35; above 1920x1080: x/y/height stay fixed, width scales)
 };
 const LINKS = {
   About: [25.8, 75.2],
@@ -37,17 +38,22 @@ export function initNav(wordmarkSrc, lenis) {
   // Measurements cached once and on resize (nothing is read per frame).
   let W = window.innerWidth;
   let H = window.innerHeight;
+  let CW = capW(); // the capped width/height (src/scale.js): small-state x, y and height stop growing past 1920x1080
+  let CH = capH();
   const vw = (n) => (n / 100) * W;
-  const vh = (n) => (n / 100) * H;
+  const cw = (n) => (n / 100) * CW;
+  const ch = (n) => (n / 100) * CH;
 
   const state = { p: 0 }; // target: 0 = big, 1 = small
   const apply = (v) => {
     const p = v.p;
     const bigY = H - vw(BASE_W) / ASPECT; // flush with the bottom
+    const baseH = vw(BASE_W) / ASPECT;
     gsap.set(img, {
-      x: vw(WORDMARK.big.x) + (vw(WORDMARK.small.x) - vw(WORDMARK.big.x)) * p,
-      y: bigY + (vh(WORDMARK.small.y) - bigY) * p,
-      scale: 1 + (WORDMARK.small.width / BASE_W - 1) * p,
+      x: vw(WORDMARK.big.x) + (cw(WORDMARK.small.x) - vw(WORDMARK.big.x)) * p,
+      y: bigY + (ch(WORDMARK.small.y) - bigY) * p,
+      scaleX: 1 + (WORDMARK.small.width / BASE_W - 1) * p,
+      scaleY: 1 + (cw(WORDMARK.small.width) / ASPECT / baseH - 1) * p, // height follows the capped width
       transformOrigin: '0 0',
     });
     links.forEach((a) => {
@@ -66,7 +72,7 @@ export function initNav(wordmarkSrc, lenis) {
   const check = () => { state.p = target(); };
   window.addEventListener('scroll', check, { passive: true });
   if (lenis) lenis.on('scroll', check);
-  window.addEventListener('resize', () => { W = window.innerWidth; H = window.innerHeight; layer.snap(); });
+  window.addEventListener('resize', () => { W = window.innerWidth; H = window.innerHeight; CW = capW(); CH = capH(); layer.snap(); });
 
   // Big again while the footer is in view (threshold 0: as soon as any of it shows).
   const footer = document.querySelector('.footer');

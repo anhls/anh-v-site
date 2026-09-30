@@ -12,21 +12,28 @@
   --font-display: 'Clash Display', system-ui, sans-serif;
   --font-body: var(--font-display);
 
-  /* About (measured at 1920x1080: 64px, x 60, w 1800, top 372px in the sticky block, indent 330px) */
-  --about-size: clamp(2.5rem, 3.333vw, 6rem);
+  /* Scale rule (R11b, src/scale.js): 1 --ux is 1vw up to 1920px wide then fixed at 19.2px; 1 --uy is 1vh up to 1080px
+     tall then fixed at 10.8px. Type, UI sizes and offsets use them, so they are proportional up to 1920x1080 and
+     stay at their 1920 value above it. Frames and full-screen media use plain vw/vh. (scale.js sets --cap-w/--cap-h.) */
+  --ux: min(1vw, var(--cap-w, 19.2px));
+  --uy: min(1vh, var(--cap-h, 10.8px));
+
+  /* About (measured at 1920x1080: 64px, x 60, w 1800, top 372px in the sticky block, indent 330px; at 2560 live keeps
+     64px, x 60 and a 60px right margin, so the box is viewport - 120) */
+  --about-size: clamp(2.5rem, calc(var(--ux) * 3.333), 6rem);
   --about-lh: 1;
   --about-ls: -0.01em;
-  --about-x: 3.125vw;
-  --about-w: 93.75vw;
-  --about-top: 34.44vh;
-  --about-indent: 17.19vw;
-  --about-label-size: clamp(0.625rem, 0.625vw, 1rem);
+  --about-x: calc(var(--ux) * 3.125);
+  --about-w: calc(100vw - 2 * var(--about-x));
+  --about-top: calc(50vh - var(--uy) * 15.56);        /* 372px at 1080; live keeps it centre-anchored above that (552px at 1440) */
+  --about-indent: calc(var(--ux) * 17.19);
+  --about-label-size: clamp(0.625rem, calc(var(--ux) * 0.625), 1rem);
 
   /* Project index (measured at 1920x1080: title 80px, band 64px tall at y 508, label/year 12px at x 60 / y 534) */
-  --index-size: clamp(2.5rem, 4.167vw, 8rem);
-  --index-x: 3.125vw;
-  --index-top: 47.04vh;
-  --index-label-size: clamp(0.625rem, 0.625vw, 1rem);
+  --index-size: clamp(2.5rem, calc(var(--ux) * 4.167), 8rem);
+  --index-x: calc(var(--ux) * 3.125);
+  --index-top: calc(50vh - var(--uy) * 2.963); /* centred on the screen, 32px above the middle (live at 1080 and 1440) */
+  --index-label-size: clamp(0.625rem, calc(var(--ux) * 0.625), 1rem);
 }
 
 *,
@@ -37,7 +44,10 @@
 
 html {
   background: var(--bg);
+  /* Hide the scrollbar so vw matches the layout width — the live Framer site does the same. */
+  scrollbar-width: none;
 }
+html::-webkit-scrollbar { display: none; }
 
 body {
   margin: 0;
@@ -81,7 +91,7 @@ html.lenis, html.lenis body { height: auto; }
   display: flex;
   gap: 0.25em;
   margin: 0;
-  font-size: 3.333vw; /* 64px at the 1920 reference */
+  font-size: calc(var(--ux) * 3.333); /* 64px at the 1920 reference, then fixed */
   font-weight: 500;
   letter-spacing: -0.02em;
   line-height: 1;
@@ -230,7 +240,7 @@ html.lenis, html.lenis body { height: auto; }
 .nav a {
   position: absolute;
   left: 0; /* nav.js translates x */
-  top: 2.24vw;
+  top: calc(var(--ux) * 2.24); /* 43px at 1920, then fixed (live: links stay at y 61) */
   will-change: transform;
   display: block;
   height: 18px;

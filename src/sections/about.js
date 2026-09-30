@@ -2,6 +2,7 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ABOUT, SECTIONS } from '../timeline.js';
 import { bezier } from '../util/bezier.js';
+import { capW, scrollPx } from '../scale.js';
 
 // About: 90vh spacer, then a 100vh sticky block (top 0). Words fade 0.2 -> 1 as the page scrolls
 // through ABOUT.reveal (vh of page scroll, from src/timeline.js), moving forward through the text.
@@ -45,28 +46,38 @@ export function buildAbout(root, about) {
 
   section.style.height = `${SECTIONS.about[1] - SECTIONS.about[0]}vh`;
   ScrollTrigger.create({
-    start: () => (window.innerHeight * ABOUT.reveal[0]) / 100,
-    end: () => (window.innerHeight * ABOUT.reveal[1]) / 100,
+    start: () => scrollPx(ABOUT.reveal[0]),
+    end: () => scrollPx(ABOUT.reveal[1]),
     invalidateOnRefresh: true,
     onUpdate: (self) => update(self.progress),
     onRefresh: (self) => update(self.progress),
   });
 
-  // Drift: from ABOUT.drift.from the block moves at `speed` x scroll speed, so it lags the page.
-  // Written as a scrubbed translateY that grows by (1 - speed) per px of scroll, until the end of the page.
-  const { from, speed } = ABOUT.drift;
-  const startPx = () => (window.innerHeight * from) / 100;
-  gsap.to(section.querySelector('.about__block'), {
-    y: () => (ScrollTrigger.maxScroll(window) - startPx()) * (1 - speed),
-    ease: 'none',
-    scrollTrigger: { start: startPx, end: 'max', scrub: true, invalidateOnRefresh: true },
-  });
+  // Drift: from ABOUT.drift.from the block moves at `speed` x scroll speed, so it lags the page (translateY grows by
+  // (1 - speed) per px of scroll). On top of that, `lift` is the early down-and-back nudge live has (vh keys).
+  // One function of the scroll position; the px values are cached on load and on refresh.
+  const { from, speed, lift } = ABOUT.drift;
+  const block = section.querySelector('.about__block');
+  let startPx = 0;
+  let keys = [];
+  const measure = () => { startPx = scrollPx(from); keys = lift.map(([a, b]) => [scrollPx(a), scrollPx(b)]); };
+  const liftAt = (s) => {
+    for (let i = 1; i < keys.length; i++) {
+      if (s < keys[i][0]) return keys[i - 1][1] + ((keys[i][1] - keys[i - 1][1]) * (s - keys[i - 1][0])) / (keys[i][0] - keys[i - 1][0]);
+    }
+    return keys.length ? keys[keys.length - 1][1] : 0;
+  };
+  const drift = (s) => gsap.set(block, { y: liftAt(s) + Math.max(0, s - startPx) * (1 - speed) });
+  measure();
+  drift(window.scrollY);
+  ScrollTrigger.create({ start: 0, end: 'max', onUpdate: (self) => drift(self.scroll()), onRefresh: (self) => { measure(); drift(self.scroll()); } });
 
   // The ABOUT arrow nudges right and back, forever (x 0 to 30px, 1s, mirrored, 0.5s pause between legs).
   // Paused while the section is off screen so it costs nothing.
   const { xVw, duration, pause, ease: arrowEase } = ABOUT.arrow;
+  const xPx = (xVw / 100) * capW(); // 30px above 1920
   const nudge = gsap.to(section.querySelector('.about__icon'), {
-    x: `${xVw}vw`,
+    x: xPx,
     duration,
     ease: bezier(...arrowEase),
     repeat: -1,

@@ -11,12 +11,15 @@ const LOCAL = arg('local', 'http://localhost:5173/');
 const LIVE = arg('live', 'https://www.anh-v.com/');
 const POINTS = arg('points', '0,15,30,45,60,75,90,140,150,157,165,178,189,200,213,220,330,345,420,500,535,560').split(',').map(Number);
 const SETTLE = +arg('settle', 2000);
+const W = +arg('width', 1920);
+const H = +arg('height', 1080);
+const DUMP = arg('dump', ''); // --dump file.json writes every probe value (live + local) for fitting ranges
 
 // name: [liveSelector, localSelector, kind, tolerance]
-// kinds: ty (translateY px), sc (scale), op (own opacity), opc (opacity incl. ancestors), w (width vw), ctr (centre % of viewport height), top (top % of viewport height)
+// kinds: share (% of leaf spans lit), ty (translateY px), sc (scale), op (own opacity), opc (opacity incl. ancestors), w (width vw), ctr (centre % of viewport height), top (top % of viewport height)
 const PROBES = {
-  maskW: ['[data-framer-name=wrapper]:nth-of-type(n)@1', '.hero__wrapper', 'w', 1.5],
-  maskCtr: ['[data-framer-name=wrapper]:nth-of-type(n)@1', '.hero__wrapper', 'ctr', 1.5],
+  maskW: ['.framer-2w3dnm', '.hero__wrapper', 'w', 1.5],
+  maskCtr: ['.framer-2w3dnm', '.hero__wrapper', 'ctr', 1.5],
   s1y: ['.framer-pq8oj2', '.hero__s1', 'ty', 12], s1sc: ['.framer-pq8oj2', '.hero__s1', 'sc', 0.02],
   s2y: ['.framer-i2mh4w', '.hero__s2', 'ty', 12],
   s3y: ['.framer-1fyez4a', '.hero__s3', 'ty', 25], s3sc: ['.framer-1fyez4a', '.hero__s3', 'sc', 0.02],
@@ -26,6 +29,7 @@ const PROBES = {
   overlay: ['.framer-3xg1dm', '.hero__overlay', 'op', 0.06],
   row1: ['.framer-11eb7tc', '.index__inner@0', 'ty', 12], row2: ['.framer-1o8mqob', '.index__inner@1', 'ty', 12], row3: ['.framer-1z84ym', '.index__inner@2', 'ty', 12],
   aboutTop: ['ABOUT_LIVE', '.about__text', 'top', 1.5],
+  aboutRev: ['ABOUT_LIVE', '.about__text', 'share', 6], // % of the About words/letters that are mostly lit (opacity > 0.6)
 };
 
 const probeFn = ({ probes, side }) => {
@@ -42,6 +46,7 @@ const probeFn = ({ probes, side }) => {
     switch (p[2]) {
       case 'ty': v = m.f; break; case 'sc': v = m.a; break; case 'op': v = +cs.opacity; break;
       case 'opc': { v = 1; let x = el; while (x && x !== document.body) { v *= +getComputedStyle(x).opacity; x = x.parentElement; } break; }
+      case 'share': { const sp = [...el.querySelectorAll('span')].filter((x) => !x.querySelector('span')); v = (sp.filter((x) => +getComputedStyle(x).opacity > 0.6).length / sp.length) * 100; break; }
       case 'w': v = (r.width / innerWidth) * 100; break; case 'ctr': v = (r.top + r.height / 2) / vh; break; case 'top': v = r.top / vh; break;
     }
     out[name] = Math.round(v * 100) / 100;
@@ -50,8 +55,10 @@ const probeFn = ({ probes, side }) => {
 };
 
 async function run(side, url, browser) {
-  const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
-  await page.goto(url); await page.waitForTimeout(side === 'live' ? 15000 : 8000);
+  const page = await browser.newPage({ viewport: { width: W, height: H } });
+  await page.goto(url); await page.waitForTimeout(side === 'live' ? 20000 : 8000);
+  // The live site's scripts sometimes fail to start (no .pin-spacer: the mask never animates). Reload until they do.
+  for (let t = 0; side === 'live' && t < 4 && !(await page.$('.pin-spacer')); t++) { console.log('live not initialised, reloading'); await page.reload(); await page.waitForTimeout(20000); }
   const res = {};
   for (const v of POINTS) {
     await page.evaluate((v) => window.scrollTo(0, (v * innerHeight) / 100), v); await page.waitForTimeout(SETTLE);
@@ -63,9 +70,10 @@ async function run(side, url, browser) {
 const browser = await chromium.launch({ channel: 'chrome' });
 const [live, local] = [await run('live', LIVE, browser), await run('local', LOCAL, browser)];
 await browser.close();
+if (DUMP) (await import('node:fs')).writeFileSync(DUMP, JSON.stringify({ live, local }));
 let bad = 0, total = 0;
 for (const v of POINTS) for (const [name, p] of Object.entries(PROBES)) {
   const a = live[v]?.[name], b = local[v]?.[name]; if (a == null || b == null) continue; total++;
   if (Math.abs(a - b) > p[3]) { bad++; console.log(`${String(v).padStart(3)}vh ${name.padEnd(9)} live ${a}  local ${b}`); }
 }
-console.log(`compare: ${total - bad}/${total} within tolerance, ${bad} mismatches (1920x1080, settle ${SETTLE}ms)`);
+console.log(`compare: ${total - bad}/${total} within tolerance, ${bad} mismatches (${W}x${H}, settle ${SETTLE}ms)`);

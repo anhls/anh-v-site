@@ -27,8 +27,8 @@ px values are at 1080px viewport height (vh = px / 10.8).
 The mask (GSAP width/height timeline, unchanged) sits inside two wrappers that move vertically:
 | Wrapper | Scroll range (vh) | y | Spring |
 |---|---|---|---|
-| outer wrapper | 128.2-177.7 | 0 to -300px (-27.78vh), then holds | 891 / 90 / 0.5 |
-| inner wrapper | 189.3-212.6 | 0 to +300px (+27.78vh), then holds | 648 / 58 / 1 |
+| outer wrapper | 128.2-177.7 | 0 to -300px (-27.78vh), then holds | 10000 / 250 / 1 (stiffened R11b: ~92ms settle, was 891/90/0.5 ~520ms) |
+| inner wrapper | 189.3-212.6 | 0 to +300px (+27.78vh), then holds | 10000 / 250 / 1 |
 Net effect (measured mask centre, % of viewport height): 50 until ~128, rises to 22.2 at ~178 (while the About text scrolls up and the mask reshapes to 25vw x 40vh), holds to ~189, then drops back to 50 by ~213 ("catching up" to the project index). Both apply as translateY on containers around the mask, so the mask resize and the float combine.
 
 ## 4. About
@@ -61,8 +61,8 @@ Variant transitions are tweens with an overshoot ease cubic-bezier(.59,.25,.12,1
 - Hero caption hover image: follows the cursor with spring 500 / 60 / 1, offset x +50px, placed right of the cursor, aligned to its end (bottom).
 - Client names (clients section): each name has its own image cursor, offset x +200px, y +20px, placed right, centred, spring 500 / 60 / 1. Name states Default / Grey / Hover: hovering one name turns the others grey, spring bounce 0.2 / 0.4s.
 
-## 9. Page end
-On live, the hero mask layer disappears at ~585vh (GSAP pin ends) while the overlay is only at ~0.68, so the image pops away. The rebuild keeps the hero under the overlay to 630vh (smoother). Keep the rebuild behaviour unless Anh says otherwise.
+## 9. Page end (decided R11b 2026-10-01)
+On live, the hero mask layer disappears at ~585vh (GSAP pin ends) while the overlay is only at ~0.68, so the image pops away. **Confirmed decision: the rebuild keeps its fade-to-black (hero stays under the overlay to 630vh). The live pop is a Framer GSAP-pin artefact, not the intended design.** Do not replicate it.
 
 ## 10. Mask resize (GSAP) timing
 Verified in headless Chrome at a real 1920x1080: live follows Framer's code exactly, [0,70] expo.inOut, [150,185] expo.out, [500,585] expo.inOut, scrub 0.25. Earlier fits made in the scaled in-app browser panel were wrong.

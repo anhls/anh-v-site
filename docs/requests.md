@@ -1,6 +1,6 @@
 # Requests (from Cowork / Anh to Claude Code)
 
-Only open and upcoming work lives here. Finished requests move to docs/archive/ (R1-R10: archive/requests-R1-R10.md, R11: archive/requests-R11.md).
+Only open and upcoming work lives here. Finished requests move to docs/archive/ (R1-R10: archive/requests-R1-R10.md, R11: archive/requests-R11.md, R11b: archive/requests-R11b.md).
 
 ## R12 (next): clients + footer
 To be written after R11 (clients hover states and image cursors are in motion-spec section 8).
