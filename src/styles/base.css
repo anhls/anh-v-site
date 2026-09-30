@@ -116,7 +116,7 @@ html.lenis, html.lenis body { height: auto; }
 .hero__s1 { z-index: 3; background: #000; }
 .hero__s3 { z-index: 2; }
 .hero__s2 { z-index: 1; }
-.hero__sec img,
+.hero__sec > img,
 .hero__video {
   position: absolute;
   inset: 0;
@@ -132,8 +132,15 @@ html.lenis, html.lenis body { height: auto; }
 /* AV wordmark: fixed, animated by src/effects/nav.js */
 .wordmark {
   position: fixed;
-  z-index: 9;
+  top: 0;
+  left: 0;
+  width: 81.875vw; /* base box = start state (1572 x 345px at 1920); nav.js translates and scales it */
+  aspect-ratio: 1572 / 345;
   height: auto;
+  object-fit: fill;
+  z-index: 9;
+  transform-origin: 0 0;
+  will-change: transform;
   pointer-events: none;
 }
 
@@ -142,21 +149,22 @@ html.lenis, html.lenis body { height: auto; }
   opacity: 0.5;
   left: 0;
   right: 0;
-  top: 49%;
+  top: 50%;
+  height: 0.625vw; /* 12px at 1920 */
+  transform: translateY(-50%); /* vertically centred in the 1st section */
   z-index: 2;
   overflow: hidden;
-  font-size: 0.75rem;
   pointer-events: none;
 }
 .ticker__track { display: flex; width: max-content; }
+/* Each item is one SVG, 237 x 12 px at 1920, repeating every 237px. */
 .ticker__item {
-  display: flex;
-  align-items: center;
-  gap: 4vw;
-  padding-right: 4vw;
-  white-space: nowrap;
+  flex: none;
+  display: block;
+  width: 12.344vw;
+  height: 0.625vw;
+  object-fit: contain;
 }
-.ticker__item img { width: 4px; height: 4px; }
 
 /* Captions are NOT pinned: an absolute layer at the top of the page that scrolls normally.
    Row: 85vh spacer, 24% gap, caption, 8% gap, caption, 8% gap, caption, flexible gap, caption, 11% gap. */
@@ -193,7 +201,9 @@ html.lenis, html.lenis body { height: auto; }
 }
 .nav a {
   position: absolute;
+  left: 0; /* nav.js translates x */
   top: 2.24vw;
+  will-change: transform;
   display: block;
   height: 18px;
   overflow: hidden;

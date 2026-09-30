@@ -9,7 +9,8 @@ export function buildHero(root, hero) {
   const captions = hero.captions
     .map((c) => `<li><span>${c.title}</span><span>${c.client}</span><span>${c.role}</span></li>`)
     .join('');
-  const dots = Array.from({ length: 12 }, () => `<span class="ticker__item"><img src="${hero.tickerDot}" alt="" />${hero.tickerText}</span>`).join('');
+  // The ticker item is one SVG (dot + "Click Anywhere" baked in), 237px wide at 1920. 10 per half so the loop covers the screen.
+  const items = Array.from({ length: 10 }, () => `<img class="ticker__item" src="${hero.ticker}" alt="" />`).join('');
 
   root.insertAdjacentHTML('afterbegin', `
     <div class="hero" id="hero">
@@ -24,7 +25,7 @@ export function buildHero(root, hero) {
           </div>
           <div class="hero__sec hero__s1">
             <video class="hero__video" src="${hero.video}" autoplay muted loop playsinline></video>
-            <div class="ticker" aria-hidden="true"><div class="ticker__track">${dots}${dots}</div></div>
+            <div class="ticker" aria-hidden="true"><div class="ticker__track">${items}${items}</div></div>
           </div>
         </div>
       </div>
@@ -68,9 +69,17 @@ export function buildHero(root, hero) {
     const { yvh, ...rest } = p;
     return yvh === undefined ? rest : { ...rest, y: vhPx(yvh) };
   };
+  // Ease, optionally starting part-way in (easeFrom 0..1), renormalised so it still runs 0 -> 1.
+  const easeOf = (t) => {
+    if (!t.ease) return 'none';
+    if (!t.easeFrom) return t.ease;
+    const base = gsap.parseEase(t.ease);
+    const b0 = base(t.easeFrom);
+    return (p) => (base(t.easeFrom + p * (1 - t.easeFrom)) - b0) / (1 - b0);
+  };
   const add = (target, t) => {
     const pos = t.at[0] / 100;
-    const vars = { ...conv(t.to), ease: t.ease || 'none', duration: (t.at[1] - t.at[0]) / 100 };
+    const vars = { ...conv(t.to), ease: easeOf(t), duration: (t.at[1] - t.at[0]) / 100 };
     if (t.from) tl.fromTo(target, conv(t.from), vars, pos);
     else tl.to(target, vars, pos);
   };

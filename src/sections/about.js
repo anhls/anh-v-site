@@ -1,10 +1,11 @@
+import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ABOUT, SECTIONS } from '../timeline.js';
 
 // About: 90vh spacer, then a 100vh sticky block (top 0). Words fade 0.2 -> 1 as the page scrolls
 // through ABOUT.reveal (vh of page scroll, from src/timeline.js), moving forward through the text.
 // One ScrollTrigger, one update function for the whole block.
-const SOFT = 1.5; // how many words are mid-fade at once (the soft edge of the wave); live is ~1 letter
+const SOFT = 1; // how many words are mid-fade at once (the soft edge of the wave); live is ~1 letter
 const MIN_OPACITY = 0.2;
 
 // cubic-bezier(0.4, 0, 0.2, 1) as a function of x -> y (Newton + bisection).
@@ -65,5 +66,15 @@ export function buildAbout(root, about) {
     invalidateOnRefresh: true,
     onUpdate: (self) => update(self.progress),
     onRefresh: (self) => update(self.progress),
+  });
+
+  // Drift: from ABOUT.drift.from the block moves at `speed` x scroll speed, so it lags the page.
+  // Written as a scrubbed translateY that grows by (1 - speed) per px of scroll, until the end of the page.
+  const { from, speed } = ABOUT.drift;
+  const startPx = () => (window.innerHeight * from) / 100;
+  gsap.to(section.querySelector('.about__block'), {
+    y: () => (ScrollTrigger.maxScroll(window) - startPx()) * (1 - speed),
+    ease: 'none',
+    scrollTrigger: { start: startPx, end: 'max', scrub: true, invalidateOnRefresh: true },
   });
 }

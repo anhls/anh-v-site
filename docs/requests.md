@@ -86,6 +86,16 @@ Read HANDOFF.md "Home page structure (CORRECTED)" first. The current build stack
 - Apply Architecture rules 2 (no GSAP pin on the hero) and 6 (no reload-on-resize) now. Rules 3-5 apply when those sections are built.
 - Test at 1440x900, 1920x1080, 2560x1440. Commit, log in status.md, stop for preview.
 
+## R7 [done]: Tune R6 to the live site (Cowork preview findings, 1920x1080, scroll fully settled)
+Cowork measured both sites at the same scroll points. Hero strip, captions, About start position/size, layering, nav end positions and the 730vh page all match. Fix these:
+1. Mask timing (timeline.js HERO.mask). The live GSAP mask runs earlier than Framer's code numbers. Measured live widths: 5vh 99.1vw, 15vh 91, 25vh 43.8, 30vh 27, 35vh 20.5, 45vh 17.2; 135vh 17, 145vh 23.1, 150vh 24.3, 155vh 24.8, 160vh 25; 500vh 25.1, 520vh 32, 540vh 92.3, 560vh 99.9. Use ranges [0,48] expo.inOut, [137,162] expo.out, [500,562] expo.inOut, then fine-tune so the rebuild hits those widths within ~2vw. The strip ranges stay as they are (they already match).
+2. About drift. Live About text top (vh from viewport top) by page scroll: 0: 124.4, 60: 63.9, 70: 56.9, 100: 35.9, 120: 21.9, 150: 0.9, 190: -27.1, 250: -69.1. From ~60vh it moves at 0.7x scroll speed. Rebuild currently moves 1:1 (150: -25.6). Add ABOUT.drift = { from: 60, speed: 0.7 } in timeline.js and apply it as a transform (translateY) on the block, scrubbed. Match the numbers above within ~2vh.
+3. About reveal. Share of letters lit (opacity > 0.6), live vs rebuild: 45vh 0% vs 10%; 60vh 21% vs 38%; 70vh 69% vs 57%; 80vh 95% vs 76%; 90vh 100% vs 95%. Set ABOUT.reveal to about [50, 85] and make the edge sharper (live is ~1 letter mid-fade; per word is fine, reduce SOFT to ~1). Match the table within ~10%.
+4. Nav optimisation (Architecture rules, "transform and opacity only"). nav.js animates left/top/width. Switch to transforms: wordmark = translate + scale from a fixed base box (transform-origin top left), links = translateX. Same duration (1.1s), ease (expo.out), trigger (5px) and start/end positions. Also strip the BOM at the start of nav.js.
+5. Ticker. Live "Click Anywhere" ticker is an SVG image (https://framerusercontent.com/images/2sWL1DXbPXG6eGRplIQ3eWfr3I8.svg from the Framer canvas, check it's the one on the live page) 237 x 12 px per item at 1920, repeating every ~237px, opacity 0.5, vertically centred in #1 section. Use the image at 12.34vw wide (or text sized with clamp to match), not fixed 0.75rem.
+Re-measure at 1920x1080 against the numbers above, check 1440x900 and 2560x1440, commit, log the before/after numbers in status.md, stop for preview.
+(Anh confirmed the hero video plays in the real browser.)
+
 ## Later (not yet): media optimisation
 Waits for Anh's original files. Convert the two GIFs to MP4/WebM loops, serve images as WebP/AVIF sized to display size (srcset), preload only hero media, lazy-load archive and project images, compress the hero video and add a poster frame, preload the Clash Display woff2.
 

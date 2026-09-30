@@ -27,7 +27,7 @@ initNav(data.hero.wordmark);
 // Loader first: hold scrolling until the hero media is ready.
 window.scrollTo(0, 0);
 lenis.stop();
-const heroAssets = [data.hero.video, data.hero.image, ...data.hero.gallery, data.hero.wordmark, data.hero.tickerDot];
+const heroAssets = [data.hero.video, data.hero.image, ...data.hero.gallery, data.hero.wordmark, data.hero.ticker];
 runLoader(data.loader.text, heroAssets).then(() => {
   lenis.start();
   ScrollTrigger.refresh();

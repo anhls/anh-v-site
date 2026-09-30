@@ -22,11 +22,13 @@ export const HERO = {
   scrub: 0.25,
   range: [0, 585],
   overlay: [490, 630],
-  // Mask size. `at` is [start, end] in vh of page scroll.
+  // Mask size. `at` is [start, end] in vh of page scroll. Fitted to widths measured on the live site
+  // (R7): the live GSAP mask runs earlier than the Framer code numbers (0-70 / 150-185 / 500-585).
+  // `easeFrom` starts the ease part-way in, which reproduces the live scrub lag at the start of the first tween.
   mask: [
-    { at: [0, 70], from: { width: '100vw', height: '100vh' }, to: { width: '17vw', height: '50vh' }, ease: 'expo.inOut' },
-    { at: [150, 185], to: { width: '25vw', height: '40vh' }, ease: 'expo.out' },
-    { at: [500, 585], to: { width: '100vw', height: '100vh' }, ease: 'expo.inOut' },
+    { at: [0, 56], from: { width: '100vw', height: '100vh' }, to: { width: '17vw', height: '50vh' }, ease: 'expo.inOut', easeFrom: 0.15 },
+    { at: [137, 173], to: { width: '25vw', height: '40vh' }, ease: 'expo.out' },
+    { at: [490, 571], to: { width: '100vw', height: '100vh' }, ease: 'expo.inOut' },
   ],
   // Strip inside the mask. `yvh` is translateY in vh; other props go straight to GSAP.
   strip: [
@@ -39,5 +41,6 @@ export const HERO = {
   ],
 };
 
-// About: words light up between these page-scroll positions, moving forward through the text.
-export const ABOUT = { reveal: [40, 95] };
+// About. reveal: words light up between these page-scroll positions (fitted to the live letter shares, R7).
+// drift: from `from` vh of page scroll the text block moves at `speed` x scroll speed (0.7 = slower than the page).
+export const ABOUT = { reveal: [54, 77], drift: { from: 60, speed: 0.7 } };

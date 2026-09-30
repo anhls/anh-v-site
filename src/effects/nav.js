@@ -1,13 +1,15 @@
-﻿import { gsap } from 'gsap';
+import { gsap } from 'gsap';
 import { NAV } from '../timeline.js';
 
 // Nav + AV wordmark. Measured on the live site at 1920x1080 (see docs/HANDOFF.md).
-// Time-based switch (not scrubbed): fires when scrollY >= 5, reverses at scrollY 0.
-// x positions are in vw of the 1920 reference; the wordmark's vertical start is bottom-flush.
+// Time-based switch (not scrubbed): fires when scrollY >= NAV.thresholdPx, reverses at scrollY 0.
+// Transforms only: the wordmark is a fixed base box (CSS: 81.875vw wide, top-left origin) that is
+// translated and scaled; the links sit at left 0 and are translated on x. Positions are in vw of the 1920 reference.
 const ASPECT = 1572 / 345; // wordmark width / height
+const BASE_W = 81.875;     // base box width in vw (the bottom-left start state, 1572px)
 const WORDMARK = {
-  start: { left: 0, width: 81.875 },                // 1572px wide, x 0
-  end: { left: 3.125, top: 3.241, width: 8.802 },   // 169px wide, x 60, y 35 (top in vh)
+  start: { x: 0 },
+  end: { x: 3.125, y: 3.241, width: 8.802 }, // x in vw, y in vh, width in vw (169px wide, x 60, y 35)
 };
 const LINKS = {
   About: [25.8, 75.2],
@@ -25,28 +27,26 @@ export function initNav(wordmarkSrc) {
   document.body.append(img);
 
   const links = [...document.querySelectorAll('.nav a')];
-  const startTop = () => window.innerHeight - (WORDMARK.start.width / 100 * window.innerWidth) / ASPECT; // px, flush with the bottom
+  const vw = (n) => (n / 100) * window.innerWidth;
+  const vh = (n) => (n / 100) * window.innerHeight;
+
+  // Transform targets for each state.
+  const wordmarkAt = (isScrolled) => isScrolled
+    ? { x: vw(WORDMARK.end.x), y: vh(WORDMARK.end.y), scale: WORDMARK.end.width / BASE_W }
+    : { x: vw(WORDMARK.start.x), y: window.innerHeight - vw(BASE_W) / ASPECT, scale: 1 }; // flush with the bottom
+  const linkX = (a, isScrolled) => vw(LINKS[a.dataset.link][isScrolled ? 1 : 0]);
 
   let scrolled = window.scrollY >= NAV.thresholdPx;
   const place = (isScrolled) => {
-    gsap.set(img, isScrolled
-      ? { left: WORDMARK.end.left + 'vw', top: WORDMARK.end.top + 'vh', width: WORDMARK.end.width + 'vw' }
-      : { left: WORDMARK.start.left + 'vw', top: startTop(), width: WORDMARK.start.width + 'vw' });
-    links.forEach((a) => gsap.set(a, { left: LINKS[a.dataset.link][isScrolled ? 1 : 0] + 'vw' }));
+    gsap.set(img, { ...wordmarkAt(isScrolled), transformOrigin: '0 0' });
+    links.forEach((a) => gsap.set(a, { x: linkX(a, isScrolled) }));
   };
   place(scrolled);
 
   const go = (isScrolled) => {
     scrolled = isScrolled;
-    gsap.to(img, {
-      left: (isScrolled ? WORDMARK.end.left : WORDMARK.start.left) + 'vw',
-      top: isScrolled ? WORDMARK.end.top + 'vh' : startTop(),
-      width: (isScrolled ? WORDMARK.end.width : WORDMARK.start.width) + 'vw',
-      duration: DURATION,
-      ease: EASE,
-      overwrite: true,
-    });
-    links.forEach((a) => gsap.to(a, { left: LINKS[a.dataset.link][isScrolled ? 1 : 0] + 'vw', duration: DURATION, ease: EASE, overwrite: true }));
+    gsap.to(img, { ...wordmarkAt(isScrolled), duration: DURATION, ease: EASE, overwrite: true });
+    links.forEach((a) => gsap.to(a, { x: linkX(a, isScrolled), duration: DURATION, ease: EASE, overwrite: true }));
   };
 
   window.addEventListener('scroll', () => {
@@ -55,4 +55,3 @@ export function initNav(wordmarkSrc) {
   }, { passive: true });
   window.addEventListener('resize', () => place(scrolled));
 }
-
