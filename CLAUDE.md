@@ -24,3 +24,12 @@ Measurements come from the live site at 1920x1080. Never hard-code those px valu
 - Images and cards: width in vw with aspect-ratio, so they keep their shape at any window ratio.
 - Keep all breakpoint-specific values in CSS custom properties (e.g. --about-size) so tablet/phone overrides later are one place.
 Desktop must look right at 1440x900, 1920x1080 and 2560x1440. Tablet/phone get their own layouts later (see HANDOFF "Responsive plan").
+
+## Architecture rules (the Framer site's structure was a workaround; don't copy it)
+1. One scroll timeline config. Every scroll-driven animation is defined by page-scroll position in vh in ONE file (src/timeline.js), e.g. `aboutReveal: [40, 95]`, `prj02In: 300`. Sections import their ranges from it. No invisible trigger elements (Framer's TriggerFrame, Project1TextOut, 3SectionProject1Zoom etc. were only markers). Tuning = editing numbers in that file.
+2. Hero is held by CSS sticky only. No GSAP pin on it.
+3. One pointer listener + one requestAnimationFrame loop shared by all cursor effects (click spawner, image trail, caption hover preview, mouse parallax). Effects register/unregister; a section's effect only runs while that section is on screen (ScrollTrigger onToggle or IntersectionObserver). Disabled on touch devices and when prefers-reduced-motion is set.
+4. Archive cards: one element per card. Read positions/sizes once (on load and on resize), then only write transforms in the loop. No getComputedStyle or getBoundingClientRect inside per-frame code.
+5. Letter/word animations: split text once at build time, animate the spans as a group with transform/opacity (stagger or a scrubbed timeline). No per-letter JS work on each scroll event.
+6. No reload-on-resize (Framer's Force_Reload files). On resize: ScrollTrigger.refresh() and re-read cached measurements.
+General: animate only transform and opacity where possible. The hero mask's width/height tween is the one agreed exception.

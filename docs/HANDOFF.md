@@ -43,8 +43,21 @@ Scroll drift on cards: progress = element center vs viewport; parabola = 1 - |pr
 
 Lenis smooth scroll (v1.3.x).
 
-## Home page structure (order, heights in vh)
-Loader ("Loading visual language" + percentage, cursor-following loader) then hero stack 730vh (video + ticker section, image section, 3-image section with overlay), About 190vh (sticky text + ABOUT label), Works/archive 250vh (35 absolutely positioned image cards with titles swapping: Techcombank Priority, Bitis, Sulwhasoo), project index 400vh (PRJ-01 Techcombank Priority 2025, PRJ-02 Bitis DDTV SS09 2024, PRJ-03 Sulwhasoo Launch 2023), clients 140vh (Forbes Vanguard, Techcombank Priority, Sulwhasoo, Similac Virgo 2024, Bitis Season 09), footer 110vh with "^ V" wordmark. Fixed nav: About / Works / Contact.
+## Home page structure (CORRECTED 2026-09-30, measured on the live site at 1920x1080)
+The whole page is 730vh tall. The sections do NOT follow each other after the hero: the hero is a background layer pinned for the entire page, and all other sections scroll over it in one content layer.
+- Hero layer ("sticky1-wrapper"): position absolute, top 0, 730vh tall, z-index 3. Inside: a CSS sticky (top 0) 100vh block holding the mask. The mask timeline runs 0-585vh of page scroll; overlays darken 490-630vh.
+- Content layer ("Main", in normal flow, 730vh total), each part over the hero:
+  | Part | Page range (vh) | Positioning | z-index |
+  |---|---|---|---|
+  | Hero captions ("Header Projects") | 0-261 | absolute, top 0 (85vh spacer first) | 5 |
+  | Click spawner area | 0-100 | absolute, top 0 | 3 |
+  | About ("sticky2-wrapper") | 0-190 | in flow: 90vh spacer + 100vh sticky block | 4 (sticky block 3) |
+  | Project index ("sticky3-wrapper") | 190-590 | in flow: 50vh blank + 100vh sticky block | sticky block 6 |
+  | Archive ("section3") | 211-461 | absolute, top 211vh (2280px), 250vh tall | 4 |
+  | Clients ("sticky4-wrapper") | 590-730 | in flow: 100vh sticky block | 4 |
+  | Footer | 620-730 | absolute, bottom 0, 110vh | - |
+- How they pair up: About lights up around the small mask (17vw x 50vh). The project index titles (PRJ-01/02/03) swap while the 3 images in the mask's #3 section peel away, so each project title goes with one image. The archive cards scroll past the mask and part around it. Clients appear over the full-screen image as the overlay darkens.
+- About reveal (live): letters light from ~40vh to ~95vh of page scroll, sequentially (about one letter mid-fade at a time).
 Card positions/images: read them from the live page or Framer node XML (page id dERIYUY1Z when focused).
 Project pages: video hero, sticky details, split media, chapter titles, scroll reveals, YouTube embeds, Lenis + scroll-fade text. No GSAP.
 

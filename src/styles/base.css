@@ -78,15 +78,27 @@ html.lenis, html.lenis body { height: auto; }
   pointer-events: none;
 }
 
-/* Hero stack: 100vh pinned + 585vh scroll (added by ScrollTrigger) + 45vh tail = 730vh */
+/* Page: 730vh in total. #app is the content layer (normal flow); the hero is a background layer under it.
+   z-index: hero 3, about 4 (its sticky block 3), archive 4, clients 4, index sticky 6, captions 5. */
+#app { position: relative; }
+.hero {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 730vh;
+  z-index: 3;
+  pointer-events: none;
+}
+/* Held by CSS sticky only (no GSAP pin). */
 .hero__pin {
-  position: relative;
+  position: sticky;
+  top: 0;
   height: 100vh;
   overflow: hidden;
   display: grid;
   place-items: center;
 }
-.hero__tail { height: 45vh; }
 .hero__wrapper {
   position: relative;
   width: 100vw;
@@ -148,7 +160,6 @@ html.lenis, html.lenis body { height: auto; }
 
 /* Captions are NOT pinned: an absolute layer at the top of the page that scrolls normally.
    Row: 85vh spacer, 24% gap, caption, 8% gap, caption, 8% gap, caption, flexible gap, caption, 11% gap. */
-.hero { position: relative; }
 .hero__captions {
   position: absolute;
   top: 85vh;
@@ -225,3 +236,16 @@ html.lenis, html.lenis body { height: auto; }
   width: 0.25em; /* 16px */
   height: 0.25em;
 }
+
+/* About sits above the hero layer (z 4); its sticky block is z 3 */
+.about { z-index: 4; }
+.about__sticky { z-index: 3; }
+
+/* Placeholders (empty until their own requests). Heights/offsets are set inline from src/timeline.js. */
+.index { position: relative; z-index: 4; }
+.index__blank { height: 50vh; }
+.index__sticky { position: sticky; top: 0; height: 100vh; z-index: 6; }
+.clients { position: relative; z-index: 4; }
+.clients__sticky { position: sticky; top: 0; height: 100vh; }
+.archive { position: absolute; left: 0; right: 0; z-index: 4; pointer-events: none; }
+.footer { position: absolute; left: 0; right: 0; bottom: 0; }

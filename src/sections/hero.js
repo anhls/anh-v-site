@@ -1,20 +1,21 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { HERO } from '../timeline.js';
 
-// Hero stack = 100vh pinned + 585vh of scrolling + 45vh tail = 730vh.
-// Builds the DOM from data.hero, then wires the pin timeline from HANDOFF.md.
+// The hero is a background layer for the whole page: absolute, 730vh tall, with a CSS sticky 100vh block
+// holding the mask. No GSAP pin: a ScrollTrigger just scrubs the mask/strip timeline over page scroll.
+// All ranges (in vh of page scroll) come from src/timeline.js.
 export function buildHero(root, hero) {
   const captions = hero.captions
     .map((c) => `<li><span>${c.title}</span><span>${c.client}</span><span>${c.role}</span></li>`)
     .join('');
   const dots = Array.from({ length: 12 }, () => `<span class="ticker__item"><img src="${hero.tickerDot}" alt="" />${hero.tickerText}</span>`).join('');
 
-  root.innerHTML = `
-    <section class="hero" id="hero">
+  root.insertAdjacentHTML('afterbegin', `
+    <div class="hero" id="hero">
       <div class="hero__pin">
         <div class="hero__wrapper">
-          <!-- Strip inside the mask (measured on anh-v.com, see requests.md R4 part 1).
-               Stacking: s1 on top, s3 middle, s2 bottom. Each fills the mask. -->
+          <!-- Strip inside the mask (measured on anh-v.com). Stacking: s1 on top, s3 middle, s2 bottom. Each fills the mask. -->
           <div class="hero__sec hero__s2"><img src="${hero.image}" alt="" /></div>
           <div class="hero__sec hero__s3">
             ${hero.gallery.map((src, i) => `<img class="hero__gallery" style="z-index:${i}" src="${src}" alt="" />`).join('')}
@@ -27,68 +28,67 @@ export function buildHero(root, hero) {
           </div>
         </div>
       </div>
-      <div class="hero__tail"></div>
-      <ul class="hero__captions">${captions}</ul>
-    </section>`;
+    </div>
+    <ul class="hero__captions">${captions}</ul>`);
 
-  const section = root.querySelector('.hero');
-  const pin = root.querySelector('.hero__pin');
-  const wrapper = root.querySelector('.hero__wrapper');
-  const s1 = root.querySelector('.hero__s1');
-  const s2 = root.querySelector('.hero__s2');
-  const s3 = root.querySelector('.hero__s3');
+  const layer = root.querySelector('.hero');
+  const el = {
+    wrapper: root.querySelector('.hero__wrapper'),
+    s1: root.querySelector('.hero__s1'),
+    s2: root.querySelector('.hero__s2'),
+    s3: root.querySelector('.hero__s3'),
+  };
   const gallery = root.querySelectorAll('.hero__gallery');
+  el.gallery1 = gallery[1];
+  el.gallery2 = gallery[2];
   const overlays = root.querySelectorAll('.hero__overlay, .hero__overlay2');
   const track = root.querySelector('.ticker__track');
-  const vh = (n) => () => (window.innerHeight * n) / 100;
+  const vhPx = (n) => () => (window.innerHeight * n) / 100;
+  const vhTop = (n) => () => (window.innerHeight * n) / 100; // page-scroll position in px
 
-  // Ticker loops on its own (CSS-free: one tween, repeat forever).
+  // Ticker loops on its own.
   gsap.to(track, { xPercent: -50, duration: 40, ease: 'none', repeat: -1 });
 
-  // 1 vh of scroll = 0.01s of timeline, so the timeline is 5.85s for +=585%.
+  // 1vh of page scroll = 0.01s of timeline, so the scrubbed range maps onto the timeline 1:1.
+  const [r0, r1] = HERO.range;
   const tl = gsap.timeline({
     defaults: { overwrite: false },
     scrollTrigger: {
-      trigger: pin,
-      start: 'top top',
-      end: '+=585%',
-      scrub: 0.25,
-      pin: true,
-      pinSpacing: true,
-      fastScrollEnd: true,
-      anticipatePin: 1,
+      trigger: layer,
+      start: vhTop(r0),
+      end: vhTop(r1),
+      scrub: HERO.scrub,
       invalidateOnRefresh: true,
     },
   });
 
-  // Wrapper size (spec).
-  tl.fromTo(wrapper, { width: '100vw', height: '100vh' }, { width: '17vw', height: '50vh', ease: 'expo.inOut', duration: 0.7 }, 0)
-    .to(wrapper, { width: '25vw', height: '40vh', ease: 'expo.out', duration: 0.35 }, 1.5)
-    .to(wrapper, { width: '100vw', height: '100vh', ease: 'expo.inOut', duration: 0.85 }, 5.0);
+  // Convert a tween's from/to: `yvh` becomes a resize-safe function-based y.
+  const conv = (p) => {
+    if (!p) return p;
+    const { yvh, ...rest } = p;
+    return yvh === undefined ? rest : { ...rest, y: vhPx(yvh) };
+  };
+  const add = (target, t) => {
+    const pos = t.at[0] / 100;
+    const vars = { ...conv(t.to), ease: t.ease || 'none', duration: (t.at[1] - t.at[0]) / 100 };
+    if (t.from) tl.fromTo(target, conv(t.from), vars, pos);
+    else tl.to(target, vars, pos);
+  };
 
-  // Strip motion inside the mask. Measured on the live site (Framer scroll transforms, linear).
-  // Times are scroll vh / 100. px values from 1080px viewport converted to vh.
-  tl.fromTo(s1, { y: 0, scale: 1.3 }, { y: vh(-185.2), scale: 1, ease: 'none', duration: 1.0 }, 0.4)
-    .fromTo(s2, { y: vh(55.6), scale: 2 }, { y: 0, scale: 1, ease: 'none', duration: 0.9 }, 0)
-    .fromTo(s3, { y: vh(125), scale: 1.2 }, { y: 0, scale: 1.1, ease: 'none', duration: 0.4 }, 1.9)
-    .to(s3, { scale: 1.2, ease: 'none', duration: 2.2 }, 3.0)
-    .fromTo(gallery[2], { y: 0 }, { y: vh(-138.9), ease: 'none', duration: 0.6 }, 3.15)
-    .fromTo(gallery[1], { y: 0 }, { y: vh(-138.9), ease: 'none', duration: 0.55 }, 4.05);
+  HERO.mask.forEach((t) => add(el.wrapper, t));
+  HERO.strip.forEach((t) => add(el[t.el], t));
+  tl.set({}, {}, r1 / 100); // make the timeline exactly as long as the scrubbed range
 
-  // Overlays darken from 490vh to 630vh of page scroll: runs past the pin end (585vh), so its own trigger.
+  // Overlays darken over their own range, which runs past the mask timeline.
   gsap.fromTo(overlays, { opacity: 0 }, {
     opacity: 1,
     ease: 'none',
     scrollTrigger: {
-      trigger: section,
-      start: () => `top+=${window.innerHeight * 4.9} top`,
-      end: () => `top+=${window.innerHeight * 6.3} top`,
-      scrub: 0.25,
+      trigger: layer,
+      start: vhTop(HERO.overlay[0]),
+      end: vhTop(HERO.overlay[1]),
+      scrub: HERO.scrub,
       invalidateOnRefresh: true,
     },
   });
-
-  tl.set({}, {}, 5.85); // make the timeline exactly 5.85s
-
-  return ScrollTrigger;
 }

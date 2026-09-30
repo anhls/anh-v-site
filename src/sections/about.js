@@ -1,11 +1,10 @@
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { ABOUT, SECTIONS } from '../timeline.js';
 
-// About: 90vh spacer, then a 100vh sticky block (top 0). Words fade 0.2 -> 1 as the section scrolls.
-// Reveal runs from START to END of the section's scroll progress, moving forward through the text.
+// About: 90vh spacer, then a 100vh sticky block (top 0). Words fade 0.2 -> 1 as the page scrolls
+// through ABOUT.reveal (vh of page scroll, from src/timeline.js), moving forward through the text.
 // One ScrollTrigger, one update function for the whole block.
-const START = 0.1;
-const END = 0.6;
-const SOFT = 4; // how many words are mid-fade at once (the soft edge of the wave)
+const SOFT = 1.5; // how many words are mid-fade at once (the soft edge of the wave); live is ~1 letter
 const MIN_OPACITY = 0.2;
 
 // cubic-bezier(0.4, 0, 0.2, 1) as a function of x -> y (Newton + bisection).
@@ -51,8 +50,7 @@ export function buildAbout(root, about) {
   const last = new Array(n).fill(-1);
 
   const update = (p) => {
-    const q = Math.min(1, Math.max(0, (p - START) / (END - START)));
-    const head = q * (n + SOFT); // word index the wave has reached
+    const head = Math.min(1, Math.max(0, p)) * (n + SOFT); // word index the wave has reached
     for (let i = 0; i < n; i++) {
       const o = (MIN_OPACITY + (1 - MIN_OPACITY) * ease((head - i) / SOFT)).toFixed(3);
       if (o !== last[i]) { last[i] = o; els[i].style.opacity = o; }
@@ -60,12 +58,11 @@ export function buildAbout(root, about) {
   };
   update(0);
 
-  // Progress 0 when the section's top reaches the top of the screen (hero pin done),
-  // 1 when its bottom reaches the bottom of the screen.
+  section.style.height = `${SECTIONS.about[1] - SECTIONS.about[0]}vh`;
   ScrollTrigger.create({
-    trigger: section,
-    start: 'top top',
-    end: 'bottom bottom',
+    start: () => (window.innerHeight * ABOUT.reveal[0]) / 100,
+    end: () => (window.innerHeight * ABOUT.reveal[1]) / 100,
+    invalidateOnRefresh: true,
     onUpdate: (self) => update(self.progress),
     onRefresh: (self) => update(self.progress),
   });

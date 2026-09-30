@@ -1,4 +1,5 @@
-import { gsap } from 'gsap';
+﻿import { gsap } from 'gsap';
+import { NAV } from '../timeline.js';
 
 // Nav + AV wordmark. Measured on the live site at 1920x1080 (see docs/HANDOFF.md).
 // Time-based switch (not scrubbed): fires when scrollY >= 5, reverses at scrollY 0.
@@ -26,7 +27,7 @@ export function initNav(wordmarkSrc) {
   const links = [...document.querySelectorAll('.nav a')];
   const startTop = () => window.innerHeight - (WORDMARK.start.width / 100 * window.innerWidth) / ASPECT; // px, flush with the bottom
 
-  let scrolled = window.scrollY >= 5;
+  let scrolled = window.scrollY >= NAV.thresholdPx;
   const place = (isScrolled) => {
     gsap.set(img, isScrolled
       ? { left: WORDMARK.end.left + 'vw', top: WORDMARK.end.top + 'vh', width: WORDMARK.end.width + 'vw' }
@@ -49,8 +50,9 @@ export function initNav(wordmarkSrc) {
   };
 
   window.addEventListener('scroll', () => {
-    const shouldBeScrolled = window.scrollY >= 5;
+    const shouldBeScrolled = window.scrollY >= NAV.thresholdPx;
     if (shouldBeScrolled !== scrolled) go(shouldBeScrolled);
   }, { passive: true });
   window.addEventListener('resize', () => place(scrolled));
 }
+

@@ -6,6 +6,7 @@ import data from './data/data.json';
 import { runLoader } from './effects/loader.js';
 import { buildHero } from './sections/hero.js';
 import { buildAbout } from './sections/about.js';
+import { buildPlaceholders } from './sections/placeholders.js';
 import { initNav } from './effects/nav.js';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -20,6 +21,7 @@ gsap.ticker.lagSmoothing(0);
 const app = document.getElementById('app');
 buildHero(app, data.hero);
 buildAbout(app, data.about);
+buildPlaceholders(app);
 initNav(data.hero.wordmark);
 
 // Loader first: hold scrolling until the hero media is ready.

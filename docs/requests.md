@@ -75,3 +75,19 @@ Commit when done, log the measured values in status.md, and flag anything still 
 - Measure on https://www.anh-v.com at 1920x1080 before building: font size, line height, text block width and position. Convert with the Units rule below.
 - Follow the new "Units and responsive" rule in CLAUDE.md. Check the result at 1440x900, 1920x1080 and 2560x1440, not just 1920.
 - Commit, log in status.md (include the measured values), then stop so Anh (and Cowork) can preview.
+
+## R6 [done]: Fix page structure: hero is a pinned background for the whole page
+Read HANDOFF.md "Home page structure (CORRECTED)" first. The current build stacks sections after a 730vh hero; the live page is 730vh in total with everything scrolling over the hero.
+- Hero layer: absolute, top 0, 730vh, z-index 3, with a CSS sticky 100vh block holding the mask. Drive the existing mask/strip timeline with a ScrollTrigger that scrubs 0-585vh of page scroll WITHOUT a GSAP pin (the CSS sticky holds it, and pinSpacing would add height). Keep scrub 0.25 and all measured tweens as they are. Overlay trigger stays 490-630vh of page scroll.
+- Content layer in normal flow on top (730vh total): About (0-190: 90vh spacer + sticky), then a placeholder for the project index (190-590: 50vh blank + 100vh sticky, empty for now), then a placeholder for clients (590-730). Archive (absolute, top 211vh, 250vh tall, z 4) and footer (absolute bottom, 110vh) as empty placeholders. Hero captions stay absolute at the top (z 5). Use the z-indexes in the table.
+- Retime the About reveal to match live: first words start at ~40vh of page scroll, all lit by ~95vh, forward through the text.
+- Check: document height is exactly 730vh at 1920x1080; at 70vh scroll the About text is over the small mask; the nav still switches at 5px.
+- Set up src/timeline.js (CLAUDE.md "Architecture rules" 1) as part of this request: move the hero mask/strip ranges, the overlay range, the nav trigger and the About reveal into it, and add the section ranges from the HANDOFF table (captions 0-261, about 0-190, index 190-590, archive 211-461, clients 590-730, footer 620-730). Hero and About read their numbers from it.
+- Apply Architecture rules 2 (no GSAP pin on the hero) and 6 (no reload-on-resize) now. Rules 3-5 apply when those sections are built.
+- Test at 1440x900, 1920x1080, 2560x1440. Commit, log in status.md, stop for preview.
+
+## Later (not yet): media optimisation
+Waits for Anh's original files. Convert the two GIFs to MP4/WebM loops, serve images as WebP/AVIF sized to display size (srcset), preload only hero media, lazy-load archive and project images, compress the hero video and add a poster frame, preload the Clash Display woff2.
+
+## To decide during preview: double smoothing
+Lenis smoothing + hero scrub 0.25 both smooth the motion (the hero trails the scroll slightly). Try scrub: true vs 0.25 side by side with anh-v.com; Anh picks.
