@@ -11,6 +11,16 @@
   --fg: #ece9e2;
   --font-display: 'Clash Display', system-ui, sans-serif;
   --font-body: var(--font-display);
+
+  /* About (measured at 1920x1080: 64px, x 60, w 1800, top 372px in the sticky block, indent 330px) */
+  --about-size: clamp(2.5rem, 3.333vw, 6rem);
+  --about-lh: 1;
+  --about-ls: -0.01em;
+  --about-x: 3.125vw;
+  --about-w: 93.75vw;
+  --about-top: 34.44vh;
+  --about-indent: 17.19vw;
+  --about-label-size: clamp(0.625rem, 0.625vw, 1rem);
 }
 
 *,
@@ -181,3 +191,37 @@ html.lenis, html.lenis body { height: auto; }
 .nav .roll { display: block; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
 .nav .roll span { display: block; height: 18px; }
 .nav a:hover .roll { transform: translateY(-18px); }
+
+/* About: 190vh = 90vh spacer + 100vh sticky block. Label/icon offsets are in em of the About font size. */
+.about { position: relative; }
+.about__spacer { height: 90vh; }
+.about__sticky { position: sticky; top: 0; height: 100vh; }
+.about__block {
+  position: absolute;
+  top: var(--about-top);
+  left: var(--about-x);
+  width: var(--about-w);
+  font-size: var(--about-size);
+  line-height: var(--about-lh);
+  letter-spacing: var(--about-ls);
+  font-weight: 500;
+  color: #fff;
+}
+.about__text { margin: 0; text-indent: var(--about-indent); }
+.about__word { will-change: opacity; }
+.about__label {
+  position: absolute;
+  left: calc(var(--about-size) * 0.453); /* 29px at 64px */
+  top: calc(var(--about-size) * 0.17);   /* 11px at 64px */
+  font-size: var(--about-label-size);
+  line-height: 1;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+.about__icon {
+  position: absolute;
+  left: 0;
+  top: 0.125em;  /* 8px */
+  width: 0.25em; /* 16px */
+  height: 0.25em;
+}

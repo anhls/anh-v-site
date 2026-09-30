@@ -66,3 +66,12 @@ Measured on the live site; use these values (details in HANDOFF.md, "Confirmed w
 Caption spellings (Sulwhasoo / Đi Để Trở Về 09): leave as is for now.
 
 Commit when done, log the measured values in status.md, and flag anything still guessed.
+
+## R5 [done]: About section (190vh)
+- Structure: 90vh spacer, then a 100vh sticky block (top 0). Section id "2section" (nav About link target).
+- Text (Clash Display, left aligned, white): "Vu Tuan Anh, Art Director. Based in Ho Chi Minh City with over 5 years of experience in design. I focus on turning ideas into thoughtful visuals - blending motion, layout, and typography to create work that feels clear, expressive, and alive."
+- First line is indented to leave room for a small "ABOUT" label + 16px icon placed at the start of the line (Framer: label at left 29px/top 11px, icon at left 0/top 8px inside the text block).
+- Scroll fade per WORD: opacity 0.2 to 1, reveal from 10% to 60% of the section's scroll progress, moving forward through the text, easing cubic-bezier(0.4,0,0.2,1). One ScrollTrigger / one update loop for the whole block, no per-letter work.
+- Measure on https://www.anh-v.com at 1920x1080 before building: font size, line height, text block width and position. Convert with the Units rule below.
+- Follow the new "Units and responsive" rule in CLAUDE.md. Check the result at 1440x900, 1920x1080 and 2560x1440, not just 1920.
+- Commit, log in status.md (include the measured values), then stop so Anh (and Cowork) can preview.

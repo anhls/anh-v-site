@@ -26,7 +26,10 @@
       { "title": "Similac Virgo", "client": "Similac", "role": "Art Direction" }
     ]
   },
-  "about": { "text": "" },
+  "about": {
+    "label": "ABOUT",
+    "text": "Vu Tuan Anh, Art Director. Based in Ho Chi Minh City with over 5 years of experience in design. I focus on turning ideas into thoughtful visuals - blending motion, layout, and typography to create work that feels clear, expressive, and alive."
+  },
   "spawnerImages": [],
   "archiveCards": [],
   "projects": [

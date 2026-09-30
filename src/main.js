@@ -5,6 +5,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import data from './data/data.json';
 import { runLoader } from './effects/loader.js';
 import { buildHero } from './sections/hero.js';
+import { buildAbout } from './sections/about.js';
 import { initNav } from './effects/nav.js';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -18,6 +19,7 @@ gsap.ticker.lagSmoothing(0);
 // Sections are added here one by one (about, archive, index, clients, footer come next).
 const app = document.getElementById('app');
 buildHero(app, data.hero);
+buildAbout(app, data.about);
 initNav(data.hero.wordmark);
 
 // Loader first: hold scrolling until the hero media is ready.

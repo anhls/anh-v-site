@@ -15,3 +15,12 @@ Read these before doing anything:
 - ../_brand-assets/fonts/Melodrama/Fonts/WEB and ../_brand-assets/fonts/Nunito/Fonts/WEB: woff2 + CSS
 - ../_brand-assets/icons/: app logo PNGs
 Copy only what the site needs into this repo (optimized). Never modify files outside anh-v-site.
+
+## Units and responsive (applies to every section)
+Measurements come from the live site at 1920x1080. Never hard-code those px values. Convert them:
+- Horizontal sizes and positions: vw (px / 19.2).
+- Vertical positions, scroll offsets and translateY: vh (px / 10.8). Scroll ranges stay in vh.
+- Font sizes, line heights, small gaps: clamp(min, vw value, max) so text never gets tiny on a laptop or huge on a 4K screen.
+- Images and cards: width in vw with aspect-ratio, so they keep their shape at any window ratio.
+- Keep all breakpoint-specific values in CSS custom properties (e.g. --about-size) so tablet/phone overrides later are one place.
+Desktop must look right at 1440x900, 1920x1080 and 2560x1440. Tablet/phone get their own layouts later (see HANDOFF "Responsive plan").
