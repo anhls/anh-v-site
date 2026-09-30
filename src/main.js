@@ -38,4 +38,5 @@ const firstScreen = [data.hero.wordmark, data.hero.ticker];
 runLoader(data.loader.text, firstScreen, hero.loadDeferred).then(() => {
   lenis.start();
   ScrollTrigger.refresh();
+  window.__siteReady = true; // tools/compare.mjs waits for this instead of a fixed delay
 });

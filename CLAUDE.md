@@ -36,5 +36,9 @@ General: animate only transform and opacity where possible. The hero mask's widt
 
 ## Keeping usage low
 - Only read docs/requests.md (open work), CLAUDE.md, and the parts of HANDOFF.md / framer-extract/motion-spec.md the request points to. docs/archive/ is history: don't read it unless asked.
-- After each motion or layout change, run `npm run compare` (dev server running; one-time setup `npm i -D playwright-core`) and paste only its summary line and mismatch lines into status.md. Don't hand-measure the live site in the browser panel unless the script can't cover it.
+- Dev server: `npx vite` (fixed port 5199, strictPort). After each motion or layout change, run `npm run compare`. While iterating use tuning mode (`npm run compare -- --only aboutRev,aboutTop --points 60,75,90`, a few seconds). Before every commit run the FULL check at both sizes: `npm run compare -- --sizes 1920x1080,2560x1440` (about 20s). Live values are cached in tools/live-cache/; run once with `--refresh-live` at the start of a motion request and after any Framer republish. Paste only the summary lines and mismatch lines into status.md. Don't hand-measure the live site in the browser panel unless the script can't cover it.
+- Measure, then fit: use `--dump` and compute the value from the data. Max 2 trial edits of the same value; after that stop and calculate, or report.
+- Log measurements in status.md as you go (survives context compaction).
+- Small leftovers: if a remaining mismatch is small and hard to see, log it as a known difference and move on instead of looping.
+- Second context compaction in one session: stop after the current item, log, commit, report.
 - status.md entries: 8 lines max. When a request is done, move it from requests.md into docs/archive/.

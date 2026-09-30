@@ -277,6 +277,15 @@ html.lenis, html.lenis body { height: auto; }
   letter-spacing: 0;
   font-weight: 400;
 }
+/* The arrow's nudge (30px right) slides it out of view at this container's edge, 4px before the label, instead of over the text. */
+.about__arrow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(var(--about-size) * 0.453 - 4px); /* the label starts at 0.453em (29px at 64px) */
+  height: 0.5em;
+  overflow: hidden;
+}
 .about__icon {
   position: absolute;
   left: 0;

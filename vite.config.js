@@ -3,6 +3,8 @@ import { resolve } from 'node:path';
 
 // One HTML entry per page. Add more project pages here as they are built.
 export default defineConfig({
+  // Fixed port: tools/compare.mjs measures http://localhost:5199/, so an old server elsewhere can't be measured by mistake.
+  server: { port: 5199, strictPort: true },
   build: {
     rollupOptions: {
       input: {

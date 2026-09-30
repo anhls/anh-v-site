@@ -1,23 +1,34 @@
-// Compare the rebuild with the live Framer site at a real 1920x1080 (headless Chrome).
-// Prints ONLY mismatches beyond tolerance + a one-line summary, to keep logs short.
-// Usage: npm run compare                       (local = http://localhost:5173, dev server must be running)
-//        npm run compare -- --local http://localhost:4173 --points 0,30,60
+// Compare the rebuild with the live Framer site in real headless Chrome. Prints ONLY mismatches beyond tolerance
+// plus one summary line per size, to keep logs short.
+//   npm run compare                                        full run, 1920x1080 (dev server on http://localhost:5199/ must be running)
+//   npm run compare -- --sizes 1920x1080,2560x1440         several sizes at the same time (required before every commit)
+//   npm run compare -- --only aboutRev,aboutTop --points 60,75,90    tuning mode: fewer probes / points
+//   npm run compare -- --refresh-live                      re-measure the live site (do it once at the start of a motion request,
+//                                                          and after every Framer republish); otherwise live values come from
+//                                                          tools/live-cache/<W>x<H>.json, and any point missing there is measured and added
+//   other options: --points 0,15,..  --settle 2000 (max ms to wait for values to stop changing)  --dump file.json
+//                  --local http://localhost:5199/  --live https://www.anh-v.com/  (--width/--height still work for one size)
 // Needs: npm i -D playwright-core (uses your installed Google Chrome, no browser download).
-// Live selectors are Framer class names from the current publish; if Anh republishes Framer they may change.
+// Live selectors are Framer class names from the current publish; if Anh republishes Framer they may change
+// (then run with --refresh-live).
 import { chromium } from 'playwright-core';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
-const LOCAL = arg('local', 'http://localhost:5173/');
+const flag = (k) => process.argv.includes('--' + k);
+const LOCAL = arg('local', 'http://localhost:5199/');
 const LIVE = arg('live', 'https://www.anh-v.com/');
 const POINTS = arg('points', '0,15,30,45,60,75,90,140,150,157,165,178,189,200,213,220,330,345,420,500,535,560').split(',').map(Number);
 const SETTLE = +arg('settle', 2000);
-const W = +arg('width', 1920);
-const H = +arg('height', 1080);
-const DUMP = arg('dump', ''); // --dump file.json writes every probe value (live + local) for fitting ranges
+const SIZES = arg('sizes', `${arg('width', 1920)}x${arg('height', 1080)}`).split(',').map((s) => s.split('x').map(Number));
+const DUMP = arg('dump', ''); // --dump file.json writes every probe value, per size (live + local), for fitting ranges
+const CACHE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'live-cache');
 
 // name: [liveSelector, localSelector, kind, tolerance]
 // kinds: share (% of leaf spans lit), ty (translateY px), sc (scale), op (own opacity), opc (opacity incl. ancestors), w (width vw), ctr (centre % of viewport height), top (top % of viewport height)
-const PROBES = {
+const ALL_PROBES = {
   maskW: ['.framer-2w3dnm', '.hero__wrapper', 'w', 1.5],
   maskCtr: ['.framer-2w3dnm', '.hero__wrapper', 'ctr', 1.5],
   s1y: ['.framer-pq8oj2', '.hero__s1', 'ty', 12], s1sc: ['.framer-pq8oj2', '.hero__s1', 'sc', 0.02],
@@ -31,6 +42,8 @@ const PROBES = {
   aboutTop: ['ABOUT_LIVE', '.about__text', 'top', 1.5],
   aboutRev: ['ABOUT_LIVE', '.about__text', 'share', 6], // % of the About words/letters that are mostly lit (opacity > 0.6)
 };
+const ONLY = arg('only', '');
+const PROBES = ONLY ? Object.fromEntries(ONLY.split(',').map((n) => { if (!ALL_PROBES[n]) throw new Error(`unknown probe ${n}`); return [n, ALL_PROBES[n]]; })) : ALL_PROBES;
 
 const probeFn = ({ probes, side }) => {
   const vh = innerHeight / 100;
@@ -54,26 +67,74 @@ const probeFn = ({ probes, side }) => {
   return out;
 };
 
-async function run(side, url, browser) {
-  const page = await browser.newPage({ viewport: { width: W, height: H } });
-  await page.goto(url); await page.waitForTimeout(side === 'live' ? 20000 : 8000);
-  // The live site's scripts sometimes fail to start (no .pin-spacer: the mask never animates). Reload until they do.
-  for (let t = 0; side === 'live' && t < 4 && !(await page.$('.pin-spacer')); t++) { console.log('live not initialised, reloading'); await page.reload(); await page.waitForTimeout(20000); }
-  const res = {};
-  for (const v of POINTS) {
-    await page.evaluate((v) => window.scrollTo(0, (v * innerHeight) / 100), v); await page.waitForTimeout(SETTLE);
-    for (let t = 0; t < 3; t++) { try { res[v] = await page.evaluate(probeFn, { probes: PROBES, side }); break; } catch { await page.waitForTimeout(1500); } }
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const read = async (page, side, probes) => { for (let t = 0; t < 3; t++) { try { return await page.evaluate(probeFn, { probes, side }); } catch { await sleep(1000); } } return {}; };
+
+// Open a page and wait until the site is ready: local sets window.__siteReady (10s fallback); live needs its .pin-spacer
+// (its scripts sometimes fail to start, so reload until it appears), then a few seconds for its loader.
+async function open(browser, side, url, w, h) {
+  const ctx = await browser.newContext({ viewport: { width: w, height: h } });
+  const page = await ctx.newPage();
+  await page.goto(url);
+  if (side === 'local') await page.waitForFunction(() => window.__siteReady === true, null, { timeout: 10000 }).catch(() => {});
+  else {
+    for (let t = 0; t < 4; t++) {
+      if (await page.waitForSelector('.pin-spacer', { timeout: 30000 }).then(() => true, () => false)) break;
+      console.log(`live ${w}x${h} not initialised, reloading`); await page.reload();
+    }
+    await sleep(5000);
   }
-  await page.close(); return res;
+  return page;
+}
+
+// Scroll to each point and read the probes once they stop changing (two reads 100ms apart within 1% of tolerance), max SETTLE ms.
+async function measure(page, side, w, h, points, probes) {
+  const res = {};
+  for (const v of points) {
+    await page.evaluate((v) => window.scrollTo(0, (v * innerHeight) / 100), v);
+    await sleep(300);
+    let prev = await read(page, side, probes); let cur = prev;
+    for (let waited = 300; waited < SETTLE; waited += 100) {
+      await sleep(100); cur = await read(page, side, probes);
+      if (Object.entries(probes).every(([n, p]) => cur[n] == null || prev[n] == null || Math.abs(cur[n] - prev[n]) <= p[3] * 0.01)) break;
+      prev = cur;
+    }
+    res[v] = cur;
+  }
+  await page.context().close();
+  return res;
+}
+
+// Live values come from tools/live-cache/<W>x<H>.json, per point: { date, v: { probe: value } }.
+const cachePath = (w, h) => path.join(CACHE_DIR, `${w}x${h}.json`);
+const loadCache = (w, h) => { try { return JSON.parse(fs.readFileSync(cachePath(w, h), 'utf8')); } catch { return { points: {} }; } };
+const hasAll = (entry, probes) => entry && Object.keys(probes).every((n) => n in entry.v);
+
+async function runSize(browser, w, h) {
+  const t0 = Date.now();
+  const cache = loadCache(w, h);
+  // Measure live for the points that are not cached (or all requested points with --refresh-live). The cache always stores every probe.
+  const need = POINTS.filter((v) => flag('refresh-live') || !hasAll(cache.points[v], ALL_PROBES));
+  const liveJob = need.length ? open(browser, 'live', LIVE, w, h).then((p) => measure(p, 'live', w, h, need, ALL_PROBES)) : Promise.resolve({});
+  const localJob = open(browser, 'local', LOCAL, w, h).then((p) => measure(p, 'local', w, h, POINTS, PROBES));
+  const [fresh, local] = await Promise.all([liveJob, localJob]);
+  if (need.length) {
+    const date = new Date().toISOString().slice(0, 10);
+    for (const v of need) cache.points[v] = { date, v: fresh[v] };
+    fs.mkdirSync(CACHE_DIR, { recursive: true });
+    fs.writeFileSync(cachePath(w, h), JSON.stringify(cache));
+  }
+  const live = Object.fromEntries(POINTS.map((v) => [v, cache.points[v].v]));
+  let bad = 0, total = 0;
+  for (const v of POINTS) for (const [name, p] of Object.entries(PROBES)) {
+    const a = live[v]?.[name], b = local[v]?.[name]; if (a == null || b == null) continue; total++;
+    if (Math.abs(a - b) > p[3]) { bad++; console.log(`${w}x${h} ${String(v).padStart(3)}vh ${name.padEnd(9)} live ${a}  local ${b}`); }
+  }
+  console.log(`compare: ${total - bad}/${total} within tolerance, ${bad} mismatches (${w}x${h}, ${need.length ? `live measured at ${need.length} point${need.length > 1 ? 's' : ''}` : 'live from cache'}, ${Math.round((Date.now() - t0) / 1000)}s)`);
+  return { size: `${w}x${h}`, live, local };
 }
 
 const browser = await chromium.launch({ channel: 'chrome' });
-const [live, local] = [await run('live', LIVE, browser), await run('local', LOCAL, browser)];
+const results = await Promise.all(SIZES.map(([w, h]) => runSize(browser, w, h)));
 await browser.close();
-if (DUMP) (await import('node:fs')).writeFileSync(DUMP, JSON.stringify({ live, local }));
-let bad = 0, total = 0;
-for (const v of POINTS) for (const [name, p] of Object.entries(PROBES)) {
-  const a = live[v]?.[name], b = local[v]?.[name]; if (a == null || b == null) continue; total++;
-  if (Math.abs(a - b) > p[3]) { bad++; console.log(`${String(v).padStart(3)}vh ${name.padEnd(9)} live ${a}  local ${b}`); }
-}
-console.log(`compare: ${total - bad}/${total} within tolerance, ${bad} mismatches (${W}x${H}, settle ${SETTLE}ms)`);
+if (DUMP) fs.writeFileSync(DUMP, JSON.stringify(Object.fromEntries(results.map((r) => [r.size, { live: r.live, local: r.local }]))));

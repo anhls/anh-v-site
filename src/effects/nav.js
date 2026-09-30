@@ -15,7 +15,7 @@ const ASPECT = 1572 / 345; // wordmark width / height
 const BASE_W = 81.875;     // base box width in vw (the bottom-left start state, 1572px)
 const WORDMARK = {
   big: { x: 0 },
-  small: { x: 3.125, y: 3.241, width: 8.802 }, // x in capped vw, y in capped vh, width in vw (169px wide, x 60, y 35; above 1920x1080: x/y/height stay fixed, width scales)
+  small: { x: 3.125, y: 3.241, width: 8.802 }, // x in capped vw, y in capped vh, width in capped vw (169px wide, x 60, y 35; above 1920x1080: the whole small logo stays 169 x 37px)
 };
 const LINKS = {
   About: [25.8, 75.2],
@@ -48,12 +48,10 @@ export function initNav(wordmarkSrc, lenis) {
   const apply = (v) => {
     const p = v.p;
     const bigY = H - vw(BASE_W) / ASPECT; // flush with the bottom
-    const baseH = vw(BASE_W) / ASPECT;
     gsap.set(img, {
       x: vw(WORDMARK.big.x) + (cw(WORDMARK.small.x) - vw(WORDMARK.big.x)) * p,
       y: bigY + (ch(WORDMARK.small.y) - bigY) * p,
-      scaleX: 1 + (WORDMARK.small.width / BASE_W - 1) * p,
-      scaleY: 1 + (cw(WORDMARK.small.width) / ASPECT / baseH - 1) * p, // height follows the capped width
+      scale: 1 + (cw(WORDMARK.small.width) / vw(BASE_W) - 1) * p, // ONE uniform scale: the logo never squashes or stretches
       transformOrigin: '0 0',
     });
     links.forEach((a) => {
