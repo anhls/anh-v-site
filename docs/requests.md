@@ -17,3 +17,52 @@ Initialize a git repo in anh-v-site, add a sensible .gitignore check (node_modul
 
 ## R3 [done]: Loader + hero pin (first home section only)
 Build the loader ("Loading visual language" + percentage, cursor-following) and the 730vh hero stack with the GSAP pin timeline exactly as in HANDOFF.md ("Hero pin"). Use framerusercontent.com placeholders for media. Stop after this section so Anh can compare it side by side with anh-v.com. Commit when done, log in status.md, and list anything that needed guessing.
+
+## R4 [done]: Fix hero content motion + nav animation
+Notes from Anh after comparing R3 with the live site, plus what Cowork read from the Framer project.
+
+### 1. Hero: mask + sliding strip (replace the crossfades)
+- The mask is correct as built: Image_Resize3 only animates width/height of a centred overflow:hidden wrapper (100vw x 100vh -> 17vw x 50vh -> 25vw x 40vh -> hold -> 100vw x 100vh).
+- What's wrong is the content inside it. On the live site the video, image 2 and the 3-image group form ONE vertical strip: each asset is anchored to the bottom of the previous one, all fill the mask and shrink/grow with it. Scrolling moves the strip upward inside the mask. No crossfades.
+- Framer layer structure inside the mask (each group pinned to all four edges of the mask):
+  - 1Section (z3): black bg, video (object-fit cover), ticker (opacity 0.5, 10vh tall, vertically centred)
+  - 2Section (z1): image 2
+  - 3Section (z2): 3 images stacked (z0-2), Overlay2 gradient on bottom 50%, Overlay black at 90% opacity
+- MEASURED by Cowork on the live site (1920x1080, 2026-09-30). No need to re-measure; use these values.
+  Live layer names: "#1 section" (video + ticker), "#2 section" (image 2), "#3 section" (3 images + "Overlay" + "Overlay-2"). The mask is the INNER "wrapper" (the one whose inline style becomes 17vw/50vh).
+  Stacking inside the mask: #1 on top (z3), #3 middle (z2), #2 bottom (z1). Each section fills the mask (inset 0); transform-origin is the section centre.
+  Transforms are Framer px values at 1080px viewport height; convert with vh = px / 10.8. Scroll positions are in vh of page scroll from the top of the hero. All tweens are linear with scroll unless noted (Framer scroll transforms), on top of the mask's own eased width/height.
+
+  | Layer | Scroll range (vh) | translateY | scale | notes |
+  |---|---|---|---|---|
+  | #1 section (video) | 0 to 40 | 0 | 1.3 | holds |
+  | #1 section | 40 to 140 | 0 to -2000px (-185.2vh) | 1.3 to 1.0 | slides up and out of the mask |
+  | #2 section (image 2) | 0 to 90 | 600px (55.6vh) to 0 | 2.0 to 1.0 | settles underneath while #1 leaves |
+  | #3 section | 0 to 190 | 1350px (125vh) | 1.2 | waiting below |
+  | #3 section | 190 to 230 | 1350px to 0 | 1.2 to 1.1 | slides up over #2 |
+  | #3 section | 300 to 520 | 0 | 1.1 to 1.2 | slow zoom, then holds at 1.2 |
+  | #3 image 3 (top img) | 315 to 375 | 0 to -1500px (-138.9vh) | 1 | slides up out, revealing image 2 |
+  | #3 image 2 (middle) | 405 to 460 | 0 to -1500px | 1 | slides up out, revealing image 1 |
+  | #3 image 1 (bottom) | all | 0 | 1 | stays |
+  | Overlay + Overlay-2 | 490 to 630 | - | - | opacity 0 to 1, linear (Overlay is black at 90%, Overlay-2 is the bottom-half gradient) |
+
+  Mask sizes measured match HANDOFF: 100x100 until ~10vh, 17vw x 50vh by 70, 25vw x 40vh by ~175, hold, back to 100x100 by ~575.
+  So the "strip" effect Anh describes = #1 sliding up and out while #2 rises into place beneath it, then #3 sliding up from below, then #3's images peeling upward one by one, then the overlay darkening as the mask opens back to full screen.
+
+### 2. Ticker and hero project captions: no fade
+- Remove the fade-outs. The "Click Anywhere" ticker lives inside 1Section, so it just moves up with the strip.
+- The 4 project captions (HeaderProjects) are NOT in the pinned stack: they're an absolute layer at the top of the page (z5) that scrolls normally, so scrolling simply rolls past them.
+  Layout from Framer: 85vh spacer, then a row: 24% gap, caption, 8% gap, caption, 8% gap, caption, flexible gap, caption, 11% gap. Below it a 20vh spacer and the 150vh cursor image trail region.
+
+### 3. Nav animation tied to the AV wordmark
+Measured on the live site; use these values (details in HANDOFF.md, "Confirmed with Anh"):
+- Time-based switch (~1s, strong ease-out), fires on any scroll away from the top (>= 5px), reverses at scrollY 0.
+- Wordmark: 1572 x 345 px at x 0, y 735 (bottom-left) -> 169 x 39 px at x 60, y 35 (top-left). Express in vw/vh.
+- Links at y 43, left edge: About 25.8vw -> 75.2vw, Works 81.0vw -> 79.3vw, Contact 92.1vw -> 83.3vw (they regroup to the right).
+- Keep the hover roll (each label is doubled, 18px apart).
+- This replaces R3's space-between nav, which overlaps the wordmark.
+
+### Deferred
+Caption spellings (Sulwhasoo / Đi Để Trở Về 09): leave as is for now.
+
+Commit when done, log the measured values in status.md, and flag anything still guessed.

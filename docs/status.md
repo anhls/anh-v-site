@@ -22,3 +22,10 @@ Newest at the bottom. Format: date, request ID, what changed, decisions, open qu
     6. Big wordmark size/position at load is by eye; the live one appears cropped by the bottom edge.
   - Known issues: the fixed nav uses space-between, so "About" sits at the far left and overlaps the small wordmark; the live nav has About at about 25vw. Not fixed (nav is outside R3). The 730vh stack ends in an empty 45vh tail until the next sections exist.
   - Open questions: none blocking. Next: compare side by side, then say what to tune.
+- 2026-09-30, R4 (hero strip + captions + nav): Parts 2 and 3 built by Claude Code (captions scroll normally, ticker inside #1 section, new src/effects/nav.js for the wordmark/links switch). Part 1 finished from Cowork: Cowork measured the live site at 1920x1080 (values in requests.md R4 part 1) and rebuilt src/sections/hero.js + base.css:
+  - Mask content is now three layers (.hero__s1 video+ticker on top, .hero__s3 3 images + overlays in the middle, .hero__s2 image 2 at the bottom), each filling the mask. Crossfades removed.
+  - Linear scroll tweens on the pin timeline: s1 y 0 to -185.2vh + scale 1.3 to 1 (40-140vh); s2 y 55.6vh to 0 + scale 2 to 1 (0-90vh); s3 y 125vh to 0 + scale 1.2 to 1.1 (190-230vh), then scale to 1.2 (300-520vh); top gallery image y to -138.9vh (315-375vh), middle one (405-460vh). Overlays fade 0 to 1 from 490 to 630vh on their own ScrollTrigger (runs past the pin end).
+  - Ticker opacity set to 0.5 (Framer value).
+  - Verified: vite build passes; headless Chromium at 1920x1080 matches the live measurements at 0/40/70/90/140/190/210/230/300/345/375/430/460/500/560/585/630vh.
+  - Guessed: Overlay-2 gradient colours (transparent to black, bottom half).
+  - Open: Anh to compare side by side with anh-v.com.

@@ -48,6 +48,20 @@ Loader ("Loading visual language" + percentage, cursor-following loader) then he
 Card positions/images: read them from the live page or Framer node XML (page id dERIYUY1Z when focused).
 Project pages: video hero, sticky details, split media, chapter titles, scroll reveals, YouTube embeds, Lenis + scroll-fade text. No GSAP.
 
+## Confirmed with Anh + Framer file read (2026-09-30)
+Loader: text is "Loading visual language" (not the "Are you ready?" in Framer's Loader Comp). A "Loading N%" label follows the cursor and shows real progress.
+Hero captions (4, scroll normally, not pinned): Techcombank Priority / Di De Tro Ve 09 (Bitis) / Sulwashoo Product Launch / Similac Virgo, each with client + "Art Direction" + link. Hovering a caption shows that project's image (427x249) following the cursor.
+Click spawner area: top 100vh only. Cursor image trail: 150vh region below the captions.
+Nav + wordmark (measured on live site at 1920x1080): state switch is time-based, not scrubbed. It fires on any scroll away from the top (>= 5px) and reverses when back at scrollY 0. Duration ~1s, strong ease-out (about half the distance in the first 150ms, settled by ~1.1s; expo.out or a spring is a close match).
+- Wordmark (Framer layer "Logo", an image): start x 0, y 735, 1572 x 345 px (bottom-left, flush with the bottom edge) -> end x 60, y 35, 169 x 39 px (top-left).
+- Links (12px text, y 43 in both states), left edge x: About 496 -> 1443, Works 1556 -> 1523, Contact 1769 -> 1600. In vw: About 25.8 -> 75.2, Works 81.0 -> 79.3, Contact 92.1 -> 83.3. So the links regroup to the right, next to each other, in the scrolled state.
+- Each link label exists twice (stacked 18px apart): a hover roll effect.
+About: 90vh spacer, then sticky. "ABOUT" label + icon sit at the start of the first line; the text starts with blank spaces to leave room for them. Text: "Vu Tuan Anh, Art Director. Based in Ho Chi Minh City with over 5 years of experience in design. I focus on turning ideas into thoughtful visuals - blending motion, layout, and typography to create work that feels clear, expressive, and alive."
+Archive ("parting of the Red Sea"): the 35 small floating cards react to the cursor (mouse parallax) AND split apart / move away to the sides as the main image scrolls up through them. 19 cards in the left half (positioned from the right edge of that half), 16 in the right half (from its left edge). Positions/sizes/layers/parallax for all 35 cards: docs/framer-extract/cards.json.
+Project index (400vh, sticky): the 3 rows sit in the same spot. Each title rolls in letter by letter, then slides up and out, driven by scroll (scrubbed, not time-based).
+Clients (140vh, sticky): same behavior as the project index (letter-by-letter roll in, slide up out, scrubbed). "Client" at left 60px, "2025" at right 60px.
+Footer: 110vh, "Go Back To Top" link with a line animation, at the right.
+
 ## Why the Framer site is slow
 34 parallax loops on every frame (each reads computed style), plus a per-item scroll loop with layout reads via a hosted lazyScrollAnimation module, per-letter React state on scroll, ~6.7 MB home transfer (two GIFs = 3.3 MB), fixed 1920 layout (viewport meta width=1920), 1100 DOM nodes.
 
