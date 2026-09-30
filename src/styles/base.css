@@ -25,6 +25,7 @@ html {
 
 body {
   margin: 0;
+  overflow-x: clip;
   background: var(--bg);
   color: var(--fg);
   font-family: var(--font-body);
@@ -35,6 +36,113 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
+/* Lenis */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-stopped { overflow: clip; }
+
+/* Loader */
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  color: var(--fg);
+}
+.loader__title {
+  margin: 0;
+  font-size: 3.333vw; /* 64px at the 1920 reference */
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.loader__label {
+  position: fixed;
+  top: 0;
+  left: 0;
+  margin: 0;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Hero stack: 100vh pinned + 585vh scroll (added by ScrollTrigger) + 45vh tail = 730vh */
+.hero__pin {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+.hero__tail { height: 45vh; }
+.hero__wrapper {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #000;
+}
+.hero__video,
+.hero__image,
+.hero__gallery {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.hero__image,
+.hero__gallery { opacity: 0; visibility: hidden; }
+
+.hero__wordmark {
+  position: absolute;
+  top: 68vh;
+  left: 2vw;
+  width: 96vw;
+  height: auto;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.ticker {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 49%;
+  z-index: 2;
+  overflow: hidden;
+  font-size: 0.75rem;
+  opacity: 0.7;
+  pointer-events: none;
+}
+.ticker__track { display: flex; width: max-content; }
+.ticker__item {
+  display: flex;
+  align-items: center;
+  gap: 4vw;
+  padding-right: 4vw;
+  white-space: nowrap;
+}
+.ticker__item img { width: 4px; height: 4px; }
+
+.hero__captions {
+  position: absolute;
+  left: 24vw;
+  bottom: 12vh;
+  z-index: 2;
+  display: flex;
+  gap: 4vw;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+  line-height: 1.8;
+  pointer-events: none;
+}
+.hero__captions li { display: flex; flex-direction: column; }
+.hero__captions li span:nth-child(n + 2) { opacity: 0.6; }
 
 .nav {
   position: fixed;

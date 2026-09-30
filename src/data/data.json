@@ -7,6 +7,25 @@
       { "label": "Contact", "href": "#contact" }
     ]
   },
+  "loader": { "text": "Loading visual language" },
+  "hero": {
+    "video": "https://framerusercontent.com/assets/Fj182DxNzTt7FJdPdgdLo4CAM0.mp4",
+    "image": "https://framerusercontent.com/images/aZoZ5nVZFbgwsySGNQ5CXL2rQ.jpg",
+    "gallery": [
+      "https://framerusercontent.com/images/0VSrNQmftCfZjxH2F8hiAYfxxA.jpg",
+      "https://framerusercontent.com/images/AlABm8NL9nRp1XFUf62ccnFB8.jpg",
+      "https://framerusercontent.com/images/GI80tkeV6TMLMivUPNxVNB4I.png"
+    ],
+    "wordmark": "https://framerusercontent.com/images/r7Kj4ev5RvgZHiIvgugDBJuAVi0.svg",
+    "tickerDot": "https://framerusercontent.com/images/2sWL1DXbPXG6eGRplIQ3eWfr3I8.svg",
+    "tickerText": "Click Anywhere",
+    "captions": [
+      { "title": "Techcombank Priority", "client": "Techcombank", "role": "Art Direction" },
+      { "title": "Di De Tro Ve 09", "client": "Bitis", "role": "Art Direction" },
+      { "title": "Sulwashoo Product Launch", "client": "Sulwashoo", "role": "Art Direction" },
+      { "title": "Similac Virgo", "client": "Similac", "role": "Art Direction" }
+    ]
+  },
   "about": { "text": "" },
   "spawnerImages": [],
   "archiveCards": [],
