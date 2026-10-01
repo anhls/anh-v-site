@@ -1,4 +1,4 @@
-import { BEND, WARP, CARD_HOVER } from '../timeline.js';
+import { BEND, WARP, WARP_DIR, CARD_HOVER } from '../timeline.js';
 import { weakDevice } from '../util/device.js';
 import { POST_VERT, POST_FRAG } from './warp-shader.js';
 import { cylinderMargins } from './warp-model.js';
@@ -322,11 +322,11 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
     gl.uniform1i(P.uScene, 0);
     gl.uniform2f(P.uRes, canvas.width, canvas.height);
     gl.uniform1f(P.uAmt, Math.max(-1, Math.min(1, amt)));
-    gl.uniform4f(P.uShape, WARP.curl, WARP.camDown, WARP.camUp, WARP.reach); // R16e: cylinder parameters
-    gl.uniform2f(P.uBow, WARP.bowDown, WARP.bowUp);
+    gl.uniform4f(P.uShape, WARP.curl, ...(WARP_DIR > 0 ? [WARP.camDown, WARP.camUp] : [WARP.camUp, WARP.camDown]), WARP.reach); // the shader's first camera / bow slot belongs to its positive (recede) side // R16e: cylinder parameters
+    gl.uniform2f(P.uBow, ...(WARP_DIR > 0 ? [WARP.bowDown, WARP.bowUp] : [WARP.bowUp, WARP.bowDown]));
     gl.uniform2f(P.uMargin, fb.mx / W, fb.my / H);
     gl.uniform1f(P.uSym, WARP.sym);
-    gl.uniform1f(P.uPinchDown, WARP.pinchDown);
+    gl.uniform1f(P.uPinchDown, WARP_DIR > 0 ? WARP.pinchDown : WARP.pinch);
     gl.uniform4f(P.uFrame, 0, 0, 0, 0);
     gl.uniform1f(P.uGrain, grainAmt);
     gl.uniform1f(P.uSeed, seed);
@@ -414,7 +414,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
 
     const grainAmt = BEND.grain * (1 + BEND.grainSpeed * grainSpeed);
     const seed = (grainStep % 997) * 17.31;
-    const amt = bend.x * (bend.x > 0 ? WARP.strengthDown : WARP.strengthUp); // + = scrolling down (recede), - = up (inflate)
+    const amt = WARP_DIR * bend.x * (bend.x > 0 ? WARP.strengthDown : WARP.strengthUp); // shader sign: + = recede look, - = toward the viewer; WARP_DIR maps scroll direction onto it
     bend.amt = amt; // the signed value handed to the warp shader (+ = scrolling down); read by tools/scratch checks
     const usePost = postOk && Math.abs(amt) > 0.0015;
     if (usePost) {

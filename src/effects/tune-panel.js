@@ -82,6 +82,7 @@ const FRAME_SLIDERS = [
   ['arc', 'Arc (lines bow)', 0, 0.4, 0.005, 'Bow of the horizontal lines, as a share of the screen height.'],
   ['persp', 'Perspective (curl away)', 0, 1, 0.01, 'How much the content crowds toward the edge.'],
   ['sym', 'Top / bottom symmetry', 0, 1, 0.01, '0 = only the trailing edge warps; 1 = both.'],
+  ['deadzone', 'Ignore slow scroll (px/s)', 0, 600, 10, 'R16f. Scroll speed below this does not warp the frame, so the long slow glide at the end of a scroll lets it settle flat sooner.'],
   ['threshold', 'Hand-over speed (px/s)', 50, 2000, 10, 'The canvas takes the frame over once the scroll is faster than this, and hands it back when the page is still and the warp is flat.'],
   ['videoMode', 'Video while warping: poster (0) / frozen frame (1)', 0, 1, 1, '0 = crossfade to the video poster; 1 = keep the current video frame, frozen.'],
   ['fadeSec', 'Poster crossfade (s)', 0.02, 0.6, 0.01, 'Video frame to poster (and back).'],
@@ -159,7 +160,7 @@ export function mountTunePanel({ trail, cards } = {}) {
   const syncReadouts = () => readouts.forEach((r) => { r.input.value = r.obj[r.key]; r.v.textContent = r.obj[r.key]; });
 
   section('Warp (scroll)', ['WARP.strengthUp', 'WARP.strengthDown', 'WARP.reach', 'WARP.curl', 'WARP.camDown', 'WARP.camUp', 'WARP.bowDown', 'WARP.sym', 'BEND.sensitivity', 'BEND.returnSpeed', 'BEND.overshoot'], { open: true, note: 'One distortion over all the cards. The last three (speed sensitivity, return speed, overshoot) are shared by both directions.' });
-  section('Frame warp (centre image, R16c)', ['FRAME.on', 'FRAME.strengthUp', 'FRAME.strengthDown', 'FRAME.reach', 'FRAME.pinch', 'FRAME.pinchDown', 'FRAME.arc', 'FRAME.persp', 'FRAME.sym', 'FRAME.threshold', 'FRAME.videoMode', 'FRAME.fadeSec'], { note: 'Own settings; the speed spring (sensitivity, return, overshoot) is shared with the cards.' });
+  section('Frame warp (centre image, R16c)', ['FRAME.on', 'FRAME.strengthUp', 'FRAME.strengthDown', 'FRAME.reach', 'FRAME.pinch', 'FRAME.pinchDown', 'FRAME.arc', 'FRAME.persp', 'FRAME.sym', 'FRAME.threshold', 'FRAME.deadzone', 'FRAME.videoMode', 'FRAME.fadeSec'], { note: 'Own settings; the speed spring (sensitivity, return, overshoot) is shared with the cards.' });
   section('Grain', ['BEND.grain', 'BEND.grainSpeed']);
   section('Aura (around the frame)', ['CARDS.auraWeight', 'CARDS.auraMargin', 'CARDS.auraStrength', 'CARDS.auraVertical', 'CARDS.auraFalloff', 'CARDS.auraMinGap', 'CARDS.partingSoftness', 'CARDS.partingBounce']);
   section('Mouse (push + drift)', ['CARDS.pushRadius', 'CARDS.pushStrength', 'CARDS.pushFalloff', 'CARDS.pushStiffness', 'CARDS.pushDamping', 'CARDS.mouseStrength']);

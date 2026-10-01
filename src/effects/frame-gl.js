@@ -1,5 +1,5 @@
 import { gsap } from 'gsap';
-import { BEND, FRAME_WARP as FW } from '../timeline.js';
+import { BEND, FRAME_WARP as FW, WARP_DIR } from '../timeline.js';
 import { frameState, frameLayers } from '../sections/hero.js';
 import { weakDevice } from '../util/device.js';
 import { POST_VERT, POST_FRAG } from './warp-shader.js';
@@ -301,11 +301,11 @@ export function createFrameGL(handles) {
     gl.uniform1i(P.uScene, 0);
     gl.uniform2f(P.uRes, canvas.width, canvas.height);
     gl.uniform1f(P.uAmt, Math.max(-1, Math.min(1, amt)));
-    gl.uniform4f(P.uShape, FW.pinch, FW.arc, FW.persp, FW.reach);
+    gl.uniform4f(P.uShape, WARP_DIR > 0 ? FW.pinch : FW.pinchDown, FW.arc, FW.persp, FW.reach);
     gl.uniform2f(P.uMargin, 0, 0);
     gl.uniform4f(P.uFrame, rect[0] * dpr, rect[1] * dpr, rect[2] * dpr, rect[3] * dpr); // the warp runs in the frame's own space (R16d)
     gl.uniform1f(P.uSym, FW.sym);
-    gl.uniform1f(P.uPinchDown, FW.pinchDown);
+    gl.uniform1f(P.uPinchDown, WARP_DIR > 0 ? FW.pinchDown : FW.pinch);
     gl.uniform1f(P.uGrain, 0);
     gl.uniform1f(P.uSeed, 0);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -381,7 +381,7 @@ export function createFrameGL(handles) {
     const os = Math.min(Math.max(BEND.overshoot, 0.001), 0.95);
     const zeta = -Math.log(os) / Math.sqrt(Math.PI * Math.PI + Math.log(os) ** 2);
     const wn = BEND.returnSpeed;
-    const target = Math.tanh((vel * BEND.sensitivity) / BEND.speedRef);
+    const target = Math.tanh((Math.sign(vel) * Math.max(0, speed - FW.deadzone) * BEND.sensitivity) / BEND.speedRef); // R16f: Lenis' slow glide tail (below deadzone px/s) no longer holds the warp
     const steps = Math.max(1, Math.ceil(dt / 0.004));
     const h = dt / steps;
     for (let s = 0; s < steps; s++) {
@@ -394,10 +394,10 @@ export function createFrameGL(handles) {
     const toPoster = FW.videoMode === 0 && tex.poster && vtexOk ? 1 : 0;
     const goal = fading ? 0 : toPoster;
     videoMix += Math.sign(goal - videoMix) * Math.min(Math.abs(goal - videoMix), dt / Math.max(FW.fadeSec, 0.01));
-    const amt = bend.x * (bend.x > 0 ? FW.strengthDown : FW.strengthUp);
+    const amt = WARP_DIR * bend.x * (bend.x > 0 ? FW.strengthDown : FW.strengthUp);
     paint(amt);
     // hand back: calm = the spring is flat and the page is (nearly) still; then fade to the video's own frame, then the DOM again
-    const calm = Math.abs(bend.x) < 0.004 && speed < Math.min(FW.threshold * 0.5, 60); // Lenis' last sub-pixel steps count as still
+    const calm = Math.abs(bend.x) < 0.004 && speed < Math.min(FW.threshold * 0.5, FW.deadzone); // Lenis' last sub-pixel steps count as still
     if (forced) { calmSince = 0; fading = 0; } else if (calm) calmSince += dt; else { calmSince = 0; fading = 0; }
     if (calmSince > 0.12) fading = 1;
     if (fading && videoMix <= 0.001) { bend.x = 0; bend.v = 0; handBack(); }
