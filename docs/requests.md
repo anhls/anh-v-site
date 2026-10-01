@@ -57,6 +57,12 @@ Also look at the one ~45 ms frame at the start of each R13c test run (first fram
 
 ## R17 [done] (archived in docs/archive/requests-R17.md)
 
+## R17b (next): caption + nav hover = orange strike-through line (Sonnet 4.6 is fine)
+Found by Cowork in the Framer project (component HeaderPrj-1, same for -2 / -3): each hero caption is the project name (Clash Display medium) plus a Line layer: position absolute, left 0, vertically centred (centerY 50%), height 1 px, width 0 px, backgroundColor rgb(240, 74, 14), inside a stack with overflow hidden. The hover variant animates that line: a strike-through that draws across the name from the left, together with the text turning orange (R17 only caught the colour; the "invisible 1 px element" it measured is this line). Anh says the nav links (Nav Item-About / -Works / -Archives) have the same behaviour.
+1. Read the exact values from the published Framer code (the chunks R15/R17 used: HeaderPrj-1/2/3 and the Nav Item components): the line's width in the hover variant (likely 100% of the name), its transition (type, duration, delay, easing/spring) for in AND out, the text colour transition, and whether the nav items also keep their roll. Log them in motion-spec.md.
+2. Build it for the hero captions and the nav links: on hover the line grows left to right across the text at the vertical middle (1 px at 1920, follow the scale rule), the text turns orange; on leave reverse as live does (check whether live retracts to the left or exits to the right). Keep the R17 caption image reveal/crossfade. Transforms only (scaleX with origin left on a full-width line), no width animation.
+3. Check frame samples at 1920 and 2560 (start / mid / end of hover in and out) against live, and that the More Projects / footer links are untouched unless live shows the same there (report).
+
 ## Queued (plans agreed with Anh, in this order; each becomes a request after the one before is committed)
 2. Project pages (Bitis template first), Works page, tablet/phone, launch prep, then back-to-top "rewind" polish.
 3. Check later (low priority, Anh 2026-10-02): 4K at 100% scaling (3840x2160 CSS) squeezes the capped section positions (Selected Work ~1 screen down, trail barely runs). Consider letting section positions keep scaling on very tall viewports.
