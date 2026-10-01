@@ -162,18 +162,24 @@ export const INDEX = {
 //                    Also scales how much heavier the deep cards lag.
 //   lagStrength      NEW (not on live). 0 = off. Multiplies the lag time constants below.
 //   lagFrontSec / lagBackSec  time constant (seconds) for the front-most / deepest card: the card's scroll position chases the real one with this delay.
+//   partingSoftness / partingBounce  (R13b, NOT live) the parting offset follows live's targets through a spring instead of
+//                    live's 0.2-per-frame ease. Softness = the spring's duration in seconds (higher = slower, floatier);
+//                    bounce 0 = no overshoot, 0.3 = drifts about 5% past and settles back.
+// Anh's tuned values (R13b): mouse 1.3, depth range 0.85, lag 0.9 / 0.03 s / 0.25 s.
 export const CARDS = {
   partingStrength: 1,
-  mouseStrength: 1,
+  partingSoftness: 0.45,
+  partingBounce: 0.3,
+  mouseStrength: 1.3,
   mouseStiffness: 650,
   mouseDamping: 100,
-  depthRange: 1,
-  lagStrength: 1,
-  lagFrontSec: 0.04,
-  lagBackSec: 0.18,
+  depthRange: 0.85,
+  lagStrength: 0.9,
+  lagFrontSec: 0.03,
+  lagBackSec: 0.25,
 };
 // Live's constants, fixed (not tunable): parting target = t * (0.01W + 0.19W * (1 - f)) * 1.1 sideways and
-// t * (0.01H + 0.29H * (1 - f)) * 1.1 down, eased at 0.2 per 60 fps frame; a card is armed once 10% of it has been visible.
+// t * (0.01H + 0.29H * (1 - f)) * 1.1 down (live eases to them at 0.2 per 60 fps frame; we use the CARDS spring); a card is armed once 10% of it has been visible.
 export const PARTING = { xMax: 0.2, xMin: 0.01, yMax: 0.3, yMin: 0.01, z: 1.1, lerp: 0.2, armed: 0.1 };
 // Where the cards sit: the section starts 211.11 capped vh down the page (2280px at 1080 and above); card y is vh from there.
 export const CARD_LAYOUT = { sectionTopCappedVh: 2280 / 10.8 };

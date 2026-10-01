@@ -1,6 +1,7 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { CARDS, PARTING } from '../timeline.js';
+import { springFromBounce } from '../effects/springs.js';
 import { registerPointer, pointerEnabled } from '../effects/pointer.js';
 import { capW } from '../scale.js';
 
@@ -12,9 +13,11 @@ import { capW } from '../scale.js';
 //      0.2 per 60 fps frame. It is not tied to the frame element. Eight cards have no scroll effect (`scroll: false`).
 //   2. Mouse (live): Framer "Parallax Floating". offset = -(mouse - screen centre) / (half the screen) * distance, x and y,
 //      on a spring. distance = the card's layer value (20..100 px). There is no radius. Only card 11 ignores the mouse.
+//      R13b: live's targets are kept, but the offset follows them through a spring (CARDS.partingSoftness / partingBounce)
+//      instead of live's 0.2-per-frame ease, so cards drift a little past and settle back.
 //   3. Lag (NEW, not on live): each card's scroll position chases the real one with a delay that grows with depth.
 // Positions are read once (load and resize); the loop only does arithmetic and writes transforms. The loop runs only while
-// the cards can be on screen. Touch devices and prefers-reduced-motion: no mouse and no lag (parting stays).
+// the cards can be on screen and until everything has settled. Touch devices and prefers-reduced-motion: no mouse and no lag (parting stays).
 export function buildSelectedWork(root, cards) {
   const section = root.querySelector('.selected-work');
   if (!section || !cards?.length) return;
@@ -28,8 +31,12 @@ export function buildSelectedWork(root, cards) {
   const bx = new Float64Array(n); // base centre x (px from the left of the window)
   const by = new Float64Array(n); // base centre y (px from the top of the page)
   const bh = new Float64Array(n); // card height (px)
-  const px = new Float64Array(n); // parting offset
+  const px = new Float64Array(n); // parting offset (spring position)
   const py = new Float64Array(n);
+  const vpx = new Float64Array(n); // parting spring velocity
+  const vpy = new Float64Array(n);
+  const tpx = new Float64Array(n); // parting target (live's formula; kept while a card is out of range)
+  const tpy = new Float64Array(n);
   const sm = new Float64Array(n); // lagged scroll position
   const lastX = new Float64Array(n).fill(NaN);
   const lastY = new Float64Array(n).fill(NaN);
@@ -55,12 +62,14 @@ export function buildSelectedWork(root, cards) {
       lo = Math.min(lo, by[i] - bh[i] / 2);
       hi = Math.max(hi, by[i] + bh[i] / 2);
     });
-    startScroll = lo - H;
-    endScroll = hi + H * 0.5; // a little past the last card so the last easing finishes
+    startScroll = lo - H * 1.5; // switch on well before the first card is visible, so everything is already settled when it shows
+    endScroll = hi + H * 0.5;
   };
   measure();
 
   const live = pointerEnabled;
+  let on = false; // the section's range is active (cards can be on screen)
+  let ticking = false; // the loop is registered on the ticker
   // Shared mouse spring (every card's spring is the same and linear, so one normalised state serves all of them).
   const mouse = { tx: 0, ty: 0, x: 0, y: 0, vx: 0, vy: 0 };
   const effect = {
@@ -73,7 +82,11 @@ export function buildSelectedWork(root, cards) {
   const tick = (_time, deltaMs) => {
     const dt = Math.min(deltaMs, 50) / 1000;
     const sy = window.scrollY;
-    const ease = 1 - Math.pow(1 - PARTING.lerp, dt * 60); // live: 0.2 per 60 fps frame
+    const [pk, pc] = springFromBounce(CARDS.partingSoftness, CARDS.partingBounce);
+    const pSteps = Math.max(1, Math.ceil(dt / 0.004));
+    const ph = dt / pSteps;
+    let moving = false;
+    const far = !on && (sy < startScroll - H || sy > endScroll + H);
 
     // Mouse spring, sub-stepped so a stiff setting stays stable.
     if (live) {
@@ -115,20 +128,29 @@ export function buildSelectedWork(root, cards) {
             const t = (1 - Math.abs(g - 0.5) * 2) * CARDS.partingStrength;
             const tx = t * (W * PARTING.xMin + (W * PARTING.xMax - W * PARTING.xMin) * (1 - f)) * (dx < 0 ? -1 : 1) * PARTING.z;
             const ty = t * (H * PARTING.yMin + (H * PARTING.yMax - H * PARTING.yMin) * (1 - f)) * PARTING.z;
-            px[i] += (tx - px[i]) * ease;
-            py[i] += (ty - py[i]) * ease;
+            tpx[i] = tx;
+            tpy[i] = ty;
           }
         }
+        // The spring keeps running toward the last target, also while the card is out of range, so nothing freezes mid-motion.
+        for (let q = 0; q < pSteps; q++) {
+          vpx[i] += (pk * (tpx[i] - px[i]) - pc * vpx[i]) * ph;
+          vpy[i] += (pk * (tpy[i] - py[i]) - pc * vpy[i]) * ph;
+          px[i] += vpx[i] * ph;
+          py[i] += vpy[i] * ph;
+        }
+        if (Math.abs(vpx[i]) + Math.abs(vpy[i]) > 0.05 || Math.abs(tpx[i] - px[i]) + Math.abs(tpy[i] - py[i]) > 0.05) moving = true;
       }
 
       // Lag: the card's scroll position trails the real one; deeper cards (smaller layer value) trail longer.
       let lag = 0;
-      if (live && CARDS.lagStrength > 0) {
+      if (live && CARDS.lagStrength > 0 && !far) {
         const depth = Math.min(Math.max(1 - (((c.mouse || 100) - 20) / 80) * CARDS.depthRange, 0), 1.5); // 0 front .. 1 back
         const tau = CARDS.lagStrength * (CARDS.lagFrontSec + (CARDS.lagBackSec - CARDS.lagFrontSec) * depth);
         sm[i] += (sy - sm[i]) * (tau > 0 ? 1 - Math.exp(-dt / tau) : 1);
         lag = sy - sm[i];
-      } else sm[i] = sy;
+        if (Math.abs(lag) > 0.05) moving = true;
+      } else sm[i] = sy; // lag is off, or the section is more than a screen beyond the on-screen range: drop it (invisible)
 
       const x = px[i] + mx;
       const y = py[i] + my + lag;
@@ -138,22 +160,26 @@ export function buildSelectedWork(root, cards) {
         lastY[i] = y;
       }
     }
+    if (live && (Math.abs(mouse.tx - mouse.x) > 0.0005 || Math.abs(mouse.vx) > 0.0005 || Math.abs(mouse.ty - mouse.y) > 0.0005 || Math.abs(mouse.vy) > 0.0005)) moving = true;
+    // Off-screen: stop the loop only once every offset has settled.
+    if (!on && !moving) { gsap.ticker.remove(tick); ticking = false; }
   };
 
   // Run the loop and the pointer listener only while the cards can be on screen.
-  let on = false;
   let unregister = null;
   const toggle = (active) => {
     if (active === on) return;
     on = active;
     if (active) {
-      sm.fill(window.scrollY);
-      gsap.ticker.add(tick);
-      if (live) unregister = registerPointer(effect);
-    } else {
-      gsap.ticker.remove(tick);
-      if (unregister) { unregister(); unregister = null; }
-    }
+      // Start from the pointer's real position (no spring-in). The lag starts at zero when the loop was idle (it only idles once
+      // the lag has died away); if the loop is still settling, the lag simply carries on.
+      if (!ticking) sm.fill(window.scrollY);
+      if (live) {
+        unregister = registerPointer(effect); // sets the target to the current pointer, if it has moved at all
+        mouse.x = mouse.tx; mouse.y = mouse.ty; mouse.vx = 0; mouse.vy = 0;
+      }
+      if (!ticking) { ticking = true; gsap.ticker.add(tick); }
+    } else if (unregister) { unregister(); unregister = null; } // the loop itself stops once everything has settled
   };
   ScrollTrigger.create({
     start: () => startScroll,

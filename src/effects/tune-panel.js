@@ -12,6 +12,8 @@ const SLIDERS = [
   ['lagBackSec', 'Lag, deepest cards (s)', 0, 1.5, 0.01, 'Delay of the back layer at lag strength 1.'],
   ['depthRange', 'Depth range', 0, 3, 0.05, '1 = live. 0 = all layers move like the back layer. Also scales how much deeper cards lag.'],
   ['partingStrength', 'Parting strength', 0, 3, 0.05, '1 = live. How far cards push away from the centre line while they cross the screen.'],
+  ['partingSoftness', 'Parting softness (s)', 0.1, 1.5, 0.01, 'New. Spring duration of the parting: higher = slower, floatier. (Live eases at about 0.08 s.)'],
+  ['partingBounce', 'Parting bounce', 0, 0.7, 0.01, 'New. 0 = no overshoot; 0.3 = cards drift a little past and settle back.'],
   ['mouseStrength', 'Mouse strength', 0, 4, 0.05, '1 = live (20 px back layer up to 100 px). Live has no radius: every card follows the mouse over the whole screen.'],
   ['mouseStiffness', 'Mouse smoothing (spring)', 100, 2000, 25, 'Spring stiffness. Lower = slower, floatier. Live is about 650.'],
 ];
