@@ -68,7 +68,7 @@ export function createFrameGL(handles) {
   if (!quad || !post) return null;
   const uniforms = (p, names) => Object.fromEntries(names.map((k) => [k, gl.getUniformLocation(p, k)]));
   const Q = uniforms(quad, ['uView', 'uRect', 'uA', 'uB', 'uUvA', 'uUvB', 'uMix', 'uColor', 'uMode', 'uAlpha', 'uBias']);
-  const P = uniforms(post, ['uScene', 'uRes', 'uAmt', 'uShape', 'uMargin', 'uSym', 'uGrain', 'uSeed']);
+  const P = uniforms(post, ['uScene', 'uRes', 'uAmt', 'uShape', 'uMargin', 'uSym', 'uPinchDown', 'uFrame', 'uGrain', 'uSeed']);
   const emptyVao = gl.createVertexArray();
   gl.bindVertexArray(emptyVao);
   gl.enable(gl.BLEND);
@@ -289,7 +289,7 @@ export function createFrameGL(handles) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     fb = { ms, res, rb, tex: t, w, h };
   };
-  const postPass = (amt) => {
+  const postPass = (amt, rect) => {
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fb.ms);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb.res);
     gl.blitFramebuffer(0, 0, fb.w, fb.h, 0, 0, fb.w, fb.h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
@@ -303,7 +303,9 @@ export function createFrameGL(handles) {
     gl.uniform1f(P.uAmt, Math.max(-1, Math.min(1, amt)));
     gl.uniform4f(P.uShape, FW.pinch, FW.arc, FW.persp, FW.reach);
     gl.uniform2f(P.uMargin, 0, 0);
+    gl.uniform4f(P.uFrame, rect[0] * dpr, rect[1] * dpr, rect[2] * dpr, rect[3] * dpr); // the warp runs in the frame's own space (R16d)
     gl.uniform1f(P.uSym, FW.sym);
+    gl.uniform1f(P.uPinchDown, FW.pinchDown);
     gl.uniform1f(P.uGrain, 0);
     gl.uniform1f(P.uSeed, 0);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -340,7 +342,13 @@ export function createFrameGL(handles) {
     if (wasPlaying) video.play().catch(() => {});
   };
 
-  const paint = (amt) => {
+  const paint = (amt0) => {
+    // R16d: the warp is relative to the FRAME rectangle (its own edges), not the screen, so it follows the frame while it moves and
+    // resizes; its strength scales with the frame's size (subtle when small, full when it fills the screen).
+    const fw = frameState.w;
+    const fh = frameState.h;
+    const rect = [W / 2, H / 2 + frameState.fo + frameState.fi, fw, fh];
+    const amt = amt0 * (0.3 + 0.7 * Math.sqrt(Math.min((fw * fh) / (W * H), 1)));
     const usePost = Math.abs(amt) > 0.0015;
     bend.amt = amt;
     if (usePost) {
@@ -349,7 +357,7 @@ export function createFrameGL(handles) {
       gl.viewport(0, 0, fb.w, fb.h);
     } else gl.viewport(0, 0, canvas.width, canvas.height);
     paintFrame();
-    if (usePost) { gl.viewport(0, 0, canvas.width, canvas.height); postPass(amt); gl.useProgram(quad); gl.bindVertexArray(emptyVao); }
+    if (usePost) { gl.viewport(0, 0, canvas.width, canvas.height); postPass(amt, rect); gl.useProgram(quad); gl.bindVertexArray(emptyVao); }
   };
 
   // ---- the loop ----------------------------------------------------------------------------------------------------------------

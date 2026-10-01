@@ -282,9 +282,10 @@ export const BEND = {
 // (sensitivity, speedRef, returnSpeed, overshoot). strengthUp / strengthDown scale it for scrolling up (the content bulges toward the edge) and down (it recedes, like a sheet curling away; 0 = off); reach = share of the screen height, from each edge,
 // over which it fades in (0.45 = the outer 45% of the half height); pinch = how far the sides are pulled toward the centre line at the
 // edge at full speed (0.35 = content looks 35% narrower there); arc = how far horizontal lines bow, as a share of the screen height;
+// pinchDown = the same for scrolling DOWN (R16d: the sides of the curl converge toward the trailing edge; 0.2 = 20% narrower at the edge);
 // persp = how much the lines crowd toward the edge (the sheet curling away); sym = weight of the leading side (1 = top and bottom alike,
 // 0 = only the trailing side).
-export const WARP = { strengthUp: 0.7, strengthDown: 0.7, reach: 0.6, pinch: 0.07, arc: 0.255, persp: 0.43, sym: 0 };
+export const WARP = { strengthUp: 0.7, strengthDown: 0.7, reach: 0.6, pinch: 0.07, pinchDown: 0.2, arc: 0.255, persp: 0.43, sym: 0 };
 
 // R16c: the centre frame (hero mask) warps while the page scrolls, on its own canvas (effects/frame-gl.js). At rest the normal DOM
 // frame shows; when the scroll speed passes `threshold` (px/s) the canvas takes over at the same pixels, applies the same kind of warp
@@ -292,6 +293,6 @@ export const WARP = { strengthUp: 0.7, strengthDown: 0.7, reach: 0.6, pinch: 0.0
 // sprung flat. on = 0 turns it off; videoMode 0 = show the video's poster while warping (crossfade `fadeSec`), 1 = the frozen current
 // frame. The DOM video is paused while the canvas shows the frame and resumes when it hands back.
 export const FRAME_WARP = {
-  on: 1, strengthUp: 0.7, strengthDown: 0.7, reach: 0.6, pinch: 0.07, arc: 0.255, persp: 0.43, sym: 0,
-  threshold: 300, fadeSec: 0.15, videoMode: 0, lodBias: 0, softScaled: 1,
+  on: 1, strengthUp: 0.7, strengthDown: 0.7, reach: 0.6, pinch: 0.07, pinchDown: 0.2, arc: 0.255, persp: 0.43, sym: 0,
+  threshold: 300, fadeSec: 0.15, videoMode: 1, lodBias: 0, softScaled: 1,
 };

@@ -61,7 +61,8 @@ const WARP_SLIDERS = [
   ['strengthUp', 'Strength, scrolling up', 0, 2, 0.01, 'R16b-fix. One distortion over ALL the cards, driven by scroll speed. Scrolling UP the content near the edge bulges toward it. 0 = off.'],
   ['strengthDown', 'Strength, scrolling down', 0, 2, 0.01, 'R16b-fix. Scrolling DOWN the content near the edge recedes (smaller, narrower, a sheet curling away; never magnified). 0 = off.'],
   ['reach', 'Warp reach (share of screen)', 0.1, 1, 0.01, 'How far in from the top / bottom edge the warp fades in (1 = from the middle).'],
-  ['pinch', 'Pinch (sides pulled in)', 0, 0.7, 0.01, 'How much narrower the content gets at the screen edge at full speed (the hourglass).'],
+  ['pinch', 'Pinch, scrolling up', 0, 0.7, 0.01, 'How much narrower the content gets at the screen edge at full speed while scrolling up.'],
+  ['pinchDown', 'Pinch, scrolling down', 0, 0.7, 0.01, 'R16d. The sides of the curl converge toward the trailing edge while scrolling down (0.2 = 20% narrower at the edge).'],
   ['arc', 'Arc (lines bow)', 0, 0.4, 0.005, 'How far horizontal lines bow, as a share of the screen height, against the scroll direction.'],
   ['persp', 'Perspective (curl away)', 0, 1, 0.01, 'How much the content crowds toward the edge, like a sheet curling away.'],
   ['sym', 'Top / bottom symmetry', 0, 1, 0.01, '1 = both edges warp alike; 0 = only the trailing edge (bottom when scrolling down).'],
@@ -71,7 +72,8 @@ const FRAME_SLIDERS = [
   ['strengthUp', 'Strength, scrolling up', 0, 2, 0.01, 'The centre frame bulges toward the edge while scrolling up.'],
   ['strengthDown', 'Strength, scrolling down', 0, 2, 0.01, 'The centre frame recedes while scrolling down.'],
   ['reach', 'Reach (share of screen)', 0.1, 1, 0.01, 'How far in from the top / bottom edge the warp fades in.'],
-  ['pinch', 'Pinch (sides pulled in)', 0, 0.7, 0.01, 'Narrowing toward the edge.'],
+  ['pinch', 'Pinch, scrolling up', 0, 0.7, 0.01, 'Narrowing toward the frame edge while scrolling up.'],
+  ['pinchDown', 'Pinch, scrolling down', 0, 0.7, 0.01, 'The sides converge toward the trailing edge of the frame while scrolling down.'],
   ['arc', 'Arc (lines bow)', 0, 0.4, 0.005, 'Bow of the horizontal lines, as a share of the screen height.'],
   ['persp', 'Perspective (curl away)', 0, 1, 0.01, 'How much the content crowds toward the edge.'],
   ['sym', 'Top / bottom symmetry', 0, 1, 0.01, '0 = only the trailing edge warps; 1 = both.'],
@@ -151,8 +153,8 @@ export function mountTunePanel({ trail, cards } = {}) {
   };
   const syncReadouts = () => readouts.forEach((r) => { r.input.value = r.obj[r.key]; r.v.textContent = r.obj[r.key]; });
 
-  section('Warp (scroll)', ['WARP.strengthUp', 'WARP.strengthDown', 'WARP.reach', 'WARP.pinch', 'WARP.arc', 'WARP.persp', 'WARP.sym', 'BEND.sensitivity', 'BEND.returnSpeed', 'BEND.overshoot'], { open: true, note: 'One distortion over all the cards. The last three (speed sensitivity, return speed, overshoot) are shared by both directions.' });
-  section('Frame warp (centre image, R16c)', ['FRAME.on', 'FRAME.strengthUp', 'FRAME.strengthDown', 'FRAME.reach', 'FRAME.pinch', 'FRAME.arc', 'FRAME.persp', 'FRAME.sym', 'FRAME.threshold', 'FRAME.videoMode', 'FRAME.fadeSec'], { note: 'Own settings; the speed spring (sensitivity, return, overshoot) is shared with the cards.' });
+  section('Warp (scroll)', ['WARP.strengthUp', 'WARP.strengthDown', 'WARP.reach', 'WARP.pinch', 'WARP.pinchDown', 'WARP.arc', 'WARP.persp', 'WARP.sym', 'BEND.sensitivity', 'BEND.returnSpeed', 'BEND.overshoot'], { open: true, note: 'One distortion over all the cards. The last three (speed sensitivity, return speed, overshoot) are shared by both directions.' });
+  section('Frame warp (centre image, R16c)', ['FRAME.on', 'FRAME.strengthUp', 'FRAME.strengthDown', 'FRAME.reach', 'FRAME.pinch', 'FRAME.pinchDown', 'FRAME.arc', 'FRAME.persp', 'FRAME.sym', 'FRAME.threshold', 'FRAME.videoMode', 'FRAME.fadeSec'], { note: 'Own settings; the speed spring (sensitivity, return, overshoot) is shared with the cards.' });
   section('Grain', ['BEND.grain', 'BEND.grainSpeed']);
   section('Aura (around the frame)', ['CARDS.auraWeight', 'CARDS.auraMargin', 'CARDS.auraStrength', 'CARDS.auraVertical', 'CARDS.auraFalloff', 'CARDS.auraMinGap', 'CARDS.partingSoftness', 'CARDS.partingBounce']);
   section('Mouse (push + drift)', ['CARDS.pushRadius', 'CARDS.pushStrength', 'CARDS.pushFalloff', 'CARDS.pushStiffness', 'CARDS.pushDamping', 'CARDS.mouseStrength']);

@@ -3,6 +3,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { NAV, SPRING } from '../timeline.js';
 import { springLayer, springFromBounce } from './springs.js';
 import { capW, capH } from '../scale.js';
+import { frameState } from '../sections/hero.js';
 
 // Nav + AV wordmark. Measured on the live site at 1920x1080 (see docs/HANDOFF.md, docs/framer-extract/motion-spec.md).
 // Two states: BIG (wordmark bottom-left, links spread out) and SMALL (wordmark top-left, links grouped right).
@@ -60,14 +61,22 @@ export function initNav(wordmarkSrc, lenis) {
     });
   };
 
+  // R16d: the big wordmark comes back only when the footer state is REALLY reached: the footer is in view AND the hero mask has finished
+  // growing back to full screen. Before this, the footer trigger (footer top reaching the bottom of the screen, ~520vh) fired while the
+  // frame was still small, the cards were still on screen and the More Projects list was still rising through the returning wordmark.
   let footerIn = false;
+  let frameFull = false;
+  const isFull = () => frameState.w >= window.innerWidth - 0.5 && frameState.h >= window.innerHeight - 0.5;
   const position = () => (lenis ? lenis.targetScroll : window.scrollY);
-  const target = () => (!footerIn && position() >= NAV.thresholdPx ? 1 : 0);
+  const target = () => (!(footerIn && frameFull) && position() >= NAV.thresholdPx ? 1 : 0);
 
   state.p = target();
   const layer = springLayer({ target: state, springs: { p: SPRING.nav }, apply });
 
-  const check = () => { state.p = target(); };
+  const check = () => { frameFull = isFull(); state.p = target(); };
+  // the mask size is written by the scrubbed hero timeline (a little behind the scroll): watch it on the shared ticker, switch only when it flips
+  let lastFull = frameFull;
+  gsap.ticker.add(() => { const f = isFull(); if (f !== lastFull) { lastFull = f; check(); } });
   window.addEventListener('scroll', check, { passive: true });
   if (lenis) lenis.on('scroll', check);
   window.addEventListener('resize', () => { W = window.innerWidth; H = window.innerHeight; CW = capW(); CH = capH(); layer.snap(); });

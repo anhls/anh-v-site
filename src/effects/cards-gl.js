@@ -77,7 +77,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
   gl.attachShader(post, compile(gl.FRAGMENT_SHADER, POST_FRAG));
   gl.linkProgram(post);
   const postOk = gl.getProgramParameter(post, gl.LINK_STATUS);
-  const P = Object.fromEntries(['uScene', 'uRes', 'uAmt', 'uShape', 'uMargin', 'uSym', 'uGrain', 'uSeed'].map((k) => [k, gl.getUniformLocation(post, k)]));
+  const P = Object.fromEntries(['uScene', 'uRes', 'uAmt', 'uShape', 'uMargin', 'uSym', 'uPinchDown', 'uFrame', 'uGrain', 'uSeed'].map((k) => [k, gl.getUniformLocation(post, k)]));
   const emptyVao = gl.createVertexArray();
   // Offscreen buffers (made on first use, rebuilt on resize): a multisampled renderbuffer the cards are drawn into (same edge
   // quality as the canvas), resolved into a texture that the post shader samples.
@@ -322,6 +322,8 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
     gl.uniform4f(P.uShape, WARP.pinch, WARP.arc, WARP.persp, WARP.reach);
     gl.uniform2f(P.uMargin, fb.mx / W, fb.my / H);
     gl.uniform1f(P.uSym, WARP.sym);
+    gl.uniform1f(P.uPinchDown, WARP.pinchDown);
+    gl.uniform4f(P.uFrame, 0, 0, 0, 0);
     gl.uniform1f(P.uGrain, grainAmt);
     gl.uniform1f(P.uSeed, seed);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
