@@ -807,13 +807,216 @@
       "client": "Similac",
       "year": 2024,
       "live": true,
-      "hero": {
-        "type": "video",
-        "src": ""
-      },
-      "details": {},
-      "media": [],
-      "chapters": []
+      "page": {
+        "title": "Similac Virgo | Anh V",
+        "blocks": [
+          {
+            "t": "hero",
+            "img": "similac/hero",
+            "parallax": {
+              "y": 0.25,
+              "s": 1,
+              "ds": 1,
+              "k": 0.0492
+            }
+          },
+          {
+            "t": "text",
+            "label": "ABOUT",
+            "text": "            The Similac campaign redefined C-section parenting — turning quiet doubt into visible strength.\nIt honored the emotional journey of mothers, positioning Similac as more than formula: a true partner in protection for babies born by a different path.",
+            "hvh": 50
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "loop",
+              "ref": "similac/pair-l",
+              "fit": "cover",
+              "parallax": {
+                "y": 0.15,
+                "s": 1.2,
+                "ds": -1,
+                "ox": "100%",
+                "oy": "100%",
+                "k": 0.02459
+              }
+            },
+            "right": {
+              "kind": "img",
+              "ref": "similac/pair-r",
+              "fit": "cover",
+              "parallax": {
+                "y": 0.15,
+                "s": 1.2,
+                "ds": -1,
+                "ox": "0%",
+                "oy": "100%",
+                "k": 0.02459
+              }
+            }
+          },
+          {
+            "t": "text",
+            "label": "INSIGHT",
+            "text": "           To win over the brand, we began with a bold insight: C-section moms face an invisible burden — not just physically, but emotionally and socially. "
+          },
+          {
+            "t": "youtube",
+            "id": "mDANYDECrt0",
+            "title": "Similac Virgo TVC"
+          },
+          {
+            "t": "details",
+            "title": [
+              "Similac Virgo",
+              "TVC Product Launch"
+            ],
+            "heading": "Project Details",
+            "rows": [
+              [
+                "Client",
+                [
+                  "Similac"
+                ]
+              ],
+              [
+                "Year",
+                [
+                  "2024"
+                ]
+              ],
+              [
+                "Role",
+                [
+                  "Art Director",
+                  "3D Designer",
+                  "Motion Lead"
+                ]
+              ]
+            ],
+            "body": "The Similac campaign set out to reframe the narrative around C-section birth — shifting from stigma to strength.\nInstead of tiptoeing around the topic, we leaned into the emotional complexity: the doubts, the scars, the fierce love.\nAt its heart, this was a campaign about **recognition** — of every silent choice a mother makes, and every quiet strength she carries. Similac steps in not just as nutrition, but as a trusted **partner in protection**, tailored for those born by a different path."
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "abs",
+              "items": [
+                {
+                  "kind": "loop",
+                  "ref": "similac/6a",
+                  "fit": "cover",
+                  "x": 11.46,
+                  "y": 10.46,
+                  "w": 76.98,
+                  "h": 78.98
+                }
+              ]
+            },
+            "right": {
+              "kind": "loop",
+              "ref": "similac/6b",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "loop",
+              "ref": "similac/7",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "abs",
+              "items": [
+                {
+                  "kind": "loop",
+                  "ref": "similac/11a",
+                  "fit": "cover",
+                  "x": 0,
+                  "y": 0,
+                  "w": 50,
+                  "h": 50
+                },
+                {
+                  "kind": "loop",
+                  "ref": "similac/11b",
+                  "fit": "cover",
+                  "x": 50,
+                  "y": 50,
+                  "w": 50,
+                  "h": 50
+                }
+              ]
+            },
+            "right": {
+              "kind": "loop",
+              "ref": "similac/11c",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "text",
+            "label": "MISC",
+            "text": "           The shield acting as the visual cue throughout campaign, representing mom's ally of protection.",
+            "pad": 58,
+            "hvh": 25
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "similac/13a",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "similac/13b",
+              "fit": "contain"
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "loop",
+              "ref": "similac/14",
+              "fit": "contain"
+            }
+          },
+          {
+            "t": "split",
+            "hpx": 150,
+            "grow": {
+              "hpx": 960
+            },
+            "left": {
+              "kind": "loop",
+              "ref": "similac/15a",
+              "fit": "cover",
+              "hpx": 960,
+              "align": "start"
+            },
+            "right": {
+              "kind": "loop",
+              "ref": "similac/15b",
+              "fit": "contain",
+              "hpx": 960,
+              "align": "start",
+              "wpx": 960
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "img",
+              "ref": "similac/16",
+              "fit": "cover"
+            }
+          }
+        ]
+      }
     },
     {
       "slug": "forbes",
@@ -822,13 +1025,283 @@
       "client": "Forbes",
       "year": null,
       "live": true,
-      "hero": {
-        "type": "video",
-        "src": ""
-      },
-      "details": {},
-      "media": [],
-      "chapters": []
+      "page": {
+        "title": "Forbes Vanguard | Anh V",
+        "blocks": [
+          {
+            "t": "hero",
+            "img": "forbes/hero",
+            "parallax": {
+              "y": 0.25,
+              "s": 1,
+              "ds": 1,
+              "k": 0.0308
+            }
+          },
+          {
+            "t": "text",
+            "label": "ABOUT",
+            "text": "            Forbes Vanguard celebrates a new generation of legacy leaders — rooted in tradition, driven by change.\nBlending heritage and modernity, the campaign reflects a bold shift: securing the past while defining what’s next.",
+            "hvh": 50
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "forbes/pair-l",
+              "fit": "cover",
+              "parallax": {
+                "y": 0.05,
+                "s": 1.1,
+                "ds": -1,
+                "ox": "100%",
+                "oy": "100%",
+                "k": 0.00771
+              }
+            },
+            "right": {
+              "kind": "abs",
+              "items": [
+                {
+                  "kind": "loop",
+                  "ref": "forbes/pair-r",
+                  "fit": "cover",
+                  "x": 12.5,
+                  "y": 30.46,
+                  "w": 75,
+                  "h": 39,
+                  "parallax": {
+                    "y": 0.05,
+                    "s": 1.1,
+                    "ds": -1,
+                    "ox": "0%",
+                    "oy": "100%",
+                    "k": 0.00771
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "t": "text",
+            "label": "INSIGHT",
+            "text": "           To begin a new journey, a firm foundation is an essential factor and to reach the higher level, a firm foundation is what you needs for defining the next future. "
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "loop",
+              "ref": "forbes/5",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "details",
+            "title": [
+              "Forbes Vanguard",
+              "Secure the Past,",
+              "Define the Next"
+            ],
+            "heading": "Project Details",
+            "rows": [
+              [
+                "Client",
+                [
+                  "Forbes"
+                ]
+              ],
+              [
+                "Year",
+                [
+                  "2023"
+                ]
+              ],
+              [
+                "Role",
+                [
+                  "Art Director",
+                  "3D Designer",
+                  "Motion Lead"
+                ]
+              ]
+            ],
+            "body": "**Forbes Vanguard** is a branding concept shaped around a generation in transition — one that stands at the intersection of legacy and innovation. Drawing from themes like “Secure the Past, Define the Next” and “Vững Gốc – Vươn Mình,” the project celebrates the forward-thinking heirs of family businesses who are redefining success while staying rooted in tradition. The visual language balances bold modernism with heritage cues, echoing the spirit of a **vanguard generation** ready to move the economy forward."
+          },
+          {
+            "t": "text",
+            "label": "DIR 01",
+            "text": "           Direction 1 is built on the concept of Flow — representing the continuous movement of knowledge, growth, and generational progress. ",
+            "pad": 58,
+            "hvh": 25
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "loop",
+              "ref": "forbes/dir1v",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "figure",
+              "ref": "forbes/dir1",
+              "fit": "contain",
+              "hcss": "calc(1.0889 * 100vh - 300px)",
+              "paras": [
+                "The visual cue is developed upon the concept of “Flow” - the movement and ever-changing forward of generation.",
+                "Their changing weight and orientation – bound by a grid – really capture the concept of collective thought, structured learning and the dispersion of information – through shared educative experience and personal/professional development – with an abstract but understandable fluidity.",
+                "This grid based system open up the expansion and variation for our brand, depending on the format/content, we can adjust the scale, color, orientation of these grid to match the thought behind.",
+                "The cue depicts **a Vanguard spirit** which is **seeing possibilities where the others see impossibilities** and make the others to follow their direction onwards.",
+                "**The essence of a new leader generation.**"
+              ]
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "loop",
+              "ref": "forbes/system",
+              "fit": "contain"
+            },
+            "note": {
+              "w": 942,
+              "bottom": 30,
+              "body": "A procedural design system was developed to give the visual device both structure and flexibility — allowing seamless adjustments in shape, density, motion, and behavior. This system ensures each asset feels intentional and consistent, while remaining responsive to different formats, narratives, or energy levels across the brand."
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "loop",
+              "ref": "forbes/12",
+              "fit": "contain",
+              "hcss": "calc(100vh - 60px)"
+            },
+            "align": "start"
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "abs",
+              "items": [
+                {
+                  "kind": "img",
+                  "ref": "forbes/13a",
+                  "fit": "cover",
+                  "x": 50,
+                  "y": 50,
+                  "w": 50,
+                  "h": 50
+                }
+              ]
+            },
+            "right": {
+              "kind": "loop",
+              "ref": "forbes/13b",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "loop",
+              "ref": "forbes/14",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "forbes/15a",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "forbes/15b",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "text",
+            "label": "DIR 02",
+            "text": "           Direction 2 visualizes the moment of transition — where legacy meets evolution. Built on the symbolism of a solid foundation blending into a gradient of transformation, it captures the essence of a generation inheriting values while boldly reshaping the future."
+          },
+          {
+            "t": "full",
+            "hpx": 800,
+            "img": {
+              "kind": "img",
+              "ref": "forbes/17",
+              "fit": "contain"
+            }
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "loop",
+              "ref": "forbes/18a",
+              "fit": "contain"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "forbes/18b",
+              "fit": "contain"
+            }
+          },
+          {
+            "t": "split",
+            "hpx": 800,
+            "left": {
+              "kind": "img",
+              "ref": "forbes/19a",
+              "fit": "contain"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "forbes/19b",
+              "fit": "contain"
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "img",
+              "ref": "forbes/20",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "forbes/21a",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "abs",
+              "items": [
+                {
+                  "kind": "img",
+                  "ref": "forbes/21b",
+                  "fit": "cover",
+                  "x": 50,
+                  "y": 0,
+                  "w": 50,
+                  "h": 50
+                }
+              ]
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "img",
+              "ref": "forbes/22",
+              "fit": "cover"
+            }
+          }
+        ]
+      }
     }
   ],
   "moreProjects": {

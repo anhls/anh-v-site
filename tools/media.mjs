@@ -157,6 +157,26 @@ const PROJECT_MEDIA = {
       wrapup: { src: 'bitis09/vid-live-4-wrapup.mp4', maxW: 1600 }, concept: { src: 'bitis09/vid-live-5-concept.mp4', maxW: 1000 },
     },
   },
+  similac: {
+    images: { hero: 'similac/img-hero.jpg', 'pair-r': 'similac/img-pair-r.jpg', '13a': 'similac/img-13a.jpg', '13b': 'similac/img-13b.jpg', '16': 'similac/img-16.jpg' },
+    loops: {
+      'pair-l': { src: 'similac/vid-pair-l.mp4', maxW: 1440 }, '6a': { src: 'similac/vid-6a.mp4', maxW: 1280 }, '6b': { src: 'similac/vid-6b.mp4', maxW: 1440 },
+      '7': { src: 'similac/vid-7.mp4', maxW: 1920 }, '11a': { src: 'similac/vid-11a.mp4', maxW: 960 }, '11b': { src: 'similac/vid-11b.mp4', maxW: 960 },
+      '11c': { src: 'similac/vid-11c.mp4', maxW: 1440 }, '14': { src: 'similac/vid-14.mp4', maxW: 1920 }, '15a': { src: 'similac/vid-15a.mp4', maxW: 1440 }, '15b': { src: 'similac/vid-15b.mp4', maxW: 1440 },
+    },
+  },
+  forbes: {
+    images: {
+      hero: 'forbes/img-hero.jpg', 'pair-l': 'forbes/img-pair-l.jpg', dir1: 'forbes/img-dir1.png', '13a': 'forbes/img-13a.jpg', '15a': 'forbes/img-15a.jpg', '15b': 'forbes/img-15b.jpg',
+      '17': 'forbes/img-17.jpg', '18b': 'forbes/img-18b.jpg', '19a': 'forbes/img-19a.jpg', '19b': 'forbes/img-19b.jpg', '20': 'forbes/img-20.jpg',
+      '21a': 'forbes/img-21a.jpg', '21b': 'forbes/img-21b.jpg', '22': 'forbes/img-22.jpg',
+    },
+    loops: {
+      'pair-r': { src: 'forbes/vid-pair-r.mp4', maxW: 1280 }, '5': { src: 'forbes/vid-5.mp4', maxW: 1920 }, dir1v: { src: 'forbes/vid-dir1.mp4', maxW: 1440 },
+      system: { src: 'forbes/img-gif-system.gif', maxW: 1440, alpha: true }, '12': { src: 'forbes/vid-12.mp4', maxW: 1920 }, '13b': { src: 'forbes/img-gif-13b.gif', maxW: 1200 },
+      '14': { src: 'forbes/vid-14.mp4', maxW: 1920 }, '18a': { src: 'forbes/vid-18a.mp4', maxW: 1440 },
+    },
+  },
 };
 
 // R18: images that data.json still pointed at on the live host (they were loaded unoptimised from framerusercontent.com). The originals are
@@ -225,7 +245,7 @@ async function projectLoop(slug, name, v) {
     const webp = `${slug}/${name}.webp`;
     const aScale = `fps=25,scale=${w}:${h}:flags=lanczos,format=yuva420p`;
     ff('-i', file, '-vf', aScale, '-c:v', 'libvpx-vp9', '-pix_fmt', 'yuva420p', '-auto-alt-ref', '0', '-crf', '34', '-b:v', '0', '-an', resolve(OUT, webm));
-    await sharp(file, { animated: true }).resize({ width: Math.min(w, 1280) }).webp({ quality: 75, alphaQuality: 90, effort: 5, loop: 0 }).toFile(resolve(OUT, webp));
+    await sharp(file, { animated: true }).resize({ width: Math.min(w, 960) }).webp({ quality: 75, alphaQuality: 90, effort: 5, loop: 0 }).toFile(resolve(OUT, webp));
     await sharp(file, { pages: 1 }).resize({ width: Math.min(w, 1280) }).webp({ quality: 78, alphaQuality: 90 }).toFile(resolve(OUT, poster));
     const af = [webm, webp, poster].map((f) => ({ file: f, bytes: statSync(resolve(OUT, f)).size }));
     manifest[key] = { type: 'video', width: w, height: h, alpha: true, webm, webp, poster, sig: s, files: af };

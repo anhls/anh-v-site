@@ -10,6 +10,8 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         bitis09: resolve(__dirname, 'work/bitis09.html'),
+        similac: resolve(__dirname, 'work/similac.html'),
+        forbes: resolve(__dirname, 'work/forbes.html'),
         work: resolve(__dirname, 'work/index.html'), // placeholder Works page
       },
     },

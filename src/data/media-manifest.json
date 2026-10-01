@@ -1745,6 +1745,977 @@
    }
   ]
  },
+ "similac/16": {
+  "type": "image",
+  "source": {
+   "width": 1426,
+   "height": 802
+  },
+  "alpha": false,
+  "sig": "4:246398:1790877889204",
+  "files": [
+   {
+    "file": "similac/16-800.webp",
+    "width": 800,
+    "height": 450,
+    "bytes": 41536
+   },
+   {
+    "file": "similac/16-1426.webp",
+    "width": 1426,
+    "height": 802,
+    "bytes": 109206
+   }
+  ]
+ },
+ "similac/hero": {
+  "type": "image",
+  "source": {
+   "width": 1800,
+   "height": 1172
+  },
+  "alpha": false,
+  "sig": "4:357638:1790877864027",
+  "files": [
+   {
+    "file": "similac/hero-800.webp",
+    "width": 800,
+    "height": 521,
+    "bytes": 55422
+   },
+   {
+    "file": "similac/hero-1600.webp",
+    "width": 1600,
+    "height": 1042,
+    "bytes": 153088
+   },
+   {
+    "file": "similac/hero-1800.webp",
+    "width": 1800,
+    "height": 1172,
+    "bytes": 181392
+   }
+  ]
+ },
+ "similac/pair-r": {
+  "type": "image",
+  "source": {
+   "width": 1800,
+   "height": 1172
+  },
+  "alpha": false,
+  "sig": "4:136162:1790877864330",
+  "files": [
+   {
+    "file": "similac/pair-r-800.webp",
+    "width": 800,
+    "height": 521,
+    "bytes": 16350
+   },
+   {
+    "file": "similac/pair-r-1600.webp",
+    "width": 1600,
+    "height": 1042,
+    "bytes": 41238
+   },
+   {
+    "file": "similac/pair-r-1800.webp",
+    "width": 1800,
+    "height": 1172,
+    "bytes": 49554
+   }
+  ]
+ },
+ "similac/13a": {
+  "type": "image",
+  "source": {
+   "width": 1800,
+   "height": 1172
+  },
+  "alpha": false,
+  "sig": "4:131774:1790877881947",
+  "files": [
+   {
+    "file": "similac/13a-800.webp",
+    "width": 800,
+    "height": 521,
+    "bytes": 15958
+   },
+   {
+    "file": "similac/13a-1600.webp",
+    "width": 1600,
+    "height": 1042,
+    "bytes": 39832
+   },
+   {
+    "file": "similac/13a-1800.webp",
+    "width": 1800,
+    "height": 1172,
+    "bytes": 47968
+   }
+  ]
+ },
+ "similac/13b": {
+  "type": "image",
+  "source": {
+   "width": 1800,
+   "height": 1172
+  },
+  "alpha": false,
+  "sig": "4:202412:1790877881960",
+  "files": [
+   {
+    "file": "similac/13b-800.webp",
+    "width": 800,
+    "height": 521,
+    "bytes": 20380
+   },
+   {
+    "file": "similac/13b-1600.webp",
+    "width": 1600,
+    "height": 1042,
+    "bytes": 62004
+   },
+   {
+    "file": "similac/13b-1800.webp",
+    "width": 1800,
+    "height": 1172,
+    "bytes": 78536
+   }
+  ]
+ },
+ "similac/7": {
+  "type": "video",
+  "width": 1920,
+  "height": 1080,
+  "alpha": false,
+  "webm": "similac/7.webm",
+  "mp4": "similac/7.mp4",
+  "poster": "similac/7-poster.webp",
+  "sig": "4:6876095:1790877873839",
+  "files": [
+   {
+    "file": "similac/7.webm",
+    "bytes": 667014
+   },
+   {
+    "file": "similac/7.mp4",
+    "bytes": 885270
+   },
+   {
+    "file": "similac/7-poster.webp",
+    "bytes": 39692
+   }
+  ]
+ },
+ "similac/14": {
+  "type": "video",
+  "width": 1800,
+  "height": 1172,
+  "alpha": false,
+  "webm": "similac/14.webm",
+  "mp4": "similac/14.mp4",
+  "poster": "similac/14-poster.webp",
+  "sig": "4:2259543:1790877884197",
+  "files": [
+   {
+    "file": "similac/14.webm",
+    "bytes": 245823
+   },
+   {
+    "file": "similac/14.mp4",
+    "bytes": 214710
+   },
+   {
+    "file": "similac/14-poster.webp",
+    "bytes": 36346
+   }
+  ]
+ },
+ "similac/pair-l": {
+  "type": "video",
+  "width": 1440,
+  "height": 938,
+  "alpha": false,
+  "webm": "similac/pair-l.webm",
+  "mp4": "similac/pair-l.mp4",
+  "poster": "similac/pair-l-poster.webp",
+  "sig": "4:647845:1790877866268",
+  "files": [
+   {
+    "file": "similac/pair-l.webm",
+    "bytes": 37493
+   },
+   {
+    "file": "similac/pair-l.mp4",
+    "bytes": 48714
+   },
+   {
+    "file": "similac/pair-l-poster.webp",
+    "bytes": 17042
+   }
+  ]
+ },
+ "similac/6a": {
+  "type": "video",
+  "width": 1280,
+  "height": 720,
+  "alpha": false,
+  "webm": "similac/6a.webm",
+  "mp4": "similac/6a.mp4",
+  "poster": "similac/6a-poster.webp",
+  "sig": "4:6504696:1790877868639",
+  "files": [
+   {
+    "file": "similac/6a.webm",
+    "bytes": 69093
+   },
+   {
+    "file": "similac/6a.mp4",
+    "bytes": 134834
+   },
+   {
+    "file": "similac/6a-poster.webp",
+    "bytes": 13972
+   }
+  ]
+ },
+ "similac/6b": {
+  "type": "video",
+  "width": 1440,
+  "height": 810,
+  "alpha": false,
+  "webm": "similac/6b.webm",
+  "mp4": "similac/6b.mp4",
+  "poster": "similac/6b-poster.webp",
+  "sig": "4:4614563:1790877871247",
+  "files": [
+   {
+    "file": "similac/6b.webm",
+    "bytes": 258281
+   },
+   {
+    "file": "similac/6b.mp4",
+    "bytes": 243122
+   },
+   {
+    "file": "similac/6b-poster.webp",
+    "bytes": 39734
+   }
+  ]
+ },
+ "similac/11a": {
+  "type": "video",
+  "width": 960,
+  "height": 540,
+  "alpha": false,
+  "webm": "similac/11a.webm",
+  "mp4": "similac/11a.mp4",
+  "poster": "similac/11a-poster.webp",
+  "sig": "4:4795527:1790877876283",
+  "files": [
+   {
+    "file": "similac/11a.webm",
+    "bytes": 151725
+   },
+   {
+    "file": "similac/11a.mp4",
+    "bytes": 156576
+   },
+   {
+    "file": "similac/11a-poster.webp",
+    "bytes": 25372
+   }
+  ]
+ },
+ "similac/11b": {
+  "type": "video",
+  "width": 960,
+  "height": 540,
+  "alpha": false,
+  "webm": "similac/11b.webm",
+  "mp4": "similac/11b.mp4",
+  "poster": "similac/11b-poster.webp",
+  "sig": "4:8250752:1790877879167",
+  "files": [
+   {
+    "file": "similac/11b.webm",
+    "bytes": 735774
+   },
+   {
+    "file": "similac/11b.mp4",
+    "bytes": 621941
+   },
+   {
+    "file": "similac/11b-poster.webp",
+    "bytes": 19526
+   }
+  ]
+ },
+ "similac/11c": {
+  "type": "video",
+  "width": 1440,
+  "height": 810,
+  "alpha": false,
+  "webm": "similac/11c.webm",
+  "mp4": "similac/11c.mp4",
+  "poster": "similac/11c-poster.webp",
+  "sig": "4:6251338:1790877881650",
+  "files": [
+   {
+    "file": "similac/11c.webm",
+    "bytes": 447214
+   },
+   {
+    "file": "similac/11c.mp4",
+    "bytes": 460786
+   },
+   {
+    "file": "similac/11c-poster.webp",
+    "bytes": 31166
+   }
+  ]
+ },
+ "similac/15a": {
+  "type": "video",
+  "width": 1440,
+  "height": 810,
+  "alpha": false,
+  "webm": "similac/15a.webm",
+  "mp4": "similac/15a.mp4",
+  "poster": "similac/15a-poster.webp",
+  "sig": "4:5843185:1790877886691",
+  "files": [
+   {
+    "file": "similac/15a.webm",
+    "bytes": 470873
+   },
+   {
+    "file": "similac/15a.mp4",
+    "bytes": 467581
+   },
+   {
+    "file": "similac/15a-poster.webp",
+    "bytes": 28112
+   }
+  ]
+ },
+ "similac/15b": {
+  "type": "video",
+  "width": 1440,
+  "height": 1440,
+  "alpha": false,
+  "webm": "similac/15b.webm",
+  "mp4": "similac/15b.mp4",
+  "poster": "similac/15b-poster.webp",
+  "sig": "4:1261611:1790877888893",
+  "files": [
+   {
+    "file": "similac/15b.webm",
+    "bytes": 153008
+   },
+   {
+    "file": "similac/15b.mp4",
+    "bytes": 170514
+   },
+   {
+    "file": "similac/15b-poster.webp",
+    "bytes": 26268
+   }
+  ]
+ },
+ "forbes/17": {
+  "type": "image",
+  "source": {
+   "width": 7680,
+   "height": 4320
+  },
+  "alpha": false,
+  "sig": "4:1157053:1790877949324",
+  "files": [
+   {
+    "file": "forbes/17-800.webp",
+    "width": 800,
+    "height": 450,
+    "bytes": 15670
+   },
+   {
+    "file": "forbes/17-1600.webp",
+    "width": 1600,
+    "height": 900,
+    "bytes": 48088
+   },
+   {
+    "file": "forbes/17-2560.webp",
+    "width": 2560,
+    "height": 1440,
+    "bytes": 88698
+   }
+  ]
+ },
+ "forbes/20": {
+  "type": "image",
+  "source": {
+   "width": 1800,
+   "height": 1172
+  },
+  "alpha": false,
+  "sig": "4:97257:1790877953833",
+  "files": [
+   {
+    "file": "forbes/20-800.webp",
+    "width": 800,
+    "height": 521,
+    "bytes": 9240
+   },
+   {
+    "file": "forbes/20-1600.webp",
+    "width": 1600,
+    "height": 1042,
+    "bytes": 22346
+   },
+   {
+    "file": "forbes/20-1800.webp",
+    "width": 1800,
+    "height": 1172,
+    "bytes": 28000
+   }
+  ]
+ },
+ "forbes/22": {
+  "type": "image",
+  "source": {
+   "width": 2000,
+   "height": 1501
+  },
+  "alpha": false,
+  "sig": "4:239818:1790877954667",
+  "files": [
+   {
+    "file": "forbes/22-800.webp",
+    "width": 800,
+    "height": 600,
+    "bytes": 21098
+   },
+   {
+    "file": "forbes/22-1600.webp",
+    "width": 1600,
+    "height": 1201,
+    "bytes": 68318
+   },
+   {
+    "file": "forbes/22-2000.webp",
+    "width": 2000,
+    "height": 1501,
+    "bytes": 103840
+   }
+  ]
+ },
+ "forbes/hero": {
+  "type": "image",
+  "source": {
+   "width": 1800,
+   "height": 1172
+  },
+  "alpha": false,
+  "sig": "4:119462:1790877889212",
+  "files": [
+   {
+    "file": "forbes/hero-800.webp",
+    "width": 800,
+    "height": 521,
+    "bytes": 16392
+   },
+   {
+    "file": "forbes/hero-1600.webp",
+    "width": 1600,
+    "height": 1042,
+    "bytes": 37298
+   },
+   {
+    "file": "forbes/hero-1800.webp",
+    "width": 1800,
+    "height": 1172,
+    "bytes": 44786
+   }
+  ]
+ },
+ "forbes/pair-l": {
+  "type": "image",
+  "source": {
+   "width": 1800,
+   "height": 1172
+  },
+  "alpha": false,
+  "sig": "4:239714:1790877889527",
+  "files": [
+   {
+    "file": "forbes/pair-l-800.webp",
+    "width": 800,
+    "height": 521,
+    "bytes": 21264
+   },
+   {
+    "file": "forbes/pair-l-1600.webp",
+    "width": 1600,
+    "height": 1042,
+    "bytes": 68694
+   },
+   {
+    "file": "forbes/pair-l-1800.webp",
+    "width": 1800,
+    "height": 1172,
+    "bytes": 88856
+   }
+  ]
+ },
+ "forbes/dir1": {
+  "type": "image",
+  "source": {
+   "width": 7680,
+   "height": 4320
+  },
+  "alpha": false,
+  "sig": "4:296703:1790877899058",
+  "files": [
+   {
+    "file": "forbes/dir1-800.webp",
+    "width": 800,
+    "height": 450,
+    "bytes": 12076
+   },
+   {
+    "file": "forbes/dir1-1600.webp",
+    "width": 1600,
+    "height": 900,
+    "bytes": 26332
+   },
+   {
+    "file": "forbes/dir1-2560.webp",
+    "width": 2560,
+    "height": 1440,
+    "bytes": 44344
+   }
+  ]
+ },
+ "forbes/13a": {
+  "type": "image",
+  "source": {
+   "width": 6000,
+   "height": 4500
+  },
+  "alpha": false,
+  "sig": "4:1830888:1790877918654",
+  "files": [
+   {
+    "file": "forbes/13a-800.webp",
+    "width": 800,
+    "height": 600,
+    "bytes": 17642
+   },
+   {
+    "file": "forbes/13a-1600.webp",
+    "width": 1600,
+    "height": 1200,
+    "bytes": 40984
+   },
+   {
+    "file": "forbes/13a-2560.webp",
+    "width": 2560,
+    "height": 1920,
+    "bytes": 70192
+   }
+  ]
+ },
+ "forbes/15a": {
+  "type": "image",
+  "source": {
+   "width": 2000,
+   "height": 1501
+  },
+  "alpha": false,
+  "sig": "4:132310:1790877948184",
+  "files": [
+   {
+    "file": "forbes/15a-800.webp",
+    "width": 800,
+    "height": 600,
+    "bytes": 14942
+   },
+   {
+    "file": "forbes/15a-1600.webp",
+    "width": 1600,
+    "height": 1201,
+    "bytes": 33786
+   },
+   {
+    "file": "forbes/15a-2000.webp",
+    "width": 2000,
+    "height": 1501,
+    "bytes": 43476
+   }
+  ]
+ },
+ "forbes/15b": {
+  "type": "image",
+  "source": {
+   "width": 1400,
+   "height": 1960
+  },
+  "alpha": false,
+  "sig": "4:278560:1790877948197",
+  "files": [
+   {
+    "file": "forbes/15b-800.webp",
+    "width": 800,
+    "height": 1120,
+    "bytes": 37230
+   },
+   {
+    "file": "forbes/15b-1400.webp",
+    "width": 1400,
+    "height": 1960,
+    "bytes": 96054
+   }
+  ]
+ },
+ "forbes/18b": {
+  "type": "image",
+  "source": {
+   "width": 7680,
+   "height": 4320
+  },
+  "alpha": false,
+  "sig": "4:410975:1790877952194",
+  "files": [
+   {
+    "file": "forbes/18b-800.webp",
+    "width": 800,
+    "height": 450,
+    "bytes": 6658
+   },
+   {
+    "file": "forbes/18b-1600.webp",
+    "width": 1600,
+    "height": 900,
+    "bytes": 17440
+   },
+   {
+    "file": "forbes/18b-2560.webp",
+    "width": 2560,
+    "height": 1440,
+    "bytes": 31290
+   }
+  ]
+ },
+ "forbes/19a": {
+  "type": "image",
+  "source": {
+   "width": 7680,
+   "height": 4320
+  },
+  "alpha": false,
+  "sig": "4:429838:1790877952483",
+  "files": [
+   {
+    "file": "forbes/19a-800.webp",
+    "width": 800,
+    "height": 450,
+    "bytes": 10466
+   },
+   {
+    "file": "forbes/19a-1600.webp",
+    "width": 1600,
+    "height": 900,
+    "bytes": 24156
+   },
+   {
+    "file": "forbes/19a-2560.webp",
+    "width": 2560,
+    "height": 1440,
+    "bytes": 37868
+   }
+  ]
+ },
+ "forbes/19b": {
+  "type": "image",
+  "source": {
+   "width": 7680,
+   "height": 4320
+  },
+  "alpha": false,
+  "sig": "4:524652:1790877953581",
+  "files": [
+   {
+    "file": "forbes/19b-800.webp",
+    "width": 800,
+    "height": 450,
+    "bytes": 8780
+   },
+   {
+    "file": "forbes/19b-1600.webp",
+    "width": 1600,
+    "height": 900,
+    "bytes": 20722
+   },
+   {
+    "file": "forbes/19b-2560.webp",
+    "width": 2560,
+    "height": 1440,
+    "bytes": 35870
+   }
+  ]
+ },
+ "forbes/21a": {
+  "type": "image",
+  "source": {
+   "width": 1800,
+   "height": 1172
+  },
+  "alpha": false,
+  "sig": "4:446055:1790877954202",
+  "files": [
+   {
+    "file": "forbes/21a-800.webp",
+    "width": 800,
+    "height": 521,
+    "bytes": 60294
+   },
+   {
+    "file": "forbes/21a-1600.webp",
+    "width": 1600,
+    "height": 1042,
+    "bytes": 168780
+   },
+   {
+    "file": "forbes/21a-1800.webp",
+    "width": 1800,
+    "height": 1172,
+    "bytes": 198010
+   }
+  ]
+ },
+ "forbes/21b": {
+  "type": "image",
+  "source": {
+   "width": 1800,
+   "height": 1172
+  },
+  "alpha": false,
+  "sig": "4:55296:1790877954643",
+  "files": [
+   {
+    "file": "forbes/21b-800.webp",
+    "width": 800,
+    "height": 521,
+    "bytes": 7078
+   },
+   {
+    "file": "forbes/21b-1600.webp",
+    "width": 1600,
+    "height": 1042,
+    "bytes": 16710
+   },
+   {
+    "file": "forbes/21b-1800.webp",
+    "width": 1800,
+    "height": 1172,
+    "bytes": 19560
+   }
+  ]
+ },
+ "forbes/5": {
+  "type": "video",
+  "width": 1800,
+  "height": 1172,
+  "alpha": false,
+  "webm": "forbes/5.webm",
+  "mp4": "forbes/5.mp4",
+  "poster": "forbes/5-poster.webp",
+  "sig": "4:1984164:1790877894052",
+  "files": [
+   {
+    "file": "forbes/5.webm",
+    "bytes": 210844
+   },
+   {
+    "file": "forbes/5.mp4",
+    "bytes": 169299
+   },
+   {
+    "file": "forbes/5-poster.webp",
+    "bytes": 15306
+   }
+  ]
+ },
+ "forbes/12": {
+  "type": "video",
+  "width": 1920,
+  "height": 960,
+  "alpha": false,
+  "webm": "forbes/12.webm",
+  "mp4": "forbes/12.mp4",
+  "poster": "forbes/12-poster.webp",
+  "sig": "4:1432579:1790877918219",
+  "files": [
+   {
+    "file": "forbes/12.webm",
+    "bytes": 339026
+   },
+   {
+    "file": "forbes/12.mp4",
+    "bytes": 265617
+   },
+   {
+    "file": "forbes/12-poster.webp",
+    "bytes": 32892
+   }
+  ]
+ },
+ "forbes/14": {
+  "type": "video",
+  "width": 1920,
+  "height": 1080,
+  "alpha": false,
+  "webm": "forbes/14.webm",
+  "mp4": "forbes/14.mp4",
+  "poster": "forbes/14-poster.webp",
+  "sig": "4:4721198:1790877947233",
+  "files": [
+   {
+    "file": "forbes/14.webm",
+    "bytes": 891822
+   },
+   {
+    "file": "forbes/14.mp4",
+    "bytes": 560079
+   },
+   {
+    "file": "forbes/14-poster.webp",
+    "bytes": 117702
+   }
+  ]
+ },
+ "forbes/pair-r": {
+  "type": "video",
+  "width": 1280,
+  "height": 834,
+  "alpha": false,
+  "webm": "forbes/pair-r.webm",
+  "mp4": "forbes/pair-r.mp4",
+  "poster": "forbes/pair-r-poster.webp",
+  "sig": "4:3038407:1790877891762",
+  "files": [
+   {
+    "file": "forbes/pair-r.webm",
+    "bytes": 250947
+   },
+   {
+    "file": "forbes/pair-r.mp4",
+    "bytes": 165710
+   },
+   {
+    "file": "forbes/pair-r-poster.webp",
+    "bytes": 26212
+   }
+  ]
+ },
+ "forbes/dir1v": {
+  "type": "video",
+  "width": 1000,
+  "height": 1000,
+  "alpha": false,
+  "webm": "forbes/dir1v.webm",
+  "mp4": "forbes/dir1v.mp4",
+  "poster": "forbes/dir1v-poster.webp",
+  "sig": "4:4864144:1790877896693",
+  "files": [
+   {
+    "file": "forbes/dir1v.webm",
+    "bytes": 588227
+   },
+   {
+    "file": "forbes/dir1v.mp4",
+    "bytes": 306651
+   },
+   {
+    "file": "forbes/dir1v-poster.webp",
+    "bytes": 21642
+   }
+  ]
+ },
+ "forbes/system": {
+  "type": "video",
+  "width": 1440,
+  "height": 810,
+  "alpha": true,
+  "webm": "forbes/system.webm",
+  "webp": "forbes/system.webp",
+  "poster": "forbes/system-poster.webp",
+  "sig": "4:2676433:1790877916145",
+  "files": [
+   {
+    "file": "forbes/system.webm",
+    "bytes": 2202214
+   },
+   {
+    "file": "forbes/system.webp",
+    "bytes": 3578564
+   },
+   {
+    "file": "forbes/system-poster.webp",
+    "bytes": 57594
+   }
+  ]
+ },
+ "forbes/13b": {
+  "type": "video",
+  "width": 1200,
+  "height": 1338,
+  "alpha": false,
+  "webm": "forbes/13b.webm",
+  "mp4": "forbes/13b.mp4",
+  "poster": "forbes/13b-poster.webp",
+  "sig": "4:2908299:1790877944677",
+  "files": [
+   {
+    "file": "forbes/13b.webm",
+    "bytes": 611896
+   },
+   {
+    "file": "forbes/13b.mp4",
+    "bytes": 443457
+   },
+   {
+    "file": "forbes/13b-poster.webp",
+    "bytes": 88192
+   }
+  ]
+ },
+ "forbes/18a": {
+  "type": "video",
+  "width": 1440,
+  "height": 810,
+  "alpha": false,
+  "webm": "forbes/18a.webm",
+  "mp4": "forbes/18a.mp4",
+  "poster": "forbes/18a-poster.webp",
+  "sig": "4:7040394:1790877951892",
+  "files": [
+   {
+    "file": "forbes/18a.webm",
+    "bytes": 863520
+   },
+   {
+    "file": "forbes/18a.mp4",
+    "bytes": 660971
+   },
+   {
+    "file": "forbes/18a-poster.webp",
+    "bytes": 19212
+   }
+  ]
+ },
  "__byLive": {
   "https://framerusercontent.com/images/a0D2QcksAgZUo1Mwvr6uASffZA.png": "selected-work/card-img-01",
   "https://framerusercontent.com/images/UKmRV36yuHTtqhsSywZc3TgQ5z8.jpg": "selected-work/card-img-02",

@@ -130,7 +130,7 @@ Anh (2026-10-02, after R16f/R16g): scrolling DOWN, the centre frame still INFLAT
 
 - ALSO (Anh, Bitis page end): at the bottom of /work/bitis09/ the big wordmark does not return and there is no "Go Back To Top". R19 logged "live has no footer", but Anh says the page needs it like home: re-check live's page end (real scroll to the bottom at 1920 + 2560: wordmark state, any back-to-top link, spacing under the last image) and in any case give project pages the same ending as home: footer block with "Go Back To Top" (same dot-to-line hover, A+ / A back-to-top transition) and the wordmark returning big when the footer is reached (using the actual scroll position, as above). Shared footer + nav code, no copy.
 
-## R20 (next, quick mode): Similac + Forbes project pages, faithful to live (use Sonnet 4.6)
+## [done] R20 (quick mode): Similac + Forbes project pages, faithful to live (use Sonnet 4.6)
 Anh (2026-10-02): rebuild the remaining project pages AS THEY ARE ON LIVE for now; a redesign comes later. No polish beyond live. Inventory: docs/plans/project-pages-inventory.md.
 1. Move similac and forbes in src/data/data.json from the old schema (hero/details/media/chapters) to page.blocks like bitis09, using only existing blocks (hero, text, split with img/loop/copy/note cells, full, youtube, details, threeup). Section order per the inventory; check copy-cell placement on Forbes (sections 8 and 9) against live.
 2. Text verbatim from live (curly quotes, diacritics, line breaks in labels).

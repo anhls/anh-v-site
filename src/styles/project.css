@@ -11,7 +11,9 @@ body { background: #000; color: #fff; font-family: var(--font-display); }
 .pj__full .pj__img { height: var(--tall, 100vh); flex: none; }
 
 /* Text blocks: ScrollFadeText 64px / 64px, weight 500, -0.01em; label 12px at top 13 left 29 inside the 60px padding */
-.pj__text { background: #000; padding: calc(var(--ux) * 3.125); }
+.pj__text { background: #000; padding: calc(var(--ux) * 3.125) var(--padx, calc(var(--ux) * 3.125)); }
+.pj__text--fixed { display: flex; align-items: center; }
+.pj__text--fixed .pj__inner { width: 100%; }
 .pj__inner { position: relative; }
 .pj__fade { font-size: clamp(2.25rem, calc(var(--ux) * 3.333), 6rem); line-height: 1; font-weight: 500; letter-spacing: -0.01em; white-space: pre-wrap; word-break: break-word; }
 .pj__w { display: inline-block; }
@@ -21,14 +23,15 @@ body { background: #000; color: #fff; font-family: var(--font-display); }
 .pj__h2 { margin: 0; font-size: clamp(2.25rem, calc(var(--ux) * 3.333), 6rem); line-height: 1; font-weight: 500; letter-spacing: -0.01em; }
 .pj__h4, .pj__small, .pj__row { font-size: clamp(0.75rem, calc(var(--ux) * 0.833), 1.25rem); line-height: 1; }
 .pj__h4 { margin: 0; font-weight: 500; }
-.pj__small { margin: 0; font-weight: 400; opacity: 0.5; }
+.pj__small { margin: 0; font-weight: 400; color: rgba(255, 255, 255, 0.5); }
+.pj__small strong, .pj__note strong { color: #fff; font-weight: 700; }
 
 /* Details: 60px padding, two 1fr columns with no gap; rows 52px apart; paragraph 66px under the last row */
 .pj__details { display: grid; grid-template-columns: 1fr 1fr; padding: calc(var(--ux) * 3.125); background: #000; align-items: start; }
 .pj__dl { display: grid; gap: calc(var(--ux) * 0.52); }
 .pj__rows { margin-top: calc(var(--ux) * 2.604); padding-top: calc(var(--ux) * 0.83); display: grid; gap: calc(var(--ux) * 1.875); }
 .pj__row { display: grid; grid-template-columns: 1fr 1fr; }
-.pj__row span:first-child { opacity: 0.5; font-weight: 400; }
+.pj__row span:first-child { color: rgba(255, 255, 255, 0.5); font-weight: 400; }
 .pj__row span:last-child { font-weight: 500; }
 .pj__body { margin-top: calc(var(--ux) * 3.44); }
 
@@ -37,7 +40,7 @@ body { background: #000; color: #fff; font-family: var(--font-display); }
 .pj__cell--head { flex-direction: column; align-items: flex-start; justify-content: space-evenly; padding: calc(var(--ux) * 3.125) calc(var(--ux) * 3.125) calc(var(--ux) * 3.125) 0; }
 .pj__cell--head .pj__small { width: 50%; }
 .pj__cell--copy:not(.pj__cell--head) .pj__small { width: var(--pw, 100%); line-height: 1; }
-.pj__note--pin { position: absolute; left: calc(var(--ux) * 6.25); right: calc(var(--ux) * 6.25); bottom: calc(var(--ux) * 3.125); margin: 0; font-size: clamp(0.75rem, calc(var(--ux) * 0.833), 1.25rem); line-height: 1; font-weight: 400; opacity: 0.5; z-index: 1; }
+.pj__note--pin { position: absolute; left: calc(var(--ux) * 6.25); right: calc(var(--ux) * 6.25); bottom: calc(var(--ux) * 3.125); margin: 0; font-size: clamp(0.75rem, calc(var(--ux) * 0.833), 1.25rem); line-height: 1; font-weight: 400; color: rgba(255, 255, 255, 0.5); z-index: 1; }
 .pj__note--low { bottom: calc(var(--uy) * 18.52); }
 
 /* Three-up: 800px tall row centred in the 100vh section, each column 1/3 */
@@ -60,3 +63,16 @@ body { background: #000; color: #fff; font-family: var(--font-display); }
 /* Footer on project pages: the home footer (Go Back To Top link) over the last part of the page; the big wordmark returns when it is reached. */
 #app { position: relative; }
 .pj__footer { height: var(--pj-footer-h, 25vh); }
+
+/* R20: more cell kinds. abs = items placed by % of the cell; figure = image with paragraphs under it; --top = media starts at the top (not centred). */
+.pj__cell--top { align-items: flex-start; }
+.pj__cell > .pj__img[style*="--hpx"] { height: var(--hpx); flex: none; }
+.pj__full--top { align-items: flex-start; }
+.pj__item { position: absolute; overflow: hidden; }
+.pj__item > .pj__img { width: 100%; height: 100%; }
+.pj__cell--figure { flex-direction: column; align-items: flex-start; justify-content: flex-start; }
+.pj__cell--figure > .pj__img { flex: none; }
+.pj__paras { white-space: pre-line; width: calc(100% - var(--ux) * 3.125); line-height: 1; }
+.pj__note--center { left: 50%; right: auto; translate: -50% 0; }
+.pj__body { white-space: pre-line; }
+.pj__full > .pj__img[style*="--hpx"] { height: var(--hpx); }
