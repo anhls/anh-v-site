@@ -278,14 +278,15 @@ export const BEND = {
   dprCap: 2, dprCapLarge: 1.5, weakCores: 4, weakMemoryGb: 4, textureBudgetMb: 256,
 };
 
-// R16b: one screen-space warp over all the cards (cards-gl.js POST shader), driven by the same scroll-speed spring as BEND
-// (sensitivity, speedRef, returnSpeed, overshoot). strengthUp / strengthDown scale it for scrolling up (the content bulges toward the edge) and down (it recedes, like a sheet curling away; 0 = off); reach = share of the screen height, from each edge,
-// over which it fades in (0.45 = the outer 45% of the half height); pinch = how far the sides are pulled toward the centre line at the
-// edge at full speed (0.35 = content looks 35% narrower there); arc = how far horizontal lines bow, as a share of the screen height;
-// pinchDown = the same for scrolling DOWN (R16d: the sides of the curl converge toward the trailing edge; 0.2 = 20% narrower at the edge);
-// persp = how much the lines crowd toward the edge (the sheet curling away); sym = weight of the leading side (1 = top and bottom alike,
-// 0 = only the trailing side).
-export const WARP = { strengthUp: 0.7, strengthDown: 0.7, reach: 0.6, pinch: 0.07, pinchDown: 0.2, arc: 0.255, persp: 0.43, sym: 0 };
+// R16b / R16e: one screen-wide warp over all the cards (cards-gl.js + warp-shader.js), a real CYLINDER projection (warp-model.js): the card
+// field is a sheet that bends around a horizontal axis near the top / bottom edge, AWAY from the viewer when scrolling down (smaller, rows
+// compress, sides pinch in) and TOWARD it when scrolling up (bigger, spreads out), seen through a pinhole camera. Driven by the same
+// scroll-speed spring as BEND (sensitivity, returnSpeed, overshoot). strengthUp / strengthDown scale the bend (0 = off); reach = share of the
+// half height that wraps (0.6 = the outer 60%); sym = weight of the leading edge (0 = only the trailing edge bends); curl = angle in radians
+// the sheet has turned after the band at full strength; camDown / camUp = camera distance in screen heights (smaller = stronger perspective);
+// bowDown / bowUp = a shallow dome added across the sheet (rows bow with their middle farthest out, sides shrink toward the centre line).
+// pinch / pinchDown / arc / persp are the older three-term model, now used only by the FRAME canvas (FRAME_WARP has its own copies).
+export const WARP = { strengthUp: 0.7, strengthDown: 0.7, reach: 0.6, sym: 0, curl: 0.6, camDown: 1.6, camUp: 0.8, bowDown: 0.3, bowUp: 0, pinch: 0.07, pinchDown: 0.2, arc: 0.255, persp: 0.43 };
 
 // R16c: the centre frame (hero mask) warps while the page scrolls, on its own canvas (effects/frame-gl.js). At rest the normal DOM
 // frame shows; when the scroll speed passes `threshold` (px/s) the canvas takes over at the same pixels, applies the same kind of warp

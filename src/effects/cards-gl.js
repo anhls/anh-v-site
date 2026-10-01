@@ -1,6 +1,7 @@
 import { BEND, WARP, CARD_HOVER } from '../timeline.js';
 import { weakDevice } from '../util/device.js';
 import { POST_VERT, POST_FRAG } from './warp-shader.js';
+import { cylinderMargins } from './warp-model.js';
 
 // Selected Work cards on ONE WebGL2 canvas (R16). Plain WebGL, no library (0 KB added): 35 textured planes, one draw call each.
 // Positions come from selected-work.js (the same numbers it used to write into style.transform): this module reads no DOM per
@@ -77,7 +78,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
   gl.attachShader(post, compile(gl.FRAGMENT_SHADER, POST_FRAG));
   gl.linkProgram(post);
   const postOk = gl.getProgramParameter(post, gl.LINK_STATUS);
-  const P = Object.fromEntries(['uScene', 'uRes', 'uAmt', 'uShape', 'uMargin', 'uSym', 'uPinchDown', 'uFrame', 'uGrain', 'uSeed'].map((k) => [k, gl.getUniformLocation(post, k)]));
+  const P = Object.fromEntries(['uScene', 'uRes', 'uAmt', 'uShape', 'uMargin', 'uSym', 'uPinchDown', 'uBow', 'uFrame', 'uGrain', 'uSeed'].map((k) => [k, gl.getUniformLocation(post, k)]));
   const emptyVao = gl.createVertexArray();
   // Offscreen buffers (made on first use, rebuilt on resize): a multisampled renderbuffer the cards are drawn into (same edge
   // quality as the canvas), resolved into a texture that the post shader samples.
@@ -85,10 +86,12 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
   // The warp samples the picture beyond the screen edge (content that is just off screen is pulled in), so the offscreen buffer
   // holds the screen plus an overscan margin on every side, sized from the warp settings (px, rounded up to 8).
   const margins = () => {
-    const sMax = Math.max(WARP.strengthUp, WARP.strengthDown) * 1.2; // the spring overshoots a little past 1
-    const my = Math.min(Math.ceil(((WARP.persp * 0.5 + WARP.arc) * sMax * H + 4) / 8) * 8, Math.round(H * 0.7));
-    const k = Math.min(WARP.pinch * sMax, 0.7);
-    const mx = Math.min(Math.ceil((W * 0.5 * (1 / (1 - k) - 1) + 4) / 8) * 8, Math.round(W * 0.5));
+    // the cylinder model says how far outside the screen the sheet is seen at the screen edge (computed for the largest warp the spring can reach)
+    const sMax = Math.max(WARP.strengthUp, WARP.strengthDown) * 1.2;
+    const [fx, fy] = cylinderMargins(sMax, WARP.curl, WARP.camDown, WARP.reach, WARP.sym, WARP.bowDown);
+    const [ux, uy] = cylinderMargins(sMax, WARP.curl, WARP.camUp, WARP.reach, WARP.sym, WARP.bowUp);
+    const my = Math.min(Math.ceil((Math.max(fy, uy) * H + 4) / 8) * 8, Math.round(H * 0.7));
+    const mx = Math.min(Math.ceil((Math.max(fx, ux) * W + 4) / 8) * 8, Math.round(W * 0.5));
     return [mx, my];
   };
   const makeFb = () => {
@@ -319,7 +322,8 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
     gl.uniform1i(P.uScene, 0);
     gl.uniform2f(P.uRes, canvas.width, canvas.height);
     gl.uniform1f(P.uAmt, Math.max(-1, Math.min(1, amt)));
-    gl.uniform4f(P.uShape, WARP.pinch, WARP.arc, WARP.persp, WARP.reach);
+    gl.uniform4f(P.uShape, WARP.curl, WARP.camDown, WARP.camUp, WARP.reach); // R16e: cylinder parameters
+    gl.uniform2f(P.uBow, WARP.bowDown, WARP.bowUp);
     gl.uniform2f(P.uMargin, fb.mx / W, fb.my / H);
     gl.uniform1f(P.uSym, WARP.sym);
     gl.uniform1f(P.uPinchDown, WARP.pinchDown);

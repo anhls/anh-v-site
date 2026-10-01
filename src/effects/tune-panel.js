@@ -58,6 +58,11 @@ const CAPTION_SLIDERS = [
   ['textOutSec', 'Caption title: colour fade back (s)', 0.05, 1.2, 0.01, 'R17. How long the orange takes to fade back (live: about 0.35 s; it turns orange at once).'],
 ];
 const WARP_SLIDERS = [
+  ['curl', 'Curl (how far the sheet turns)', 0.2, 2, 0.01, 'R16e. The angle (radians) the card sheet has turned after the band at full strength: the curvature of the cylinder.'],
+  ['camDown', 'Perspective, scrolling down (camera distance)', 0.5, 4, 0.05, 'R16e. Camera distance in screen heights: smaller = stronger perspective, the receding edge shrinks more.'],
+  ['camUp', 'Perspective, scrolling up (camera distance)', 0.5, 4, 0.05, 'R16e. Same for scrolling up, where the edge comes toward the viewer (smaller = bigger, more spread).'],
+  ['bowDown', 'Edge bow, scrolling down', 0, 3, 0.05, 'R16e. A shallow dome across the sheet: the middle of each row stays farthest out, the sides shrink toward the centre line. 0 = straight rows.'],
+  ['bowUp', 'Edge bow, scrolling up', -2, 3, 0.05, 'R16e. Same for scrolling up (0 = straight rows).'],
   ['strengthUp', 'Strength, scrolling up', 0, 2, 0.01, 'R16b-fix. One distortion over ALL the cards, driven by scroll speed. Scrolling UP the content near the edge bulges toward it. 0 = off.'],
   ['strengthDown', 'Strength, scrolling down', 0, 2, 0.01, 'R16b-fix. Scrolling DOWN the content near the edge recedes (smaller, narrower, a sheet curling away; never magnified). 0 = off.'],
   ['reach', 'Warp reach (share of screen)', 0.1, 1, 0.01, 'How far in from the top / bottom edge the warp fades in (1 = from the middle).'],
@@ -122,7 +127,7 @@ export function mountTunePanel({ trail, cards } = {}) {
 
   // Sections are collapsible (<details>). ADVANCED, not shown but still in the arrays above and in Copy values: cardBend, arcShape, maxArc,
   // depthExtreme, depthBand (per-card bend), sepPasses, speedRef, grainRate, auraClearance, mouseStiffness, hover stiffness / damping,
-  // darkScale, lineOutSec. To bring one back, add its id ('GROUP.key') to a section list below.
+  // darkScale, lineOutSec, WARP.pinch / pinchDown / arc / persp / bowUp (the older three-term model, now only the frame canvas uses its own copies). To bring one back, add its id ('GROUP.key') to a section list below.
   const DEFS = {};
   const reg = (group, obj, defs) => defs.forEach((d) => { DEFS[`${group}.${d[0]}`] = [obj, d]; });
   reg('WARP', WARP, WARP_SLIDERS); reg('FRAME', FRAME_WARP, FRAME_SLIDERS); reg('BEND', BEND, BEND_SLIDERS); reg('CARDS', CARDS, CARD_SLIDERS); reg('HOVER', CARD_HOVER, HOVER_SLIDERS);
@@ -153,7 +158,7 @@ export function mountTunePanel({ trail, cards } = {}) {
   };
   const syncReadouts = () => readouts.forEach((r) => { r.input.value = r.obj[r.key]; r.v.textContent = r.obj[r.key]; });
 
-  section('Warp (scroll)', ['WARP.strengthUp', 'WARP.strengthDown', 'WARP.reach', 'WARP.pinch', 'WARP.pinchDown', 'WARP.arc', 'WARP.persp', 'WARP.sym', 'BEND.sensitivity', 'BEND.returnSpeed', 'BEND.overshoot'], { open: true, note: 'One distortion over all the cards. The last three (speed sensitivity, return speed, overshoot) are shared by both directions.' });
+  section('Warp (scroll)', ['WARP.strengthUp', 'WARP.strengthDown', 'WARP.reach', 'WARP.curl', 'WARP.camDown', 'WARP.camUp', 'WARP.bowDown', 'WARP.sym', 'BEND.sensitivity', 'BEND.returnSpeed', 'BEND.overshoot'], { open: true, note: 'One distortion over all the cards. The last three (speed sensitivity, return speed, overshoot) are shared by both directions.' });
   section('Frame warp (centre image, R16c)', ['FRAME.on', 'FRAME.strengthUp', 'FRAME.strengthDown', 'FRAME.reach', 'FRAME.pinch', 'FRAME.pinchDown', 'FRAME.arc', 'FRAME.persp', 'FRAME.sym', 'FRAME.threshold', 'FRAME.videoMode', 'FRAME.fadeSec'], { note: 'Own settings; the speed spring (sensitivity, return, overshoot) is shared with the cards.' });
   section('Grain', ['BEND.grain', 'BEND.grainSpeed']);
   section('Aura (around the frame)', ['CARDS.auraWeight', 'CARDS.auraMargin', 'CARDS.auraStrength', 'CARDS.auraVertical', 'CARDS.auraFalloff', 'CARDS.auraMinGap', 'CARDS.partingSoftness', 'CARDS.partingBounce']);
