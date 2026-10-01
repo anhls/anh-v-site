@@ -120,7 +120,7 @@ Anh: the Bitis page does not match live. R19 only compared STATIC positions (pag
 3. Re-check the whole page against live WHILE scrolling, not only at rest: screenshot pairs (live vs ours) at 3 scroll points inside each parallax block at 1920 and 2560, to tools/scratch/r19b-shots/. Quick mode otherwise: compare 542/542 for home, normal-speed frame time on the Bitis page at 2560, build ok.
 4. Keep the blocks/data approach; parallax and alpha are block features, reusable by the other project pages.
 
-## R16h (next, quick mode): centre frame warp matches the cards' direction (use Sonnet 5.5)
+## [done] R16h (quick mode): centre frame warp matches the cards' direction (use Sonnet 5.5)
 Anh (2026-10-02, after R16f/R16g): scrolling DOWN, the centre frame still INFLATES (content bulges toward the viewer), while the Selected Work cards now do the wanted look on scroll down. The frame must do exactly what the cards do in each direction.
 - Cause to check: the cards use the cylinder model (R16e) with the WARP_DIR swap (R16f); the frame still uses the older three-term model (pinch / pinchDown / arc / persp, own-space, FRAME_WARP) whose per-direction branches may not follow WARP_DIR the same way, or whose "down" branch is the inflate one after the swap.
 - Fix: drive the frame with the SAME model and direction mapping as the cards (cylinder sheet in the frame's own space: same curl / camera / bow terms, WARP_DIR applied identically), keeping FRAME_WARP strength / reach / deadzone / cover zoom (R16g) and Anh's frame tuning where it still applies. Simplest acceptable alternative: keep the three-term model but flip the frame's branch mapping so down = the cards' down look; report which.
@@ -130,9 +130,18 @@ Anh (2026-10-02, after R16f/R16g): scrolling DOWN, the centre frame still INFLAT
 
 - ALSO (Anh, Bitis page end): at the bottom of /work/bitis09/ the big wordmark does not return and there is no "Go Back To Top". R19 logged "live has no footer", but Anh says the page needs it like home: re-check live's page end (real scroll to the bottom at 1920 + 2560: wordmark state, any back-to-top link, spacing under the last image) and in any case give project pages the same ending as home: footer block with "Go Back To Top" (same dot-to-line hover, A+ / A back-to-top transition) and the wordmark returning big when the footer is reached (using the actual scroll position, as above). Shared footer + nav code, no copy.
 
+## R20 (next, quick mode): Similac + Forbes project pages, faithful to live (use Sonnet 4.6)
+Anh (2026-10-02): rebuild the remaining project pages AS THEY ARE ON LIVE for now; a redesign comes later. No polish beyond live. Inventory: docs/plans/project-pages-inventory.md.
+1. Move similac and forbes in src/data/data.json from the old schema (hero/details/media/chapters) to page.blocks like bitis09, using only existing blocks (hero, text, split with img/loop/copy/note cells, full, youtube, details, threeup). Section order per the inventory; check copy-cell placement on Forbes (sections 8 and 9) against live.
+2. Text verbatim from live (curly quotes, diacritics, line breaks in labels).
+3. Media: originals or live downloads into ../_site-media/similac/ and ../_site-media/forbes/, rows in sources.tsv, then npm run media. Alpha check on every GIF/PNG (R19b pipeline: VP9 alpha WebM + animated WebP, never flattened). List any file still taken from live (not an original) in status.md.
+4. Motion: measure parallax masks / reveals per block on live with real wheel scroll (R19b method) and set the parallax values in data.json; if a block has none on live, none here.
+5. Same nav, footer, Go Back To Top and wordmark behaviour as bitis09 (shared code, no copies). More Projects / home links to both pages point to the new routes.
+6. Proof (quick mode): screenshot pairs live vs ours at rest and at 3 scroll points in each parallax block, 1920 + 2560, to tools/scratch/r20-shots/; page height and section tops within a few px of live; compare 542/542 for home; build ok. Log in status.md.
+
 ## Queued (plans agreed with Anh, in this order; each becomes a request after the one before is committed)
 1. [done 2026-10-02] R18 perf + load pass (after R16f, Sonnet 5.5): deferred stress tests (4x CPU, 6-screen frame-time matrix incl. 120 Hz vs 8.3 ms, fallback re-runs, frame-canvas hand-off diffs); load: spawner images (4.9 MB) load only on first hero click or on idle, never at start; first-screen budget check (target < 1 MB before first paint); Lighthouse run (desktop) with the scores logged; GPU memory at 2560 and 3840 with both canvases; quick Safari/Firefox smoke check if available (WebGL2, video textures with alpha, fallbacks). Report and fix only cheap wins; list the rest.
-2. R19 Bitis page (in requests.md above), then the other 4 project pages as data, Works page, tablet/phone, launch prep, then back-to-top "rewind" polish.
+2. [done] R19 Bitis page. Now: R20 Similac + Forbes (above), then R21 Sulwhasoo + Techcombank Priority (new blocks: stacked cell, horizontal card scroller, mosaic grid), then Works page, tablet/phone, launch prep, then back-to-top "rewind" polish.
 3. Check later (low priority, Anh 2026-10-02): 4K at 100% scaling (3840x2160 CSS) squeezes the capped section positions (Selected Work ~1 screen down, trail barely runs). Consider letting section positions keep scaling on very tall viewports.
 
 ## Later: Selected Work step 2 (WebGL edge bend)
