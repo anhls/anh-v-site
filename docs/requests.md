@@ -77,7 +77,7 @@ Anh's tuning after R16e is now the default (WARP, FRAME_WARP, BEND sensitivity 2
 3. QUICK MODE: real-wheel checks + screenshots, normal-speed frame time at 2560, compare 542/542. Stress tests stay in the perf pass.
 
 ## Queued (plans agreed with Anh, in this order; each becomes a request after the one before is committed)
-0. Perf pass (deferred stress tests from R16d): 4x CPU runs, 6-screen frame-time matrix incl. 120 Hz, fallback re-runs, hand-off diffs for the frame canvas. Run once the warp looks right to Anh.
+1. R18 perf + load pass (after R16f, Sonnet 5.5): deferred stress tests (4x CPU, 6-screen frame-time matrix incl. 120 Hz vs 8.3 ms, fallback re-runs, frame-canvas hand-off diffs); load: spawner images (4.9 MB) load only on first hero click or on idle, never at start; first-screen budget check (target < 1 MB before first paint); Lighthouse run (desktop) with the scores logged; GPU memory at 2560 and 3840 with both canvases; quick Safari/Firefox smoke check if available (WebGL2, video textures with alpha, fallbacks). Report and fix only cheap wins; list the rest.
 2. Project pages (Bitis template first), Works page, tablet/phone, launch prep, then back-to-top "rewind" polish.
 3. Check later (low priority, Anh 2026-10-02): 4K at 100% scaling (3840x2160 CSS) squeezes the capped section positions (Selected Work ~1 screen down, trail barely runs). Consider letting section positions keep scaling on very tall viewports.
 
