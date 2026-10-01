@@ -56,3 +56,7 @@ body { background: #000; color: #fff; font-family: var(--font-display); }
 /* Parallax mask (R19b): the cell / section is the mask (overflow hidden); .pj__par is the moving layer, filled with the media. */
 .pj__par { position: absolute; inset: 0; transform-origin: 50% 50%; }
 .pj__par > .pj__img { width: 100%; height: 100%; }
+
+/* Footer on project pages: the home footer (Go Back To Top link) over the last part of the page; the big wordmark returns when it is reached. */
+#app { position: relative; }
+.pj__footer { height: var(--pj-footer-h, 25vh); }

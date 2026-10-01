@@ -70,7 +70,7 @@ const PAR = { k: 0.0298, e: 200 }; // parallax scale rate constants (see buildPr
 const FADE = { start: 0.1, end: 0.6 }; // ScrollFadeText (direction down, animation from end): raw scroll progress window
 
 export function buildProjectPage(root, page, lenis) {
-  root.innerHTML = page.blocks.map((b) => block[b.t](b)).join('');
+  root.innerHTML = page.blocks.map((b) => block[b.t](b)).join('') + '<div class="footer pj__footer"></div>';
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // Text fade: --f per block = share of the letters lit (0..1), updated only for blocks near the screen.
