@@ -1,9 +1,10 @@
 import { SPRING } from '../timeline.js';
 import { springLayer, springFromBounce } from '../effects/springs.js';
+import { backToTop } from '../effects/back-to-top.js';
 
 // Footer (110vh, absolute at the bottom of the page). Measured on live: "Go Back To Top" (12px) sits centred, a 30px box
 // ending 30px above the page bottom, with a 1px line through the middle of the text. At rest the line is a 1px dot; on
-// hover it grows across the whole text on a spring (0.4s, bounce 0.2). Clicking scrolls to the top (smooth, via Lenis).
+// hover it grows across the whole text on a spring (0.4s, bounce 0.2). Clicking runs the back-to-top transition (src/effects/back-to-top.js).
 // The big AV wordmark returning here is the nav wordmark (src/effects/nav.js), not part of this footer.
 // The dot-to-line hover, shared with the More Projects "See more work" link: the 1px line (.footer__line inside the link)
 // grows across the text on pointer enter and shrinks back on leave.
@@ -32,6 +33,6 @@ export function buildFooter(root, data, lenis) {
   lineHover(link);
   link.addEventListener('click', (e) => {
     e.preventDefault();
-    if (lenis) lenis.scrollTo(0); else window.scrollTo({ top: 0, behavior: 'smooth' });
+    backToTop(lenis);
   });
 }

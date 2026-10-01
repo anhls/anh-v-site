@@ -1,5 +1,5 @@
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { SPRING } from '../timeline.js';
+import { SPRING, MORE_PROJECTS_FIT } from '../timeline.js';
 import { springLayer, springFromBounce } from '../effects/springs.js';
 import { registerPointer, pointerEnabled } from '../effects/pointer.js';
 import { capW } from '../scale.js';
@@ -29,6 +29,31 @@ export function buildMoreProjects(root, data) {
     ${cursorHtml}`;
 
   lineHover(sticky.querySelector('.more-projects__more'));
+
+  // R13g: keep the list (and the label / "See more work" link beside it) clear of the big wordmark that comes back at the
+  // footer. A rule from the wordmark's top edge, not a fitted number: the list keeps a gap above it, never goes above the
+  // safe top, and shrinks to at most minScale when it cannot fit. Measured on load and resize only.
+  const listEl = sticky.querySelector('.more-projects__list');
+  const fit = () => {
+    const F = MORE_PROJECTS_FIT;
+    const Wn = window.innerWidth;
+    const Hn = window.innerHeight;
+    const wmTop = Hn - (Wn * 0.81875 * 345) / 1572; // the nav wordmark's top edge when it is big (same formula as nav.js)
+    const gap = Math.max(F.gapMinPx, (Hn * F.gapVh) / 100);
+    const safeTop = (Hn * F.safeTopVh) / 100;
+    const h = listEl.offsetHeight;
+    if (!h) return;
+    const scale = Math.min(1, Math.max(F.minScale, (wmTop - gap - safeTop) / h));
+    const hs = h * scale;
+    let shift = Math.min(0, wmTop - gap - (Hn / 2 + hs / 2)); // up, only when needed
+    shift = Math.max(shift, safeTop - (Hn / 2 - hs / 2)); // not above the safe top
+    sticky.style.setProperty('--mp-shift', `${Math.round(Math.min(0, shift) * 10) / 10}px`);
+    sticky.style.setProperty('--mp-scale', scale.toFixed(4));
+  };
+  fit();
+  window.addEventListener('resize', fit);
+  if (document.fonts?.ready) document.fonts.ready.then(fit);
+
   if (!pointerEnabled) return; // touch / reduced motion: a plain list of links
 
   const rollSpring = springFromBounce(SPRING.linkRoll.duration, SPRING.linkRoll.bounce);

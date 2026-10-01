@@ -6,6 +6,7 @@
 //   npm run compare -- --refresh-live                      re-measure the live site (do it once at the start of a motion request,
 //                                                          and after every Framer republish); otherwise live values come from
 //                                                          tools/live-cache/<W>x<H>.json, and any point missing there is measured and added
+//   --moved                                            also compare the More Projects label / names (moved up on purpose in R13g)
 //   --cards                                            also compare the Selected Work cards (off since R13c: they differ from live by design)
 //   other options: --points 0,15,..  --settle 2000 (max ms to wait for values to stop changing)  --dump file.json
 //                  --local http://localhost:5199/  --live https://www.anh-v.com/  (--width/--height still work for one size)
@@ -56,7 +57,9 @@ const ALL_PROBES = {
 const LATE_PROBES = new Set(['mpLabel', 'mpName1', 'mpName3', 'footLink']); // the only probes compared at 600vh and beyond
 const ONLY = arg('only', '');
 // R13c: the Selected Work card probes (sw*) differ from live by design (depth parting, push-away, new layout): skipped unless --cards.
-const DEFAULT_PROBES = flag('cards') ? ALL_PROBES : Object.fromEntries(Object.entries(ALL_PROBES).filter(([n]) => !n.startsWith('sw')));
+// R13g: the More Projects label / names moved up on purpose (the list now clears the returning wordmark): skipped unless --moved.
+const MOVED = new Set(['mpLabel', 'mpName1', 'mpName3']);
+const DEFAULT_PROBES = Object.fromEntries(Object.entries(ALL_PROBES).filter(([n]) => (flag('cards') || !n.startsWith('sw')) && (flag('moved') || !MOVED.has(n))));
 const PROBES = ONLY ? Object.fromEntries(ONLY.split(',').map((n) => { if (!ALL_PROBES[n]) throw new Error(`unknown probe ${n}`); return [n, ALL_PROBES[n]]; })) : DEFAULT_PROBES;
 
 const probeFn = ({ probes, side }) => {

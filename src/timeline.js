@@ -234,3 +234,16 @@ export const TRAIL = {
   spring: [500, 60, 1], from: { opacity: 0, scale: 0.5 }, out: { opacity: 0, scale: 0.2 },
   startMaskShare: 0.6, fadeAtScreen: 0.5, fadeLenVh: 132, fadeCurve: 1.6, minScale: 0.4, copiesPerImage: 2,
 };
+
+// Back to top (R13g). A+ = everything except the big AV wordmark fades to black (one overlay, opacity only), the page jumps to
+// the top while hidden, then fades back in around the wordmark. A = the same with the overlay above the wordmark too (weak
+// devices). Reduced motion: instant jump with a very short fade. Force a path with ?top=aplus or ?top=a.
+//   fadeOut / fadeIn  seconds; settle  ms the page stays covered after the jump (springs and scrubs are snapped, this is a safety margin)
+export const BACK_TOP = {
+  fadeOut: 0.4, fadeIn: 0.6, settleMs: 140, reducedFade: 0.08, ease: 'power2.inOut',
+  // The fallback rule: weak device = 4 cores or fewer, 4 GB or less memory (when the browser says), or Save-Data on.
+  weakCores: 4, weakMemoryGb: 4,
+};
+// More Projects list vs the returning wordmark (R13g): the list keeps `gap` (the larger of gapVh of the window height and
+// gapMinPx) above the wordmark's top edge, never goes above safeTopVh, and shrinks to at most minScale when it cannot fit.
+export const MORE_PROJECTS_FIT = { gapVh: 5, gapMinPx: 28, safeTopVh: 12, minScale: 0.85 };

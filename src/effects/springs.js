@@ -42,6 +42,11 @@ function advance(x0, v0, k, c, m, dt) {
   return [c1 * e1 + c2 * e2, c1 * r1 * e1 + c2 * r2 * e2];
 }
 
+// Jump every layer to its target now (used by back-to-top while the page is covered).
+export function snapAllLayers() {
+  layers.forEach((L) => { for (const p in L.springs) { L.value[p] = L.target[p]; L.vel[p] = 0; } L.apply(L.value); });
+}
+
 function frame(_time, deltaMs) {
   const dt = Math.min(deltaMs / 1000, MAX_FRAME);
   for (let i = 0; i < layers.length; i++) {

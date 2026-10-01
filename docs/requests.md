@@ -25,7 +25,7 @@ Match live's look:
 - Add one "weight" slider on ?tune (overall heaviness/floatiness of the aura motion); keep the other aura sliders. Put the fitted values as defaults.
 - Accept brief overlap during fast scrolling; once settled every card clears the frame (min gap). Recheck at the 6 target screens; frame time; compare 574/574 (cards skipped).
 
-## R13g (next): Part A card-to-card overlap guard + Part B back-to-top and More Projects/wordmark fix (one session, Sonnet 5.5)
+## R13g [done] Part A card-to-card overlap guard + Part B back-to-top and More Projects/wordmark fix (one session, Sonnet 5.5)
 Anh wants these two in one run to save time. Do Part A, run its checks, COMMIT it; then Part B, checks, COMMIT. If the context compacts more than once, stop after the current part and report.
 ### Part A: card-to-card overlap guard
 Anh's tuned values from R13f are now the defaults (CARDS aura 580/175/120, depthRange 0.15, push 245/60, LAYOUT seed 37315, scatter 225, centreBand 560, minGap 81). Problem seen at 2560: the aura herds cards into the side gutters between the frame and the screen edge, so cards pile up and a front card covers most of the card behind it (e.g. the "10" card over the billboard card, the knot logo over the "What's your next" text card).

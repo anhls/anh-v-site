@@ -350,7 +350,8 @@ html.lenis, html.lenis body { height: auto; }
 .more-projects__label { left: var(--index-x); }
 /* "See more work": the footer link style (.footer__top), moved to the right margin, same height as the label. */
 .more-projects__more.footer__top { left: auto; right: var(--index-x); bottom: auto; top: calc(50% - var(--index-label-size) * 0.5); transform: none; height: var(--index-label-size); }
-.more-projects__list { margin: 0; padding: 0; list-style: none; text-align: center; }
+.more-projects__list { margin: 0; padding: 0; list-style: none; text-align: center; translate: 0 var(--mp-shift, 0px); scale: var(--mp-scale, 1); } /* R13g: shifted up / shrunk by more-projects.js so it clears the returning wordmark */
+.more-projects__label, .more-projects__more { translate: 0 var(--mp-shift, 0px); }
 .more-projects__list li { height: calc(var(--index-size) * 0.8); overflow: hidden; }
 .more-projects__item { display: block; color: inherit; text-decoration: none; text-transform: uppercase; white-space: nowrap; font-size: var(--index-size); font-weight: 500; line-height: 0.8; letter-spacing: -0.01em; }
 .more-projects__roll { display: block; will-change: transform; }
@@ -422,3 +423,5 @@ html.lenis, html.lenis body { height: auto; }
   transition: opacity 0.15s linear;
 }
 .caption-hover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+/* Back-to-top cover (R13g): one black layer, opacity only; z-index is set by back-to-top.js (9 below the wordmark, or 11). */
+.btt-overlay { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; will-change: opacity; }
