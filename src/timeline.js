@@ -203,7 +203,7 @@ export const CAPTION_HOVER = { w: 427, h: 249, offsetX: 50, spring: [500, 60, 1]
 // the fade begins when that section's top reaches `fadeAtScreen` of the screen height (0 = top, 1 = bottom) and is over
 // `fadeLenVh` of scroll later. The intensity (1 -> 0, raised to `fadeCurve`) lowers the spawn rate and the opacity/scale.
 export const TRAIL = {
-  frequency: 25, visibleFor: 0.5, size: 200,
+  frequency: 17, visibleFor: 0.4, size: 200,
   spring: [500, 60, 1], from: { opacity: 0, scale: 0.5 }, out: { opacity: 0, scale: 0.2 },
-  startMaskShare: 0.6, fadeAtScreen: 0.5, fadeLenVh: 75, fadeCurve: 1, minScale: 0.4, copiesPerImage: 2,
+  startMaskShare: 0.6, fadeAtScreen: 0.5, fadeLenVh: 132, fadeCurve: 1.6, minScale: 0.4, copiesPerImage: 2,
 };
