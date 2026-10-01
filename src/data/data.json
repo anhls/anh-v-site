@@ -2,12 +2,23 @@
   "site": {
     "title": "Anh V",
     "nav": [
-      { "label": "About", "href": "#2section" },
-      { "label": "Works", "href": "#selected-work" },
-      { "label": "Contact", "href": "#contact" }
+      {
+        "label": "About",
+        "href": "#2section"
+      },
+      {
+        "label": "Works",
+        "href": "#selected-work"
+      },
+      {
+        "label": "Contact",
+        "href": "#contact"
+      }
     ]
   },
-  "loader": { "text": "Loading visual language" },
+  "loader": {
+    "text": "Loading visual language"
+  },
   "hero": {
     "video": "/media/hero/video.mp4",
     "image": "https://framerusercontent.com/images/aZoZ5nVZFbgwsySGNQ5CXL2rQ.jpg",
@@ -20,10 +31,30 @@
     "ticker": "/media/brand/ticker.svg",
     "clickSound": "https://framerusercontent.com/assets/ozLRvG7UYmyT7nzrIc43elxSoAs.mp3",
     "captions": [
-      { "title": "Techcombank Priority", "image": "https://framerusercontent.com/images/bLvFvrBSqevtM84melr3ffFML0.jpg", "client": "Techcombank", "role": "Art Direction" },
-      { "title": "Di De Tro Ve 09", "image": "https://framerusercontent.com/images/Ed5U3pkCuLOnCpsHlIcXi1CgPqo.jpg", "client": "Bitis", "role": "Art Direction" },
-      { "title": "Sulwhasoo Product Launch", "image": "https://framerusercontent.com/images/0VSrNQmftCfZjxH2F8hiAYfxxA.jpg", "client": "Sulwhasoo", "role": "Art Direction" },
-      { "title": "Similac Virgo", "image": "https://framerusercontent.com/images/YWTonqftN7SBxLUONPaxNkRdIJE.jpg", "client": "Similac", "role": "Art Direction" }
+      {
+        "title": "Techcombank Priority",
+        "image": "https://framerusercontent.com/images/bLvFvrBSqevtM84melr3ffFML0.jpg",
+        "client": "Techcombank",
+        "role": "Art Direction"
+      },
+      {
+        "title": "Di De Tro Ve 09",
+        "image": "https://framerusercontent.com/images/Ed5U3pkCuLOnCpsHlIcXi1CgPqo.jpg",
+        "client": "Bitis",
+        "role": "Art Direction"
+      },
+      {
+        "title": "Sulwhasoo Product Launch",
+        "image": "https://framerusercontent.com/images/0VSrNQmftCfZjxH2F8hiAYfxxA.jpg",
+        "client": "Sulwhasoo",
+        "role": "Art Direction"
+      },
+      {
+        "title": "Similac Virgo",
+        "image": "https://framerusercontent.com/images/YWTonqftN7SBxLUONPaxNkRdIJE.jpg",
+        "client": "Similac",
+        "role": "Art Direction"
+      }
     ]
   },
   "about": {
@@ -57,78 +88,767 @@
     "https://framerusercontent.com/images/cxuWVpuy7nnTMVe898BkVjQm1I.jpg"
   ],
   "selectedWorkCards": [
-    { "id": 1, "x": -700.5, "y": 213.241, "w": 275, "h": 268, "layer": "layer2", "z": 3, "mouse": 50, "scroll": true, "src": "/media/selected-work/card-img-01.png" },
-    { "id": 2, "x": -1067.5, "y": 188.241, "w": 311, "h": 177, "layer": "back", "z": 2, "mouse": 20, "scroll": true, "src": "/media/selected-work/card-img-02.jpg" },
-    { "id": 3, "x": -1026, "y": 300.741, "w": 188, "h": 294, "layer": "back", "z": 2, "mouse": 20, "scroll": true, "src": "/media/selected-work/card-img-03.jpg" },
-    { "id": 4, "x": -319, "y": 295.741, "w": 188, "h": 188, "layer": "back", "z": 2, "mouse": 20, "scroll": true, "src": "/media/selected-work/card-img-04.png" },
-    { "id": 5, "x": -640, "y": 178.241, "w": 150, "h": 230, "layer": "back", "z": 2, "mouse": 20, "scroll": true, "src": "/media/selected-work/card-img-05.png" },
-    { "id": 6, "x": -717, "y": 253.241, "w": 150, "h": 230, "layer": "back", "z": 2, "mouse": 20, "scroll": true, "src": "/media/selected-work/card-img-06.gif" },
-    { "id": 7, "x": -608, "y": 293.241, "w": 150, "h": 230, "layer": "back", "z": 2, "mouse": 20, "scroll": true, "src": "/media/selected-work/card-img-07.png" },
-    { "id": 8, "x": -468.5, "y": 165.741, "w": 259, "h": 384, "layer": "layer4", "z": 5, "mouse": 100, "scroll": true, "src": "/media/selected-work/card-img-08.jpg" },
-    { "id": 9, "x": -563.5, "y": 265.741, "w": 389, "h": 384, "layer": "layer4", "z": 5, "mouse": 100, "scroll": true, "src": "/media/selected-work/card-img-09.png" },
-    { "id": 10, "x": -879.5, "y": 330.741, "w": 389, "h": 244, "layer": "layer4", "z": 5, "mouse": 100, "scroll": true, "src": "/media/selected-work/card-img-10.jpg" },
-    { "id": 11, "x": -461, "y": 363.241, "w": 526, "h": 330, "layer": "layer4", "z": 5, "mouse": 100, "scroll": true, "src": "/media/selected-work/card-img-11.jpg" },
-    { "id": 12, "x": -1010, "y": 228.241, "w": 206, "h": 206, "layer": "back", "z": 2, "mouse": 20, "scroll": true, "src": "/media/selected-work/card-img-12.png" },
-    { "id": 13, "x": -533.5, "y": 140.741, "w": 189, "h": 132, "layer": "back", "z": 2, "mouse": 20, "scroll": true, "src": "/media/selected-work/card-img-13.jpg" },
-    { "id": 14, "x": -860.5, "y": 153.241, "w": 247, "h": 247, "layer": "layer2", "z": 3, "mouse": 50, "scroll": true, "src": "/media/selected-work/card-img-12.png" },
-    { "id": 15, "x": -1096, "y": 133.241, "w": 124, "h": 141, "layer": "back", "z": 2, "mouse": 20, "scroll": true, "src": "/media/selected-work/card-img-13.jpg" },
-    { "id": 16, "x": -754.5, "y": 125.741, "w": 127, "h": 186, "layer": "back", "z": 2, "mouse": 20, "scroll": true, "src": "/media/selected-work/card-img-14.jpg" },
-    { "id": 17, "x": -536, "y": 100.741, "w": 472, "h": 265, "layer": "layer1", "z": 3, "mouse": 25, "scroll": true, "src": "/media/selected-work/card-img-15.png" },
-    { "id": 18, "x": -879, "y": 108.241, "w": 264, "h": 240, "layer": "layer2", "z": 3, "mouse": 50, "scroll": true, "src": "/media/selected-work/card-img-16.png" },
-    { "id": 19, "x": -706, "y": 78.241, "w": 204, "h": 211, "layer": "back", "z": 2, "mouse": 20, "scroll": true, "src": "/media/selected-work/card-img-13.jpg" },
-    { "id": 20, "x": 415.1, "y": 225.741, "w": 154.2, "h": 171.3, "layer": "back", "z": 2, "mouse": 20, "scroll": true, "src": "/media/selected-work/card-img-17.png" },
-    { "id": 21, "x": 661.1, "y": 220.741, "w": 154.2, "h": 171.3, "layer": "back", "z": 2, "mouse": 20, "scroll": true, "src": "/media/selected-work/card-img-18.jpg" },
-    { "id": 22, "x": 766.5, "y": 308.241, "w": 211, "h": 141, "layer": "back", "z": 2, "mouse": 20, "scroll": true, "src": "/media/selected-work/card-img-04.png" },
-    { "id": 23, "x": 995, "y": 210.741, "w": 170, "h": 197, "layer": "back", "z": 2, "mouse": 20, "scroll": true, "src": "/media/selected-work/card-img-19.jpg" },
-    { "id": 24, "x": 481, "y": 293.241, "w": 136, "h": 254, "layer": "back", "z": 2, "mouse": 20, "scroll": true, "src": "/media/selected-work/card-img-19.jpg" },
-    { "id": 25, "x": 838.5, "y": 190.741, "w": 323, "h": 408, "layer": "layer3", "z": 2, "mouse": 75, "scroll": true, "src": "/media/selected-work/card-img-20.jpg" },
-    { "id": 26, "x": 454.5, "y": 258.241, "w": 323, "h": 337, "layer": "layer3", "z": 2, "mouse": 75, "scroll": true, "src": "/media/selected-work/card-img-21.png" },
-    { "id": 27, "x": 1076.5, "y": 330.741, "w": 541, "h": 305, "layer": "layer3", "z": 2, "mouse": 75, "scroll": true, "src": "/media/selected-work/card-img-22.png" },
-    { "id": 28, "x": 486.5, "y": 340.741, "w": 541, "h": 305, "layer": "layer3", "z": 2, "mouse": 75, "scroll": true, "src": "/media/selected-work/card-img-23.jpg" },
-    { "id": 29, "x": 873, "y": 258.241, "w": 174, "h": 408, "layer": "layer3", "z": 2, "mouse": 75, "scroll": true, "src": "/media/selected-work/card-img-24.jpg" },
-    { "id": 30, "x": 480.5, "y": 163.241, "w": 343, "h": 313, "layer": "layer2", "z": 3, "mouse": 50, "scroll": true, "src": "/media/selected-work/watch-anim" },
-    { "id": 31, "x": 686.5, "y": 138.241, "w": 193, "h": 104, "layer": "back", "z": 2, "mouse": 20, "scroll": true, "src": "/media/selected-work/card-img-26.png" },
-    { "id": 32, "x": 953, "y": 128.241, "w": 170, "h": 167, "layer": "back", "z": 2, "mouse": 20, "scroll": true, "src": "/media/selected-work/card-img-27.png" },
-    { "id": 33, "x": 379, "y": 138.241, "w": 138, "h": 268, "layer": "back", "z": 2, "mouse": 20, "scroll": true, "src": "/media/selected-work/card-img-28.jpg" },
-    { "id": 34, "x": 798.5, "y": 108.241, "w": 429, "h": 267, "layer": "layer2", "z": 3, "mouse": 50, "scroll": true, "src": "/media/selected-work/card-img-29.png" },
-    { "id": 35, "x": 406.5, "y": 88.241, "w": 219, "h": 207, "layer": "layer2", "z": 3, "mouse": 50, "scroll": true, "src": "/media/selected-work/card-img-30.gif" }
+    {
+      "id": 1,
+      "x": -700.5,
+      "y": 213.241,
+      "w": 275,
+      "h": 268,
+      "layer": "layer2",
+      "z": 3,
+      "mouse": 50,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-01.png"
+    },
+    {
+      "id": 2,
+      "x": -1067.5,
+      "y": 188.241,
+      "w": 311,
+      "h": 177,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-02.jpg"
+    },
+    {
+      "id": 3,
+      "x": -1026,
+      "y": 300.741,
+      "w": 188,
+      "h": 294,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-03.jpg"
+    },
+    {
+      "id": 4,
+      "x": -319,
+      "y": 295.741,
+      "w": 188,
+      "h": 188,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-04.png"
+    },
+    {
+      "id": 5,
+      "x": -640,
+      "y": 178.241,
+      "w": 150,
+      "h": 230,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-05.png"
+    },
+    {
+      "id": 6,
+      "x": -717,
+      "y": 253.241,
+      "w": 150,
+      "h": 230,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-06.gif"
+    },
+    {
+      "id": 7,
+      "x": -608,
+      "y": 293.241,
+      "w": 150,
+      "h": 230,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-07.png"
+    },
+    {
+      "id": 8,
+      "x": -468.5,
+      "y": 165.741,
+      "w": 259,
+      "h": 384,
+      "layer": "layer4",
+      "z": 5,
+      "mouse": 100,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-08.jpg"
+    },
+    {
+      "id": 9,
+      "x": -563.5,
+      "y": 265.741,
+      "w": 389,
+      "h": 384,
+      "layer": "layer4",
+      "z": 5,
+      "mouse": 100,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-09.png"
+    },
+    {
+      "id": 10,
+      "x": -879.5,
+      "y": 330.741,
+      "w": 389,
+      "h": 244,
+      "layer": "layer4",
+      "z": 5,
+      "mouse": 100,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-10.jpg"
+    },
+    {
+      "id": 11,
+      "x": -461,
+      "y": 363.241,
+      "w": 526,
+      "h": 330,
+      "layer": "layer4",
+      "z": 5,
+      "mouse": 100,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-11.jpg"
+    },
+    {
+      "id": 12,
+      "x": -1010,
+      "y": 228.241,
+      "w": 206,
+      "h": 206,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-12.png"
+    },
+    {
+      "id": 13,
+      "x": -533.5,
+      "y": 140.741,
+      "w": 189,
+      "h": 132,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-13.jpg"
+    },
+    {
+      "id": 14,
+      "x": -860.5,
+      "y": 153.241,
+      "w": 247,
+      "h": 247,
+      "layer": "layer2",
+      "z": 3,
+      "mouse": 50,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-12.png"
+    },
+    {
+      "id": 15,
+      "x": -1096,
+      "y": 133.241,
+      "w": 124,
+      "h": 141,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-13.jpg"
+    },
+    {
+      "id": 16,
+      "x": -754.5,
+      "y": 125.741,
+      "w": 127,
+      "h": 186,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-14.jpg"
+    },
+    {
+      "id": 17,
+      "x": -536,
+      "y": 100.741,
+      "w": 472,
+      "h": 265,
+      "layer": "layer1",
+      "z": 3,
+      "mouse": 25,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-15.png"
+    },
+    {
+      "id": 18,
+      "x": -879,
+      "y": 108.241,
+      "w": 264,
+      "h": 240,
+      "layer": "layer2",
+      "z": 3,
+      "mouse": 50,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-16.png"
+    },
+    {
+      "id": 19,
+      "x": -706,
+      "y": 78.241,
+      "w": 204,
+      "h": 211,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-13.jpg"
+    },
+    {
+      "id": 20,
+      "x": 415.1,
+      "y": 225.741,
+      "w": 154.2,
+      "h": 171.3,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-17.png"
+    },
+    {
+      "id": 21,
+      "x": 661.1,
+      "y": 220.741,
+      "w": 154.2,
+      "h": 171.3,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-18.jpg"
+    },
+    {
+      "id": 22,
+      "x": 766.5,
+      "y": 308.241,
+      "w": 211,
+      "h": 141,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-04.png"
+    },
+    {
+      "id": 23,
+      "x": 995,
+      "y": 210.741,
+      "w": 170,
+      "h": 197,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-19.jpg"
+    },
+    {
+      "id": 24,
+      "x": 481,
+      "y": 293.241,
+      "w": 136,
+      "h": 254,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-19.jpg"
+    },
+    {
+      "id": 25,
+      "x": 838.5,
+      "y": 190.741,
+      "w": 323,
+      "h": 408,
+      "layer": "layer3",
+      "z": 2,
+      "mouse": 75,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-20.jpg"
+    },
+    {
+      "id": 26,
+      "x": 454.5,
+      "y": 258.241,
+      "w": 323,
+      "h": 337,
+      "layer": "layer3",
+      "z": 2,
+      "mouse": 75,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-21.png"
+    },
+    {
+      "id": 27,
+      "x": 1076.5,
+      "y": 330.741,
+      "w": 541,
+      "h": 305,
+      "layer": "layer3",
+      "z": 2,
+      "mouse": 75,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-22.png"
+    },
+    {
+      "id": 28,
+      "x": 486.5,
+      "y": 340.741,
+      "w": 541,
+      "h": 305,
+      "layer": "layer3",
+      "z": 2,
+      "mouse": 75,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-23.jpg"
+    },
+    {
+      "id": 29,
+      "x": 873,
+      "y": 258.241,
+      "w": 174,
+      "h": 408,
+      "layer": "layer3",
+      "z": 2,
+      "mouse": 75,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-24.jpg"
+    },
+    {
+      "id": 30,
+      "x": 480.5,
+      "y": 163.241,
+      "w": 343,
+      "h": 313,
+      "layer": "layer2",
+      "z": 3,
+      "mouse": 50,
+      "scroll": true,
+      "src": "/media/selected-work/watch-anim"
+    },
+    {
+      "id": 31,
+      "x": 686.5,
+      "y": 138.241,
+      "w": 193,
+      "h": 104,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-26.png"
+    },
+    {
+      "id": 32,
+      "x": 953,
+      "y": 128.241,
+      "w": 170,
+      "h": 167,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-27.png"
+    },
+    {
+      "id": 33,
+      "x": 379,
+      "y": 138.241,
+      "w": 138,
+      "h": 268,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-28.jpg"
+    },
+    {
+      "id": 34,
+      "x": 798.5,
+      "y": 108.241,
+      "w": 429,
+      "h": 267,
+      "layer": "layer2",
+      "z": 3,
+      "mouse": 50,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-29.png"
+    },
+    {
+      "id": 35,
+      "x": 406.5,
+      "y": 88.241,
+      "w": 219,
+      "h": 207,
+      "layer": "layer2",
+      "z": 3,
+      "mouse": 50,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-30.gif"
+    }
   ],
   "projects": [
     {
-      "slug": "tcb-priority", "index": "PRJ-01", "title": "Techcombank Priority", "client": "Techcombank",
-      "year": 2025, "live": true, "hero": { "type": "video", "src": "" }, "details": {}, "media": [], "chapters": []
+      "slug": "tcb-priority",
+      "index": "PRJ-01",
+      "title": "Techcombank Priority",
+      "client": "Techcombank",
+      "year": 2025,
+      "live": true,
+      "hero": {
+        "type": "video",
+        "src": ""
+      },
+      "details": {},
+      "media": [],
+      "chapters": []
     },
     {
-      "slug": "bitis09", "index": "PRJ-02", "title": "Bitis DDTV SS09", "client": "Bitis",
-      "year": 2024, "live": true,
-      "hero": { "type": "video", "src": "" },
-      "details": { "role": "", "credits": [] },
-      "media": [{ "type": "image", "src": "", "layout": "full", "caption": "" }],
-      "chapters": [{ "title": "", "media": [] }]
+      "slug": "bitis09",
+      "index": "PRJ-02",
+      "title": "Bitis DDTV SS09",
+      "client": "Bitis",
+      "year": 2024,
+      "live": true,
+      "page": {
+        "title": "Bitis DDTV SS09 | Anh V",
+        "blocks": [
+          {
+            "t": "hero",
+            "img": "bitis09/hero"
+          },
+          {
+            "t": "text",
+            "label": "INSIGHT",
+            "text": "            “There are always two halves in me—one wants to roam, one longs to return.”\nThis quiet conflict reflects the emotional truth of growing up: no matter how far you go, part of you is always looking back."
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "bitis09/insight-a",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "bitis09/soobin",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "text",
+            "label": "CONCEPT",
+            "text": "           The campaign imagines a dialogue between your past and present selves — a reunion shaped by distance, time, and the pull of home. "
+          },
+          {
+            "t": "youtube",
+            "id": "s5GFw-7XPjo",
+            "title": "Bitis Season 09 — Đi Để Trở Về"
+          },
+          {
+            "t": "details",
+            "title": [
+              "Bitis Season 09",
+              "Di De Tro Ve"
+            ],
+            "heading": "Project Details",
+            "rows": [
+              [
+                "Client",
+                [
+                  "Bitis"
+                ]
+              ],
+              [
+                "Year",
+                [
+                  "2024"
+                ]
+              ],
+              [
+                "Role",
+                [
+                  "Art Director",
+                  "Motion Lead"
+                ]
+              ]
+            ],
+            "body": "This music video campaign marks the 9th season of Bitis’ iconic “Đi Để Trở Về” platform, continuing its emotional journey through sound and story. Built around the Tet season — a time of reflection and homecoming — the visual direction pairs poetic nostalgia with cinematic framing. As Art Director, I shaped the aesthetic language, spatial composition, and narrative rhythm to amplify the sense of longing and reunion. Every detail, from wardrobe to lighting, was crafted to echo the emotional pull between who we were and who we’ve become."
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "loop",
+              "ref": "bitis09/campaign",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "copy",
+              "heading": [
+                "Time-crossing",
+                "Homesick Dialogue"
+              ],
+              "body": "It’s a truth most people carry — two halves in constant pull between the road ahead and the place called home."
+            }
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "loop",
+              "ref": "bitis09/timecross-a",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "loop",
+              "ref": "bitis09/timecross-b",
+              "fit": "contain",
+              "w": 75,
+              "h": 44
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "img",
+              "ref": "bitis09/gallery-1",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "img",
+              "ref": "bitis09/billboard",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "loop",
+              "ref": "bitis09/tagline",
+              "fit": "cover",
+              "w": 1663,
+              "aspect": 1.778,
+              "note": "The tagline draws from the imagery of a crossroad — a symbolic point where the present meets the past. It’s not just a message home, but a turning point: where longing becomes a dialogue, and the self in motion pauses to reconnect."
+            },
+            "right": {
+              "kind": "img",
+              "ref": "bitis09/tagline-side",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "text",
+            "label": "WRAPUP",
+            "text": "           As the final episode of “Di De Tro Ve,” the MV wraps the journey with warmth and closure. Retro tones meet Bitis’ signature orange, blending nostalgia with a sense of new beginnings."
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "loop",
+              "ref": "bitis09/wrapup",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "bitis09/wrapup-a",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "img",
+              "ref": "bitis09/look-a",
+              "fit": "cover"
+            },
+            "tall": 1296
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "bitis09/look-b",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "empty"
+            }
+          },
+          {
+            "t": "text",
+            "label": "PROMOTION",
+            "text": "                 In parallel with the MV, the campaign also introduced a standalone creative route to celebrate the new product drop and the Year of the Snake — blending festive motifs with bold, youthful styling tailored for Tết."
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "note",
+              "body": "Beyond the emotional narrative of the MV, a separate creative line was developed to spotlight Bitis’ Tết product release and celebrate the Year of the Snake. This route embraced vibrant visuals, festive textures, and youthful styling — designed to capture the spirit of renewal and cultural pride. From digital key visuals to social-first assets, the materials emphasized bold energy and collectibility, anchoring the product as a must-have item for the holiday season."
+            },
+            "right": {
+              "kind": "img",
+              "ref": "bitis09/tet",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "threeup",
+            "cells": [
+              {
+                "kind": "img",
+                "ref": "bitis09/promo-a",
+                "fit": "cover",
+                "w": 75,
+                "h": 80
+              },
+              {
+                "kind": "img",
+                "ref": "bitis09/promo-b",
+                "fit": "cover",
+                "w": 100,
+                "aspect": 1.975,
+                "h": null,
+                "caption": "Initial concept sketch"
+              },
+              {
+                "kind": "img",
+                "ref": "bitis09/sketch",
+                "fit": "cover",
+                "w": 75,
+                "h": 80
+              }
+            ]
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "loop",
+              "ref": "bitis09/concept",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "copy",
+              "body": "The concept draws from the texture of shoelaces — echoing the pattern of snake scales — and evolves into a full visual system built for the Year of the Snake. Using bold color blocks, Tet-inspired textures, and illustrated serpentine forms, the layout coils around talents in motion, creating a playful yet powerful backdrop to spotlight the product and spirit of Tết.",
+              "width": 720
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "img",
+              "ref": "bitis09/finale",
+              "fit": "cover"
+            },
+            "tall": 1296
+          }
+        ]
+      }
     },
     {
-      "slug": "sulwhasoo", "index": "PRJ-03", "title": "Sulwhasoo Launch", "client": "Sulwhasoo",
-      "year": 2023, "live": true, "hero": { "type": "video", "src": "" }, "details": {}, "media": [], "chapters": []
+      "slug": "sulwhasoo",
+      "index": "PRJ-03",
+      "title": "Sulwhasoo Launch",
+      "client": "Sulwhasoo",
+      "year": 2023,
+      "live": true,
+      "hero": {
+        "type": "video",
+        "src": ""
+      },
+      "details": {},
+      "media": [],
+      "chapters": []
     },
     {
-      "slug": "similac", "index": "", "title": "Similac Virgo", "client": "Similac",
-      "year": 2024, "live": true, "hero": { "type": "video", "src": "" }, "details": {}, "media": [], "chapters": []
+      "slug": "similac",
+      "index": "",
+      "title": "Similac Virgo",
+      "client": "Similac",
+      "year": 2024,
+      "live": true,
+      "hero": {
+        "type": "video",
+        "src": ""
+      },
+      "details": {},
+      "media": [],
+      "chapters": []
     },
     {
-      "slug": "forbes", "index": "", "title": "Forbes Vanguard", "client": "Forbes",
-      "year": null, "live": true, "hero": { "type": "video", "src": "" }, "details": {}, "media": [], "chapters": []
+      "slug": "forbes",
+      "index": "",
+      "title": "Forbes Vanguard",
+      "client": "Forbes",
+      "year": null,
+      "live": true,
+      "hero": {
+        "type": "video",
+        "src": ""
+      },
+      "details": {},
+      "media": [],
+      "chapters": []
     }
   ],
   "moreProjects": {
     "label": "More Projects",
     "items": [
-      { "name": "Forbes Vanguard", "slug": "forbes", "image": "https://framerusercontent.com/images/vnRzwgUH7uvpqoRCCWRLGLOvwQ.jpg" },
-      { "name": "Techcombank Priority", "slug": "tcb-priority", "image": "https://framerusercontent.com/images/QUzoZUsI26ew5csK6GR0cPOsKQ.jpg" },
-      { "name": "Sulwhasoo", "slug": "sulwhasoo", "image": "/media/selected-work/card-img-11.jpg" },
-      { "name": "Similac Virgo 2024", "slug": "similac", "image": "/media/captions/caption-4.jpg" },
-      { "name": "Bitis Season 09", "slug": "bitis09", "image": "/media/hero/s3_middle.jpg" }
+      {
+        "name": "Forbes Vanguard",
+        "slug": "forbes",
+        "image": "https://framerusercontent.com/images/vnRzwgUH7uvpqoRCCWRLGLOvwQ.jpg"
+      },
+      {
+        "name": "Techcombank Priority",
+        "slug": "tcb-priority",
+        "image": "https://framerusercontent.com/images/QUzoZUsI26ew5csK6GR0cPOsKQ.jpg"
+      },
+      {
+        "name": "Sulwhasoo",
+        "slug": "sulwhasoo",
+        "image": "/media/selected-work/card-img-11.jpg"
+      },
+      {
+        "name": "Similac Virgo 2024",
+        "slug": "similac",
+        "image": "/media/captions/caption-4.jpg"
+      },
+      {
+        "name": "Bitis Season 09",
+        "slug": "bitis09",
+        "image": "/media/hero/s3_middle.jpg"
+      }
     ],
-    "more": { "name": "See more work", "href": "/work/" }
+    "more": {
+      "name": "See more work",
+      "href": "/work/"
+    }
   },
-  "footer": { "topLabel": "Go Back To Top" }
+  "footer": {
+    "topLabel": "Go Back To Top"
+  }
 }

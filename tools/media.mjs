@@ -5,8 +5,8 @@
 // Animated cards -> WebM (VP9, alpha where the source has it) + MP4 (H.264, on black) + a poster WebP.
 import sharp from 'sharp';
 import ffmpegPath from 'ffmpeg-static';
-import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync, copyFileSync, readdirSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync, copyFileSync, readdirSync, unlinkSync } from 'node:fs';
 import { resolve, dirname, basename, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -139,6 +139,71 @@ for (const row of rows) {
 for (const v of VIDEOS) await video(v);
 await hero();
 copySvgs();
+
+// ---- R19: project pages (public/media/<slug>/) ----------------------------------------------------------------------------------
+// One entry per file a project page uses. Images: WebP at 800 / 1600 / 2560 wide (never above the source). Loops: WebM + MP4 + poster.
+// `src` is relative to ../_site-media; files that the home page also uses (archive/ captions/ hero/) are read from there, not copied twice.
+const PROJECT_MEDIA = {
+  bitis09: {
+    images: {
+      hero: 'bitis09/img-hero.png', 'insight-a': 'bitis09/img-insight-a.jpg', soobin: 'archive/card-img-24.jpg', 'gallery-1': 'bitis09/img-gallery-1.jpg',
+      billboard: 'hero/s3_middle.jpg', 'tagline-side': 'captions/caption-2.jpg', 'wrapup-a': 'bitis09/img-wrapup-a.png', 'look-a': 'archive/card-img-18.jpg',
+      'look-b': 'archive/card-img-17.png', tet: 'archive/card-img-20.jpg', 'promo-a': 'bitis09/img-promo-a.png', 'promo-b': 'bitis09/img-promo-b.png',
+      sketch: 'bitis09/img-sketch.png', finale: 'archive/card-img-02.jpg',
+    },
+    loops: {
+      tagline: { src: 'bitis09/img-tagline.gif', maxW: 1920 }, campaign: { src: 'bitis09/vid-live-1-campaign.mp4', maxW: 1440 },
+      'timecross-a': { src: 'bitis09/vid-live-2-timecross-a.mp4', maxW: 1280 }, 'timecross-b': { src: 'bitis09/vid-live-3-timecross-b.mp4', maxW: 1280 },
+      wrapup: { src: 'bitis09/vid-live-4-wrapup.mp4', maxW: 1600 }, concept: { src: 'bitis09/vid-live-5-concept.mp4', maxW: 1000 },
+    },
+  },
+};
+
+async function projectImage(slug, name, rel) {
+  const key = `${slug}/${name}`;
+  const file = resolve(SRC, rel);
+  const s = sig(file);
+  if (fresh(key, s)) { manifest[key] = old[key]; return; }
+  const meta = await sharp(file, { limitInputPixels: false }).metadata();
+  mkdirSync(resolve(OUT, slug), { recursive: true });
+  const widths = [...new Set([800, 1600, 2560].map((w) => Math.min(w, meta.width)))];
+  const files = [];
+  for (const w of widths) {
+    const out = `${slug}/${name}-${w}.webp`;
+    const info = await sharp(file, { limitInputPixels: false }).resize({ width: w, withoutEnlargement: true }).webp({ quality: 80, alphaQuality: 90, effort: 5 }).toFile(resolve(OUT, out));
+    files.push({ file: out, width: info.width, height: info.height, bytes: info.size });
+  }
+  manifest[key] = { type: 'image', source: { width: meta.width, height: meta.height }, alpha: !!meta.hasAlpha, sig: s, files };
+  console.log('image', key, `${meta.width}x${meta.height}`, '->', files.map((f) => `${f.width}w ${(f.bytes / 1024).toFixed(0)}KB`).join(', '));
+}
+
+async function projectLoop(slug, name, v) {
+  const key = `${slug}/${name}`;
+  const file = resolve(SRC, v.src);
+  const s = sig(file);
+  if (fresh(key, s)) { manifest[key] = old[key]; return; }
+  mkdirSync(resolve(OUT, slug), { recursive: true });
+  const probe = spawnSync(ffmpegPath, ['-hide_banner', '-i', file], { encoding: 'utf8' }).stderr.match(/, (\d{2,5})x(\d{2,5})[ ,]/);
+  const sw = +probe[1], sh = +probe[2];
+  const w = Math.min(v.maxW, sw) & ~1;
+  const h = Math.round((w * sh) / sw / 2) * 2;
+  const scale = `scale=${w}:${h}:flags=lanczos,format=yuv420p`;
+  const webm = `${slug}/${name}.webm`, mp4 = `${slug}/${name}.mp4`, poster = `${slug}/${name}-poster.webp`;
+  ff('-i', file, '-vf', scale, '-c:v', 'libvpx-vp9', '-crf', '34', '-b:v', '0', '-an', resolve(OUT, webm));
+  ff('-i', file, '-vf', scale, '-c:v', 'libx264', '-crf', '27', '-preset', 'slow', '-movflags', '+faststart', '-an', resolve(OUT, mp4));
+  const png = resolve(OUT, `${slug}/${name}-poster.png`);
+  ff('-i', file, '-frames:v', '1', '-vf', `scale=${Math.min(w, 1280)}:-2`, png);
+  await sharp(png).webp({ quality: 78 }).toFile(resolve(OUT, poster));
+  unlinkSync(png);
+  const files = [webm, mp4, poster].map((f) => ({ file: f, bytes: statSync(resolve(OUT, f)).size }));
+  manifest[key] = { type: 'video', width: w, height: h, alpha: false, webm, mp4, poster, sig: s, files };
+  console.log('loop', key, `${w}x${h}`, files.map((f) => `${basename(f.file)} ${(f.bytes / 1024).toFixed(0)}KB`).join(', '));
+}
+
+for (const [slug, m] of Object.entries(PROJECT_MEDIA)) {
+  for (const [name, rel] of Object.entries(m.images)) await projectImage(slug, name, rel);
+  for (const [name, v] of Object.entries(m.loops)) await projectLoop(slug, name, v);
+}
 
 // Live URL -> local key, so data.json can keep naming live URLs while the site serves local files.
 const byLive = {};
