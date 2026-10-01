@@ -1,10 +1,10 @@
-import { CARDS, TRAIL, LAYOUT, BEND, CARD_HOVER, CAPTION_HOVER } from '../timeline.js';
+import { CARDS, TRAIL, LAYOUT, BEND, WARP, CARD_HOVER, CAPTION_HOVER } from '../timeline.js';
 
 // Dev-only tuning panel (Selected Work cards, card layout, hero trail). Opens with ?tune in the URL; main.js imports this
 // file only when import.meta.env.DEV is true, so it is never part of the production build. Sliders write straight into the
 // CARDS / LAYOUT / TRAIL objects from timeline.js (the effects read them every frame), so changes show immediately.
 // "Copy values" puts the current numbers on the clipboard as JSON so they can be sent back and pasted into timeline.js.
-const DEFAULTS = { CARDS: { ...CARDS }, LAYOUT: { ...LAYOUT }, TRAIL: { ...TRAIL }, BEND: { ...BEND }, CARD_HOVER: { ...CARD_HOVER }, CAPTION_HOVER: { ...CAPTION_HOVER } };
+const DEFAULTS = { CARDS: { ...CARDS }, LAYOUT: { ...LAYOUT }, TRAIL: { ...TRAIL }, BEND: { ...BEND }, WARP: { ...WARP }, CARD_HOVER: { ...CARD_HOVER }, CAPTION_HOVER: { ...CAPTION_HOVER } };
 
 // [key, label, min, max, step, hint]
 const CARD_SLIDERS = [
@@ -57,7 +57,16 @@ const CAPTION_SLIDERS = [
   ['lineOutSec', 'Caption strike-through: retract (s)', 0, 1, 0.01, 'R17b. Live: 0 (it vanishes at once). The nav links retract in about 0.2 s.'],
   ['textOutSec', 'Caption title: colour fade back (s)', 0.05, 1.2, 0.01, 'R17. How long the orange takes to fade back (live: about 0.35 s; it turns orange at once).'],
 ];
+const WARP_SLIDERS = [
+  ['strength', 'Warp strength', 0, 2, 0.01, 'R16b. One distortion over ALL the cards, driven by scroll speed. 0 = off (cards stay flat).'],
+  ['reach', 'Warp reach (share of screen)', 0.1, 1, 0.01, 'How far in from the top / bottom edge the warp fades in (1 = from the middle).'],
+  ['pinch', 'Pinch (sides pulled in)', 0, 0.7, 0.01, 'How much narrower the content gets at the screen edge at full speed (the hourglass).'],
+  ['arc', 'Arc (lines bow)', 0, 0.4, 0.005, 'How far horizontal lines bow, as a share of the screen height, against the scroll direction.'],
+  ['persp', 'Perspective (curl away)', 0, 1, 0.01, 'How much the content crowds toward the edge, like a sheet curling away.'],
+  ['sym', 'Top / bottom symmetry', 0, 1, 0.01, '1 = both edges warp alike; 0 = only the trailing edge (bottom when scrolling down).'],
+];
 const BEND_SLIDERS = [
+  ['cardBend', 'Per-card bend (share kept)', 0, 1, 0.01, 'R16b. 0 = cards stay flat (default); 1 = the R16 per-card arcs on top of the screen warp.'],
   ['arcShape', 'Arc shape', 0.6, 3, 0.05, 'R17. 1 = round arc like the Codrops reference (the edge keeps curving into the corners); higher = flatter near the corners (bell).'],
   ['maxArc', 'Max arc depth (px at 1920)', 0, 200, 1, 'R16. Deepest bow of the top and bottom edges at full scroll speed (also capped at 30% of the card height). 0 = no bend.'],
   ['sensitivity', 'Speed sensitivity', 0.2, 4, 0.05, 'How fast the bend builds with scroll speed. Higher = a gentle scroll already bends the cards.'],
@@ -126,6 +135,9 @@ export function mountTunePanel({ trail, cards } = {}) {
   heading('Cards: hover (R17)');
   addSliders(CARD_HOVER, HOVER_SLIDERS);
 
+  heading('Cards: screen-space warp (R16b)', '<div style="opacity:.7;margin:2px 0 8px">Speed, spring and overshoot come from the bend settings below.</div>');
+  addSliders(WARP, WARP_SLIDERS);
+
   heading('Cards: WebGL bend + grain (R16)', '<div style="opacity:.7;margin:2px 0 8px">Only with the WebGL cards on (?gl=1 forces them).</div>');
   addSliders(BEND, BEND_SLIDERS, () => cards?.gl()?.reweigh());
 
@@ -161,12 +173,13 @@ export function mountTunePanel({ trail, cards } = {}) {
       Object.assign(LAYOUT, DEFAULTS.LAYOUT);
       Object.assign(TRAIL, DEFAULTS.TRAIL);
       Object.assign(BEND, DEFAULTS.BEND);
+      Object.assign(WARP, DEFAULTS.WARP);
       Object.assign(CARD_HOVER, DEFAULTS.CARD_HOVER);
       Object.assign(CAPTION_HOVER, DEFAULTS.CAPTION_HOVER);
       syncReadouts(); showSeed(); cards?.relayout(); cards?.gl()?.reweigh(); trail?.remeasure(); showPts();
       msg.textContent = 'Reset to the defaults in timeline.js';
     } else if (act === 'copy') {
-      const text = JSON.stringify({ CARDS, LAYOUT, CARD_HOVER: Object.fromEntries(HOVER_SLIDERS.map(([k]) => [k, CARD_HOVER[k]])), CAPTION_HOVER: Object.fromEntries(CAPTION_SLIDERS.map(([k]) => [k, CAPTION_HOVER[k]])), BEND: Object.fromEntries(BEND_SLIDERS.map(([k]) => [k, BEND[k]])), TRAIL: Object.fromEntries(TRAIL_SLIDERS.map(([k]) => [k, TRAIL[k]])) }, null, 2);
+      const text = JSON.stringify({ CARDS, LAYOUT, CARD_HOVER: Object.fromEntries(HOVER_SLIDERS.map(([k]) => [k, CARD_HOVER[k]])), CAPTION_HOVER: Object.fromEntries(CAPTION_SLIDERS.map(([k]) => [k, CAPTION_HOVER[k]])), BEND: Object.fromEntries(BEND_SLIDERS.map(([k]) => [k, BEND[k]])), WARP: Object.fromEntries(WARP_SLIDERS.map(([k]) => [k, WARP[k]])), TRAIL: Object.fromEntries(TRAIL_SLIDERS.map(([k]) => [k, TRAIL[k]])) }, null, 2);
       try { await navigator.clipboard.writeText(text); msg.textContent = 'Copied. Paste it in a message to send it.'; }
       catch { msg.textContent = 'Could not copy; values are in the console.'; }
       console.log('TUNE', text);

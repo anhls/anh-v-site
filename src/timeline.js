@@ -264,6 +264,7 @@ export const MORE_PROJECTS_FIT = { gapVh: 5, gapMinPx: 28, safeTopVh: 12, minSca
 
 // R16: Selected Work WebGL cards. The 35 cards are drawn as textured planes on ONE canvas (src/effects/cards-gl.js); the top and bottom
 // edges bow into an arc while the page scrolls. maxArc = deepest bow in px at 1920 (capped at 30% of the card height) at full speed;
+// cardBend = share of the per-card bend kept (R16b: 0 = none, the screen-space WARP below does the bending; 1 = the R16 per-card arcs);
 // arcShape = 1 round arc like the Codrops reference (keeps curving into the corners), higher = flatter corners;
 // speedRef = scroll speed (px/s) that counts as "full speed" at sensitivity 1 (shaped with tanh, so it eases in and saturates);
 // returnSpeed = spring speed (rad/s) of the return to flat; overshoot = share of the arc the edge passes beyond flat on the way back
@@ -271,8 +272,16 @@ export const MORE_PROJECTS_FIT = { gapVh: 5, gapMinPx: 28, safeTopVh: 12, minSca
 // width of the strong middle band (0..1 of the depth range); grain = film grain amplitude (0 = off), grainSpeed = how much scroll
 // speed adds to it; grainRate = grain frames per second. dprCap = canvas pixel ratio cap, dprCapLarge above 2560 px wide.
 export const BEND = {
-  arcShape: 1, maxArc: 14, speedRef: 1750, sensitivity: 1.5, returnSpeed: 10, overshoot: 0.07,
+  arcShape: 1, cardBend: 0, maxArc: 14, speedRef: 1750, sensitivity: 1.5, returnSpeed: 10, overshoot: 0.07,
   depthExtreme: 0.19, depthBand: 0.6,
   grain: 0.044, grainSpeed: 0.6, grainRate: 12,
   dprCap: 2, dprCapLarge: 1.5, weakCores: 4, weakMemoryGb: 4, textureBudgetMb: 256,
 };
+
+// R16b: one screen-space warp over all the cards (cards-gl.js POST shader), driven by the same scroll-speed spring as BEND
+// (sensitivity, speedRef, returnSpeed, overshoot). strength scales it (0 = off); reach = share of the screen height, from each edge,
+// over which it fades in (0.45 = the outer 45% of the half height); pinch = how far the sides are pulled toward the centre line at the
+// edge at full speed (0.35 = content looks 35% narrower there); arc = how far horizontal lines bow, as a share of the screen height;
+// persp = how much the lines crowd toward the edge (the sheet curling away); sym = weight of the leading side (1 = top and bottom alike,
+// 0 = only the trailing side).
+export const WARP = { strength: 1, reach: 0.45, pinch: 0.35, arc: 0.1, persp: 0.3, sym: 1 };
