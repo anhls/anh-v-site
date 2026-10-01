@@ -18,8 +18,14 @@ export function buildMoreProjects(root, data) {
 
   const entries = data.items.map((p) => ({ name: p.name, href: `/work/${p.slug}.html` }));
   const cursorHtml = pointerEnabled
-    ? `<div class="more-projects__cursor" aria-hidden="true"><div class="more-projects__strip">${data.items.map((p) => `<img ${imgAttrs(p.image, '21vw')} alt="" loading="lazy" />`).join('')}</div></div>`
+    ? `<div class="more-projects__cursor" aria-hidden="true"><div class="more-projects__strip">${data.items.map((p) => `<img ${imgAttrs(p.image, '21vw')} alt="" decoding="async" />`).join('')}</div></div>`
     : '';
+  // R16c: the strip's images are decoded a few seconds after load, one at a time, instead of when the section scrolls into view:
+  // decoding them on arrival cost one ~35 ms frame at ~565vh (traced: the main thread waits for the raster / commit of those big images).
+  const warmStrip = () => {
+    const imgs = [...sticky.querySelectorAll('.more-projects__strip img')];
+    imgs.forEach((im, k) => setTimeout(() => { (im.decode ? im.decode() : Promise.resolve()).catch(() => {}); }, 3000 + k * 400));
+  };
   sticky.innerHTML = `
     <span class="more-projects__label">${data.label}</span>
     <a class="more-projects__more footer__top" href="${data.more.href}"><span class="footer__text">${data.more.name}</span><span class="footer__line"></span></a>
@@ -136,4 +142,5 @@ export function buildMoreProjects(root, data) {
     },
     onRefresh: measure,
   });
+  warmStrip();
 }

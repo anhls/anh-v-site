@@ -1,10 +1,10 @@
-import { CARDS, TRAIL, LAYOUT, BEND, WARP, CARD_HOVER, CAPTION_HOVER } from '../timeline.js';
+import { CARDS, TRAIL, LAYOUT, BEND, WARP, FRAME_WARP, CARD_HOVER, CAPTION_HOVER } from '../timeline.js';
 
 // Dev-only tuning panel (Selected Work cards, card layout, hero trail). Opens with ?tune in the URL; main.js imports this
 // file only when import.meta.env.DEV is true, so it is never part of the production build. Sliders write straight into the
 // CARDS / LAYOUT / TRAIL objects from timeline.js (the effects read them every frame), so changes show immediately.
 // "Copy values" puts the current numbers on the clipboard as JSON so they can be sent back and pasted into timeline.js.
-const DEFAULTS = { CARDS: { ...CARDS }, LAYOUT: { ...LAYOUT }, TRAIL: { ...TRAIL }, BEND: { ...BEND }, WARP: { ...WARP }, CARD_HOVER: { ...CARD_HOVER }, CAPTION_HOVER: { ...CAPTION_HOVER } };
+const DEFAULTS = { CARDS: { ...CARDS }, LAYOUT: { ...LAYOUT }, TRAIL: { ...TRAIL }, BEND: { ...BEND }, WARP: { ...WARP }, FRAME_WARP: { ...FRAME_WARP }, CARD_HOVER: { ...CARD_HOVER }, CAPTION_HOVER: { ...CAPTION_HOVER } };
 
 // [key, label, min, max, step, hint]
 const CARD_SLIDERS = [
@@ -66,6 +66,19 @@ const WARP_SLIDERS = [
   ['persp', 'Perspective (curl away)', 0, 1, 0.01, 'How much the content crowds toward the edge, like a sheet curling away.'],
   ['sym', 'Top / bottom symmetry', 0, 1, 0.01, '1 = both edges warp alike; 0 = only the trailing edge (bottom when scrolling down).'],
 ];
+const FRAME_SLIDERS = [
+  ['on', 'Frame warp on (1) / off (0)', 0, 1, 1, 'R16c. Off = the frame never leaves the DOM (no warp).'],
+  ['strengthUp', 'Strength, scrolling up', 0, 2, 0.01, 'The centre frame bulges toward the edge while scrolling up.'],
+  ['strengthDown', 'Strength, scrolling down', 0, 2, 0.01, 'The centre frame recedes while scrolling down.'],
+  ['reach', 'Reach (share of screen)', 0.1, 1, 0.01, 'How far in from the top / bottom edge the warp fades in.'],
+  ['pinch', 'Pinch (sides pulled in)', 0, 0.7, 0.01, 'Narrowing toward the edge.'],
+  ['arc', 'Arc (lines bow)', 0, 0.4, 0.005, 'Bow of the horizontal lines, as a share of the screen height.'],
+  ['persp', 'Perspective (curl away)', 0, 1, 0.01, 'How much the content crowds toward the edge.'],
+  ['sym', 'Top / bottom symmetry', 0, 1, 0.01, '0 = only the trailing edge warps; 1 = both.'],
+  ['threshold', 'Hand-over speed (px/s)', 50, 2000, 10, 'The canvas takes the frame over once the scroll is faster than this, and hands it back when the page is still and the warp is flat.'],
+  ['videoMode', 'Video while warping: poster (0) / frozen frame (1)', 0, 1, 1, '0 = crossfade to the video poster; 1 = keep the current video frame, frozen.'],
+  ['fadeSec', 'Poster crossfade (s)', 0.02, 0.6, 0.01, 'Video frame to poster (and back).'],
+];
 const BEND_SLIDERS = [
   ['cardBend', 'Per-card bend (share kept)', 0, 1, 0.01, 'R16b. 0 = cards stay flat (default); 1 = the R16 per-card arcs on top of the screen warp.'],
   ['arcShape', 'Arc shape', 0.6, 3, 0.05, 'R17. 1 = round arc like the Codrops reference (the edge keeps curving into the corners); higher = flatter near the corners (bell).'],
@@ -110,7 +123,7 @@ export function mountTunePanel({ trail, cards } = {}) {
   // darkScale, lineOutSec. To bring one back, add its id ('GROUP.key') to a section list below.
   const DEFS = {};
   const reg = (group, obj, defs) => defs.forEach((d) => { DEFS[`${group}.${d[0]}`] = [obj, d]; });
-  reg('WARP', WARP, WARP_SLIDERS); reg('BEND', BEND, BEND_SLIDERS); reg('CARDS', CARDS, CARD_SLIDERS); reg('HOVER', CARD_HOVER, HOVER_SLIDERS);
+  reg('WARP', WARP, WARP_SLIDERS); reg('FRAME', FRAME_WARP, FRAME_SLIDERS); reg('BEND', BEND, BEND_SLIDERS); reg('CARDS', CARDS, CARD_SLIDERS); reg('HOVER', CARD_HOVER, HOVER_SLIDERS);
   reg('CAPTION', CAPTION_HOVER, CAPTION_SLIDERS); reg('LAYOUT', LAYOUT, LAYOUT_SLIDERS); reg('TRAIL', TRAIL, TRAIL_SLIDERS);
 
   const section = (title, ids, { open = false, note = '', onInput, extra } = {}) => {
@@ -139,6 +152,7 @@ export function mountTunePanel({ trail, cards } = {}) {
   const syncReadouts = () => readouts.forEach((r) => { r.input.value = r.obj[r.key]; r.v.textContent = r.obj[r.key]; });
 
   section('Warp (scroll)', ['WARP.strengthUp', 'WARP.strengthDown', 'WARP.reach', 'WARP.pinch', 'WARP.arc', 'WARP.persp', 'WARP.sym', 'BEND.sensitivity', 'BEND.returnSpeed', 'BEND.overshoot'], { open: true, note: 'One distortion over all the cards. The last three (speed sensitivity, return speed, overshoot) are shared by both directions.' });
+  section('Frame warp (centre image, R16c)', ['FRAME.on', 'FRAME.strengthUp', 'FRAME.strengthDown', 'FRAME.reach', 'FRAME.pinch', 'FRAME.arc', 'FRAME.persp', 'FRAME.sym', 'FRAME.threshold', 'FRAME.videoMode', 'FRAME.fadeSec'], { note: 'Own settings; the speed spring (sensitivity, return, overshoot) is shared with the cards.' });
   section('Grain', ['BEND.grain', 'BEND.grainSpeed']);
   section('Aura (around the frame)', ['CARDS.auraWeight', 'CARDS.auraMargin', 'CARDS.auraStrength', 'CARDS.auraVertical', 'CARDS.auraFalloff', 'CARDS.auraMinGap', 'CARDS.partingSoftness', 'CARDS.partingBounce']);
   section('Mouse (push + drift)', ['CARDS.pushRadius', 'CARDS.pushStrength', 'CARDS.pushFalloff', 'CARDS.pushStiffness', 'CARDS.pushDamping', 'CARDS.mouseStrength']);
@@ -174,12 +188,13 @@ export function mountTunePanel({ trail, cards } = {}) {
       Object.assign(TRAIL, DEFAULTS.TRAIL);
       Object.assign(BEND, DEFAULTS.BEND);
       Object.assign(WARP, DEFAULTS.WARP);
+      Object.assign(FRAME_WARP, DEFAULTS.FRAME_WARP);
       Object.assign(CARD_HOVER, DEFAULTS.CARD_HOVER);
       Object.assign(CAPTION_HOVER, DEFAULTS.CAPTION_HOVER);
       syncReadouts(); showSeed(); cards?.relayout(); cards?.gl()?.reweigh(); trail?.remeasure(); showPts();
       msg.textContent = 'Reset to the defaults in timeline.js';
     } else if (act === 'copy') {
-      const text = JSON.stringify({ CARDS, LAYOUT, CARD_HOVER, CAPTION_HOVER, BEND, WARP, TRAIL }, null, 2); // every value, including the ones without a slider
+      const text = JSON.stringify({ CARDS, LAYOUT, CARD_HOVER, CAPTION_HOVER, BEND, WARP, FRAME_WARP, TRAIL }, null, 2); // every value, including the ones without a slider
       try { await navigator.clipboard.writeText(text); msg.textContent = 'Copied. Paste it in a message to send it.'; }
       catch { msg.textContent = 'Could not copy; values are in the console.'; }
       console.log('TUNE', text);

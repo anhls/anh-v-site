@@ -16,7 +16,8 @@ import { initClickSound } from './effects/clicksound.js';
 import { buildSpawner } from './effects/spawner.js';
 import { buildCaptionHover } from './effects/caption-hover.js';
 import { buildTrail } from './effects/trail.js';
-import { SCROLL, CARDS } from './timeline.js';
+import { createFrameGL } from './effects/frame-gl.js';
+import { SCROLL, CARDS, FRAME_WARP } from './timeline.js';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -29,6 +30,7 @@ gsap.ticker.lagSmoothing(0);
 // Sections are added here one by one.
 const app = document.getElementById('app');
 const hero = buildHero(app, data.hero);
+const frameGL = createFrameGL(hero.frame); // R16c: the centre frame's own canvas (null = DOM frame only)
 buildAbout(app, data.about);
 buildPlaceholders(app);
 buildIndex(app, data.projects);
@@ -39,7 +41,7 @@ initNav(data.hero.wordmark, lenis);
 buildSpawner(app, data.spawnerImages);
 buildCaptionHover(app, data.hero.captions);
 const trail = buildTrail(app, data.trailImages);
-if (import.meta.env.DEV) { window.__trail = trail; window.__cards = cardsApi; window.__CARDS = CARDS; } // dev only: the tuning panel and tools/scratch checks
+if (import.meta.env.DEV) { window.__frame = frameGL; window.__FW = FRAME_WARP; window.__heroState = hero.frame; window.__trail = trail; window.__cards = cardsApi; window.__CARDS = CARDS; } // dev only: the tuning panel and tools/scratch checks
 initClickSound(data.hero.clickSound);
 
 // Loader first: hold scrolling until what is visible on the first screen is ready.
@@ -50,6 +52,7 @@ lenis.stop();
 const firstScreen = [data.hero.wordmark, data.hero.ticker];
 runLoader(data.loader.text, firstScreen, hero.loadDeferred).then(() => {
   lenis.start();
+  frameGL?.preload();
   ScrollTrigger.refresh();
   window.__siteReady = true; // tools/compare.mjs waits for this instead of a fixed delay
 });

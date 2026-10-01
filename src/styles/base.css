@@ -472,3 +472,7 @@ html.lenis, html.lenis body { height: auto; }
   will-change: transform, opacity;
 }
 .sw--gl .sw__dark { display: none; }
+
+/* R16c: the centre frame's own canvas, inside the hero's sticky pin (same layer as the DOM frame); frame-gl.js shows it only while the
+   page scrolls and hides the DOM frame meanwhile. */
+.hero__gl { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; visibility: hidden; }

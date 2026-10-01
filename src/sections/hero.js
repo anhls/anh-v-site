@@ -16,6 +16,13 @@ import { imgAttrs } from '../util/media.js';
 // style), fo, fi = the two float offsets in px (spring values). The frame is centred on the screen horizontally and sits at
 // innerHeight / 2 + fo + fi vertically.
 export const frameState = { w: 0, h: 0, fo: 0, fi: 0 };
+// R16c: everything the frame canvas (effects/frame-gl.js) needs to redraw the frame without reading the DOM: the transforms of the
+// strip layers (y px, scale), the two image peels, the overlay opacity, the video / ticker opacity and the ticker track offset.
+// Spring-driven values are written by their `apply`; the scrubbed (direct) ones are read from gsap's own cache by readFrameLayers().
+export const frameLayers = {
+  s1: { y: 0, scale: 1 }, s2: { y: 0, scale: 1 }, s3: { y: 0, scale: 1 },
+  g1y: 0, g2y: 0, ov: 0, video: 1, ticker: { opacity: 1, y: 0 }, trackPct: 0,
+};
 const unitPx = (s, full, vw, vh) => { const v = parseFloat(s); return s.endsWith('vw') ? (v * vw) / 100 : s.endsWith('vh') ? (v * vh) / 100 : s.endsWith('%') ? (v * full) / 100 : v; };
 
 export function buildHero(root, hero) {
@@ -88,6 +95,17 @@ export function buildHero(root, hero) {
     else timeline.to(target, vars, pos);
   };
 
+  // R16c: copy the scrubbed layers' current values (gsap keeps them in el._gsap; opacity is an inline style string: no layout read).
+  const readFrameLayers = () => {
+    const g1 = el.s1._gsap; const g2 = el.s2._gsap; const gt = el.ticker._gsap; const gk = track._gsap;
+    if (g1) { frameLayers.s1.y = parseFloat(g1.y) || 0; frameLayers.s1.scale = parseFloat(g1.scaleX) || 1; }
+    if (g2) { frameLayers.s2.y = parseFloat(g2.y) || 0; frameLayers.s2.scale = parseFloat(g2.scaleX) || 1; }
+    frameLayers.video = el.video.style.opacity === '' ? 1 : +el.video.style.opacity;
+    frameLayers.ticker.opacity = el.ticker.style.opacity === '' ? 1 : +el.ticker.style.opacity;
+    frameLayers.ticker.y = gt ? parseFloat(gt.y) || 0 : 0;
+    frameLayers.trackPct = gk ? parseFloat(gk.xPercent) || 0 : 0;
+  };
+
   // Direct layers.
   HERO.mask.forEach((t) => add(tl, el.wrapper, t));
   const readMask = () => { // inline style strings only (no layout read)
@@ -144,6 +162,9 @@ export function buildHero(root, hero) {
         node.style.transform = `translate3d(0, ${v.y ?? 0}px, 0)${v.scale === undefined ? '' : ` scale(${v.scale})`}`;
         if (name === 'floatOuter') frameState.fo = v.y ?? 0;
         else if (name === 'floatInner') frameState.fi = v.y ?? 0;
+        else if (name === 's3') { frameLayers.s3.y = v.y ?? 0; frameLayers.s3.scale = v.scale ?? 1; }
+        else if (name === 'gallery2') frameLayers.g2y = v.y ?? 0;
+        else if (name === 'gallery1') frameLayers.g1y = v.y ?? 0;
       },
     });
   });
@@ -161,10 +182,12 @@ export function buildHero(root, hero) {
     ease: 'none',
     scrollTrigger: { trigger: layer, start: vhTop(HERO.overlay.at[0]), end: vhTop(HERO.overlay.at[1]), scrub: true, invalidateOnRefresh: true },
   });
-  springLayer({ target: ov, springs: { opacity: SPRING[HERO.overlay.spring] }, apply: (v) => gsap.set(overlays, { opacity: v.opacity }) });
+  springLayer({ target: ov, springs: { opacity: SPRING[HERO.overlay.spring] }, apply: (v) => { frameLayers.ov = v.opacity; gsap.set(overlays, { opacity: v.opacity }); } });
 
   // Images #2 and #3 are not visible before ~40vh of scroll, so they start loading only after the loader is ready.
   return {
+    // R16c: handles for the frame canvas
+    frame: { state: { frameState, frameLayers }, pin: q('.hero__pin'), float: el.floatOuter, video: el.video, track, readLayers: readFrameLayers, gallery: [...gallery], s2img: q('.hero__s2 img'), image: hero.image, galleryRefs: hero.gallery, posterRef: '/media/hero/poster.webp', ticker: hero.ticker },
     loadDeferred() {
       root.querySelectorAll('img[data-src]').forEach((img) => {
         if (img.dataset.srcset) { img.srcset = img.dataset.srcset; img.removeAttribute('data-srcset'); }

@@ -285,3 +285,13 @@ export const BEND = {
 // persp = how much the lines crowd toward the edge (the sheet curling away); sym = weight of the leading side (1 = top and bottom alike,
 // 0 = only the trailing side).
 export const WARP = { strengthUp: 0.7, strengthDown: 0.7, reach: 0.6, pinch: 0.07, arc: 0.255, persp: 0.43, sym: 0 };
+
+// R16c: the centre frame (hero mask) warps while the page scrolls, on its own canvas (effects/frame-gl.js). At rest the normal DOM
+// frame shows; when the scroll speed passes `threshold` (px/s) the canvas takes over at the same pixels, applies the same kind of warp
+// as the cards (scroll down recedes, up inflates; the spring, sensitivity and overshoot come from BEND) and hands back once it has
+// sprung flat. on = 0 turns it off; videoMode 0 = show the video's poster while warping (crossfade `fadeSec`), 1 = the frozen current
+// frame. The DOM video is paused while the canvas shows the frame and resumes when it hands back.
+export const FRAME_WARP = {
+  on: 1, strengthUp: 0.7, strengthDown: 0.7, reach: 0.6, pinch: 0.07, arc: 0.255, persp: 0.43, sym: 0,
+  threshold: 300, fadeSec: 0.15, videoMode: 0, lodBias: 0, softScaled: 1,
+};
