@@ -68,6 +68,12 @@ After R16b: R16c (frame warp on its own canvas, poster while scrolling): docs/pl
 
 ## R16d [done, quick mode] (archived in docs/archive/requests-R16d.md; stress tests deferred to the perf pass below)
 
+## R16e (next, quick mode): cards use the FRAME's own-space curl, not the screen-space warp (use Sonnet 5.5)
+Anh after R16d: the centre frame's own-space warp looks right ("ok for now"); the cards' screen-space warp still does not. Seen in Anh's screenshot (2560x1440, scrolling down, ?warptest): bottom cards shear toward the screen centre and their grid rows stay the same height or STRETCH toward the bottom, so the field reads as being pulled/stretched, not curling away. The reference's look is per image: each image curls at its OWN edges (the bend happens where two stacked images meet, mid-screen), which is exactly what the frame now does.
+1. Give every card the same own-space warp as the frame (shared code / shader from R16d item 5): relative to each card's own rectangle, trailing edge bows away + sides converge + rows compress toward that edge (scroll down), scroll up as for the frame; same spring, driven by scroll speed. Scale per card by size (like the frame) and by depth (existing depth spread). It replaces the screen-space pass for the cards (keep the screen-space pass only for grain, or move grain per card: whichever is cheaper; report).
+2. ?tune: Card warp section mirrors the Frame warp section (strength up/down, reach, curl, pinch), plus "follow frame settings" toggle (default on, so tuning the frame tunes the cards); old screen-space warp sliders hidden (ADVANCED list).
+3. QUICK MODE checks only: real-wheel ?warptest at 2560x1440 down + up, screenshots to tools/scratch/r16e-shots/; grid numbers per card at max warp (rows shrink toward the trailing edge, local scale <= 1 scrolling down); normal-speed frame time at 2560; compare 542/542 at 1920 + 2560. Stress tests stay in the deferred perf pass.
+
 ## Queued (plans agreed with Anh, in this order; each becomes a request after the one before is committed)
 0. Perf pass (deferred stress tests from R16d): 4x CPU runs, 6-screen frame-time matrix incl. 120 Hz, fallback re-runs, hand-off diffs for the frame canvas. Run once the warp looks right to Anh.
 2. Project pages (Bitis template first), Works page, tablet/phone, launch prep, then back-to-top "rewind" polish.
