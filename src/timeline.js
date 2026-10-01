@@ -177,6 +177,11 @@ export const CARDS = {
   auraClearance: 1,
   auraMinGap: 50,
   auraWeight: 1,
+  // R13g: card-to-card separation on the targets. sepMaxCover = share of the SMALLER card that may be hidden by another (0.2 = 20%);
+  // sepStrength scales the push-apart (0 = off); sepPasses = relaxation passes per frame.
+  sepMaxCover: 0.2,
+  sepStrength: 1,
+  sepPasses: 3,
   partingSoftness: 0.8,
   partingBounce: 0.1,
   mouseStrength: 0.5,

@@ -108,6 +108,12 @@ export function buildSelectedWork(root, cards) {
   };
 
   const aura = { X: 0, Y: 0 };
+  const amx = new Float64Array(n); // per-frame drift / lag (kept between the two passes of the loop)
+  const amy = new Float64Array(n);
+  const alag = new Float64Array(n);
+  const ex = new Float64Array(n); // estimated centre (screen px) at the targets, for the card-to-card separation
+  const ey = new Float64Array(n);
+  const sepOn = new Uint8Array(n);
   const tick = (_time, deltaMs) => {
     const dt = Math.min(deltaMs, 50) / 1000;
     const sy = window.scrollY;
@@ -217,6 +223,83 @@ export function buildSelectedWork(root, cards) {
         tpx[i] = aura.X;
         tpy[i] = aura.Y;
       } else { tpx[i] = 0; tpy[i] = 0; }
+      amx[i] = mx; amy[i] = my; alag[i] = lag;
+    }
+
+    // Card-to-card separation (R13g), on the TARGETS: where the aura / push / drift leave two cards covering more than
+    // sepMaxCover of the smaller one, move both apart along the axis that needs the least travel (front card a bit more).
+    // Springs still do the travelling, so nothing snaps. The frame wins: a card is never moved into its keep-clear zone.
+    // Only cards on (or near) the screen take part, so cards entering from below are already separated while still off screen.
+    if (!far && CARDS.sepStrength > 0 && CARDS.sepMaxCover < 1) {
+      const margin = H * 0.6;
+      for (let i = 0; i < n; i++) {
+        ex[i] = bx[i] + amx[i] + qx[i] + tpx[i];
+        ey[i] = by[i] - sy + alag[i] + amy[i] + qy[i] + tpy[i];
+        sepOn[i] = ey[i] + bh[i] / 2 > -margin && ey[i] - bh[i] / 2 < H + margin ? 1 : 0;
+      }
+      const passes = Math.max(1, Math.round(CARDS.sepPasses));
+      const maxCover = CARDS.sepMaxCover * 0.75; // aim a little under the limit: the blended axes and the frame clamp leave a few % over
+      for (let pass = 0; pass < passes; pass++) {
+        for (let i = 0; i < n; i++) {
+          if (!sepOn[i]) continue;
+          for (let j = i + 1; j < n; j++) {
+            if (!sepOn[j]) continue;
+            const dx = ex[j] - ex[i];
+            const dy = ey[j] - ey[i];
+            const ox = (bw[i] + bw[j]) / 2 - Math.abs(dx);
+            const oy = (bh[i] + bh[j]) / 2 - Math.abs(dy);
+            if (ox <= 0 || oy <= 0) continue;
+            const small = Math.min(bw[i] * bh[i], bw[j] * bh[j]);
+            if ((ox * oy) / small <= maxCover) continue;
+            // travel needed along x (to bring the overlap area down to maxCover) or along y; x costs more near the screen edge,
+            // where a card would be shoved off screen (smooth weight), so a narrow gutter separates vertically instead
+            const needX = ox - (maxCover * small) / oy;
+            const needY = oy - (maxCover * small) / ox;
+            const outer = Math.abs(ex[i]) > Math.abs(ex[j]) ? i : j;
+            const over = Math.max(Math.abs(ex[outer]) + bw[outer] / 2 - W / 2, 0) / (0.25 * W); // how far the outer card already bleeds off
+            const costX = needX * (1 + 2 * Math.min(over, 1));
+            // blend the two axes (weights from the costs, sharpened) instead of switching, so the target never jumps when the
+            // cheaper axis changes
+            const kx = costX ** -4;
+            const ky = needY ** -4;
+            const wX = kx / (kx + ky);
+            const lead = Math.min(Math.max((cards[i].mouse - cards[j].mouse) / 50, -1), 1) * 0.15; // front card moves a bit more
+            const mi = 0.5 + lead; // share of the travel taken by card i
+            const sx = dx === 0 ? (pos[j].x >= pos[i].x ? 1 : -1) : Math.sign(dx);
+            const sv = dy === 0 ? 1 : Math.sign(dy);
+            const mxv = needX * wX * CARDS.sepStrength;
+            const myv = needY * (1 - wX) * CARDS.sepStrength;
+            ex[i] -= sx * mxv * mi; ex[j] += sx * mxv * (1 - mi);
+            ey[i] -= sv * myv * mi; ey[j] += sv * myv * (1 - mi);
+          }
+        }
+        // the frame wins: pull a card back out of the frame's keep-clear zone if separation pushed it in
+        if (fw > 0) {
+          for (let i = 0; i < n; i++) {
+            if (!sepOn[i]) continue;
+            const side = pos[i].x < 0 ? -1 : 1;
+            const minDx = bw[i] / 2 + fw / 2 + aGap;
+            const minDy = bh[i] / 2 + fh / 2 + aGap;
+            const dxs = (ex[i] - fcx) * side;
+            const dyv = ey[i] - fcy;
+            if (Math.abs(dyv) < minDy && dxs < minDx) { // inside the zone: leave by the nearer way, but never further in than the aura had it
+              const baseDxs = (bx[i] + amx[i] + qx[i] + tpx[i] - fcx) * side;
+              if (dxs < baseDxs) ex[i] += side * (Math.min(baseDxs, minDx) - dxs);
+            }
+          }
+        }
+      }
+      for (let i = 0; i < n; i++) {
+        if (!sepOn[i]) continue;
+        tpx[i] = ex[i] - bx[i] - amx[i] - qx[i];
+        tpy[i] = ey[i] - (by[i] - sy) - alag[i] - amy[i] - qy[i];
+      }
+    }
+
+    for (let i = 0; i < n; i++) {
+      const c = cards[i];
+      const w = (20 + (c.mouse - 20) * CARDS.depthRange) / wDen;
+      const mx = amx[i], my = amy[i], lag = alag[i];
       // The R13b spring settles the aura offset (it keeps running toward the last target, so nothing freezes mid-motion).
       // Every card settles with the base softness x auraWeight; the deepest ones are up to 1.25x heavier, none are faster.
       const [pk, pc] = springFromBounce(CARDS.partingSoftness * CARDS.auraWeight * (1 + 0.25 * (1 - w)), CARDS.partingBounce);

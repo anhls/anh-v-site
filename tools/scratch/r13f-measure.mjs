@@ -54,7 +54,7 @@ const run = async (cfg) => { await p.evaluate(([b, c]) => Object.assign(window._
 const metrics = (out) => {
   let sx = 0, sy = 0, n = 0, ax = 0, ay = 0, lx = 0, ly = 0, jx = 0, jy = 0;
   out.rec.forEach((r) => {
-    for (let i = 0; i < r.length; i++) { sx += (r[i].ourX - r[i].liveX) ** 2; sy += (r[i].ourY - r[i].liveY) ** 2; n++; ax = Math.max(ax, Math.abs(r[i].ourX)); lx = Math.max(lx, Math.abs(r[i].liveX)); ay = Math.max(ay, Math.abs(r[i].ourY)); ly = Math.max(ly, Math.abs(r[i].liveY)); if (i) { jx = Math.max(jx, Math.abs(r[i].ourTX - r[i - 1].ourTX)); jy = Math.max(jy, Math.abs(r[i].ourTY - r[i - 1].ourTY)); } }
+    for (let i = 0; i < r.length; i++) { sx += (r[i].ourX - r[i].liveX) ** 2; sy += (r[i].ourY - r[i].liveY) ** 2; n++; ax = Math.max(ax, Math.abs(r[i].ourX)); lx = Math.max(lx, Math.abs(r[i].liveX)); ay = Math.max(ay, Math.abs(r[i].ourY)); ly = Math.max(ly, Math.abs(r[i].liveY)); if (i && r[i].cyOur > 0 && r[i].cyOur < out.H) { jx = Math.max(jx, Math.abs(r[i].ourTX - r[i - 1].ourTX)); jy = Math.max(jy, Math.abs(r[i].ourTY - r[i - 1].ourTY)); } }
   });
   return { rmsX: Math.sqrt(sx / n), rmsY: Math.sqrt(sy / n), ampX: ax, ampLX: lx, ampY: ay, ampLY: ly, jumpX: jx, jumpY: jy };
 };
@@ -66,7 +66,7 @@ if (process.argv[4]) { // grid: JSON array of {param: value} configs
 const out = await run({});
 fs.writeFileSync(new URL('./r13f-data.json', import.meta.url), JSON.stringify(out));
 // per-class summary (front = layer value >= 75, back = <= 25)
-const stat = (k) => { const r = out.rec[k]; let jx = 0, jy = 0, jlx = 0, jly = 0; for (let i = 1; i < r.length; i++) { jx = Math.max(jx, Math.abs(r[i].ourTX - r[i - 1].ourTX)); jy = Math.max(jy, Math.abs(r[i].ourTY - r[i - 1].ourTY)); jlx = Math.max(jlx, Math.abs(r[i].liveTX - r[i - 1].liveTX)); jly = Math.max(jly, Math.abs(r[i].liveTY - r[i - 1].liveTY)); } return { mx: Math.max(...r.map((q) => Math.abs(q.ourX))), my: Math.max(...r.map((q) => Math.abs(q.ourY))), mlx: Math.max(...r.map((q) => Math.abs(q.liveX))), mly: Math.max(...r.map((q) => Math.abs(q.liveY))), jx, jy, jlx, jly }; };
+const stat = (k) => { const r = out.rec[k]; let jx = 0, jy = 0, jlx = 0, jly = 0; for (let i = 1; i < r.length; i++) { if (r[i].cyOur <= 0 || r[i].cyOur >= out.H) continue; jx = Math.max(jx, Math.abs(r[i].ourTX - r[i - 1].ourTX)); jy = Math.max(jy, Math.abs(r[i].ourTY - r[i - 1].ourTY)); jlx = Math.max(jlx, Math.abs(r[i].liveTX - r[i - 1].liveTX)); jly = Math.max(jly, Math.abs(r[i].liveTY - r[i - 1].liveTY)); } return { mx: Math.max(...r.map((q) => Math.abs(q.ourX))), my: Math.max(...r.map((q) => Math.abs(q.ourY))), mlx: Math.max(...r.map((q) => Math.abs(q.liveX))), mly: Math.max(...r.map((q) => Math.abs(q.liveY))), jx, jy, jlx, jly }; };
 for (const [label, test] of [['front', (m) => m >= 75], ['back', (m) => m <= 25]]) {
   const ks = out.sel.map((s, k) => k).filter((k) => test(out.sel[k].mouse)); const S = ks.map(stat);
   const avg = (f) => (S.reduce((a, s) => a + f(s), 0) / S.length).toFixed(0);
