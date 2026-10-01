@@ -284,4 +284,4 @@ export const BEND = {
 // edge at full speed (0.35 = content looks 35% narrower there); arc = how far horizontal lines bow, as a share of the screen height;
 // persp = how much the lines crowd toward the edge (the sheet curling away); sym = weight of the leading side (1 = top and bottom alike,
 // 0 = only the trailing side).
-export const WARP = { strength: 1, reach: 0.45, pinch: 0.35, arc: 0.1, persp: 0.3, sym: 1 };
+export const WARP = { strength: 0.7, reach: 0.6, pinch: 0.07, arc: 0.255, persp: 0.43, sym: 0 };
