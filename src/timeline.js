@@ -208,6 +208,16 @@ export const LAYOUT = { seed: 92708, scatter: 225, centreShare: 0.3, centreBand:
 // Live's constants, fixed (not tunable): parting target = t * (0.01W + 0.19W * (1 - f)) * 1.1 sideways and
 // t * (0.01H + 0.29H * (1 - f)) * 1.1 down (live eases to them at 0.2 per 60 fps frame; we use the CARDS spring); a card is armed once 10% of it has been visible.
 export const PARTING = { xMax: 0.2, xMin: 0.01, yMax: 0.3, yMin: 0.01, z: 1.1, lerp: 0.2, armed: 0.1 };
+// R17 card hover, measured on live (1920x1080, frame-by-frame, tools/scratch/r17-live2.mjs): the card under the pointer scales
+// 1 -> 1.2 on a critically damped spring (stiffness ~250, damping ~31, no overshoot, ~0.6 s). 19 of the 35 cards ("dark bg frame":
+// ids below) are covered at rest by an opaque rgb(10,10,10) layer 4 px bigger on every side that fades out (opacity = 1 - progress)
+// while it scales 1 -> 1.15 on the same progress. Added here: the hovered card stops (its pointer push fades out, drift drops to
+// `drift`) and becomes the source of the push-away for its neighbours (pushStrength px / pushRadius px at 1920, rect to rect, the
+// same falloff and depth weight as the pointer push). darkRest scales the dark layer (1 = live, 0 = no dark layers).
+export const CARD_HOVER = {
+  scale: 1.2, darkScale: 1.15, darkPad: 4, darkRest: 1, stiffness: 250, damping: 31.6, drift: 0.25, pushStrength: 95, pushRadius: 125,
+  darkIds: [2, 3, 4, 5, 6, 7, 12, 13, 15, 16, 19, 20, 21, 22, 23, 24, 31, 32, 33],
+};
 // Where the cards sit: the section starts 211.11 capped vh down the page (2280px at 1080 and above); card y is vh from there.
 export const CARD_LAYOUT = { sectionTopCappedVh: 2280 / 10.8 };
 
@@ -222,7 +232,11 @@ export const SPAWNER = {
   maxImages: 8, perspective: 1200, offsetVw: 3,
 };
 // Caption hover image: 427x249 right of the cursor (+50 px), bottom edge at the cursor, chasing it on a spring.
-export const CAPTION_HOVER = { w: 427, h: 249, offsetX: 50, spring: [500, 60, 1], fadeSec: 0.15 };
+// R17: live (measured, tools/scratch/r17-cap4.mjs): the caption TITLE turns orange rgb(240,74,14) at once on hover and fades back
+// to its resting colour in ~0.35 s; the image fades in over ~0.2 s with no scale, swaps hard between captions and disappears at once.
+// Ours (Anh's brief): the image reveals with opacity + a small scale from the cursor-side corner (revealSec, fromScale), fades out
+// (hideSec) and crossfades between captions; textOutSec = the colour fade back. revealSec / hideSec / fromScale / textOutSec on ?tune.
+export const CAPTION_HOVER = { w: 427, h: 249, offsetX: 50, spring: [500, 60, 1], revealSec: 0.35, hideSec: 0.25, fromScale: 0.94, textColor: '#f04a0e', textOutSec: 0.38 };
 // Cursor image trail. Live: a new image whenever the pointer is more than `spacing` px from the last one (frequency 25 ->
 // 200 - 24 * 199 / 49 = 102.5 px), each `size` px square, kept `visibleFor` s, then it shrinks away. Springs as live.
 // Anh's range (not live's): starts when the hero mask shrink is `startMaskShare` done (width that share of the way from
@@ -250,13 +264,14 @@ export const MORE_PROJECTS_FIT = { gapVh: 5, gapMinPx: 28, safeTopVh: 12, minSca
 
 // R16: Selected Work WebGL cards. The 35 cards are drawn as textured planes on ONE canvas (src/effects/cards-gl.js); the top and bottom
 // edges bow into an arc while the page scrolls. maxArc = deepest bow in px at 1920 (capped at 30% of the card height) at full speed;
+// arcShape = 1 round arc like the Codrops reference (keeps curving into the corners), higher = flatter corners;
 // speedRef = scroll speed (px/s) that counts as "full speed" at sensitivity 1 (shaped with tanh, so it eases in and saturates);
 // returnSpeed = spring speed (rad/s) of the return to flat; overshoot = share of the arc the edge passes beyond flat on the way back
 // (one gentle pass, 0.12 = 12%); depthExtreme = bend strength of the front and back cards as a share of the middle ones, depthBand =
 // width of the strong middle band (0..1 of the depth range); grain = film grain amplitude (0 = off), grainSpeed = how much scroll
 // speed adds to it; grainRate = grain frames per second. dprCap = canvas pixel ratio cap, dprCapLarge above 2560 px wide.
 export const BEND = {
-  maxArc: 14, speedRef: 1750, sensitivity: 1.5, returnSpeed: 10, overshoot: 0.07,
+  arcShape: 1, maxArc: 14, speedRef: 1750, sensitivity: 1.5, returnSpeed: 10, overshoot: 0.07,
   depthExtreme: 0.19, depthBand: 0.6,
   grain: 0.044, grainSpeed: 0.6, grainRate: 12,
   dprCap: 2, dprCapLarge: 1.5, weakCores: 4, weakMemoryGb: 4, textureBudgetMb: 256,

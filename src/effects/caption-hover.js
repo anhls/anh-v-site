@@ -34,11 +34,17 @@ export function buildCaptionHover(root, captions) {
     snap: true,
   });
   let shown = -1;
+  let hiddenAt = -1e9; // when the last image started to fade out (the box only snaps to the cursor once everything has faded)
   const show = (i) => {
     if (i === shown) return;
-    if (shown >= 0) imgs[shown].style.opacity = 0;
-    if (i >= 0) imgs[i].style.opacity = 1;
-    box.style.opacity = i >= 0 ? 1 : 0;
+    // durations and colours come from CAPTION_HOVER every time, so the ?tune sliders apply at once
+    box.style.setProperty('--cap-in', `${C.revealSec}s`);
+    box.style.setProperty('--cap-out', `${C.hideSec}s`);
+    box.style.setProperty('--cap-from', C.fromScale);
+    list.style.setProperty('--cap-text-out', `${C.textOutSec}s`);
+    list.style.setProperty('--cap-hot', C.textColor);
+    if (shown >= 0) { imgs[shown].classList.remove('is-on'); items[shown].classList.remove('is-hot'); hiddenAt = performance.now(); }
+    if (i >= 0) { imgs[i].classList.add('is-on'); items[i].classList.add('is-hot'); }
     shown = i;
   };
 
@@ -51,7 +57,7 @@ export function buildCaptionHover(root, captions) {
       if (hit < 0) { show(-1); return; }
       goal.x = x + C.offsetX * k;
       goal.y = y - C.h * k;
-      if (shown < 0) layer.snap(); // appears at the cursor, no flight in from the old spot
+      if (shown < 0 && performance.now() - hiddenAt > C.hideSec * 1000) layer.snap(); // appears at the cursor, no flight in from the old spot (unless the last image is still fading out)
       show(hit);
     },
   };

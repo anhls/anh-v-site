@@ -1,7 +1,7 @@
 import { imgAttrs, videoInfo } from '../util/media.js';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { CARDS, LAYOUT } from '../timeline.js';
+import { CARDS, LAYOUT, CARD_HOVER } from '../timeline.js';
 import { frameState } from './hero.js';
 import { generateLayout } from '../data/layout.js';
 import { springFromBounce } from '../effects/springs.js';
@@ -34,12 +34,15 @@ export function buildSelectedWork(root, cards) {
     .map((c, i) => {
       const style = `--x:${pos[i].x};--y:${pos[i].y};--w:${c.w};--h:${c.h};z-index:${c.z}`;
       const vid = videoInfo(c.src);
+      // R17: the dark layer of the "dark bg frame" cards (DOM fallback only; the WebGL path draws it itself), right after its card
+      const dark = pointerEnabled && CARD_HOVER.darkIds.includes(c.id) ? `<div class="sw__dark" aria-hidden="true" style="${style}"></div>` : '';
       // Animated cards: muted looping video (WebM with alpha first, MP4 as fallback), played only while near the screen.
-      if (vid) return `<video class="sw__card" muted loop playsinline preload="none" poster="${vid.poster}" draggable="false" style="${style}">${vid.webm ? `<source src="${vid.webm}" type="video/webm">` : ''}<source src="${vid.mp4}" type="video/mp4"></video>`;
-      return `<img class="sw__card" ${imgAttrs(c.src, `${(c.w / 19.2).toFixed(1)}vw`)} alt="" loading="lazy" decoding="async" draggable="false" style="${style}">`;
+      if (vid) return `<video class="sw__card" muted loop playsinline preload="none" poster="${vid.poster}" draggable="false" style="${style}">${vid.webm ? `<source src="${vid.webm}" type="video/webm">` : ''}<source src="${vid.mp4}" type="video/mp4"></video>${dark}`;
+      return `<img class="sw__card" ${imgAttrs(c.src, `${(c.w / 19.2).toFixed(1)}vw`)} alt="" loading="lazy" decoding="async" draggable="false" style="${style}">${dark}`;
     })
     .join('');
   const els = [...section.querySelectorAll('.sw__card')];
+  const darkEls = els.map((el) => (el.nextElementSibling?.classList.contains('sw__dark') ? el.nextElementSibling : null));
   const vids = els.filter((el) => el.tagName === 'VIDEO');
   if (vids.length && 'IntersectionObserver' in window) {
     const io = new IntersectionObserver((list) => list.forEach((e) => { if (e.isIntersecting) e.target.play().catch(() => {}); else e.target.pause(); }), { rootMargin: '25% 0px' });
@@ -64,6 +67,14 @@ export function buildSelectedWork(root, cards) {
   const tpx = new Float64Array(n); // aura target (R13e)
   const tpy = new Float64Array(n);
   const sm = new Float64Array(n); // lagged scroll position
+  const hp = new Float64Array(n); // R17 hover progress (0..1, critically damped spring) and its velocity
+  const hv = new Float64Array(n);
+  const fox = new Float64Array(n); // last applied offset (x, y) per card: the hit test and the hover push read these, not the DOM
+  const foy = new Float64Array(n);
+  const lastS = new Float64Array(n).fill(NaN);
+  const lastD = new Float64Array(n).fill(NaN);
+  const srcs = new Int32Array(n); // cards whose hover progress is above zero (push sources)
+  let hov = -1; // the card under the pointer (topmost), -1 = none
   const lastX = new Float64Array(n).fill(NaN);
   const lastY = new Float64Array(n).fill(NaN);
   let W = innerWidth;
@@ -96,7 +107,11 @@ export function buildSelectedWork(root, cards) {
   // R16: WebGL cards (bend + grain). null = the DOM cards stay (no WebGL, reduced motion, weak device, ?gl=0, or context lost).
   const gl = createCardsGL({ section, els, cards, bx, by, bw, bh, onLost: () => { section.classList.remove('sw--gl'); gl.destroy(); glOn = false; lastX.fill(NaN); lastY.fill(NaN); if (!ticking) { ticking = true; gsap.ticker.add(tick); } } });
   let glOn = !!gl;
-  if (gl) { section.classList.add('sw--gl'); gl.resize(W, H); gl.show(false); }
+  if (gl) {
+    section.classList.add('sw--gl'); gl.resize(W, H); gl.show(false);
+    cards.forEach((c, i) => { gl.hd[i] = pointerEnabled && gl.darkCard[i] ? CARD_HOVER.darkRest : 0; });
+  }
+  darkEls.forEach((d) => { if (d) d.style.opacity = CARD_HOVER.darkRest; });
   let prevSy = window.scrollY;
 
   const live = pointerEnabled;
@@ -112,6 +127,7 @@ export function buildSelectedWork(root, cards) {
       mouse.tx = (x - W / 2) / (W / 2);
       mouse.ty = (y - H / 2) / (H / 2);
     },
+    leave: () => { mouse.px = -1e5; mouse.py = -1e5; }, // the pointer left the window: nothing is hovered, nothing is pushed
   };
 
   const aura = { X: 0, Y: 0 };
@@ -121,6 +137,8 @@ export function buildSelectedWork(root, cards) {
   const ex = new Float64Array(n); // estimated centre (screen px) at the targets, for the card-to-card separation
   const ey = new Float64Array(n);
   const sepOn = new Uint8Array(n);
+  const sbw = new Float64Array(n); // card size used by the separation (enlarged while hovered)
+  const sbh = new Float64Array(n);
   const tick = (_time, deltaMs) => {
     const dt = Math.min(deltaMs, 50) / 1000;
     const sy = window.scrollY;
@@ -137,6 +155,44 @@ export function buildSelectedWork(root, cards) {
     const R = CARDS.pushRadius * scale;
     const pushMax = CARDS.pushStrength * scale;
     const [uk, uc] = [CARDS.pushStiffness, CARDS.pushDamping];
+
+    // R17 hover: the topmost card under the pointer (hit test on last frame's cached positions, 6 px of hysteresis for the card
+    // that is already hovered), then every card's hover progress on a critically damped spring (measured on live, CARD_HOVER).
+    let hoverMoving = false;
+    let nSrc = 0;
+    let maxP = 0;
+    if (live) {
+      let best = -1;
+      if (mouse.known && !far) {
+        let bestKey = -1;
+        for (let i = 0; i < n; i++) {
+          // the hit area is the card as drawn: enlarged by its hover progress (the card grows under the pointer, so it must not
+          // un-hover), plus 6 px of hysteresis for the card that is already hovered
+          const g = 1 + (CARD_HOVER.scale - 1) * hp[i];
+          const m = i === hov ? 6 * scale : 0;
+          if (Math.abs(mouse.px - bx[i] - fox[i]) <= (bw[i] * g) / 2 + m && Math.abs(mouse.py - (by[i] - sy + foy[i])) <= (bh[i] * g) / 2 + m) {
+            const key = cards[i].z * 1000 + i;
+            if (key > bestKey) { bestKey = key; best = i; }
+          }
+        }
+      }
+      hov = best;
+      for (let i = 0; i < n; i++) {
+        const goal = i === hov ? 1 : 0;
+        if (hp[i] === goal && hv[i] === 0) continue;
+        for (let q = 0; q < pSteps; q++) {
+          hv[i] += (CARD_HOVER.stiffness * (goal - hp[i]) - CARD_HOVER.damping * hv[i]) * ph;
+          hp[i] += hv[i] * ph;
+        }
+        if (hp[i] < 0) { hp[i] = 0; hv[i] = 0; } else if (hp[i] > 1) { hp[i] = 1; hv[i] = 0; }
+        if (Math.abs(goal - hp[i]) < 0.0005 && Math.abs(hv[i]) < 0.002) { hp[i] = goal; hv[i] = 0; } else hoverMoving = true;
+        if (hp[i] > 0.002) hp[i] > maxP && (maxP = hp[i]);
+      }
+      for (let i = 0; i < n; i++) if (hp[i] > 0.002) srcs[nSrc++] = i;
+    }
+    const pw = 1 - maxP; // the pointer's own push gives way to the hovered card's push
+    const hsPush = CARD_HOVER.pushStrength * scale;
+    const hRad = CARD_HOVER.pushRadius * scale;
 
     // Mouse spring, sub-stepped so a stiff setting stays stable.
     if (live) {
@@ -190,8 +246,9 @@ export function buildSelectedWork(root, cards) {
       let my = 0;
       if (live) {
         const d = (20 + (c.mouse - 20) * CARDS.depthRange) * CARDS.mouseStrength * scale;
-        mx = -mouse.x * d;
-        my = -mouse.y * d;
+        const keep = 1 - hp[i] * (1 - CARD_HOVER.drift); // the hovered card keeps only a little of the drift
+        mx = -mouse.x * d * keep;
+        my = -mouse.y * d * keep;
       }
 
       // Lag: the card's scroll position trails the real one; deeper cards (smaller layer value) trail longer.
@@ -206,19 +263,47 @@ export function buildSelectedWork(root, cards) {
 
       // Push: away from the pointer. Distance is from the pointer to the card's edge (0 inside the card); direction is from the
       // pointer to the card's centre. Reads only cached numbers (base position + current offsets).
-      if (pushOn && !far) {
-        const dxm = bx[i] + px[i] + mx - mouse.px;
-        const dym = by[i] - sy + py[i] + my - mouse.py;
-        const ex = Math.max(Math.abs(dxm) - bw[i] / 2, 0);
-        const ey = Math.max(Math.abs(dym) - bh[i] / 2, 0);
-        const r = Math.hypot(ex, ey);
-        if (r < R) {
-          const f = (1 - r / R) ** CARDS.pushFalloff;
-          const len = Math.hypot(dxm, dym) || 1;
-          tqx[i] = (dxm / len) * pushMax * f * w;
-          tqy[i] = (dym / len) * pushMax * f * w;
-        } else { tqx[i] = 0; tqy[i] = 0; }
-      } else { tqx[i] = 0; tqy[i] = 0; }
+      tqx[i] = 0; tqy[i] = 0;
+      if (live && mouse.known && !far) {
+        const cxm = bx[i] + px[i] + mx; // the card's centre WITHOUT its own push (so the push cannot feed back into itself)
+        const cym = by[i] - sy + py[i] + my + lag;
+        const own = 1 - hp[i]; // a hovered card stops: its push eases to 0
+        const L = 0.35 * Math.min(bw[i], bh[i]);
+        // pointer as the source (fades out while a card is hovered). The direction is divided by max(distance, L), so it stays
+        // continuous (and fades to zero) when the pointer is on or near the card centre: no swinging.
+        if (pushOn && pw > 0.001 && own > 0.001) {
+          const dxm = cxm - mouse.px;
+          const dym = cym - mouse.py;
+          const exm = Math.max(Math.abs(dxm) - bw[i] / 2, 0);
+          const eym = Math.max(Math.abs(dym) - bh[i] / 2, 0);
+          const r = Math.hypot(exm, eym);
+          if (r < R) {
+            const f = (1 - r / R) ** CARDS.pushFalloff;
+            const inv = 1 / Math.max(Math.hypot(dxm, dym), L);
+            tqx[i] += dxm * inv * pushMax * f * w * pw * own;
+            tqy[i] += dym * inv * pushMax * f * w * pw * own;
+          }
+        }
+        // hovered cards as the source: neighbours are pushed away from the (enlarged) hovered rectangle, rect to rect
+        if (own > 0.001 && hsPush > 0) {
+          for (let k = 0; k < nSrc; k++) {
+            const s = srcs[k];
+            if (s === i) continue;
+            const grow = 1 + (CARD_HOVER.scale - 1) * hp[s];
+            const dxm = cxm - (bx[s] + fox[s]);
+            const dym = cym - (by[s] - sy + foy[s]);
+            const exm = Math.max(Math.abs(dxm) - (bw[s] * grow + bw[i]) / 2, 0);
+            const eym = Math.max(Math.abs(dym) - (bh[s] * grow + bh[i]) / 2, 0);
+            const r = Math.hypot(exm, eym);
+            if (r < hRad) {
+              const f = (1 - r / hRad) ** CARDS.pushFalloff;
+              const inv = 1 / Math.max(Math.hypot(dxm, dym), L);
+              tqx[i] += dxm * inv * hsPush * f * w * hp[s] * own;
+              tqy[i] += dym * inv * hsPush * f * w * hp[s] * own;
+            }
+          }
+        }
+      }
       for (let q = 0; q < pSteps; q++) {
         vqx[i] += (uk * (tqx[i] - qx[i]) - uc * vqx[i]) * ph;
         vqy[i] += (uk * (tqy[i] - qy[i]) - uc * vqy[i]) * ph;
@@ -242,10 +327,11 @@ export function buildSelectedWork(root, cards) {
     // Only cards on (or near) the screen take part, so cards entering from below are already separated while still off screen.
     if (!far && CARDS.sepStrength > 0 && CARDS.sepMaxCover < 1) {
       const margin = H * 0.6;
+      for (let i = 0; i < n; i++) { const g = 1 + (CARD_HOVER.scale - 1) * hp[i]; sbw[i] = bw[i] * g; sbh[i] = bh[i] * g; } // a hovered card counts at its enlarged size
       for (let i = 0; i < n; i++) {
         ex[i] = bx[i] + amx[i] + qx[i] + tpx[i];
         ey[i] = by[i] - sy + alag[i] + amy[i] + qy[i] + tpy[i];
-        sepOn[i] = ey[i] + bh[i] / 2 > -margin && ey[i] - bh[i] / 2 < H + margin ? 1 : 0;
+        sepOn[i] = ey[i] + sbh[i] / 2 > -margin && ey[i] - sbh[i] / 2 < H + margin ? 1 : 0;
       }
       const passes = Math.max(1, Math.round(CARDS.sepPasses));
       const maxCover = CARDS.sepMaxCover * 0.75; // aim a little under the limit: the blended axes and the frame clamp leave a few % over
@@ -256,17 +342,17 @@ export function buildSelectedWork(root, cards) {
             if (!sepOn[j]) continue;
             const dx = ex[j] - ex[i];
             const dy = ey[j] - ey[i];
-            const ox = (bw[i] + bw[j]) / 2 - Math.abs(dx);
-            const oy = (bh[i] + bh[j]) / 2 - Math.abs(dy);
+            const ox = (sbw[i] + sbw[j]) / 2 - Math.abs(dx);
+            const oy = (sbh[i] + sbh[j]) / 2 - Math.abs(dy);
             if (ox <= 0 || oy <= 0) continue;
-            const small = Math.min(bw[i] * bh[i], bw[j] * bh[j]);
+            const small = Math.min(sbw[i] * sbh[i], sbw[j] * sbh[j]);
             if ((ox * oy) / small <= maxCover) continue;
             // travel needed along x (to bring the overlap area down to maxCover) or along y; x costs more near the screen edge,
             // where a card would be shoved off screen (smooth weight), so a narrow gutter separates vertically instead
             const needX = ox - (maxCover * small) / oy;
             const needY = oy - (maxCover * small) / ox;
             const outer = Math.abs(ex[i]) > Math.abs(ex[j]) ? i : j;
-            const over = Math.max(Math.abs(ex[outer]) + bw[outer] / 2 - W / 2, 0) / (0.25 * W); // how far the outer card already bleeds off
+            const over = Math.max(Math.abs(ex[outer]) + sbw[outer] / 2 - W / 2, 0) / (0.25 * W); // how far the outer card already bleeds off
             const costX = needX * (1 + 2 * Math.min(over, 1));
             // blend the two axes (weights from the costs, sharpened) instead of switching, so the target never jumps when the
             // cheaper axis changes
@@ -274,7 +360,12 @@ export function buildSelectedWork(root, cards) {
             const ky = needY ** -4;
             const wX = kx / (kx + ky);
             const lead = Math.min(Math.max((cards[i].mouse - cards[j].mouse) / 50, -1), 1) * 0.15; // front card moves a bit more
-            const mi = 0.5 + lead; // share of the travel taken by card i
+            let mi = 0.5 + lead; // share of the travel taken by card i
+            if (hp[i] > 0 || hp[j] > 0) { // a hovered card has priority: the other card takes the travel
+              const wi = mi * (1 - hp[i]);
+              const wj = (1 - mi) * (1 - hp[j]);
+              mi = wi + wj > 1e-6 ? wi / (wi + wj) : 0.5;
+            }
             const sx = dx === 0 ? (pos[j].x >= pos[i].x ? 1 : -1) : Math.sign(dx);
             const sv = dy === 0 ? 1 : Math.sign(dy);
             const mxv = needX * wX * CARDS.sepStrength;
@@ -288,8 +379,8 @@ export function buildSelectedWork(root, cards) {
           for (let i = 0; i < n; i++) {
             if (!sepOn[i]) continue;
             const side = pos[i].x < 0 ? -1 : 1;
-            const minDx = bw[i] / 2 + fw / 2 + aGap;
-            const minDy = bh[i] / 2 + fh / 2 + aGap;
+            const minDx = sbw[i] / 2 + fw / 2 + aGap;
+            const minDy = sbh[i] / 2 + fh / 2 + aGap;
             const dxs = (ex[i] - fcx) * side;
             const dyv = ey[i] - fcy;
             if (Math.abs(dyv) < minDy && dxs < minDx) { // inside the zone: leave by the nearer way, but never further in than the aura had it
@@ -323,12 +414,26 @@ export function buildSelectedWork(root, cards) {
 
       const x = px[i] + mx + qx[i];
       const y = py[i] + my + lag + qy[i];
-      if (Math.abs(x - lastX[i]) > 0.02 || Math.abs(y - lastY[i]) > 0.02 || lastX[i] !== lastX[i]) {
-        if (glOn) { gl.ox[i] = x; gl.oy[i] = y; gl.markDirty(); } else els[i].style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`;
+      fox[i] = x;
+      foy[i] = y;
+      // R17: hover scale of the card and opacity of its dark layer (live: 1 -> 1.2, and the layer fades out)
+      const sc = 1 + (CARD_HOVER.scale - 1) * hp[i];
+      const dk = live ? (1 - hp[i]) * CARD_HOVER.darkRest : 0;
+      const posChanged = Math.abs(x - lastX[i]) > 0.02 || Math.abs(y - lastY[i]) > 0.02 || lastX[i] !== lastX[i];
+      if (posChanged || Math.abs(sc - lastS[i]) > 0.0002 || lastS[i] !== lastS[i] || Math.abs(dk - lastD[i]) > 0.002) {
+        if (glOn) { gl.ox[i] = x; gl.oy[i] = y; gl.hs[i] = sc; gl.hp[i] = hp[i]; if (gl.darkCard[i]) gl.hd[i] = dk; gl.markDirty(); }
+        else {
+          els[i].style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(${sc.toFixed(4)})`;
+          const d = darkEls[i];
+          if (d) { d.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(${(1 + (CARD_HOVER.darkScale - 1) * hp[i]).toFixed(4)})`; d.style.opacity = dk.toFixed(3); }
+        }
         lastX[i] = x;
         lastY[i] = y;
+        lastS[i] = sc;
+        lastD[i] = dk;
       }
     }
+    if (hoverMoving) moving = true;
     if (glOn && gl.draw(sy, dt, vel, scale)) moving = true; // R16: draw the cards; true while the bend is still settling
     if (live && (Math.abs(mouse.tx - mouse.x) > 0.0005 || Math.abs(mouse.vx) > 0.0005 || Math.abs(mouse.ty - mouse.y) > 0.0005 || Math.abs(mouse.vy) > 0.0005)) moving = true;
     // Off-screen: stop the loop only once every offset has settled.
@@ -362,11 +467,11 @@ export function buildSelectedWork(root, cards) {
   // Dev panel: regenerate the layout from LAYOUT and re-measure (keeps the springs, so cards glide to their new spots).
   const relayout = () => {
     pos = generateLayout(cards, LAYOUT);
-    els.forEach((el, i) => { el.style.setProperty('--x', pos[i].x); el.style.setProperty('--y', pos[i].y); });
+    els.forEach((el, i) => { for (const t of [el, darkEls[i]]) { t?.style.setProperty('--x', pos[i].x); t?.style.setProperty('--y', pos[i].y); } });
     measure();
     if (glOn) gl.resize(W, H);
     ScrollTrigger.refresh();
     if (!ticking) { ticking = true; gsap.ticker.add(tick); }
   };
-  return { cards: els, gl: () => gl, relayout, positions: () => pos, debug: () => ({ px, py, tpx, tpy, bx, by, bw, bh }) };
+  return { cards: els, gl: () => gl, hover: () => ({ hov, hp }), relayout, positions: () => pos, debug: () => ({ px, py, tpx, tpy, bx, by, bw, bh }) };
 }

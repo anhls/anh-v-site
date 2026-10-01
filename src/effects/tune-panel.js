@@ -1,10 +1,10 @@
-import { CARDS, TRAIL, LAYOUT, BEND } from '../timeline.js';
+import { CARDS, TRAIL, LAYOUT, BEND, CARD_HOVER, CAPTION_HOVER } from '../timeline.js';
 
 // Dev-only tuning panel (Selected Work cards, card layout, hero trail). Opens with ?tune in the URL; main.js imports this
 // file only when import.meta.env.DEV is true, so it is never part of the production build. Sliders write straight into the
 // CARDS / LAYOUT / TRAIL objects from timeline.js (the effects read them every frame), so changes show immediately.
 // "Copy values" puts the current numbers on the clipboard as JSON so they can be sent back and pasted into timeline.js.
-const DEFAULTS = { CARDS: { ...CARDS }, LAYOUT: { ...LAYOUT }, TRAIL: { ...TRAIL }, BEND: { ...BEND } };
+const DEFAULTS = { CARDS: { ...CARDS }, LAYOUT: { ...LAYOUT }, TRAIL: { ...TRAIL }, BEND: { ...BEND }, CARD_HOVER: { ...CARD_HOVER }, CAPTION_HOVER: { ...CAPTION_HOVER } };
 
 // [key, label, min, max, step, hint]
 const CARD_SLIDERS = [
@@ -39,7 +39,24 @@ const LAYOUT_SLIDERS = [
   ['minGap', 'Minimum gap (px)', 0, 120, 1, 'Space kept between cards on neighbouring depths. Different depths may overlap.'],
   ['yJitter', 'Vertical jitter (vh)', 0, 30, 0.5, 'How far a card may move up or down.'],
 ];
+const HOVER_SLIDERS = [
+  ['scale', 'Hover scale', 1, 1.6, 0.01, 'R17. How much the hovered card grows (live: 1.2).'],
+  ['stiffness', 'Hover spring stiffness', 40, 800, 5, 'R17. Speed of the hover in / out (live fits to about 250, critically damped). Higher = faster.'],
+  ['damping', 'Hover spring damping', 5, 80, 0.5, 'R17. Live fits to about 31.6 (no overshoot). Lower = a little bounce.'],
+  ['darkRest', 'Dark layer at rest (1 = live)', 0, 1, 0.01, 'R17. The near-black layer that covers 19 of the cards until hovered (live: fully). 0 = no dark layers.'],
+  ['darkScale', 'Dark layer scale on hover', 1, 1.6, 0.01, 'R17. Live: 1.15 (the layer grows a little less than the card while it fades).'],
+  ['drift', 'Hovered card drift amount', 0, 1, 0.01, 'R17. Share of the background drift a hovered card keeps (0 = it freezes).'],
+  ['pushStrength', 'Hover push strength (px)', 0, 400, 5, 'R17. How hard a hovered card pushes its neighbours away (px at 1920, front card).'],
+  ['pushRadius', 'Hover push radius (px)', 0, 600, 5, 'R17. How far from the hovered card (rect to rect) neighbours are pushed.'],
+];
+const CAPTION_SLIDERS = [
+  ['revealSec', 'Caption image: reveal (s)', 0.05, 1.2, 0.01, 'R17. How long the image takes to fade and grow in (live: about 0.2 s fade, no scale).'],
+  ['hideSec', 'Caption image: hide / crossfade (s)', 0.05, 1, 0.01, 'R17. How long the old image takes to fade out (also the crossfade to the next caption). Live: instant.'],
+  ['fromScale', 'Caption image: start scale', 0.6, 1, 0.01, 'R17. Size it grows from, anchored at the cursor-side (bottom left) corner. 1 = no scale.'],
+  ['textOutSec', 'Caption title: colour fade back (s)', 0.05, 1.2, 0.01, 'R17. How long the orange takes to fade back (live: about 0.35 s; it turns orange at once).'],
+];
 const BEND_SLIDERS = [
+  ['arcShape', 'Arc shape', 0.6, 3, 0.05, 'R17. 1 = round arc like the Codrops reference (the edge keeps curving into the corners); higher = flatter near the corners (bell).'],
   ['maxArc', 'Max arc depth (px at 1920)', 0, 200, 1, 'R16. Deepest bow of the top and bottom edges at full scroll speed (also capped at 30% of the card height). 0 = no bend.'],
   ['sensitivity', 'Speed sensitivity', 0.2, 4, 0.05, 'How fast the bend builds with scroll speed. Higher = a gentle scroll already bends the cards.'],
   ['speedRef', 'Full-speed reference (px/s)', 500, 8000, 50, 'Scroll speed that counts as full speed at sensitivity 1.'],
@@ -101,6 +118,12 @@ export function mountTunePanel({ trail, cards } = {}) {
   heading('Cards: aura, push, drift');
   addSliders(CARDS, CARD_SLIDERS);
 
+  heading('Hero caption hover (R17)', '<div style="opacity:.7;margin:2px 0 8px">Scroll to the top of the page and hover a caption. The offset spring is in timeline.js.</div>');
+  addSliders(CAPTION_HOVER, CAPTION_SLIDERS);
+
+  heading('Cards: hover (R17)');
+  addSliders(CARD_HOVER, HOVER_SLIDERS);
+
   heading('Cards: WebGL bend + grain (R16)', '<div style="opacity:.7;margin:2px 0 8px">Only with the WebGL cards on (?gl=1 forces them).</div>');
   addSliders(BEND, BEND_SLIDERS, () => cards?.gl()?.reweigh());
 
@@ -136,10 +159,12 @@ export function mountTunePanel({ trail, cards } = {}) {
       Object.assign(LAYOUT, DEFAULTS.LAYOUT);
       Object.assign(TRAIL, DEFAULTS.TRAIL);
       Object.assign(BEND, DEFAULTS.BEND);
+      Object.assign(CARD_HOVER, DEFAULTS.CARD_HOVER);
+      Object.assign(CAPTION_HOVER, DEFAULTS.CAPTION_HOVER);
       syncReadouts(); showSeed(); cards?.relayout(); cards?.gl()?.reweigh(); trail?.remeasure(); showPts();
       msg.textContent = 'Reset to the defaults in timeline.js';
     } else if (act === 'copy') {
-      const text = JSON.stringify({ CARDS, LAYOUT, BEND: Object.fromEntries(BEND_SLIDERS.map(([k]) => [k, BEND[k]])), TRAIL: Object.fromEntries(TRAIL_SLIDERS.map(([k]) => [k, TRAIL[k]])) }, null, 2);
+      const text = JSON.stringify({ CARDS, LAYOUT, CARD_HOVER: Object.fromEntries(HOVER_SLIDERS.map(([k]) => [k, CARD_HOVER[k]])), CAPTION_HOVER: Object.fromEntries(CAPTION_SLIDERS.map(([k]) => [k, CAPTION_HOVER[k]])), BEND: Object.fromEntries(BEND_SLIDERS.map(([k]) => [k, BEND[k]])), TRAIL: Object.fromEntries(TRAIL_SLIDERS.map(([k]) => [k, TRAIL[k]])) }, null, 2);
       try { await navigator.clipboard.writeText(text); msg.textContent = 'Copied. Paste it in a message to send it.'; }
       catch { msg.textContent = 'Could not copy; values are in the console.'; }
       console.log('TUNE', text);

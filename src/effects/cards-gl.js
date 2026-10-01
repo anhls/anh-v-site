@@ -1,4 +1,4 @@
-import { BEND } from '../timeline.js';
+import { BEND, CARD_HOVER } from '../timeline.js';
 import { weakDevice } from '../util/device.js';
 
 // Selected Work cards on ONE WebGL2 canvas (R16). Plain WebGL, no library (0 KB added): 35 textured planes, one draw call each.
@@ -18,10 +18,11 @@ uniform vec2 uView;              // viewport in css px
 uniform vec2 uCenter;            // card centre in css px
 uniform vec2 uSize;              // card size in css px
 uniform float uBend;             // signed px; + = the middle sags downward
+uniform float uShape;            // arc shape: 1 = round arc (sin, keeps curving into the corners), higher = flatter corners
 uniform vec4 uCover;             // object-fit: cover as (scaleU, scaleV, offU, offV)
 out vec2 vUv;
 void main() {
-  float arc = pow(sin(3.14159265 * a.x), 1.5);
+  float arc = pow(sin(3.14159265 * a.x), uShape);
   vec2 p = uCenter + (a - 0.5) * uSize + vec2(0.0, uBend * arc);
   gl_Position = vec4(p.x / uView.x * 2.0 - 1.0, 1.0 - p.y / uView.y * 2.0, 0.0, 1.0);
   vUv = a * uCover.xy + uCover.zw;
@@ -32,9 +33,11 @@ in vec2 vUv;
 uniform sampler2D uTex;
 uniform float uGrain;
 uniform float uSeed;
+uniform float uFlat;             // >= 0: draw the flat dark layer at this opacity instead of the texture
 out vec4 o;
 float h(vec2 p) { vec3 q = fract(vec3(p.xyx) * 0.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
 void main() {
+  if (uFlat >= 0.0) { o = vec4(vec3(10.0 / 255.0) * uFlat, uFlat); return; }
   vec4 c = texture(uTex, vUv);
   float n = h(gl_FragCoord.xy + uSeed) - 0.5;
   c.rgb = clamp(c.rgb + n * uGrain * c.a, 0.0, 1.0);
@@ -63,7 +66,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
   gl.linkProgram(prog);
   if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return null;
   gl.useProgram(prog);
-  const U = Object.fromEntries(['uView', 'uCenter', 'uSize', 'uBend', 'uCover', 'uTex', 'uGrain', 'uSeed'].map((k) => [k, gl.getUniformLocation(prog, k)]));
+  const U = Object.fromEntries(['uView', 'uCenter', 'uSize', 'uBend', 'uShape', 'uCover', 'uTex', 'uGrain', 'uSeed', 'uFlat'].map((k) => [k, gl.getUniformLocation(prog, k)]));
   gl.uniform1i(U.uTex, 0);
 
   // One strip mesh shared by every card: COLS + 1 columns x 2 rows (the bend only depends on x, so two rows are enough).
@@ -83,6 +86,10 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
   const n = els.length;
   const ox = new Float64Array(n); // offsets from the base position (px), written by the loop
   const oy = new Float64Array(n);
+  const hs = new Float32Array(n).fill(1); // hover scale per card (R17)
+  const hd = new Float32Array(n); // dark layer opacity per card (0 = none)
+  const hp = new Float32Array(n); // hover progress 0..1 (drives the dark layer's own scale)
+  const darkCard = cards.map((c) => CARD_HOVER.darkIds.includes(c.id));
   const isVideo = els.map((el) => el.tagName === 'VIDEO');
   const tex = new Array(n).fill(null); // image (or poster) texture
   const vtex = new Array(n).fill(null); // video texture (alpha WebM / MP4), once the video has a frame
@@ -263,22 +270,35 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
 
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.uniform2f(U.uView, W, H);
+    gl.uniform1f(U.uShape, BEND.arcShape);
     gl.uniform1f(U.uGrain, BEND.grain * (1 + BEND.grainSpeed * grainSpeed));
     gl.uniform1f(U.uSeed, (grainStep % 997) * 17.31);
     const arcMax = BEND.maxArc * scale;
     for (let k = 0; k < n; k++) {
       const i = order[k];
       const t = isVideo[i] && vtex[i] ? vtex[i] : tex[i];
-      if (!t) continue;
       const cx = bx[i] + ox[i];
       const cy = by[i] - sy + oy[i];
       if (cy + bh[i] / 2 + arcMax < 0 || cy - bh[i] / 2 - arcMax > H || cx + bw[i] / 2 < 0 || cx - bw[i] / 2 > W) continue;
-      gl.bindTexture(gl.TEXTURE_2D, t);
+      const bendPx = Math.max(-bh[i] * 0.3, Math.min(bh[i] * 0.3, bend.x * arcMax * bendW[i]));
       gl.uniform2f(U.uCenter, cx, cy);
-      gl.uniform2f(U.uSize, bw[i], bh[i]);
-      gl.uniform1f(U.uBend, Math.max(-bh[i] * 0.3, Math.min(bh[i] * 0.3, bend.x * arcMax * bendW[i])));
-      gl.uniform4fv(U.uCover, cover.subarray(i * 4, i * 4 + 4));
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, (COLS + 1) * 2);
+      gl.uniform1f(U.uBend, bendPx);
+      // the card itself (skipped while its dark layer fully covers it)
+      if (t && !(darkCard[i] && hd[i] >= 0.999)) {
+        gl.bindTexture(gl.TEXTURE_2D, t);
+        gl.uniform1f(U.uFlat, -1);
+        gl.uniform2f(U.uSize, bw[i] * hs[i], bh[i] * hs[i]);
+        gl.uniform4fv(U.uCover, cover.subarray(i * 4, i * 4 + 4));
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, (COLS + 1) * 2);
+      }
+      // R17: the opaque dark layer (4 px bigger on every side, scales 1 -> 1.15 on the hover progress) fading out on hover
+      if (darkCard[i] && hd[i] > 0.002) {
+        const k = 1 + (CARD_HOVER.darkScale - 1) * hp[i];
+        const pad = CARD_HOVER.darkPad * scale * 2;
+        gl.uniform1f(U.uFlat, hd[i]);
+        gl.uniform2f(U.uSize, (bw[i] + pad) * k, (bh[i] + pad) * k);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, (COLS + 1) * 2);
+      }
     }
     return bendNow;
   };
@@ -286,7 +306,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
   const api = {
     canvas,
     active: true,
-    ox, oy,
+    ox, oy, hs, hd, hp, darkCard,
     resize,
     draw,
     show: (on) => { canvas.style.visibility = on ? 'visible' : 'hidden'; if (on) dirty = true; },

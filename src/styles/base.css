@@ -418,11 +418,22 @@ html.lenis, html.lenis body { height: auto; }
 .trail { position: fixed; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
 .trail__img { position: absolute; left: 0; top: 0; display: block; object-fit: cover; opacity: 0; will-change: transform, opacity; }
 .caption-hover {
-  position: fixed; left: 0; top: 0; z-index: 8; pointer-events: none; opacity: 0; will-change: transform;
+  position: fixed; left: 0; top: 0; z-index: 8; pointer-events: none; will-change: transform;
   width: calc(var(--ux) * 22.24); height: calc(var(--ux) * 12.97);
-  transition: opacity 0.15s linear;
 }
-.caption-hover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+/* R17: each image fades + grows from the cursor-side corner (bottom left) when shown, fades + shrinks a little when hidden; the
+   durations are set from CAPTION_HOVER (timeline.js) by caption-hover.js, so the tuning panel changes them live. */
+.caption-hover img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transform: scale(var(--cap-from, 0.94)); transform-origin: 0 100%;
+  transition: opacity var(--cap-out, 0.25s) ease-in, transform var(--cap-out, 0.25s) ease-in;
+}
+.caption-hover img.is-on {
+  opacity: 1; transform: none;
+  transition: opacity var(--cap-in, 0.35s) cubic-bezier(0.16, 1, 0.3, 1), transform var(--cap-in, 0.35s) cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* Caption title: orange at once on hover (live), fades back to its colour (live ~0.35 s). */
+.hero__captions li span:first-child { transition: color var(--cap-text-out, 0.38s) cubic-bezier(0.2, 0.6, 0.3, 1); }
+.hero__captions li.is-hot span:first-child { color: var(--cap-hot, #f04a0e); transition-duration: 0.05s; }
 /* Back-to-top cover (R13g): one black layer, opacity only; z-index is set by back-to-top.js (9 below the wordmark, or 11). */
 .btt-overlay { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; will-change: opacity; }
 
@@ -430,3 +441,17 @@ html.lenis, html.lenis body { height: auto; }
    stay for layout, accessibility and as texture sources, but are invisible while the canvas draws them. */
 .sw__gl { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; pointer-events: none; visibility: hidden; }
 .sw--gl .sw__card { opacity: 0; }
+
+/* R17 dark layer of the "dark bg frame" cards in the DOM fallback: an opaque rgb(10,10,10) layer 4 px bigger on every side, right
+   after its card in the page (so the stacking order is the same); selected-work.js fades and scales it with the hover. */
+.sw__dark {
+  position: absolute;
+  left: calc(50% + var(--x) * var(--ux) / 19.2 - var(--w) * var(--ux) / 38.4 - var(--ux) * 4 / 19.2);
+  top: calc(var(--y) * 1vh - var(--h) * var(--ux) / 38.4 - var(--ux) * 4 / 19.2);
+  width: calc((var(--w) + 8) * var(--ux) / 19.2);
+  height: calc((var(--h) + 8) * var(--ux) / 19.2);
+  background: #0a0a0a;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+.sw--gl .sw__dark { display: none; }

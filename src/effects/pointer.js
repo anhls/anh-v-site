@@ -17,6 +17,8 @@ const onMove = (e) => {
   effects.forEach((fx) => fx.move(pos.x, pos.y));
 };
 if (pointerEnabled) window.addEventListener('pointermove', onMove, { passive: true });
+// The pointer left the window: effects that care (card hover) get `leave()`, so nothing stays hovered.
+if (pointerEnabled) document.documentElement.addEventListener('pointerleave', () => effects.forEach((fx) => fx.leave?.()));
 
 // effect = { move(x, y) }. Returns the unregister function.
 export function registerPointer(effect) {
