@@ -236,7 +236,25 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
   // Uploads: at most one per frame; the image goes through an ImageBitmap (decoded off the main thread), premultiplied.
   const pending = [];
   let inflight = 0; // ImageBitmaps being decoded: at most 2 at a time, so a burst of near cards does not stall one frame
+  // Dev only (?warptest): every card shows a plain grid with a border instead of its image, so the shape of the warp can be judged
+  // from real scrolling. Not in the production build (import.meta.env.DEV is a build-time constant).
+  const warpTest = import.meta.env.DEV && new URLSearchParams(location.search).has('warptest');
+  let testCanvas = null;
   const wantTexture = (i) => {
+    if (warpTest) {
+      if (tex[i]) return;
+      if (!testCanvas) {
+        testCanvas = document.createElement('canvas'); testCanvas.width = testCanvas.height = 256;
+        const x = testCanvas.getContext('2d'); x.fillStyle = '#c33'; x.fillRect(0, 0, 256, 256);
+        x.strokeStyle = '#fff'; x.lineWidth = 3; x.strokeRect(1.5, 1.5, 253, 253); x.lineWidth = 1;
+        for (let k = 64; k < 256; k += 64) { x.beginPath(); x.moveTo(k, 0); x.lineTo(k, 256); x.moveTo(0, k); x.lineTo(256, k); x.stroke(); }
+      }
+      tex[i] = makeTexture(true); gl.bindTexture(gl.TEXTURE_2D, tex[i]);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, testCanvas); gl.generateMipmap(gl.TEXTURE_2D);
+      cover.set([1, 1, 0, 0], i * 4); aspect[i] = 1; dirty = true;
+      return;
+    }
     if (tex[i] || loading[i] || inflight + pending.length >= 2) return;
     const el = els[i];
     let src = el;
@@ -439,6 +457,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
     const grainAmt = BEND.grain * (1 + BEND.grainSpeed * grainSpeed);
     const seed = (grainStep % 997) * 17.31;
     const amt = bend.x * (bend.x > 0 ? WARP.strengthDown : WARP.strengthUp); // + = scrolling down (recede), - = up (inflate)
+    bend.amt = amt; // the signed value handed to the warp shader (+ = scrolling down); read by tools/scratch checks
     const usePost = postOk && Math.abs(amt) > 0.0015;
     if (usePost) {
       ensureFb();
