@@ -289,7 +289,7 @@ export const BEND = {
 // R16f: which way the warp turns. The shaders' positive amount is the 'recede' look; WARP_DIR = -1 shows it when scrolling UP and the
 // 'bulge toward the viewer' look when scrolling DOWN. The Down / Up settings below always mean the real scroll direction on screen.
 export const WARP_DIR = -1;
-export const WARP = { strengthUp: 1.15, strengthDown: 1.15, reach: 1, sym: 1, curl: 0.7, camDown: 1.6, camUp: 1.6, bowDown: 0, bowUp: 0.05, pinch: 0.07, pinchDown: 0.2, arc: 0.255, persp: 0.43 };
+export const WARP = { strengthUp: 1.15, strengthDown: 1.15, reach: 1, sym: 1, curl: 0.5, camDown: 1.25, camUp: 1.25, bowDown: 0, bowUp: 0.05, pinch: 0.07, pinchDown: 0.2, arc: 0.255, persp: 0.43 };
 
 // R16c: the centre frame (hero mask) warps while the page scrolls, on its own canvas (effects/frame-gl.js). At rest the normal DOM
 // frame shows; when the scroll speed passes `threshold` (px/s) the canvas takes over at the same pixels, applies the same kind of warp
@@ -297,6 +297,6 @@ export const WARP = { strengthUp: 1.15, strengthDown: 1.15, reach: 1, sym: 1, cu
 // sprung flat. on = 0 turns it off; videoMode 0 = show the video's poster while warping (crossfade `fadeSec`), 1 = the frozen current
 // frame. The DOM video is paused while the canvas shows the frame and resumes when it hands back.
 export const FRAME_WARP = {
-  on: 1, strengthUp: 1.39, strengthDown: 1.39, reach: 1, pinch: 0.11, pinchDown: 0.11, arc: 0.185, persp: 0.59, sym: 1,
-  threshold: 400, deadzone: 300, fadeSec: 0.15, videoMode: 1, lodBias: 0, softScaled: 1,
+  on: 1, strengthUp: 1.39, strengthDown: 1.39, reach: 1, pinch: 0.11, pinchDown: 0.11, arc: 0, persp: 0.18, sym: 1,
+  threshold: 400, deadzone: 0, fadeSec: 0.15, videoMode: 1, lodBias: 0, softScaled: 1,
 };
