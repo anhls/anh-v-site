@@ -236,7 +236,7 @@ export const SPAWNER = {
 // to its resting colour in ~0.35 s; the image fades in over ~0.2 s with no scale, swaps hard between captions and disappears at once.
 // Ours (Anh's brief): the image reveals with opacity + a small scale from the cursor-side corner (revealSec, fromScale), fades out
 // (hideSec) and crossfades between captions; textOutSec = the colour fade back. revealSec / hideSec / fromScale / textOutSec on ?tune.
-export const CAPTION_HOVER = { w: 427, h: 249, offsetX: 50, spring: [500, 60, 1], revealSec: 0.35, hideSec: 0.25, fromScale: 0.94, textColor: '#f04a0e', textOutSec: 0.38 };
+export const CAPTION_HOVER = { w: 427, h: 249, offsetX: 50, spring: [500, 60, 1], revealSec: 0.35, hideSec: 0.25, fromScale: 0.94, textColor: '#f04a0e', textOutSec: 0.38, lineInSec: 0.42, lineOutSec: 0 };
 // Cursor image trail. Live: a new image whenever the pointer is more than `spacing` px from the last one (frequency 25 ->
 // 200 - 24 * 199 / 49 = 102.5 px), each `size` px square, kept `visibleFor` s, then it shrinks away. Springs as live.
 // Anh's range (not live's): starts when the hero mask shrink is `startMaskShare` done (width that share of the way from

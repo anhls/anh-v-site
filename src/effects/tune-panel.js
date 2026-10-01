@@ -53,6 +53,8 @@ const CAPTION_SLIDERS = [
   ['revealSec', 'Caption image: reveal (s)', 0.05, 1.2, 0.01, 'R17. How long the image takes to fade and grow in (live: about 0.2 s fade, no scale).'],
   ['hideSec', 'Caption image: hide / crossfade (s)', 0.05, 1, 0.01, 'R17. How long the old image takes to fade out (also the crossfade to the next caption). Live: instant.'],
   ['fromScale', 'Caption image: start scale', 0.6, 1, 0.01, 'R17. Size it grows from, anchored at the cursor-side (bottom left) corner. 1 = no scale.'],
+  ['lineInSec', 'Caption strike-through: draw in (s)', 0.05, 1.2, 0.01, 'R17b. How long the orange line takes to draw across the title (live: about 0.42 s).'],
+  ['lineOutSec', 'Caption strike-through: retract (s)', 0, 1, 0.01, 'R17b. Live: 0 (it vanishes at once). The nav links retract in about 0.2 s.'],
   ['textOutSec', 'Caption title: colour fade back (s)', 0.05, 1.2, 0.01, 'R17. How long the orange takes to fade back (live: about 0.35 s; it turns orange at once).'],
 ];
 const BEND_SLIDERS = [

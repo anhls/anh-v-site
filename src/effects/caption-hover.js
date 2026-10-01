@@ -43,6 +43,8 @@ export function buildCaptionHover(root, captions) {
     box.style.setProperty('--cap-from', C.fromScale);
     list.style.setProperty('--cap-text-out', `${C.textOutSec}s`);
     list.style.setProperty('--cap-hot', C.textColor);
+    list.style.setProperty('--cap-line-in', `${C.lineInSec}s`);
+    list.style.setProperty('--cap-line-out', `${C.lineOutSec}s`);
     if (shown >= 0) { imgs[shown].classList.remove('is-on'); items[shown].classList.remove('is-hot'); hiddenAt = performance.now(); }
     if (i >= 0) { imgs[i].classList.add('is-on'); items[i].classList.add('is-hot'); }
     shown = i;

@@ -248,6 +248,15 @@ html.lenis, html.lenis body { height: auto; }
   line-height: 18px;
 }
 .nav .roll { display: block; will-change: transform; } /* nav.js moves it with a spring on hover */
+/* Hover (live, measured): the second copy of the label is orange rgb(240,74,14), and a 1 px orange line at the vertical middle draws
+   left to right over the label width (about 0.3 s, ease-out) and retracts to the left on leave (about 0.2 s). scaleX only. */
+.nav .roll span:last-child { color: #f04a0e; }
+.nav a::after {
+  content: ''; position: absolute; left: 0; right: 0; top: 8px; height: max(1px, calc(var(--ux) / 19.2));
+  background: #f04a0e; transform: scaleX(0); transform-origin: 0 50%;
+  transition: transform 0.2s cubic-bezier(0.2, 0, 0.4, 1);
+}
+.nav a:hover::after { transform: scaleX(1); transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.4, 1); }
 .nav .roll span { display: block; height: 18px; }
 
 /* About: 190vh = 90vh spacer + 100vh sticky block. Label/icon offsets are in em of the About font size. */
@@ -431,9 +440,17 @@ html.lenis, html.lenis body { height: auto; }
   opacity: 1; transform: none;
   transition: opacity var(--cap-in, 0.35s) cubic-bezier(0.16, 1, 0.3, 1), transform var(--cap-in, 0.35s) cubic-bezier(0.16, 1, 0.3, 1);
 }
-/* Caption title: orange at once on hover (live), fades back to its colour (live ~0.35 s). */
-.hero__captions li span:first-child { transition: color var(--cap-text-out, 0.38s) cubic-bezier(0.2, 0.6, 0.3, 1); }
+/* Caption title: orange at once on hover (live), fades back to its colour (live ~0.35 s). R17b: plus the strike-through line of live's
+   HeaderPrj component: 1 px, orange, at the vertical middle of the title, draws left to right over the title's width (scaleX from the
+   left, no width animation; live ~0.42 s ease-in-out) and, as on live, vanishes at once on leave (--cap-line-out is 0s). */
+.hero__captions li span:first-child { position: relative; align-self: flex-start; transition: color var(--cap-text-out, 0.38s) cubic-bezier(0.2, 0.6, 0.3, 1); }
+.hero__captions li span:first-child::after {
+  content: ''; position: absolute; left: 0; right: 0; top: calc(50% - 0.5px); height: max(1px, calc(var(--ux) / 19.2));
+  background: var(--cap-hot, #f04a0e); transform: scaleX(0); transform-origin: 0 50%;
+  transition: transform var(--cap-line-out, 0s) linear;
+}
 .hero__captions li.is-hot span:first-child { color: var(--cap-hot, #f04a0e); transition-duration: 0.05s; }
+.hero__captions li.is-hot span:first-child::after { transform: scaleX(1); transition: transform var(--cap-line-in, 0.42s) cubic-bezier(0.4, 0.1, 0.5, 1); }
 /* Back-to-top cover (R13g): one black layer, opacity only; z-index is set by back-to-top.js (9 below the wordmark, or 11). */
 .btt-overlay { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; will-change: opacity; }
 
