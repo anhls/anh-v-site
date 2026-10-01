@@ -14,6 +14,7 @@ One element per card; one shared rAF loop (CLAUDE.md architecture rules 3 and 4)
 Dev-only tuning panel (sliders) for lag, depth range, parting strength, mouse radius/strength. Anh tunes by eye; final numbers go into timeline.js.
 
 ## Step 2: WebGL bend (separate request, on top of step 1)
+Reference from Anh: https://tympanus.net/Tutorials/ShaderOnScroll/ (Codrops, Jan Kohlbach, "On-Scroll Image Distortion and Grain Effect", MIT: github.com/jankohlbach/codrops-shader-on-scroll; Three.js, images bend with scroll velocity, plus film grain). Use it for the bend technique; our spec below wins where they differ (arcs on top and bottom edges, depth weighting, one gentle overshoot). Grain: YES (Anh 2026-10-02), subtle film grain on the cards like the reference, with an intensity slider on the ?tune panel (Anh adjusts later); grain may follow scroll speed like the reference.
 Cards drawn as textured planes on one WebGL canvas (OGL preferred for size), positioned from the same step-1 motion. Cut-out PNG alpha kept; GIF cards as video textures.
 - Shape: top AND bottom edges bend into a smooth arc, deepest at the horizontal middle, flat at the corners; sides stay straight.
 - Amount: arc depth follows scroll speed (Lenis velocity), easing in as speed rises, with a max cap.

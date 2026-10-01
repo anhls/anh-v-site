@@ -4,6 +4,7 @@ import { springLayer, springFromBounce } from '../effects/springs.js';
 import { registerPointer, pointerEnabled } from '../effects/pointer.js';
 import { capW } from '../scale.js';
 import { lineHover } from './footer.js';
+import { imgAttrs } from '../util/media.js';
 
 // More Projects (was "clients"): a 100vh sticky block over the darkening full-screen image. Left label, right "See more work" link (dot-to-line hover like the footer), and a
 // centred list of names (5 projects), each in a clipped band. Measured on the live site: the list is
@@ -17,7 +18,7 @@ export function buildMoreProjects(root, data) {
 
   const entries = data.items.map((p) => ({ name: p.name, href: `/work/${p.slug}.html` }));
   const cursorHtml = pointerEnabled
-    ? `<div class="more-projects__cursor" aria-hidden="true"><div class="more-projects__strip">${data.items.map((p) => `<img src="${p.image}" alt="" loading="lazy" />`).join('')}</div></div>`
+    ? `<div class="more-projects__cursor" aria-hidden="true"><div class="more-projects__strip">${data.items.map((p) => `<img ${imgAttrs(p.image, '21vw')} alt="" loading="lazy" />`).join('')}</div></div>`
     : '';
   sticky.innerHTML = `
     <span class="more-projects__label">${data.label}</span>

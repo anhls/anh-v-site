@@ -1,3 +1,4 @@
+import { imgAttrs, videoInfo } from '../util/media.js';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { CARDS, PARTING } from '../timeline.js';
@@ -23,9 +24,20 @@ export function buildSelectedWork(root, cards) {
   if (!section || !cards?.length) return;
 
   section.innerHTML = cards
-    .map((c) => `<img class="sw__card" src="${c.src}" alt="" loading="lazy" decoding="async" draggable="false" style="--x:${c.x};--y:${c.y};--w:${c.w};--h:${c.h};z-index:${c.z}">`)
+    .map((c) => {
+      const style = `--x:${c.x};--y:${c.y};--w:${c.w};--h:${c.h};z-index:${c.z}`;
+      const vid = videoInfo(c.src);
+      // Animated cards: muted looping video (WebM with alpha first, MP4 as fallback), played only while near the screen.
+      if (vid) return `<video class="sw__card" muted loop playsinline preload="none" poster="${vid.poster}" draggable="false" style="${style}">${vid.webm ? `<source src="${vid.webm}" type="video/webm">` : ''}<source src="${vid.mp4}" type="video/mp4"></video>`;
+      return `<img class="sw__card" ${imgAttrs(c.src, `${(c.w / 19.2).toFixed(1)}vw`)} alt="" loading="lazy" decoding="async" draggable="false" style="${style}">`;
+    })
     .join('');
   const els = [...section.querySelectorAll('.sw__card')];
+  const vids = els.filter((el) => el.tagName === 'VIDEO');
+  if (vids.length && 'IntersectionObserver' in window) {
+    const io = new IntersectionObserver((list) => list.forEach((e) => { if (e.isIntersecting) e.target.play().catch(() => {}); else e.target.pause(); }), { rootMargin: '25% 0px' });
+    vids.forEach((v) => io.observe(v));
+  }
 
   const n = cards.length;
   const bx = new Float64Array(n); // base centre x (px from the left of the window)

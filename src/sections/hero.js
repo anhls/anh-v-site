@@ -3,6 +3,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { HERO, SPRING, TICKER } from '../timeline.js';
 import { springLayer } from '../effects/springs.js';
 import { dist, scrollPx } from '../scale.js';
+import { imgAttrs } from '../util/media.js';
 
 // The hero is a background layer for the whole page: absolute, 730vh tall, with a CSS sticky 100vh block
 // holding the mask. No GSAP pin. All ranges and springs come from src/timeline.js.
@@ -23,14 +24,14 @@ export function buildHero(root, hero) {
         <div class="hero__float"><div class="hero__float2">
           <div class="hero__wrapper">
             <!-- Strip inside the mask (measured on anh-v.com). Stacking: s1 on top, s3 middle, s2 bottom. Each fills the mask. -->
-            <div class="hero__sec hero__s2"><img data-src="${hero.image}" alt="" /></div>
+            <div class="hero__sec hero__s2"><img ${imgAttrs(hero.image, '100vw', true)} alt="" /></div>
             <div class="hero__sec hero__s3">
-              ${hero.gallery.map((src, i) => `<img class="hero__gallery" style="z-index:${i}" data-src="${src}" alt="" />`).join('')}
+              ${hero.gallery.map((src, i) => `<img class="hero__gallery" style="z-index:${i}" ${imgAttrs(src, '100vw', true)} alt="" />`).join('')}
               <div class="hero__overlay2"></div>
               <div class="hero__overlay"></div>
             </div>
             <div class="hero__sec hero__s1">
-              <video class="hero__video" src="${hero.video}" autoplay muted loop playsinline preload="auto"></video>
+              <video class="hero__video" src="${hero.video}" poster="/media/hero/poster.webp" autoplay muted loop playsinline preload="auto"></video>
               <div class="ticker" aria-hidden="true"><div class="ticker__clip"><div class="ticker__track">${items}${items}</div></div></div>
             </div>
           </div>
@@ -149,7 +150,10 @@ export function buildHero(root, hero) {
   // Images #2 and #3 are not visible before ~40vh of scroll, so they start loading only after the loader is ready.
   return {
     loadDeferred() {
-      root.querySelectorAll('img[data-src]').forEach((img) => { img.src = img.dataset.src; img.removeAttribute('data-src'); });
+      root.querySelectorAll('img[data-src]').forEach((img) => {
+        if (img.dataset.srcset) { img.srcset = img.dataset.srcset; img.removeAttribute('data-srcset'); }
+        img.src = img.dataset.src; img.removeAttribute('data-src');
+      });
     },
   };
 }

@@ -7,14 +7,17 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "compare": "node tools/compare.mjs"
+    "compare": "node tools/compare.mjs",
+    "media": "node tools/media.mjs"
   },
   "dependencies": {
     "gsap": "^3.12.5",
     "lenis": "^1.3.0"
   },
   "devDependencies": {
+    "ffmpeg-static": "^5.3.0",
     "playwright-core": "^1.63.0",
+    "sharp": "^0.35.5",
     "vite": "^6.0.0"
   }
 }

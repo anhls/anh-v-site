@@ -9,15 +9,15 @@
   },
   "loader": { "text": "Loading visual language" },
   "hero": {
-    "video": "https://framerusercontent.com/assets/Fj182DxNzTt7FJdPdgdLo4CAM0.mp4",
+    "video": "/media/hero/video.mp4",
     "image": "https://framerusercontent.com/images/aZoZ5nVZFbgwsySGNQ5CXL2rQ.jpg",
     "gallery": [
-      "https://framerusercontent.com/images/0VSrNQmftCfZjxH2F8hiAYfxxA.jpg",
-      "https://framerusercontent.com/images/AlABm8NL9nRp1XFUf62ccnFB8.jpg",
-      "https://framerusercontent.com/images/GI80tkeV6TMLMivUPNxVNB4I.png"
+      "/media/hero/s3_bottom.jpg",
+      "/media/hero/s3_middle.jpg",
+      "/media/hero/s3_top.jpg"
     ],
-    "wordmark": "https://framerusercontent.com/images/r7Kj4ev5RvgZHiIvgugDBJuAVi0.svg",
-    "ticker": "https://framerusercontent.com/images/2sWL1DXbPXG6eGRplIQ3eWfr3I8.svg",
+    "wordmark": "/media/brand/wordmark.svg",
+    "ticker": "/media/brand/ticker.svg",
     "clickSound": "https://framerusercontent.com/assets/ozLRvG7UYmyT7nzrIc43elxSoAs.mp3",
     "captions": [
       { "title": "Techcombank Priority", "client": "Techcombank", "role": "Art Direction" },
@@ -61,7 +61,7 @@
     { "id": 27, "x": 1076.5, "y": 330.741, "w": 541, "h": 305, "layer": "layer3", "z": 2, "mouse": 75, "scroll": true, "src": "/media/selected-work/card-img-22.png" },
     { "id": 28, "x": 486.5, "y": 340.741, "w": 541, "h": 305, "layer": "layer3", "z": 2, "mouse": 75, "scroll": true, "src": "/media/selected-work/card-img-23.jpg" },
     { "id": 29, "x": 873, "y": 258.241, "w": 174, "h": 408, "layer": "layer3", "z": 2, "mouse": 75, "scroll": true, "src": "/media/selected-work/card-img-24.jpg" },
-    { "id": 30, "x": 480.5, "y": 163.241, "w": 343, "h": 313, "layer": "layer2", "z": 3, "mouse": 50, "scroll": true, "src": "https://framerusercontent.com/images/nR62Oa7NyQO1PwrJeyiW8TKmQ.gif" },
+    { "id": 30, "x": 480.5, "y": 163.241, "w": 343, "h": 313, "layer": "layer2", "z": 3, "mouse": 50, "scroll": true, "src": "/media/selected-work/watch-anim" },
     { "id": 31, "x": 686.5, "y": 138.241, "w": 193, "h": 104, "layer": "back", "z": 2, "mouse": 20, "scroll": true, "src": "/media/selected-work/card-img-26.png" },
     { "id": 32, "x": 953, "y": 128.241, "w": 170, "h": 167, "layer": "back", "z": 2, "mouse": 20, "scroll": false, "src": "/media/selected-work/card-img-27.png" },
     { "id": 33, "x": 379, "y": 138.241, "w": 138, "h": 268, "layer": "back", "z": 2, "mouse": 20, "scroll": true, "src": "/media/selected-work/card-img-28.jpg" },
@@ -99,9 +99,9 @@
     "items": [
       { "name": "Forbes Vanguard", "slug": "forbes", "image": "https://framerusercontent.com/images/vnRzwgUH7uvpqoRCCWRLGLOvwQ.jpg" },
       { "name": "Techcombank Priority", "slug": "tcb-priority", "image": "https://framerusercontent.com/images/QUzoZUsI26ew5csK6GR0cPOsKQ.jpg" },
-      { "name": "Sulwhasoo", "slug": "sulwhasoo", "image": "https://framerusercontent.com/images/feZNJaO2rFpJz1tp7lULn6PRjnY.jpg" },
-      { "name": "Similac Virgo 2024", "slug": "similac", "image": "https://framerusercontent.com/images/YWTonqftN7SBxLUONPaxNkRdIJE.jpg" },
-      { "name": "Bitis Season 09", "slug": "bitis09", "image": "https://framerusercontent.com/images/AlABm8NL9nRp1XFUf62ccnFB8.jpg?scale-down-to=2048" }
+      { "name": "Sulwhasoo", "slug": "sulwhasoo", "image": "/media/selected-work/card-img-11.jpg" },
+      { "name": "Similac Virgo 2024", "slug": "similac", "image": "/media/captions/caption-4.jpg" },
+      { "name": "Bitis Season 09", "slug": "bitis09", "image": "/media/hero/s3_middle.jpg" }
     ],
     "more": { "name": "See more work", "href": "/work/" }
   },
