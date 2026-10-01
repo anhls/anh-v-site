@@ -194,17 +194,17 @@ export const CARDS = {
   // R13c: mouse push-away. Cards within pushRadius (px at 1920, measured from the card's edge) of the pointer are pushed away
   // from it, up to pushStrength px at the pointer, fading with (1 - distance / radius) ^ pushFalloff (1 = linear, 2 = softer
   // edge), times the depth weight, on a spring (pushStiffness / pushDamping).
-  pushRadius: 245,
-  pushStrength: 60,
+  pushRadius: 125,
+  pushStrength: 95,
   pushFalloff: 1.9,
-  pushStiffness: 190,
+  pushStiffness: 50,
   pushDamping: 30,
 };
 // R13c: the card layout is generated from a seed (src/data/layout.js) out of each card's Framer position. Positions in the
 // data are the starting point; same seed + values = same layout every time. scatter: max px a card may move sideways;
 // centreShare: share of cards pulled to start near or across the centre line, within centreBand px of it; minGap: px kept
 // between cards on neighbouring depths; yJitter: max vh a card may move up or down.
-export const LAYOUT = { seed: 37315, scatter: 225, centreShare: 0.3, centreBand: 560, minGap: 81, yJitter: 8 };
+export const LAYOUT = { seed: 92708, scatter: 225, centreShare: 0.3, centreBand: 560, minGap: 81, yJitter: 8 };
 // Live's constants, fixed (not tunable): parting target = t * (0.01W + 0.19W * (1 - f)) * 1.1 sideways and
 // t * (0.01H + 0.29H * (1 - f)) * 1.1 down (live eases to them at 0.2 per 60 fps frame; we use the CARDS spring); a card is armed once 10% of it has been visible.
 export const PARTING = { xMax: 0.2, xMin: 0.01, yMax: 0.3, yMin: 0.01, z: 1.1, lerp: 0.2, armed: 0.1 };
@@ -256,8 +256,8 @@ export const MORE_PROJECTS_FIT = { gapVh: 5, gapMinPx: 28, safeTopVh: 12, minSca
 // width of the strong middle band (0..1 of the depth range); grain = film grain amplitude (0 = off), grainSpeed = how much scroll
 // speed adds to it; grainRate = grain frames per second. dprCap = canvas pixel ratio cap, dprCapLarge above 2560 px wide.
 export const BEND = {
-  maxArc: 56, speedRef: 2500, sensitivity: 1, returnSpeed: 11, overshoot: 0.12,
-  depthExtreme: 0.35, depthBand: 0.3,
-  grain: 0.035, grainSpeed: 0.6, grainRate: 12,
+  maxArc: 14, speedRef: 1750, sensitivity: 1.5, returnSpeed: 10, overshoot: 0.07,
+  depthExtreme: 0.19, depthBand: 0.6,
+  grain: 0.044, grainSpeed: 0.6, grainRate: 12,
   dprCap: 2, dprCapLarge: 1.5, weakCores: 4, weakMemoryGb: 4, textureBudgetMb: 256,
 };
