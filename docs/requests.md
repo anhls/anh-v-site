@@ -2,6 +2,15 @@
 
 Only open and upcoming work lives here. Finished requests move to docs/archive/ (R1-R10: archive/requests-R1-R10.md, R11: archive/requests-R11.md, R11b: archive/requests-R11b.md, R11c: archive/requests-R11c.md, R12: archive/requests-R12.md, R13: archive/requests-R13.md).
 
+## R13b (next): Selected Work tuning + entry jump (use Sonnet 5.5)
+From Anh's test of R13 with the ?tune panel.
+1. Make Anh's tuned values the defaults in timeline.js CARDS: partingStrength 1, mouseStrength 1.3, mouseStiffness 650, mouseDamping 100, depthRange 0.85, lagStrength 0.9, lagFrontSec 0.03, lagBackSec 0.25.
+2. Parting settle feels stiff: the parting offset eases at 0.2 per frame (live's constant), which glides in and stops dead. Replace it with a spring on px/py (keep live's parting TARGETS) with a slight overshoot so cards drift a little past and settle back. Add panel sliders "parting softness" and "parting bounce" (or stiffness/damping), included in Copy values; start from a gentle default that is clearly softer than now. This deliberately departs from live's easing (Anh's call).
+3. Entry jump: a few cards jump when the section is first entered. Likely causes (verify): the loop only runs while the section is near the screen, so (a) the mouse spring starts at 0 and springs up to ~130px toward the pointer when the loop switches on, and (b) cards freeze with leftover lag (and parting) offsets when the loop switches off mid-motion. Fix: track the pointer page-wide in effects/pointer.js (latest position only; cheap); when the loop switches on, start the mouse spring AT the current pointer target (no spring-in) and the lag at zero; only switch the loop off once every card's offsets have settled (and it is off-screen).
+   Prove it with a frame-by-frame script: enter the section from above and from below, slow and fast scroll, mouse parked at a corner: no card may move more than a few px in one frame beyond what the scroll/mouse itself explains. Report the numbers before/after.
+4. Add .gitattributes (`* text=auto eol=lf`, plus binary types) and renormalise once, so Windows line endings stop showing as changes (docs/archive/requests-R11.md, data.json, footer.js, more-projects.js, base.css currently differ only by line endings).
+5. Full compare at 1920x1080 and 2560x1440 before committing.
+
 ## Later: Selected Work step 2 (WebGL edge bend)
 Plan: docs/plans/selected-work-section.md step 2. After Anh tunes R13 with the panel.
 
