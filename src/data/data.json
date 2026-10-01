@@ -20,17 +20,42 @@
     "ticker": "/media/brand/ticker.svg",
     "clickSound": "https://framerusercontent.com/assets/ozLRvG7UYmyT7nzrIc43elxSoAs.mp3",
     "captions": [
-      { "title": "Techcombank Priority", "client": "Techcombank", "role": "Art Direction" },
-      { "title": "Di De Tro Ve 09", "client": "Bitis", "role": "Art Direction" },
-      { "title": "Sulwhasoo Product Launch", "client": "Sulwhasoo", "role": "Art Direction" },
-      { "title": "Similac Virgo", "client": "Similac", "role": "Art Direction" }
+      { "title": "Techcombank Priority", "image": "https://framerusercontent.com/images/bLvFvrBSqevtM84melr3ffFML0.jpg", "client": "Techcombank", "role": "Art Direction" },
+      { "title": "Di De Tro Ve 09", "image": "https://framerusercontent.com/images/Ed5U3pkCuLOnCpsHlIcXi1CgPqo.jpg", "client": "Bitis", "role": "Art Direction" },
+      { "title": "Sulwhasoo Product Launch", "image": "https://framerusercontent.com/images/0VSrNQmftCfZjxH2F8hiAYfxxA.jpg", "client": "Sulwhasoo", "role": "Art Direction" },
+      { "title": "Similac Virgo", "image": "https://framerusercontent.com/images/YWTonqftN7SBxLUONPaxNkRdIJE.jpg", "client": "Similac", "role": "Art Direction" }
     ]
   },
   "about": {
     "label": "ABOUT",
     "text": "Vu Tuan Anh, Art Director. Based in Ho Chi Minh City with over 5 years of experience in design. I focus on turning ideas into thoughtful visuals - blending motion, layout, and typography to create work that feels clear, expressive, and alive."
   },
-  "spawnerImages": [],
+  "spawnerImages": [
+    "https://framerusercontent.com/images/YWTonqftN7SBxLUONPaxNkRdIJE.jpg",
+    "https://framerusercontent.com/images/dO1R9j1KjfxcscBJ5uhF6E5fbk.jpg",
+    "https://framerusercontent.com/images/YRsmqu0hKz1cUppWOZqJ54U3yzc.gif",
+    "https://framerusercontent.com/images/0VSrNQmftCfZjxH2F8hiAYfxxA.jpg",
+    "https://framerusercontent.com/images/ue0mnMQNJlWigsdLfwM5rQeRJxU.png",
+    "https://framerusercontent.com/images/bLvFvrBSqevtM84melr3ffFML0.jpg",
+    "https://framerusercontent.com/images/d3E12zoV8uGbDxN00yI5DKItzE.gif",
+    "https://framerusercontent.com/images/92cx3lxHIxyEarCLvP2BxKI9Ng.jpg",
+    "https://framerusercontent.com/images/JuaXo1QOueKaLbs09b8PfFUKpKo.png",
+    "https://framerusercontent.com/images/7ChLQF1FWlIsmm0K4gcXqRPZ8.jpg",
+    "https://framerusercontent.com/images/vnRzwgUH7uvpqoRCCWRLGLOvwQ.jpg",
+    "https://framerusercontent.com/images/feZNJaO2rFpJz1tp7lULn6PRjnY.jpg"
+  ],
+  "trailImages": [
+    "https://framerusercontent.com/images/dO1R9j1KjfxcscBJ5uhF6E5fbk.jpg",
+    "https://framerusercontent.com/images/v2gXtSHVAs4XAZBpNscwxo5w8GU.jpg",
+    "https://framerusercontent.com/images/gpYWKAwN8RI6MEMADCVsliY8Y5k.jpg",
+    "https://framerusercontent.com/images/dvNWo6QxJmqBjU5Viww45S6V4Us.jpg",
+    "https://framerusercontent.com/images/Cyn3wfDdmILlBHLBzVkQDUOPomU.jpg",
+    "https://framerusercontent.com/images/9ra3T6IhrRiDFo55c13eEIpc0.png",
+    "https://framerusercontent.com/images/k3rVctzPlMSgno5h2FiHz3xOfo.jpg",
+    "https://framerusercontent.com/images/bLvFvrBSqevtM84melr3ffFML0.jpg",
+    "https://framerusercontent.com/images/YWTonqftN7SBxLUONPaxNkRdIJE.jpg",
+    "https://framerusercontent.com/images/cxuWVpuy7nnTMVe898BkVjQm1I.jpg"
+  ],
   "selectedWorkCards": [
     { "id": 1, "x": -700.5, "y": 213.241, "w": 275, "h": 268, "layer": "layer2", "z": 3, "mouse": 50, "scroll": true, "src": "/media/selected-work/card-img-01.png" },
     { "id": 2, "x": -1067.5, "y": 188.241, "w": 311, "h": 177, "layer": "back", "z": 2, "mouse": 20, "scroll": false, "src": "/media/selected-work/card-img-02.jpg" },

@@ -13,6 +13,9 @@ import { buildMoreProjects } from './sections/more-projects.js';
 import { buildFooter } from './sections/footer.js';
 import { initNav } from './effects/nav.js';
 import { initClickSound } from './effects/clicksound.js';
+import { buildSpawner } from './effects/spawner.js';
+import { buildCaptionHover } from './effects/caption-hover.js';
+import { buildTrail } from './effects/trail.js';
 import { SCROLL } from './timeline.js';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -33,6 +36,10 @@ buildSelectedWork(app, data.selectedWorkCards);
 buildMoreProjects(app, data.moreProjects);
 buildFooter(app, data.footer, lenis);
 initNav(data.hero.wordmark, lenis);
+buildSpawner(app, data.spawnerImages);
+buildCaptionHover(app, data.hero.captions);
+const trail = buildTrail(app, data.trailImages);
+if (import.meta.env.DEV) window.__trail = trail; // dev only: the tuning panel and tools/scratch checks read the scroll points
 initClickSound(data.hero.clickSound);
 
 // Loader first: hold scrolling until what is visible on the first screen is ready.
@@ -48,4 +55,4 @@ runLoader(data.loader.text, firstScreen, hero.loadDeferred).then(() => {
 });
 
 // Dev only: ?tune opens the Selected Work tuning panel. The condition is a build-time constant, so none of this ships.
-if (import.meta.env.DEV && new URLSearchParams(location.search).has('tune')) import('./effects/tune-panel.js').then((m) => m.mountTunePanel());
+if (import.meta.env.DEV && new URLSearchParams(location.search).has('tune')) import('./effects/tune-panel.js').then((m) => m.mountTunePanel(trail));

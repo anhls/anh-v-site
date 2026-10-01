@@ -35,3 +35,17 @@ export function videoInfo(ref) {
   if (!m || m.type !== 'video') return null;
   return { webm: m.webm && `/media/${m.webm}`, mp4: `/media/${m.mp4}`, poster: `/media/${m.poster}` };
 }
+
+// The manifest entry of a converted image ({ source: {width, height}, files }) or null.
+export function imgInfo(ref) {
+  const m = entry(ref);
+  return m && m.type === 'image' ? m : null;
+}
+
+// { src, srcset } for setting an existing <img> from code (srcset is '' for anything not converted).
+export function imgSet(ref) {
+  const m = imgInfo(ref);
+  if (!m) return { src: ref, srcset: '' };
+  const files = [...m.files].sort((a, b) => a.width - b.width);
+  return { src: `/media/${files[files.length - 1].file}`, srcset: files.map((f) => `/media/${f.file} ${f.width}w`).join(', ') };
+}

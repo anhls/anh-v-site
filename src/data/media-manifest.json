@@ -6,7 +6,7 @@
    "height": 740
   },
   "alpha": true,
-  "sig": "1:745878:1790788580455",
+  "sig": "2:745878:1790788580455",
   "files": [
    {
     "file": "selected-work/card-img-01-367.webp",
@@ -29,7 +29,7 @@
    "height": 1172
   },
   "alpha": false,
-  "sig": "1:391215:1790788580508",
+  "sig": "2:391215:1790788580508",
   "files": [
    {
     "file": "selected-work/card-img-02-415.webp",
@@ -52,19 +52,19 @@
    "height": 868
   },
   "alpha": false,
-  "sig": "1:88650:1790788580532",
+  "sig": "2:88650:1790788580532",
   "files": [
    {
-    "file": "selected-work/card-img-03-603.webp",
-    "width": 603,
-    "height": 392,
-    "bytes": 10324
+    "file": "selected-work/card-img-03-1329.webp",
+    "width": 1329,
+    "height": 864,
+    "bytes": 30088
    },
    {
-    "file": "selected-work/card-img-03-1206.webp",
-    "width": 1206,
-    "height": 784,
-    "bytes": 26874
+    "file": "selected-work/card-img-03-1335.webp",
+    "width": 1335,
+    "height": 868,
+    "bytes": 31208
    }
   ]
  },
@@ -75,7 +75,7 @@
    "height": 1440
   },
   "alpha": true,
-  "sig": "1:2220158:1790788580764",
+  "sig": "2:2220158:1790788580764",
   "files": [
    {
     "file": "selected-work/card-img-04-281.webp",
@@ -98,7 +98,7 @@
    "height": 4500
   },
   "alpha": true,
-  "sig": "1:33801601:1790788584082",
+  "sig": "2:33801601:1790788584082",
   "files": [
    {
     "file": "selected-work/card-img-05-409.webp",
@@ -121,7 +121,7 @@
    "height": 1080
   },
   "alpha": false,
-  "sig": "1:785921:1790788586022",
+  "sig": "2:785921:1790788586022",
   "files": [
    {
     "file": "selected-work/card-img-07-545.webp",
@@ -144,7 +144,7 @@
    "height": 2970
   },
   "alpha": false,
-  "sig": "1:2313070:1790788586271",
+  "sig": "2:2313070:1790788586271",
   "files": [
    {
     "file": "selected-work/card-img-08-362.webp",
@@ -167,7 +167,7 @@
    "height": 3376
   },
   "alpha": false,
-  "sig": "1:15555687:1790788587806",
+  "sig": "2:15555687:1790788587806",
   "files": [
    {
     "file": "selected-work/card-img-09-910.webp",
@@ -190,7 +190,7 @@
    "height": 1348
   },
   "alpha": false,
-  "sig": "1:867743:1790788587906",
+  "sig": "2:867743:1790788587906",
   "files": [
    {
     "file": "selected-work/card-img-10-519.webp",
@@ -213,19 +213,19 @@
    "height": 1348
   },
   "alpha": false,
-  "sig": "1:293448:1790788587949",
+  "sig": "2:293448:1790788587949",
   "files": [
    {
-    "file": "selected-work/card-img-11-701.webp",
-    "width": 701,
-    "height": 525,
-    "bytes": 28124
+    "file": "selected-work/card-img-11-1154.webp",
+    "width": 1154,
+    "height": 864,
+    "bytes": 63420
    },
    {
-    "file": "selected-work/card-img-11-1402.webp",
-    "width": 1402,
-    "height": 1050,
-    "bytes": 86598
+    "file": "selected-work/card-img-11-1800.webp",
+    "width": 1800,
+    "height": 1348,
+    "bytes": 137256
    }
   ]
  },
@@ -236,7 +236,7 @@
    "height": 2000
   },
   "alpha": true,
-  "sig": "1:940558:1790788588066",
+  "sig": "2:940558:1790788588066",
   "files": [
    {
     "file": "selected-work/card-img-12-329.webp",
@@ -259,7 +259,7 @@
    "height": 1440
   },
   "alpha": false,
-  "sig": "1:720695:1790788588153",
+  "sig": "2:720695:1790788588153",
   "files": [
    {
     "file": "selected-work/card-img-13-409.webp",
@@ -282,7 +282,7 @@
    "height": 1920
   },
   "alpha": false,
-  "sig": "1:96104:1790788588177",
+  "sig": "2:96104:1790788588177",
   "files": [
    {
     "file": "selected-work/card-img-14-169.webp",
@@ -305,19 +305,19 @@
    "height": 2760
   },
   "alpha": false,
-  "sig": "1:8681365:1790788589041",
+  "sig": "2:8681365:1790788589041",
   "files": [
    {
-    "file": "selected-work/card-img-15-629.webp",
-    "width": 629,
-    "height": 472,
-    "bytes": 11392
+    "file": "selected-work/card-img-15-1152.webp",
+    "width": 1152,
+    "height": 864,
+    "bytes": 26264
    },
    {
-    "file": "selected-work/card-img-15-1258.webp",
-    "width": 1258,
-    "height": 944,
-    "bytes": 29620
+    "file": "selected-work/card-img-15-2304.webp",
+    "width": 2304,
+    "height": 1728,
+    "bytes": 70542
    }
   ]
  },
@@ -328,7 +328,7 @@
    "height": 1000
   },
   "alpha": true,
-  "sig": "1:473969:1790788589110",
+  "sig": "2:473969:1790788589110",
   "files": [
    {
     "file": "selected-work/card-img-16-352.webp",
@@ -351,7 +351,7 @@
    "height": 1536
   },
   "alpha": false,
-  "sig": "1:1530409:1790788589275",
+  "sig": "2:1530409:1790788589275",
   "files": [
    {
     "file": "selected-work/card-img-17-206.webp",
@@ -374,7 +374,7 @@
    "height": 1080
   },
   "alpha": false,
-  "sig": "1:247171:1790788589313",
+  "sig": "2:247171:1790788589313",
   "files": [
    {
     "file": "selected-work/card-img-18-406.webp",
@@ -397,7 +397,7 @@
    "height": 1080
   },
   "alpha": false,
-  "sig": "1:534793:1790788589379",
+  "sig": "2:534793:1790788589379",
   "files": [
    {
     "file": "selected-work/card-img-19-602.webp",
@@ -420,7 +420,7 @@
    "height": 2732
   },
   "alpha": false,
-  "sig": "1:8501923:1790788590226",
+  "sig": "2:8501923:1790788590226",
   "files": [
    {
     "file": "selected-work/card-img-20-431.webp",
@@ -443,7 +443,7 @@
    "height": 4000
   },
   "alpha": false,
-  "sig": "1:27334290:1790788592916",
+  "sig": "2:27334290:1790788592916",
   "files": [
    {
     "file": "selected-work/card-img-21-449.webp",
@@ -466,7 +466,7 @@
    "height": 1080
   },
   "alpha": false,
-  "sig": "1:1268569:1790788593058",
+  "sig": "2:1268569:1790788593058",
   "files": [
    {
     "file": "selected-work/card-img-22-723.webp",
@@ -489,7 +489,7 @@
    "height": 1172
   },
   "alpha": false,
-  "sig": "1:223823:1790788593094",
+  "sig": "2:223823:1790788593094",
   "files": [
    {
     "file": "selected-work/card-img-23-721.webp",
@@ -512,7 +512,7 @@
    "height": 1080
   },
   "alpha": false,
-  "sig": "1:160496:1790788593126",
+  "sig": "2:160496:1790788593126",
   "files": [
    {
     "file": "selected-work/card-img-24-544.webp",
@@ -535,7 +535,7 @@
    "height": 1500
   },
   "alpha": true,
-  "sig": "1:604030:1790788593204",
+  "sig": "2:604030:1790788593204",
   "files": [
    {
     "file": "selected-work/card-img-25-533.webp",
@@ -558,7 +558,7 @@
    "height": 1080
   },
   "alpha": false,
-  "sig": "1:331534:1790788593250",
+  "sig": "2:331534:1790788593250",
   "files": [
    {
     "file": "selected-work/card-img-26-257.webp",
@@ -581,7 +581,7 @@
    "height": 2000
   },
   "alpha": true,
-  "sig": "1:1753014:1790788593434",
+  "sig": "2:1753014:1790788593434",
   "files": [
    {
     "file": "selected-work/card-img-27-227.webp",
@@ -604,7 +604,7 @@
    "height": 1920
   },
   "alpha": false,
-  "sig": "1:206575:1790788593472",
+  "sig": "2:206575:1790788593472",
   "files": [
    {
     "file": "selected-work/card-img-28-201.webp",
@@ -627,7 +627,7 @@
    "height": 1303
   },
   "alpha": false,
-  "sig": "1:1621043:1790788593644",
+  "sig": "2:1621043:1790788593644",
   "files": [
    {
     "file": "selected-work/card-img-29-572.webp",
@@ -650,7 +650,7 @@
    "height": 1172
   },
   "alpha": false,
-  "sig": "1:237458:1790788596003",
+  "sig": "2:237458:1790788596003",
   "files": [
    {
     "file": "captions/caption-1-1800.webp",
@@ -667,7 +667,7 @@
    "height": 1080
   },
   "alpha": false,
-  "sig": "1:534793:1790788596071",
+  "sig": "2:534793:1790788596071",
   "files": [
    {
     "file": "captions/caption-2-1920.webp",
@@ -684,7 +684,7 @@
    "height": 1172
   },
   "alpha": false,
-  "sig": "1:210113:1790788596107",
+  "sig": "2:210113:1790788596107",
   "files": [
    {
     "file": "captions/caption-3-1800.webp",
@@ -701,7 +701,7 @@
    "height": 1172
   },
   "alpha": false,
-  "sig": "1:141732:1790788596136",
+  "sig": "2:141732:1790788596136",
   "files": [
    {
     "file": "captions/caption-4-1800.webp",
@@ -718,7 +718,7 @@
    "height": 1172
   },
   "alpha": false,
-  "sig": "1:210113:1790788596174",
+  "sig": "2:210113:1790788596174",
   "files": [
    {
     "file": "hero/s3_bottom-1800.webp",
@@ -735,7 +735,7 @@
    "height": 2250
   },
   "alpha": false,
-  "sig": "1:1192508:1790788596303",
+  "sig": "2:1192508:1790788596303",
   "files": [
    {
     "file": "hero/s3_middle-2560.webp",
@@ -758,13 +758,260 @@
    "height": 1080
   },
   "alpha": false,
-  "sig": "1:514938:1790788596369",
+  "sig": "2:514938:1790788596369",
   "files": [
    {
     "file": "hero/s3_top-1886.webp",
     "width": 1886,
     "height": 1080,
     "bytes": 85150
+   }
+  ]
+ },
+ "spawner/spawn-01": {
+  "type": "image",
+  "source": {
+   "width": 550,
+   "height": 310
+  },
+  "alpha": true,
+  "sig": "2:8209412:1790834327791",
+  "files": [
+   {
+    "file": "spawner/spawn-01-550.webp",
+    "width": 550,
+    "height": 310,
+    "bytes": 1104772
+   }
+  ]
+ },
+ "spawner/spawn-02": {
+  "type": "image",
+  "source": {
+   "width": 2000,
+   "height": 1340
+  },
+  "alpha": false,
+  "sig": "2:735860:1790834330111",
+  "files": [
+   {
+    "file": "spawner/spawn-02-1290.webp",
+    "width": 1290,
+    "height": 864,
+    "bytes": 91896
+   },
+   {
+    "file": "spawner/spawn-02-2000.webp",
+    "width": 2000,
+    "height": 1340,
+    "bytes": 198074
+   }
+  ]
+ },
+ "spawner/spawn-03": {
+  "type": "image",
+  "source": {
+   "width": 1000,
+   "height": 1000
+  },
+  "alpha": true,
+  "sig": "2:5999103:1790834349112",
+  "files": [
+   {
+    "file": "spawner/spawn-03-864.webp",
+    "width": 864,
+    "height": 864,
+    "bytes": 1553092
+   },
+   {
+    "file": "spawner/spawn-03-1000.webp",
+    "width": 1000,
+    "height": 1000,
+    "bytes": 1258654
+   }
+  ]
+ },
+ "spawner/spawn-04": {
+  "type": "image",
+  "source": {
+   "width": 2000,
+   "height": 2732
+  },
+  "alpha": false,
+  "sig": "2:2051096:1790834350378",
+  "files": [
+   {
+    "file": "spawner/spawn-04-633.webp",
+    "width": 633,
+    "height": 865,
+    "bytes": 57256
+   },
+   {
+    "file": "spawner/spawn-04-1266.webp",
+    "width": 1266,
+    "height": 1729,
+    "bytes": 351230
+   }
+  ]
+ },
+ "spawner/spawn-05": {
+  "type": "image",
+  "source": {
+   "width": 1800,
+   "height": 1172
+  },
+  "alpha": false,
+  "sig": "2:446055:1790834351425",
+  "files": [
+   {
+    "file": "spawner/spawn-05-1327.webp",
+    "width": 1327,
+    "height": 864,
+    "bytes": 134766
+   },
+   {
+    "file": "spawner/spawn-05-1800.webp",
+    "width": 1800,
+    "height": 1172,
+    "bytes": 198010
+   }
+  ]
+ },
+ "spawner/spawn-06": {
+  "type": "image",
+  "source": {
+   "width": 1800,
+   "height": 1172
+  },
+  "alpha": false,
+  "sig": "2:119462:1790834352142",
+  "files": [
+   {
+    "file": "spawner/spawn-06-1327.webp",
+    "width": 1327,
+    "height": 864,
+    "bytes": 29906
+   },
+   {
+    "file": "spawner/spawn-06-1800.webp",
+    "width": 1800,
+    "height": 1172,
+    "bytes": 44786
+   }
+  ]
+ },
+ "trail/trail-01": {
+  "type": "image",
+  "source": {
+   "width": 1800,
+   "height": 1172
+  },
+  "alpha": false,
+  "sig": "2:97257:1790834352908",
+  "files": [
+   {
+    "file": "trail/trail-01-267.webp",
+    "width": 267,
+    "height": 174,
+    "bytes": 2582
+   },
+   {
+    "file": "trail/trail-01-534.webp",
+    "width": 534,
+    "height": 348,
+    "bytes": 5646
+   }
+  ]
+ },
+ "trail/trail-02": {
+  "type": "image",
+  "source": {
+   "width": 1800,
+   "height": 1172
+  },
+  "alpha": false,
+  "sig": "2:357638:1790834353519",
+  "files": [
+   {
+    "file": "trail/trail-02-267.webp",
+    "width": 267,
+    "height": 174,
+    "bytes": 8322
+   },
+   {
+    "file": "trail/trail-02-534.webp",
+    "width": 534,
+    "height": 348,
+    "bytes": 28110
+   }
+  ]
+ },
+ "trail/trail-03": {
+  "type": "image",
+  "source": {
+   "width": 1400,
+   "height": 1960
+  },
+  "alpha": false,
+  "sig": "2:278560:1790834354202",
+  "files": [
+   {
+    "file": "trail/trail-03-267.webp",
+    "width": 267,
+    "height": 374,
+    "bytes": 7720
+   },
+   {
+    "file": "trail/trail-03-534.webp",
+    "width": 534,
+    "height": 748,
+    "bytes": 20550
+   }
+  ]
+ },
+ "trail/trail-04": {
+  "type": "image",
+  "source": {
+   "width": 2000,
+   "height": 1501
+  },
+  "alpha": false,
+  "sig": "2:239818:1790834354987",
+  "files": [
+   {
+    "file": "trail/trail-04-267.webp",
+    "width": 267,
+    "height": 200,
+    "bytes": 4468
+   },
+   {
+    "file": "trail/trail-04-534.webp",
+    "width": 534,
+    "height": 401,
+    "bytes": 12164
+   }
+  ]
+ },
+ "trail/trail-05": {
+  "type": "image",
+  "source": {
+   "width": 1800,
+   "height": 1172
+  },
+  "alpha": false,
+  "sig": "2:202412:1790834355741",
+  "files": [
+   {
+    "file": "trail/trail-05-267.webp",
+    "width": 267,
+    "height": 174,
+    "bytes": 4074
+   },
+   {
+    "file": "trail/trail-05-534.webp",
+    "width": 534,
+    "height": 348,
+    "bytes": 10930
    }
   ]
  },
@@ -776,7 +1023,7 @@
   "webm": "selected-work/card-img-06.webm",
   "mp4": "selected-work/card-img-06.mp4",
   "poster": "selected-work/card-img-06-poster.webp",
-  "sig": "1:18642779:1790788585931",
+  "sig": "2:18642779:1790788585931",
   "files": [
    {
     "file": "selected-work/card-img-06.webm",
@@ -800,7 +1047,7 @@
   "webm": "selected-work/watch-anim.webm",
   "mp4": "selected-work/watch-anim.mp4",
   "poster": "selected-work/watch-anim-poster.webp",
-  "sig": "1:145799:1790788601285",
+  "sig": "2:145799:1790788601285",
   "files": [
    {
     "file": "selected-work/watch-anim.webm",
@@ -824,7 +1071,7 @@
   "webm": "selected-work/card-img-30.webm",
   "mp4": "selected-work/card-img-30.mp4",
   "poster": "selected-work/card-img-30-poster.webp",
-  "sig": "1:23505924:1790788595959|1:15199299:1790788601235",
+  "sig": "2:23505924:1790788595959|2:15199299:1790788601235",
   "files": [
    {
     "file": "selected-work/card-img-30.webm",
@@ -847,7 +1094,7 @@
   "alpha": false,
   "mp4": "hero/video.mp4",
   "poster": "hero/poster.webp",
-  "sig": "1:332287:1790788596417",
+  "sig": "2:332287:1790788596417",
   "files": [
    {
     "file": "hero/video.mp4",
@@ -916,6 +1163,17 @@
   "https://framerusercontent.com/images/AlABm8NL9nRp1XFUf62ccnFB8.jpg": "hero/s3_middle",
   "https://framerusercontent.com/images/GI80tkeV6TMLMivUPNxVNB4I.png": "hero/s3_top",
   "https://framerusercontent.com/assets/Fj182DxNzTt7FJdPdgdLo4CAM0.mp4": "hero/video",
-  "https://framerusercontent.com/images/2sWL1DXbPXG6eGRplIQ3eWfr3I8.svg": "brand/ticker"
+  "https://framerusercontent.com/images/2sWL1DXbPXG6eGRplIQ3eWfr3I8.svg": "brand/ticker",
+  "https://framerusercontent.com/images/YRsmqu0hKz1cUppWOZqJ54U3yzc.gif": "spawner/spawn-01",
+  "https://framerusercontent.com/images/ue0mnMQNJlWigsdLfwM5rQeRJxU.png": "spawner/spawn-02",
+  "https://framerusercontent.com/images/d3E12zoV8uGbDxN00yI5DKItzE.gif": "spawner/spawn-03",
+  "https://framerusercontent.com/images/92cx3lxHIxyEarCLvP2BxKI9Ng.jpg": "spawner/spawn-04",
+  "https://framerusercontent.com/images/7ChLQF1FWlIsmm0K4gcXqRPZ8.jpg": "spawner/spawn-05",
+  "https://framerusercontent.com/images/vnRzwgUH7uvpqoRCCWRLGLOvwQ.jpg": "spawner/spawn-06",
+  "https://framerusercontent.com/images/gpYWKAwN8RI6MEMADCVsliY8Y5k.jpg": "trail/trail-01",
+  "https://framerusercontent.com/images/k3rVctzPlMSgno5h2FiHz3xOfo.jpg": "trail/trail-02",
+  "https://framerusercontent.com/images/dvNWo6QxJmqBjU5Viww45S6V4Us.jpg": "trail/trail-03",
+  "https://framerusercontent.com/images/Cyn3wfDdmILlBHLBzVkQDUOPomU.jpg": "trail/trail-04",
+  "https://framerusercontent.com/images/cxuWVpuy7nnTMVe898BkVjQm1I.jpg": "trail/trail-05"
  }
 }

@@ -2,23 +2,26 @@
 
 Only open and upcoming work lives here. Finished requests move to docs/archive/ (R1-R10: archive/requests-R1-R10.md, R11: archive/requests-R11.md, R11b: archive/requests-R11b.md, R11c: archive/requests-R11c.md, R12: archive/requests-R12.md, R13: archive/requests-R13.md, R13b: archive/requests-R13b.md).
 
-## R14 [done] media optimisation (item 7, git history, waits for Anh)
-Why now: public/media holds 147MB of unconverted originals (PNGs up to 33MB, GIFs 23MB and 18MB). Every local load, compare run and tuning session is slower for it, Cloudflare Pages refuses files over 25MB, and the files sit in git history.
-1. One batch script (tools/media.mjs; sharp for images, ffmpeg for video) that reads the originals in ../_site-media (via sources.tsv) and writes web versions into the repo. It skips files already converted (re-runs take seconds) and writes a manifest (file, width, height, bytes) the site reads.
-2. Images: WebP (AVIF where it is clearly smaller) at the size they are actually displayed, plus 2x for sharp screens (srcset), never larger than the original. Keep transparency for cut-out PNGs. Visually check a few cut-outs and the hero at 2560.
-3. GIFs -> short MP4 + WebM loops (muted, autoplay, loop, playsinline, poster frame); card 30 can use motion-sources/Final_VIS3.mp4, card 25 the PNG sequence in motion-sources/watch_anim/.
-4. Hero video: compress from the best source available (only the 720x540 live file exists so far), add a poster frame. Swap framerusercontent.com URLs for local files wherever a local original exists (hero, captions, More Projects strip, cards); list what still comes from live.
-5. Loading: preload only first-screen media (hero video poster, wordmark, Clash Display woff2); lazy-load cards and below-the-fold images.
-6. Report: total page weight before -> after, largest remaining file (must be < 25MB, ideally < 2MB), compare 1920 + 2560 unchanged.
-7. Git history: the originals added in f18bf0d stay in history (~147MB). The repo has no remote yet, so BEFORE the first push to GitHub they can be removed from history (git filter-repo or a fresh squashed start). Propose the method and ask Anh before rewriting anything; make a backup copy of the repo folder first.
-Also commit the untracked plan files in docs/plans/.
+## R15 [done] hero interactions (use Sonnet 5.5)
+All three are cursor effects: reuse the shared pointer + loop (effects/pointer.js, CLAUDE.md rule 3); each registers only while its range is on screen; off on touch (phone: tap-to-spawn comes with the responsive pass) and with prefers-reduced-motion. Measure live first for anything below marked "match live". Media: the optimised files from R14.
+
+1. Click spawner (match live; specs in HANDOFF.md "Click spawner"): click inside the top 100vh spawns an image at the click (size 60vh, min 30; spawn 0.4s easeOut, opacity 0->1, scale 0.2->1, 3D rotation X10 Y2 Z5 from X0 Y2 Z5, perspective 1200, spawnOrigin 0.7, overlap 8%, positionOffset 3vw), it floats 125vh and lives 8s with a 1s fade; max 8 on screen; shuffled image order with no immediate repeat; the click also plays the click sound (already built). Read which images live uses (data.json spawnerImages is empty).
+2. Caption hover image (match live; motion-spec section 8): hovering a hero caption shows that project's image (427x249) following the cursor on spring 500/60/1, offset x +50px, right of the cursor, bottom-aligned. Images: ../_site-media/captions (via R14).
+3. Image trail (Anh's design, NOT live's range: in Framer it was squeezed into an overlapping 150vh layer only because heavy overlapping layers broke GSAP/scroll there):
+   - Behaviour per spawn: match live's CursorImageTrail (frequency 25, visibleFor 0.5s, in-animation opacity/scale/blur on spring 300/30); measure the rest (images, size, spacing) on live.
+   - START: as soon as the hero mask shrink (hero video -> Anh's portrait) is about 60% done visually, i.e. the mask width is 60% of the way from full screen to 17vw. Compute that scroll point from the mask tween in timeline.js (ease expo.inOut over [0,70]); do not hard-code a guess.
+   - Runs through About and the project index.
+   - END: it does not stop at a hard edge. It overlaps into the Selected Work section a little and dies off slowly as you scroll on: an intensity factor from 1 to 0 over a scroll range starting around the top of Selected Work (211vh; propose the exact range), which lowers the spawn rate and the trail images' opacity/scale together, so the last images fade naturally.
+   - Put start, fade range and intensity curve in timeline.js and on the ?tune panel (trail frequency, visible time, fade-out start/end), included in Copy values.
+4. Performance: trail images come from a small reused pool (no new DOM per spawn); transforms/opacity only; blur only if it stays within budget at 2560 (report). Report slow frames while moving the mouse fast through About.
+5. Compare: no new probes needed for cursor effects; check by script that nothing spawns outside the ranges and that existing probes still pass at 1920x1080 and 2560x1440.
+Target screens to check (Anh's priority): 16:9 1920x1080, 2560x1440, 3840x2160 and MacBook 1440x900, 1512x982, 1728x1117. Card compare probes differ from live by design since Anh's tuned CARDS values (588/630 at 1920, 582/634 at 2560 after R14): ignore swL/swB mismatches, every other probe must pass.
 
 ## Queued (plans agreed with Anh, in this order; each becomes a request after the one before is committed)
-1. R15 hero interactions (click spawner, caption hover image, image trail with Anh's range): docs/plans/r15-hero-interactions.md
-2. R13c depth-driven parting + mouse push-away: docs/plans/r13c-depth-interaction.md
-3. R13d back-to-top A+ (A fallback): docs/plans/r13d-back-to-top.md
-4. Selected Work step 2, WebGL edge bend: docs/plans/selected-work-section.md
-5. Project pages (Bitis template first), Works page, tablet/phone, launch prep, then back-to-top "rewind" polish.
+1. R13c depth-driven parting + mouse push-away: docs/plans/r13c-depth-interaction.md
+2. R13d back-to-top A+ (A fallback) + More Projects list clears the returning wordmark: docs/plans/r13d-back-to-top.md
+3. Selected Work step 2, WebGL edge bend: docs/plans/selected-work-section.md
+4. Project pages (Bitis template first), Works page, tablet/phone, launch prep, then back-to-top "rewind" polish.
 
 ## Later: Selected Work step 2 (WebGL edge bend)
 Plan: docs/plans/selected-work-section.md step 2. After Anh tunes R13 with the panel.

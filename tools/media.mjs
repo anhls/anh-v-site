@@ -15,11 +15,12 @@ const SRC = resolve(ROOT, '../_site-media');
 const OUT = resolve(ROOT, 'public/media');
 const MANIFEST = resolve(ROOT, 'src/data/media-manifest.json');
 const FORCE = process.argv.includes('--force');
-const VERSION = 1; // bump when the encoding settings below change
+const VERSION = 2; // bump when the encoding settings below change
 
 const old = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, 'utf8')) : {};
 const manifest = {};
-const cards = JSON.parse(readFileSync(resolve(ROOT, 'src/data/data.json'), 'utf8')).selectedWorkCards;
+const data = JSON.parse(readFileSync(resolve(ROOT, 'src/data/data.json'), 'utf8'));
+const cards = data.selectedWorkCards;
 const outDir = (d) => (d === 'archive' ? 'selected-work' : d); // archive/ in the source folder is selected-work/ on the site
 
 // Rows of sources.tsv: site path, original, live URL, notes.
@@ -33,7 +34,12 @@ const cardBox = {};
 for (const c of cards) if (c.src.startsWith('/media/')) cardBox[basename(c.src, extname(c.src))] = { w: c.w, h: c.h };
 
 // Display width (px at 1920) per folder when there is no card box. Hero stills are full-bleed.
-const DEFAULT_W = { captions: 1920, hero: 1920, 'selected-work': 400 };
+const DEFAULT_W = { captions: 1920, hero: 1920, 'selected-work': 400, spawner: 648, trail: 200 };
+
+// Images also used by the click spawner (drawn up to 60vh tall: 648 px high at 1080) or the cursor trail (200 px square), by live URL.
+const liveKey = (u) => u.split('?')[0];
+const spawnerUrls = new Set((data.spawnerImages || []).map(liveKey));
+const trailUrls = new Set((data.trailImages || []).map(liveKey));
 
 const sig = (p) => { const s = statSync(p); return `${VERSION}:${s.size}:${Math.round(s.mtimeMs)}`; };
 const fresh = (key, s) => !FORCE && old[key]?.sig === s && old[key].files.every((f) => existsSync(resolve(OUT, f.file)));
@@ -46,11 +52,15 @@ async function image(row) {
   const file = resolve(SRC, row.site);
   const s = sig(file);
   if (fresh(key, s)) { manifest[key] = old[key]; return; }
-  const meta = await sharp(file).metadata();
+  const animated = extname(file).toLowerCase() === '.gif';
+  const meta = await sharp(file, { animated }).metadata();
+  const srcH = meta.pageHeight || meta.height; // an animated image reports all frames stacked in height
   const box = cardBox[name];
-  const aspect = meta.width / meta.height;
+  const aspect = meta.width / srcH;
   // Cover-fit: the image must cover w x h, so the needed width is the larger of w and h*aspect.
-  const need = box ? Math.max(box.w, box.h * aspect) : DEFAULT_W[dir] ?? 1920;
+  let need = box ? Math.max(box.w, box.h * aspect) : DEFAULT_W[dir] === 648 ? 648 * aspect : DEFAULT_W[dir] ?? 1920;
+  if (spawnerUrls.has(row.live)) need = Math.max(need, 648 * aspect);
+  if (trailUrls.has(row.live)) need = Math.max(need, 200);
   const w1 = Math.min(meta.width, Math.round(need * (2560 / 1920)));
   const w2 = Math.min(meta.width, w1 * 2);
   const widths = [...new Set([w1, w2])];
@@ -58,11 +68,11 @@ async function image(row) {
   const files = [];
   for (const w of widths) {
     const rel = `${dir}/${name}-${w}.webp`;
-    const info = await sharp(file).resize({ width: w, withoutEnlargement: true }).webp({ quality: 80, alphaQuality: 90, effort: 5 }).toFile(resolve(OUT, rel));
-    files.push({ file: rel, width: info.width, height: info.height, bytes: info.size });
+    const info = await sharp(file, { animated }).resize({ width: w, withoutEnlargement: true }).webp({ quality: animated ? 70 : 80, alphaQuality: 90, effort: animated ? 4 : 5 }).toFile(resolve(OUT, rel));
+    files.push({ file: rel, width: info.width, height: animated ? Math.round((info.width * srcH) / meta.width) : info.height, bytes: info.size });
   }
-  manifest[key] = { type: 'image', source: { width: meta.width, height: meta.height }, alpha: !!meta.hasAlpha, sig: s, files };
-  console.log('image', key, `${meta.width}x${meta.height}`, '->', files.map((f) => `${f.width}w ${(f.bytes / 1024).toFixed(0)}KB`).join(', '));
+  manifest[key] = { type: 'image', source: { width: meta.width, height: srcH }, alpha: !!meta.hasAlpha, sig: s, files };
+  console.log('image', key, `${meta.width}x${srcH}${animated ? ' animated' : ''}`, '->', files.map((f) => `${f.width}w ${(f.bytes / 1024).toFixed(0)}KB`).join(', '));
 }
 
 // Animated sources. input = ffmpeg input args; alpha = the source has transparency (WebM keeps it, MP4 is on black).
@@ -119,11 +129,11 @@ function copySvgs() {
   }
 }
 
-const animated = new Set(['card-img-06', 'card-img-30']);
+const cardGifs = new Set(['card-img-06', 'card-img-30']); // these become video loops (VIDEOS above)
 for (const row of rows) {
   const [folder, f] = row.site.split('/');
-  if (!['archive', 'captions', 'hero'].includes(folder) || !/\.(png|jpe?g)$/i.test(f)) continue;
-  if (animated.has(basename(f, extname(f)))) continue;
+  if (!['archive', 'captions', 'hero', 'spawner', 'trail'].includes(folder) || !/\.(png|jpe?g|gif)$/i.test(f)) continue;
+  if (folder === 'archive' && cardGifs.has(basename(f, extname(f)))) continue;
   await image(row);
 }
 for (const v of VIDEOS) await video(v);

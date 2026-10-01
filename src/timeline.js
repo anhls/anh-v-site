@@ -183,3 +183,27 @@ export const CARDS = {
 export const PARTING = { xMax: 0.2, xMin: 0.01, yMax: 0.3, yMin: 0.01, z: 1.1, lerp: 0.2, armed: 0.1 };
 // Where the cards sit: the section starts 211.11 capped vh down the page (2280px at 1080 and above); card y is vh from there.
 export const CARD_LAYOUT = { sectionTopCappedVh: 2280 / 10.8 };
+
+// Hero cursor effects (R15). Specs read from the published Framer code (Clickable_Frame, CursorImageTrail, caption hover).
+// Click spawner: a click in the top 100vh spawns an image (height random between minVh and sizeVh of the window), rises
+// floatVh over its lifetime and fades once its centre is above the top edge. rot = max random rotation (deg) at the end,
+// rotFrom = max random rotation at spawn. All px sizes below are at 1920 and follow the capped scale (src/scale.js).
+export const SPAWNER = {
+  sizeVh: 60, minVh: 30, lifetime: 8, fadeOut: 1, floatVh: 125,
+  rot: [10, 2, 5], rotFrom: [0, 2, 5],
+  spawnSec: 0.4, fromOpacity: 0, fromScale: 0.2, origin: 0.7, overlapPct: 8,
+  maxImages: 8, perspective: 1200, offsetVw: 3,
+};
+// Caption hover image: 427x249 right of the cursor (+50 px), bottom edge at the cursor, chasing it on a spring.
+export const CAPTION_HOVER = { w: 427, h: 249, offsetX: 50, spring: [500, 60, 1], fadeSec: 0.15 };
+// Cursor image trail. Live: a new image whenever the pointer is more than `spacing` px from the last one (frequency 25 ->
+// 200 - 24 * 199 / 49 = 102.5 px), each `size` px square, kept `visibleFor` s, then it shrinks away. Springs as live.
+// Anh's range (not live's): starts when the hero mask shrink is `startMaskShare` done (width that share of the way from
+// full screen to 17vw), runs through About and the project index, and fades out as the Selected Work section comes in:
+// the fade begins when that section's top reaches `fadeAtScreen` of the screen height (0 = top, 1 = bottom) and is over
+// `fadeLenVh` of scroll later. The intensity (1 -> 0, raised to `fadeCurve`) lowers the spawn rate and the opacity/scale.
+export const TRAIL = {
+  frequency: 25, visibleFor: 0.5, size: 200,
+  spring: [500, 60, 1], from: { opacity: 0, scale: 0.5 }, out: { opacity: 0, scale: 0.2 },
+  startMaskShare: 0.6, fadeAtScreen: 0.5, fadeLenVh: 75, fadeCurve: 1, minScale: 0.4, copiesPerImage: 2,
+};
