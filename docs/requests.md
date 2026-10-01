@@ -55,6 +55,21 @@ Also look at the one ~45 ms frame at the start of each R13c test run (first fram
 
 ## R16 [done] (archived in docs/archive/requests-R16.md)
 
+## R17 (next): hover polish — card wobble, card hover (dark layer + enlarge), hero caption hover (use Sonnet 5.5)
+From Anh (2026-10-02), testing R13g while R16 runs.
+
+1. Wobble when the cursor sits ON a card. Likely cause (verify): the push is computed from the card's CURRENT (already pushed) position: the card moves away, the pointer is now somewhere else on/near it, the direction (pointer -> card centre) swings and the distance (to the card edge, 0 inside the card) flips, so it oscillates. Fix:
+   - compute the push from each card's position WITHOUT its own push (base + aura + drift + lag), so the push cannot feed back into itself;
+   - the HOVERED card (pointer inside it) is exempt from the push: its push eases to 0 and it responds with the hover effect (item 2) instead; neighbours are still pushed;
+   - inside-card / edge cases must be continuous (no direction flips): e.g. smooth the direction, or fade strength in from the card edge.
+   Prove it: pointer parked on a card centre, on its edge and moving slowly across it, at the 6 target screens: card offset must settle (no oscillation; report max swing over 2 s).
+2. Card hover like live (measure live first): some cards have a dark layer that fades away on mouseover (cards.json item "ImageGalleryItem2 (dark bg frame)" is the likely set: confirm), and every card scales up slightly on mouseover. Match live's darkness, scale, timing/spring, and which cards have the dark layer. Hit-test from the cached card rects in the existing loop (cards keep pointer-events off; no DOM reads in the loop). Must work in BOTH renderers: the R16 WebGL cards (darkness + scale as shader/plane values) and the DOM fallback. Topmost card under the pointer wins when cards overlap. Off on touch / reduced motion (no dark layer then, or keep it static: follow live).
+3. Hero caption hover (measure live first):
+   - live animates the caption TEXT on mouseover (not only the image that follows): reproduce that text animation (likely a letter roll / slide like the nav and More Projects names; confirm on live).
+   - the caption image currently pops in (0.15 s fade, not measured). Make it appear smoothly: measure live's in/out; then an eased reveal (opacity + slight scale or a clip/mask reveal from the cursor side, ~0.3-0.4 s), a smooth hide, and a crossfade (not a hard swap) when moving from one caption to the next. Values on ?tune (reveal duration, scale, offset spring) and in Copy values.
+4. Checks: the 6 target screens; frame time while hovering cards and sweeping captions (also vs 8.3 ms for 120 Hz MacBooks); compare unchanged.
+5. Note: R16 cards render in WebGL (DOM fallback). Card hover must work in both. Commit in two parts if it helps (cards, then captions).
+
 ## Queued (plans agreed with Anh, in this order; each becomes a request after the one before is committed)
 2. Project pages (Bitis template first), Works page, tablet/phone, launch prep, then back-to-top "rewind" polish.
 3. Check later (low priority, Anh 2026-10-02): 4K at 100% scaling (3840x2160 CSS) squeezes the capped section positions (Selected Work ~1 screen down, trail barely runs). Consider letting section positions keep scaling on very tall viewports.
