@@ -25,7 +25,16 @@ Match live's look:
 - Add one "weight" slider on ?tune (overall heaviness/floatiness of the aura motion); keep the other aura sliders. Put the fitted values as defaults.
 - Accept brief overlap during fast scrolling; once settled every card clears the frame (min gap). Recheck at the 6 target screens; frame time; compare 574/574 (cards skipped).
 
-## R13d (after R13f): back-to-top A+ / A fallback + More Projects list clears the wordmark (Sonnet 4.6 is fine)
+## R13g (next, BEFORE R13d): card-to-card overlap guard (use Sonnet 5.5)
+Anh's tuned values from R13f are now the defaults (CARDS aura 580/175/120, depthRange 0.15, push 245/60, LAYOUT seed 37315, scatter 225, centreBand 560, minGap 81). Problem seen at 2560: the aura herds cards into the side gutters between the frame and the screen edge, so cards pile up and a front card covers most of the card behind it (e.g. the "10" card over the billboard card, the knot logo over the "What's your next" text card).
+Safeguard (motion time, on top of the layout's minGap which only holds at rest):
+1. After each card's target (aura + push + drift) is computed, run a soft card-to-card separation on the TARGETS of the cards currently on screen (2-3 relaxation passes, pairwise; 35 cards is cheap): when two cards overlap by more than maxCover (share of the SMALLER card's area hidden, default ~20%), push them apart along the axis of least overlap, both moving, the front card a bit more (so the back card is revealed). Cards still travel on their springs (no snapping); separation must be continuous (no target jumps).
+2. The frame aura wins over separation (never push a card back into the frame); cards may bleed off the screen edge rather than pile up; prefer vertical separation when the gutter is too narrow for horizontal.
+3. Small overlaps are welcome (they give depth); only heavy covering is prevented.
+4. ?tune: max cover %, separation strength, passes; in Copy values.
+5. Checks at the 6 target screens: scroll through Selected Work (mouse parked, then with mouse sweeps) and report the worst pairwise coverage once settled (must be <= maxCover) and during motion; frame time; compare 574/574 (cards skipped).
+
+## R13d (after R13g): back-to-top A+ / A fallback + More Projects list clears the wordmark (Sonnet 4.6 is fine)
 Problem: the footer link smooth-scrolls the whole page back to the top, replaying every scrubbed animation, 35 cards and image loads, so it is long and laggy.
 - A+ (default): everything EXCEPT the big AV wordmark fades to black (~0.4s, ONE black overlay layered just below the wordmark, opacity only) -> instant jump to scrollY 0 while hidden (Lenis scrollTo(0, { immediate: true }), ScrollTrigger.update, every section in its top state, nav in its big state, no loader replay) -> the hero fades back in around the wordmark (~0.6s). The wordmark is big at the footer and big at the top: it must not move or flicker.
 - A (fallback): same, overlay above everything (wordmark included). Use when navigator.hardwareConcurrency <= 4, navigator.deviceMemory <= 4 (when available) or Save-Data is on. No frame-time measuring.

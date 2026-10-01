@@ -170,36 +170,36 @@ export const INDEX = {
 // Anh's tuned values (R13b): mouse 1.3, depth range 0.85, lag 0.9 / 0.03 s / 0.25 s.
 export const CARDS = {
   // R13e: the aura around the frame replaces live's parting (partingSoftness / partingBounce still shape the settle).
-  auraMargin: 500,
-  auraStrength: 160,
+  auraMargin: 580,
+  auraStrength: 175,
   auraVertical: 120,
   auraFalloff: 1,
   auraClearance: 1,
-  auraMinGap: 24,
+  auraMinGap: 50,
   auraWeight: 1,
   partingSoftness: 0.8,
-  partingBounce: 0.25,
+  partingBounce: 0.1,
   mouseStrength: 0.5,
   mouseStiffness: 1375,
   mouseDamping: 100,
-  depthRange: 0.85,
+  depthRange: 0.15,
   lagStrength: 0.9,
   lagFrontSec: 0.03,
   lagBackSec: 0.25,
   // R13c: mouse push-away. Cards within pushRadius (px at 1920, measured from the card's edge) of the pointer are pushed away
   // from it, up to pushStrength px at the pointer, fading with (1 - distance / radius) ^ pushFalloff (1 = linear, 2 = softer
   // edge), times the depth weight, on a spring (pushStiffness / pushDamping).
-  pushRadius: 380,
-  pushStrength: 130,
-  pushFalloff: 1.6,
-  pushStiffness: 300,
+  pushRadius: 245,
+  pushStrength: 60,
+  pushFalloff: 1.9,
+  pushStiffness: 190,
   pushDamping: 30,
 };
 // R13c: the card layout is generated from a seed (src/data/layout.js) out of each card's Framer position. Positions in the
 // data are the starting point; same seed + values = same layout every time. scatter: max px a card may move sideways;
 // centreShare: share of cards pulled to start near or across the centre line, within centreBand px of it; minGap: px kept
 // between cards on neighbouring depths; yJitter: max vh a card may move up or down.
-export const LAYOUT = { seed: 7, scatter: 120, centreShare: 0.3, centreBand: 260, minGap: 20, yJitter: 8 };
+export const LAYOUT = { seed: 37315, scatter: 225, centreShare: 0.3, centreBand: 560, minGap: 81, yJitter: 8 };
 // Live's constants, fixed (not tunable): parting target = t * (0.01W + 0.19W * (1 - f)) * 1.1 sideways and
 // t * (0.01H + 0.29H * (1 - f)) * 1.1 down (live eases to them at 0.2 per 60 fps frame; we use the CARDS spring); a card is armed once 10% of it has been visible.
 export const PARTING = { xMax: 0.2, xMin: 0.01, yMax: 0.3, yMin: 0.01, z: 1.1, lerp: 0.2, armed: 0.1 };
