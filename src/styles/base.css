@@ -300,7 +300,7 @@ html.lenis, html.lenis body { height: auto; }
 .about__sticky { z-index: 3; }
 
 /* Placeholders (empty until their own requests). Heights/offsets are set inline from src/timeline.js. */
-.index { position: relative; z-index: 4; }
+.index { position: relative; z-index: 5; } /* above Selected Work (4): the project title stays readable over the cards (R16) */
 .index__blank { height: 50vh; }
 .index__sticky { position: sticky; top: 0; height: 100vh; z-index: 6; }
 /* Three bands in the same place; each clips its row, which slides up/down inside it (src/sections/project-index.js). */
