@@ -23,15 +23,15 @@ body { background: #000; color: #fff; font-family: var(--font-display); }
 .pj__h2 { margin: 0; font-size: clamp(2.25rem, calc(var(--ux) * 3.333), 6rem); line-height: 1; font-weight: 500; letter-spacing: -0.01em; }
 .pj__h4, .pj__small, .pj__row { font-size: clamp(0.75rem, calc(var(--ux) * 0.833), 1.25rem); line-height: 1; }
 .pj__h4 { margin: 0; font-weight: 500; }
-.pj__small { margin: 0; font-weight: 400; color: rgba(255, 255, 255, 0.5); }
-.pj__small strong, .pj__note strong { color: #fff; font-weight: 700; }
+.pj__small { margin: 0; font-weight: 400; opacity: 0.5; }
+.pj__small strong, .pj__note strong { font-weight: 700; } /* bold runs stay inside the 50 % container (live: opacity .5 on the wrapper, strong is white 700) */
 
 /* Details: 60px padding, two 1fr columns with no gap; rows 52px apart; paragraph 66px under the last row */
 .pj__details { display: grid; grid-template-columns: 1fr 1fr; padding: calc(var(--ux) * 3.125); background: #000; align-items: start; }
 .pj__dl { display: grid; gap: calc(var(--ux) * 0.52); }
 .pj__rows { margin-top: calc(var(--ux) * 2.604); padding-top: calc(var(--ux) * 0.83); display: grid; gap: calc(var(--ux) * 1.875); }
 .pj__row { display: grid; grid-template-columns: 1fr 1fr; }
-.pj__row span:first-child { color: rgba(255, 255, 255, 0.5); font-weight: 400; }
+.pj__row span:first-child { opacity: 0.5; font-weight: 400; }
 .pj__row span:last-child { font-weight: 500; }
 .pj__body { margin-top: calc(var(--ux) * 3.44); }
 
@@ -40,7 +40,7 @@ body { background: #000; color: #fff; font-family: var(--font-display); }
 .pj__cell--head { flex-direction: column; align-items: flex-start; justify-content: space-evenly; padding: calc(var(--ux) * 3.125) calc(var(--ux) * 3.125) calc(var(--ux) * 3.125) 0; }
 .pj__cell--head .pj__small { width: 50%; }
 .pj__cell--copy:not(.pj__cell--head) .pj__small { width: var(--pw, 100%); line-height: 1; }
-.pj__note--pin { position: absolute; left: calc(var(--ux) * 6.25); right: calc(var(--ux) * 6.25); bottom: calc(var(--ux) * 3.125); margin: 0; font-size: clamp(0.75rem, calc(var(--ux) * 0.833), 1.25rem); line-height: 1; font-weight: 400; color: rgba(255, 255, 255, 0.5); z-index: 1; }
+.pj__note--pin { position: absolute; left: calc(var(--ux) * 6.25); right: calc(var(--ux) * 6.25); bottom: calc(var(--ux) * 3.125); margin: 0; font-size: clamp(0.75rem, calc(var(--ux) * 0.833), 1.25rem); line-height: 1; font-weight: 400; opacity: 0.5; z-index: 1; }
 .pj__note--low { bottom: calc(var(--uy) * 18.52); }
 
 /* Three-up: 800px tall row centred in the 100vh section, each column 1/3 */
@@ -52,7 +52,10 @@ body { background: #000; color: #fff; font-family: var(--font-display); }
 /* YouTube: still + play button, then the player */
 .pj__yt { background: #38f; z-index: 1; }
 .pj__ytbtn { position: relative; display: block; width: 100%; height: 100%; padding: 0; border: 0; background: #000; cursor: pointer; }
-.pj__play { position: absolute; left: 50%; top: 50%; width: calc(var(--ux) * 4.4); height: calc(var(--ux) * 3.1); translate: -50% -50%; border-radius: 0.8vw; background: #f00; }
+.pj__play { position: absolute; left: 50%; top: 50%; width: calc(var(--ux) * 4.4); height: calc(var(--ux) * 3.1); translate: -50% -50%; border-radius: 0.8vw; background: rgba(33, 33, 33, 0.8); transition: background-color 0.1s; }
+.pj__yt:hover .pj__play { background: #f00; } /* YouTube's own player: dark button at rest, red while the pointer is over the player */
+/* Project pages (live): the nav links are plain white, no difference blend as on the home page */
+.nav { mix-blend-mode: normal; }
 .pj__play::before { content: ''; position: absolute; left: 50%; top: 50%; translate: -35% -50%; border-style: solid; border-width: calc(var(--ux) * 0.6) 0 calc(var(--ux) * 0.6) calc(var(--ux) * 1.05); border-color: transparent transparent transparent #fff; }
 .pj__frame { display: block; width: 100%; height: 100%; border: 0; }
 
@@ -76,3 +79,23 @@ body { background: #000; color: #fff; font-family: var(--font-display); }
 .pj__note--center { left: 50%; right: auto; translate: -50% 0; }
 .pj__body { white-space: pre-line; }
 .pj__full > .pj__img[style*="--hpx"] { height: var(--hpx); }
+
+/* R21: free-layout stage (items placed with css), pinned scroller. */
+.pj__stage { position: relative; width: 100%; overflow: hidden; background: #000; }
+.pj__stage--visible { overflow: visible; }
+.pj__si { position: absolute; }
+.pj__si > .pj__img { width: 100%; height: 100%; }
+.pj__st { margin: 0; line-height: 1; white-space: pre-line; }
+.pj__st--light { font-weight: 300; }
+.pj__sg { position: absolute; display: flex; flex-direction: column; justify-content: center; }
+.pj__sg > .pj__si { position: static; }
+.pj__sg > .pj__st { width: 100%; }
+.pj__scroller { position: relative; width: 100%; background: #000; }
+.pj__pin { position: sticky; top: 0; height: 100vh; overflow: hidden; }
+.pj__layer { position: absolute; will-change: transform; }
+.pj__layer--top { z-index: 1; }
+.pj__layer > .pj__si { position: relative; }
+.pj__scroller--plain { height: auto !important; }
+.pj__scroller--plain .pj__pin { position: relative; height: auto; overflow-x: auto; display: flex; align-items: center; gap: calc(var(--ux) * 3.125); padding: calc(var(--ux) * 3.125); }
+.pj__scroller--plain .pj__layer { position: static; flex: none; transform: none !important; }
+.pj__scroller--plain .pj__layer > .pj__si { height: calc(var(--uy) * 56); }

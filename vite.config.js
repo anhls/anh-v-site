@@ -12,6 +12,8 @@ export default defineConfig({
         bitis09: resolve(__dirname, 'work/bitis09.html'),
         similac: resolve(__dirname, 'work/similac.html'),
         forbes: resolve(__dirname, 'work/forbes.html'),
+        sulwhasoo: resolve(__dirname, 'work/sulwhasoo.html'),
+        'tcb-priority': resolve(__dirname, 'work/tcb-priority.html'),
         work: resolve(__dirname, 'work/index.html'), // placeholder Works page
       },
     },

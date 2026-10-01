@@ -177,6 +177,14 @@ const PROJECT_MEDIA = {
       '14': { src: 'forbes/vid-14.mp4', maxW: 1920 }, '18a': { src: 'forbes/vid-18a.mp4', maxW: 1440 },
     },
   },
+  sulwhasoo: {
+    images: { 'b04a': 'sulwhasoo/b04a.png', 'b06a': 'sulwhasoo/b06a.jpg', 'b06b': 'sulwhasoo/b06b.jpg', 'b10a': 'sulwhasoo/b10a.png', 'b10b': 'sulwhasoo/b10b.png', 'b11b': 'sulwhasoo/b11b.png', 'b12a': 'sulwhasoo/b12a.png', 'b12b': 'sulwhasoo/b12b.png', 'b13a': 'sulwhasoo/b13a.jpg', 'b13b': 'sulwhasoo/b13b.jpg', 'b15a': 'sulwhasoo/b15a.png', 'b15b': 'sulwhasoo/b15b.png', 'b17a': 'sulwhasoo/b17a.jpg' },
+    loops: { 'b08a': { src: 'sulwhasoo/b08a.mp4', maxW: 1920 }, 'b11a': { src: 'sulwhasoo/b11a.mp4', maxW: 1280 }, 'b12c': { src: 'sulwhasoo/b12c.gif', maxW: 960, alpha: true }, 'b16a': { src: 'sulwhasoo/b16a.gif', maxW: 640 }, 'b16b': { src: 'sulwhasoo/b16b.gif', maxW: 640 }, 'b16c': { src: 'sulwhasoo/b16c.gif', maxW: 960, alpha: true }, 'b19a': { src: 'sulwhasoo/b19a.mp4', maxW: 1920 }, 'b20a': { src: 'sulwhasoo/b20a.mp4', maxW: 1440 }, 'b20b': { src: 'sulwhasoo/b20b.gif', maxW: 960, alpha: true }, 'b21a': { src: 'sulwhasoo/b21a.mp4', maxW: 1920 } },
+  },
+  'tcb-priority': {
+    images: { 'b04a': 'tcb-priority/b04a.png', 'b06a': 'tcb-priority/b06a.jpg', 'b06b': 'tcb-priority/b06b.jpg', 'b10a': 'tcb-priority/b10a.png', 'b13a': 'tcb-priority/b13a.jpg', 'b13c': 'tcb-priority/b13c.jpg', 'b15a': 'tcb-priority/b15a.jpg', 'b15b': 'tcb-priority/b15b.png', 'b15c': 'tcb-priority/b15c.png', 'b17a': 'tcb-priority/b17a.jpg', 'b17b': 'tcb-priority/b17b.jpg', 'b18a': 'tcb-priority/b18a.jpg', 'b18b': 'tcb-priority/b18b.jpg', 'b21a': 'tcb-priority/b21a.png', 'b21b': 'tcb-priority/b21b.jpg', 'b21c': 'tcb-priority/b21c.jpg', 'b21d': 'tcb-priority/b21d.jpg', 'b21e': 'tcb-priority/b21e.jpg', 'b21f': 'tcb-priority/b21f.jpg', 'b22a': 'tcb-priority/b22a.jpg', 'b23a': 'tcb-priority/b23a.jpg', 'b23b': 'tcb-priority/b23b.jpg', 'b24a': 'tcb-priority/b24a.jpg', 'b26a': 'tcb-priority/b26a.png', 'b26b': 'tcb-priority/b26b.png', 'b26c': 'tcb-priority/b26c.jpg', 'b26e': 'tcb-priority/b26e.png', 'b26f': 'tcb-priority/b26f.jpg', 'b26g': 'tcb-priority/b26g.png', 'b27a': 'tcb-priority/b27a.png', 'b27b': 'tcb-priority/b27b.jpg', 'b28a': 'tcb-priority/b28a.png' },
+    loops: { 'b10b': { src: 'tcb-priority/b10b.mp4', maxW: 1440 }, 'b12a': { src: 'tcb-priority/b12a.gif', maxW: 1280 }, 'b13b': { src: 'tcb-priority/b13b.gif', maxW: 640 }, 'b14a': { src: 'tcb-priority/b14a.gif', maxW: 960, alpha: true }, 'b16a': { src: 'tcb-priority/b16a.gif', maxW: 640 }, 'b16b': { src: 'tcb-priority/b16b.gif', maxW: 640 }, 'b16c': { src: 'tcb-priority/b16c.mp4', maxW: 1440 }, 'b19a': { src: 'tcb-priority/b19a.mp4', maxW: 1920 }, 'b26d': { src: 'tcb-priority/b26d.gif', maxW: 1280 } },
+  },
 };
 
 // R18: images that data.json still pointed at on the live host (they were loaded unoptimised from framerusercontent.com). The originals are

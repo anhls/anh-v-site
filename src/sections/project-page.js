@@ -5,6 +5,13 @@ import { imgAttrs, videoInfo } from '../util/media.js';
 // placed by % of the cell), figure (image + paragraphs under it), empty. Sizes in px are the 1920x1080 values and become --uy / --ux units.
 const SAFARI = /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+// Free-layout css: values may use `Nu` (N px at 1920 wide) and `Nv` (N px at 1080 high), scaled by --ux / --uy (fixed above 1920x1080), also inside calc().
+const unit = (v) => {
+  const raw = String(v);
+  const r = raw.replace(/(-?\d+(?:\.\d+)?)([uv])(?![a-z%])/g, (m, n, k) => (k === 'u' ? `(var(--ux) * ${(n / 19.2).toFixed(4)})` : `(var(--uy) * ${(n / 10.8).toFixed(4)})`));
+  return r === raw || /calc\(/.test(raw) || !/\(var/.test(r) ? r : `calc(${r})`;
+};
+const cssText = (o) => Object.entries(o || {}).map(([k, v]) => `${k.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase())}:${unit(v)}`).join(';');
 const lines = (a) => a.map(esc).join('<br>');
 // text with **bold** parts (Framer rich text: bold = weight 700, full white on the 50 % white paragraph)
 const rich = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
@@ -53,6 +60,13 @@ function fadeText(text) {
   return { html, n: i };
 }
 
+const stageItem = (it) => {
+  if (it.kind === 'group') return `<div class="pj__sg" style="${cssText(it.css)}">${it.items.map(stageItem).join('')}</div>`;
+  if (it.kind === 'text') return `<p class="pj__small pj__si pj__st${it.light ? ' pj__st--light' : ''}" style="${cssText(it.css)}">${rich(it.body)}</p>`;
+  if (it.kind === 'heading') return `<h2 class="pj__h2 pj__si" style="${cssText(it.css)}">${lines(it.lines)}</h2>`;
+  return `<div class="pj__si" style="${cssText(it.css)}">${media(it, '50vw')}</div>`;
+};
+
 const block = {
   hero: (b) => `<section class="pj__sec pj__hero">${img({ ref: b.img, fit: 'cover', parallax: b.parallax }, '100vw', true)}</section>`,
   text: (b) => {
@@ -64,6 +78,11 @@ const block = {
   full: (b) => `<section class="pj__sec pj__full${b.align === 'start' ? ' pj__full--top' : ''}" style="${b.hpx ? `height:${uy(b.hpx)};--tall:${uy(b.hpx)};` : ''}${b.tall ? `--tall:${(b.tall / 10.8).toFixed(3)}vh` : ''}">${media(b.img, '100vw')}${b.note ? `<p class="pj__note pj__note--pin pj__note--center" style="width:calc(var(--ux) * ${(b.note.w / 19.2).toFixed(3)});bottom:calc(var(--uy) * ${(b.note.bottom / 10.8).toFixed(3)})">${esc(b.note.body)}</p>` : ''}</section>`,
   youtube: (b) => `<section class="pj__sec pj__yt" data-yt="${b.id}" data-title="${esc(b.title)}"><button class="pj__ytbtn" type="button" aria-label="Play video: ${esc(b.title)}"><img class="pj__img pj__img--cover" alt="" data-src="https://i.ytimg.com/vi/${b.id}/maxresdefault.jpg" data-fallback="https://i.ytimg.com/vi/${b.id}/hqdefault.jpg"><span class="pj__play"></span></button></section>`,
   details: (b) => `<section class="pj__details"><div class="pj__dl">${b.title.map((t) => `<p class="pj__h2">${esc(t)}</p>`).join('')}</div><div class="pj__dr"><p class="pj__h4">${esc(b.heading)}</p><div class="pj__rows">${b.rows.map(([k, v]) => `<div class="pj__row"><span>${esc(k)}</span><span>${lines(v)}</span></div>`).join('')}</div><p class="pj__small pj__body">${rich(b.body)}</p></div></section>`,
+  // Free layout block: items placed with css (units above). height: { vh } or { px } (a fixed px height like live's 4070 mosaic).
+  stage: (b) => `<section class="pj__stage${b.visible ? ' pj__stage--visible' : ''}" style="height:${b.h && b.h.css ? unit(b.h.css) : b.h && b.h.px ? uy(b.h.px) : `${(b.h && b.h.vh) || 100}vh`}">${b.items.map(stageItem).join('')}</section>`,
+  // Pinned horizontal scroller (live: TCB "Key Visual Exploration"): a sticky 100vh stage inside a tall section; every layer slides on its own
+  // linear tx(scroll) between `from` and `to` while the page scroll goes from `start` to `end` px into the section.
+  scroller: (b) => `<section class="pj__scroller" data-start="${b.start}" data-end="${b.end}" style="height:${uy(b.hpx)}"><div class="pj__pin">${b.layers.map((l) => `<div class="pj__layer${l.z ? ' pj__layer--top' : ''}" data-from="${l.from}" data-to="${l.to}" style="${cssText(l.css)}">${(l.items || []).map(stageItem).join('')}</div>`).join('')}</div></section>`,
   threeup: (b) => `<section class="pj__sec pj__three">${b.cells.map((c) => `<div class="pj__cell pj__cell--3">${img(c, '33vw')}${c.caption ? `<p class="pj__small pj__cap">${esc(c.caption)}</p>` : ''}</div>`).join('')}</section>`,
 };
 
@@ -124,6 +143,23 @@ export function buildProjectPage(root, page, lenis) {
     lenis.on('scroll', () => { const sy = window.scrollY; seen.forEach((el) => place(el, sy)); });
     window.addEventListener('resize', () => { rate = PAR.k / (window.innerHeight + PAR.e); seen.forEach((el) => place(el, window.scrollY)); });
   } else pars.forEach((el) => { el.style.transform = `scale(${el.dataset.s})`; }); // reduced motion: the start pose, no movement
+
+  // Pinned horizontal scrollers: transform only, only while the section is near the screen; reduced motion = a plain horizontally scrolling row.
+  root.querySelectorAll('.pj__scroller').forEach((sec) => {
+    const layers = [...sec.querySelectorAll('.pj__layer')];
+    if (reduce) { sec.classList.add('pj__scroller--plain'); return; }
+    let top = 0, kx = 1, ky = 1, on = false;
+    const measure = () => { top = sec.getBoundingClientRect().top + window.scrollY; kx = Math.min(window.innerWidth, 1920) / 1920; ky = Math.min(window.innerHeight, 1080) / 1080; };
+    const start = +sec.dataset.start, end = +sec.dataset.end;
+    const update = () => {
+      const u = Math.min(Math.max((window.scrollY - top - start * ky) / ((end - start) * ky), 0), 1);
+      layers.forEach((l) => { l.style.transform = `translate3d(${((+l.dataset.from + u * (+l.dataset.to - +l.dataset.from)) * kx).toFixed(2)}px,0,0)`; });
+    };
+    measure(); update();
+    new IntersectionObserver((es) => { on = es[0].isIntersecting; if (on) { measure(); update(); } }, { rootMargin: '20% 0px' }).observe(sec);
+    lenis.on('scroll', () => { if (on) update(); });
+    window.addEventListener('resize', () => { measure(); update(); });
+  });
 
   // Videos: source chosen and loaded on first approach, played only while on screen (still poster with reduced motion).
   const vidIo = new IntersectionObserver((es) => es.forEach((e) => {

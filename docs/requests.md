@@ -139,7 +139,7 @@ Anh (2026-10-02): rebuild the remaining project pages AS THEY ARE ON LIVE for no
 5. Same nav, footer, Go Back To Top and wordmark behaviour as bitis09 (shared code, no copies). More Projects / home links to both pages point to the new routes.
 6. Proof (quick mode): screenshot pairs live vs ours at rest and at 3 scroll points in each parallax block, 1920 + 2560, to tools/scratch/r20-shots/; page height and section tops within a few px of live; compare 542/542 for home; build ok. Log in status.md.
 
-## R21 (next, quick mode): Sulwhasoo + Techcombank Priority pages, faithful to live (use Sonnet 5.5)
+## [done] R21 (quick mode): Sulwhasoo + Techcombank Priority pages, faithful to live (use Sonnet 5.5)
 Anh (2026-10-02): same rules as R20: rebuild as on live, no polish beyond live, everything as blocks/data (redesign later). Inventory: docs/plans/project-pages-inventory.md. Same method as R20 (live DOM dump, verbatim copy, live/original media via sources.tsv + npm run media, alpha check, parallax measured per block with real wheel scroll).
 1. sulwhasoo (14 sections): existing blocks + NEW (c) stacked cell: two images stacked in one column inside a split (section 12: [I over I] | I + copy). Implement as a split cell kind (e.g. `stack: [cell, cell]`, gap and ratios from live). Check where the image captions / copy sit on live (sections 7, 8, 11, 12) and use existing copy/note/figure cells where they fit. Page ends on a text block, then our shared footer.
 2. tcb-priority (22 sections): existing blocks + two NEW blocks:
