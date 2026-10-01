@@ -156,10 +156,10 @@ export const INDEX = {
 // These are the DEFAULTS; the dev tuning panel (?tune) edits this object live and "copy values" prints it as JSON.
 //   partingStrength  1 = live. Scales the sideways + downward push of cards away from the centre line while a card crosses the
 //                    screen (live: x up to 0.2 of the width, y up to 0.3 of the height, times 1.1, strongest near the centre line).
-//   mouseStrength    1 = live. Scales every card's mouse offset (live: +-20 px for the back layer up to +-100 px for layer 4).
+//   mouseStrength    (R13c: the background drift amount, 0 = off) 1 = live. Scales every card's mouse offset (live: +-20 px for the back layer up to +-100 px for layer 4).
 //   mouseSmoothing   spring stiffness for the mouse offset (live fitted: 650, damping 100).
-//   depthRange       1 = live layer distances (20/25/50/75/100). 0 = every card moves like the back layer; 2 = twice the spread.
-//                    Also scales how much heavier the deep cards lag.
+//   depthRange       (depth spread) 1 = live layer distances (20/25/50/75/100). 0 = every card moves like the back layer; 2 = twice the spread.
+//                    R13c: the same weighting also scales parting and push (front card 1, back card 20 / (20 + 80 * depthRange)). Also the lag.
 //   lagStrength      NEW (not on live). 0 = off. Multiplies the lag time constants below.
 //   lagFrontSec / lagBackSec  time constant (seconds) for the front-most / deepest card: the card's scroll position chases the real one with this delay.
 //   partingSoftness / partingBounce  (R13b, NOT live) the parting offset follows live's targets through a spring instead of
@@ -170,14 +170,27 @@ export const CARDS = {
   partingStrength: 1.15,
   partingSoftness: 0.8,
   partingBounce: 0.25,
-  mouseStrength: 1.4,
+  mouseStrength: 0.5,
   mouseStiffness: 1375,
   mouseDamping: 100,
   depthRange: 0.85,
   lagStrength: 0.9,
   lagFrontSec: 0.03,
   lagBackSec: 0.25,
+  // R13c: mouse push-away. Cards within pushRadius (px at 1920, measured from the card's edge) of the pointer are pushed away
+  // from it, up to pushStrength px at the pointer, fading with (1 - distance / radius) ^ pushFalloff (1 = linear, 2 = softer
+  // edge), times the depth weight, on a spring (pushStiffness / pushDamping).
+  pushRadius: 380,
+  pushStrength: 130,
+  pushFalloff: 1.6,
+  pushStiffness: 300,
+  pushDamping: 30,
 };
+// R13c: the card layout is generated from a seed (src/data/layout.js) out of each card's Framer position. Positions in the
+// data are the starting point; same seed + values = same layout every time. scatter: max px a card may move sideways;
+// centreShare: share of cards pulled to start near or across the centre line, within centreBand px of it; minGap: px kept
+// between cards on neighbouring depths; yJitter: max vh a card may move up or down.
+export const LAYOUT = { seed: 7, scatter: 120, centreShare: 0.3, centreBand: 260, minGap: 20, yJitter: 8 };
 // Live's constants, fixed (not tunable): parting target = t * (0.01W + 0.19W * (1 - f)) * 1.1 sideways and
 // t * (0.01H + 0.29H * (1 - f)) * 1.1 down (live eases to them at 0.2 per 60 fps frame; we use the CARDS spring); a card is armed once 10% of it has been visible.
 export const PARTING = { xMax: 0.2, xMin: 0.01, yMax: 0.3, yMin: 0.01, z: 1.1, lerp: 0.2, armed: 0.1 };

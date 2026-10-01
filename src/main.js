@@ -32,14 +32,14 @@ const hero = buildHero(app, data.hero);
 buildAbout(app, data.about);
 buildPlaceholders(app);
 buildIndex(app, data.projects);
-buildSelectedWork(app, data.selectedWorkCards);
+const cardsApi = buildSelectedWork(app, data.selectedWorkCards);
 buildMoreProjects(app, data.moreProjects);
 buildFooter(app, data.footer, lenis);
 initNav(data.hero.wordmark, lenis);
 buildSpawner(app, data.spawnerImages);
 buildCaptionHover(app, data.hero.captions);
 const trail = buildTrail(app, data.trailImages);
-if (import.meta.env.DEV) window.__trail = trail; // dev only: the tuning panel and tools/scratch checks read the scroll points
+if (import.meta.env.DEV) { window.__trail = trail; window.__cards = cardsApi; } // dev only: the tuning panel and tools/scratch checks
 initClickSound(data.hero.clickSound);
 
 // Loader first: hold scrolling until what is visible on the first screen is ready.
@@ -55,4 +55,4 @@ runLoader(data.loader.text, firstScreen, hero.loadDeferred).then(() => {
 });
 
 // Dev only: ?tune opens the Selected Work tuning panel. The condition is a build-time constant, so none of this ships.
-if (import.meta.env.DEV && new URLSearchParams(location.search).has('tune')) import('./effects/tune-panel.js').then((m) => m.mountTunePanel(trail));
+if (import.meta.env.DEV && new URLSearchParams(location.search).has('tune')) import('./effects/tune-panel.js').then((m) => m.mountTunePanel({ trail, cards: cardsApi }));

@@ -2,7 +2,7 @@
 
 Only open and upcoming work lives here. Finished requests move to docs/archive/ (R1-R10: archive/requests-R1-R10.md, R11: archive/requests-R11.md, R11b: archive/requests-R11b.md, R11c: archive/requests-R11c.md, R12: archive/requests-R12.md, R13: archive/requests-R13.md, R13b: archive/requests-R13b.md).
 
-## R13c (next): depth-driven parting, mouse push-away, new card layout (use Sonnet 5.5)
+## R13c [done] depth-driven parting, mouse push-away, new card layout (use Sonnet 5.5)
 Order (Anh 2026-10-02): R13b -> R14 media -> R13c -> R13d back-to-top -> WebGL bend -> ... -> back-to-top "rewind" polish at the very end.
 Keep it lean: set reasonable starting defaults and stop; Anh tunes by eye with the panel.
 
@@ -28,6 +28,7 @@ Target screens: 1920x1080, 2560x1440, 3840x2160, 1440x900, 1512x982, 1728x1117.
 1. R13d back-to-top A+ (A fallback) + More Projects list clears the returning wordmark: docs/plans/r13d-back-to-top.md
 2. Selected Work step 2, WebGL edge bend: docs/plans/selected-work-section.md
 3. Project pages (Bitis template first), Works page, tablet/phone, launch prep, then back-to-top "rewind" polish.
+4. Check later (low priority, Anh 2026-10-02): 4K at 100% scaling (3840x2160 CSS) squeezes the capped section positions (Selected Work ~1 screen down, trail barely runs). Consider letting section positions keep scaling on very tall viewports.
 
 ## Later: Selected Work step 2 (WebGL edge bend)
 Plan: docs/plans/selected-work-section.md step 2. After Anh tunes R13 with the panel.

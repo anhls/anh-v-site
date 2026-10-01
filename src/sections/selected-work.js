@@ -1,7 +1,8 @@
 import { imgAttrs, videoInfo } from '../util/media.js';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { CARDS, PARTING } from '../timeline.js';
+import { CARDS, PARTING, LAYOUT } from '../timeline.js';
+import { generateLayout } from '../data/layout.js';
 import { springFromBounce } from '../effects/springs.js';
 import { registerPointer, pointerEnabled } from '../effects/pointer.js';
 import { capW } from '../scale.js';
@@ -11,11 +12,13 @@ import { capW } from '../scale.js';
 // ONE transform per card per frame on the shared gsap ticker:
 //   1. Parting (live, scroll): each card, from where it is on the screen, is pushed sideways away from the centre line and
 //      down, strongest while it crosses the middle of the screen and for cards near the centre line; the offset is eased at
-//      0.2 per 60 fps frame. It is not tied to the frame element. Eight cards have no scroll effect (`scroll: false`).
+//      0.2 per 60 fps frame. It is not tied to the frame element. R13c: ALL cards part, scaled by depth (depthWeight).
 //   2. Mouse (live): Framer "Parallax Floating". offset = -(mouse - screen centre) / (half the screen) * distance, x and y,
 //      on a spring. distance = the card's layer value (20..100 px). There is no radius. Only card 11 ignores the mouse.
 //      R13b: live's targets are kept, but the offset follows them through a spring (CARDS.partingSoftness / partingBounce)
 //      instead of live's 0.2-per-frame ease, so cards drift a little past and settle back.
+//   2b. Push (NEW, R13c): cards near the pointer are pushed away from it (distance measured from the card's edge), fading to 0 at
+//      CARDS.pushRadius, scaled by depth, on a spring. The mouse drift above is now the gentle background layer (mouseStrength).
 //   3. Lag (NEW, not on live): each card's scroll position chases the real one with a delay that grows with depth.
 // Positions are read once (load and resize); the loop only does arithmetic and writes transforms. The loop runs only while
 // the cards can be on screen and until everything has settled. Touch devices and prefers-reduced-motion: no mouse and no lag (parting stays).
@@ -23,9 +26,11 @@ export function buildSelectedWork(root, cards) {
   const section = root.querySelector('.selected-work');
   if (!section || !cards?.length) return;
 
+  // R13c: positions come from the seeded generator (src/data/layout.js), starting from the Framer positions in data.json.
+  let pos = generateLayout(cards, LAYOUT);
   section.innerHTML = cards
-    .map((c) => {
-      const style = `--x:${c.x};--y:${c.y};--w:${c.w};--h:${c.h};z-index:${c.z}`;
+    .map((c, i) => {
+      const style = `--x:${pos[i].x};--y:${pos[i].y};--w:${c.w};--h:${c.h};z-index:${c.z}`;
       const vid = videoInfo(c.src);
       // Animated cards: muted looping video (WebM with alpha first, MP4 as fallback), played only while near the screen.
       if (vid) return `<video class="sw__card" muted loop playsinline preload="none" poster="${vid.poster}" draggable="false" style="${style}">${vid.webm ? `<source src="${vid.webm}" type="video/webm">` : ''}<source src="${vid.mp4}" type="video/mp4"></video>`;
@@ -43,6 +48,14 @@ export function buildSelectedWork(root, cards) {
   const bx = new Float64Array(n); // base centre x (px from the left of the window)
   const by = new Float64Array(n); // base centre y (px from the top of the page)
   const bh = new Float64Array(n); // card height (px)
+  const bw = new Float64Array(n); // card width (px)
+  const dw = new Float64Array(n); // depth weight: 1 for the front layer, less for deeper cards (parting and push)
+  const qx = new Float64Array(n); // push offset (spring position), velocity, target
+  const qy = new Float64Array(n);
+  const vqx = new Float64Array(n);
+  const vqy = new Float64Array(n);
+  const tqx = new Float64Array(n);
+  const tqy = new Float64Array(n);
   const px = new Float64Array(n); // parting offset (spring position)
   const py = new Float64Array(n);
   const vpx = new Float64Array(n); // parting spring velocity
@@ -68,9 +81,10 @@ export function buildSelectedWork(root, cards) {
     let lo = Infinity;
     let hi = -Infinity;
     cards.forEach((c, i) => {
-      bx[i] = W / 2 + c.x * scale;
-      by[i] = top + (c.y * H) / 100;
+      bx[i] = W / 2 + pos[i].x * scale;
+      by[i] = top + (pos[i].y * H) / 100;
       bh[i] = c.h * scale;
+      bw[i] = c.w * scale;
       lo = Math.min(lo, by[i] - bh[i] / 2);
       hi = Math.max(hi, by[i] + bh[i] / 2);
     });
@@ -83,9 +97,12 @@ export function buildSelectedWork(root, cards) {
   let on = false; // the section's range is active (cards can be on screen)
   let ticking = false; // the loop is registered on the ticker
   // Shared mouse spring (every card's spring is the same and linear, so one normalised state serves all of them).
-  const mouse = { tx: 0, ty: 0, x: 0, y: 0, vx: 0, vy: 0 };
+  const mouse = { tx: 0, ty: 0, x: 0, y: 0, vx: 0, vy: 0, px: 0, py: 0, known: false }; // px, py: the raw pointer (for the push)
   const effect = {
     move: (x, y) => {
+      mouse.px = x;
+      mouse.py = y;
+      mouse.known = true;
       mouse.tx = (x - W / 2) / (W / 2);
       mouse.ty = (y - H / 2) / (H / 2);
     },
@@ -99,6 +116,12 @@ export function buildSelectedWork(root, cards) {
     const ph = dt / pSteps;
     let moving = false;
     const far = !on && (sy < startScroll - H || sy > endScroll + H);
+    // Depth weight: front card 1, back card 20 / (20 + 80 * depthRange) (the same spread as the drift distances).
+    const wDen = 20 + 80 * CARDS.depthRange;
+    const pushOn = live && mouse.known && CARDS.pushStrength > 0;
+    const R = CARDS.pushRadius * scale;
+    const pushMax = CARDS.pushStrength * scale;
+    const [uk, uc] = [CARDS.pushStiffness, CARDS.pushDamping];
 
     // Mouse spring, sub-stepped so a stiff setting stays stable.
     if (live) {
@@ -116,18 +139,19 @@ export function buildSelectedWork(root, cards) {
 
     for (let i = 0; i < n; i++) {
       const c = cards[i];
+      const w = (20 + (c.mouse - 20) * CARDS.depthRange) / wDen;
 
       // Mouse offset ("away": opposite to the mouse).
       let mx = 0;
       let my = 0;
-      if (live && c.mouse) {
+      if (live) {
         const d = (20 + (c.mouse - 20) * CARDS.depthRange) * CARDS.mouseStrength * scale;
         mx = -mouse.x * d;
         my = -mouse.y * d;
       }
 
       // Parting: needs the card's centre on screen INCLUDING its own offsets, like live (it reads the element's rect).
-      if (c.scroll) {
+      {
         const h = bh[i];
         const cx = bx[i] + px[i] + mx;
         const cy = by[i] - sy + py[i] + my;
@@ -138,8 +162,8 @@ export function buildSelectedWork(root, cards) {
           const g = 1 - Math.min(Math.max((cy + h) / (H + 2 * h), 0), 1);
           if (g > 0 && g < 1) {
             const t = (1 - Math.abs(g - 0.5) * 2) * CARDS.partingStrength;
-            const tx = t * (W * PARTING.xMin + (W * PARTING.xMax - W * PARTING.xMin) * (1 - f)) * (dx < 0 ? -1 : 1) * PARTING.z;
-            const ty = t * (H * PARTING.yMin + (H * PARTING.yMax - H * PARTING.yMin) * (1 - f)) * PARTING.z;
+            const tx = w * t * (W * PARTING.xMin + (W * PARTING.xMax - W * PARTING.xMin) * (1 - f)) * (dx < 0 ? -1 : 1) * PARTING.z;
+            const ty = w * t * (H * PARTING.yMin + (H * PARTING.yMax - H * PARTING.yMin) * (1 - f)) * PARTING.z;
             tpx[i] = tx;
             tpy[i] = ty;
           }
@@ -154,6 +178,29 @@ export function buildSelectedWork(root, cards) {
         if (Math.abs(vpx[i]) + Math.abs(vpy[i]) > 0.05 || Math.abs(tpx[i] - px[i]) + Math.abs(tpy[i] - py[i]) > 0.05) moving = true;
       }
 
+      // Push: away from the pointer. Distance is from the pointer to the card's edge (0 inside the card); direction is from the
+      // pointer to the card's centre. Reads only cached numbers (base position + current offsets).
+      if (pushOn && !far) {
+        const dxm = bx[i] + px[i] + mx - mouse.px;
+        const dym = by[i] - sy + py[i] + my - mouse.py;
+        const ex = Math.max(Math.abs(dxm) - bw[i] / 2, 0);
+        const ey = Math.max(Math.abs(dym) - bh[i] / 2, 0);
+        const r = Math.hypot(ex, ey);
+        if (r < R) {
+          const f = (1 - r / R) ** CARDS.pushFalloff;
+          const len = Math.hypot(dxm, dym) || 1;
+          tqx[i] = (dxm / len) * pushMax * f * w;
+          tqy[i] = (dym / len) * pushMax * f * w;
+        } else { tqx[i] = 0; tqy[i] = 0; }
+      } else { tqx[i] = 0; tqy[i] = 0; }
+      for (let q = 0; q < pSteps; q++) {
+        vqx[i] += (uk * (tqx[i] - qx[i]) - uc * vqx[i]) * ph;
+        vqy[i] += (uk * (tqy[i] - qy[i]) - uc * vqy[i]) * ph;
+        qx[i] += vqx[i] * ph;
+        qy[i] += vqy[i] * ph;
+      }
+      if (Math.abs(vqx[i]) + Math.abs(vqy[i]) > 0.05 || Math.abs(tqx[i] - qx[i]) + Math.abs(tqy[i] - qy[i]) > 0.05) moving = true;
+
       // Lag: the card's scroll position trails the real one; deeper cards (smaller layer value) trail longer.
       let lag = 0;
       if (live && CARDS.lagStrength > 0 && !far) {
@@ -164,8 +211,8 @@ export function buildSelectedWork(root, cards) {
         if (Math.abs(lag) > 0.05) moving = true;
       } else sm[i] = sy; // lag is off, or the section is more than a screen beyond the on-screen range: drop it (invisible)
 
-      const x = px[i] + mx;
-      const y = py[i] + my + lag;
+      const x = px[i] + mx + qx[i];
+      const y = py[i] + my + lag + qy[i];
       if (Math.abs(x - lastX[i]) > 0.02 || Math.abs(y - lastY[i]) > 0.02 || lastX[i] !== lastX[i]) {
         els[i].style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`;
         lastX[i] = x;
@@ -200,5 +247,13 @@ export function buildSelectedWork(root, cards) {
     onRefresh: (self) => { measure(); toggle(self.isActive); },
   });
 
-  return { cards: els };
+  // Dev panel: regenerate the layout from LAYOUT and re-measure (keeps the springs, so cards glide to their new spots).
+  const relayout = () => {
+    pos = generateLayout(cards, LAYOUT);
+    els.forEach((el, i) => { el.style.setProperty('--x', pos[i].x); el.style.setProperty('--y', pos[i].y); });
+    measure();
+    ScrollTrigger.refresh();
+    if (!ticking) { ticking = true; gsap.ticker.add(tick); }
+  };
+  return { cards: els, relayout, positions: () => pos };
 }
