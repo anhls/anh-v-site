@@ -53,22 +53,7 @@ Also in R13d (Anh 2026-10-02): More Projects list vs the returning big wordmark.
 - This departs from live on purpose; update or skip the More Projects compare probes that move.
 Also look at the one ~45 ms frame at the start of each R13c test run (first frame of Selected Work?): if it is image decode or first layout, fix it cheaply (e.g. decode="async" + pre-decode just before the section) or report why not.
 
-## R16 (next): Selected Work WebGL edge bend + grain (use Sonnet 5.5)
-Part 0 first (small fixes Cowork found in the R13g screenshots, commit separately):
-- a) Cards cover the project index TITLE: at 2560x1440 and 1512x982 the "PRIORITY TREATMENT TEAM" card sits on top of "Techcombank Priority" and cuts it ("Techcombank Priorit" / "Prio"). The title must always stay readable: keep the index title (and PRJ label / year) above every card, or extend the aura to the title's full text box. Prefer layering (title above cards) if it reads well; check the WebGL canvas layer too.
-- b) Cards overlap the small AV wordmark (top left) and the nav links (e.g. the laptop card under "Contact" at 1512x982). Nav + wordmark must sit above all cards (and above the WebGL canvas).
-- c) The ~45 ms first frame entering Selected Work (from R13c) is still uninvestigated: check it while touching this section.
-Spec source: docs/plans/selected-work-section.md "Step 2" (agreed with Anh). Reference: Codrops "On-Scroll Image Distortion and Grain Effect" (tympanus.net/Tutorials/ShaderOnScroll, MIT, github.com/jankohlbach/codrops-shader-on-scroll). Borrow the technique; our spec wins where they differ.
-
-1. Rendering: the 35 Selected Work cards are drawn as textured planes on ONE WebGL canvas over the section (OGL preferred for size; Three.js only if porting the reference is clearly simpler: report the size cost). Plane positions/sizes come from the SAME numbers selected-work.js already computes each frame (aura, push, drift, lag, overlap guard): no DOM reads, no second motion system. The DOM <img> cards stay in the page for layout/accessibility but are hidden while WebGL runs.
-2. Textures: the optimised WebP files (R14); cut-out PNG alpha kept; the 3 animated cards as video textures (WebM), updated only while visible. Upload textures lazily as cards approach the screen; release far-away ones if memory is high (report GPU memory at 2560).
-3. Bend (Anh's spec): top AND bottom edges bow into a smooth arc, deepest at the horizontal middle, flat at the corners, sides straight. Arc depth follows scroll speed (Lenis velocity) up to a max; bows against the scroll direction (trailing, "pulled through water") and flips with direction. Depth weighting: strongest for middle-depth cards, weaker toward both the front and the back (smooth bell; panel: strength at the extremes, width of the strong band). Return: ease back to a perfect rectangle with ONE gentle overshoot (~10-15% of the arc), no repeated jiggle.
-4. Grain (Anh: yes, subtle): film grain on the cards like the reference, may rise with scroll speed; intensity slider (Anh sets it later), default subtle.
-5. ?tune: max arc depth, speed sensitivity, return speed, overshoot, depth bell (extremes + band width), grain intensity, grain speed link; all in Copy values.
-6. Performance: one draw call per card or batched; device pixel ratio capped (e.g. 1.5 above 2560 wide; report); render only while the section is on screen; pause when the tab is hidden. Targets: no frame over ~16 ms on the 6 target screens (1920x1080, 2560x1440, 3840x2160, 1440x900, 1512x982, 1728x1117) while scrolling + moving the mouse; report a 4x CPU-throttled run.
-7. Fallback to the current DOM cards (no bend, no grain) when: WebGL unavailable or context lost, prefers-reduced-motion, or the low-end rule from R13g Part B (cores/memory/Save-Data). Force with ?gl=0 / ?gl=1.
-8. Checks: at rest, WebGL cards must line up with the DOM version (screenshot diff, position within 1 px, colours visually equal; no blurry textures at 2560); bend appears only while scrolling and settles flat; compare 574/574 (cards skipped). Save screenshots (rest, mid-scroll bend, fast-scroll bend) to tools/scratch/r16-shots/ for Anh.
-9. 120 Hz: MacBook Pro screens run at 120 Hz (8.3 ms per frame). Report frame times against 8.3 ms as well as 16.7 ms; if the bend misses 120 Hz on the 1512x982 / 1728x1117 runs, say what it costs and what can be lowered (DPR, grain) before falling back.
+## R16 [done] (archived in docs/archive/requests-R16.md)
 
 ## Queued (plans agreed with Anh, in this order; each becomes a request after the one before is committed)
 2. Project pages (Bitis template first), Works page, tablet/phone, launch prep, then back-to-top "rewind" polish.

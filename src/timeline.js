@@ -247,3 +247,17 @@ export const BACK_TOP = {
 // More Projects list vs the returning wordmark (R13g): the list keeps `gap` (the larger of gapVh of the window height and
 // gapMinPx) above the wordmark's top edge, never goes above safeTopVh, and shrinks to at most minScale when it cannot fit.
 export const MORE_PROJECTS_FIT = { gapVh: 5, gapMinPx: 28, safeTopVh: 12, minScale: 0.85 };
+
+// R16: Selected Work WebGL cards. The 35 cards are drawn as textured planes on ONE canvas (src/effects/cards-gl.js); the top and bottom
+// edges bow into an arc while the page scrolls. maxArc = deepest bow in px at 1920 (capped at 30% of the card height) at full speed;
+// speedRef = scroll speed (px/s) that counts as "full speed" at sensitivity 1 (shaped with tanh, so it eases in and saturates);
+// returnSpeed = spring speed (rad/s) of the return to flat; overshoot = share of the arc the edge passes beyond flat on the way back
+// (one gentle pass, 0.12 = 12%); depthExtreme = bend strength of the front and back cards as a share of the middle ones, depthBand =
+// width of the strong middle band (0..1 of the depth range); grain = film grain amplitude (0 = off), grainSpeed = how much scroll
+// speed adds to it; grainRate = grain frames per second. dprCap = canvas pixel ratio cap, dprCapLarge above 2560 px wide.
+export const BEND = {
+  maxArc: 56, speedRef: 2500, sensitivity: 1, returnSpeed: 11, overshoot: 0.12,
+  depthExtreme: 0.35, depthBand: 0.3,
+  grain: 0.035, grainSpeed: 0.6, grainRate: 12,
+  dprCap: 2, dprCapLarge: 1.5, weakCores: 4, weakMemoryGb: 4, textureBudgetMb: 256,
+};

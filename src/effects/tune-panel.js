@@ -1,10 +1,10 @@
-import { CARDS, TRAIL, LAYOUT } from '../timeline.js';
+import { CARDS, TRAIL, LAYOUT, BEND } from '../timeline.js';
 
 // Dev-only tuning panel (Selected Work cards, card layout, hero trail). Opens with ?tune in the URL; main.js imports this
 // file only when import.meta.env.DEV is true, so it is never part of the production build. Sliders write straight into the
 // CARDS / LAYOUT / TRAIL objects from timeline.js (the effects read them every frame), so changes show immediately.
 // "Copy values" puts the current numbers on the clipboard as JSON so they can be sent back and pasted into timeline.js.
-const DEFAULTS = { CARDS: { ...CARDS }, LAYOUT: { ...LAYOUT }, TRAIL: { ...TRAIL } };
+const DEFAULTS = { CARDS: { ...CARDS }, LAYOUT: { ...LAYOUT }, TRAIL: { ...TRAIL }, BEND: { ...BEND } };
 
 // [key, label, min, max, step, hint]
 const CARD_SLIDERS = [
@@ -38,6 +38,18 @@ const LAYOUT_SLIDERS = [
   ['centreBand', 'Centre band (px)', 0, 700, 10, 'Pulled cards start within this distance of the centre line (a few start just across it).'],
   ['minGap', 'Minimum gap (px)', 0, 120, 1, 'Space kept between cards on neighbouring depths. Different depths may overlap.'],
   ['yJitter', 'Vertical jitter (vh)', 0, 30, 0.5, 'How far a card may move up or down.'],
+];
+const BEND_SLIDERS = [
+  ['maxArc', 'Max arc depth (px at 1920)', 0, 200, 1, 'R16. Deepest bow of the top and bottom edges at full scroll speed (also capped at 30% of the card height). 0 = no bend.'],
+  ['sensitivity', 'Speed sensitivity', 0.2, 4, 0.05, 'How fast the bend builds with scroll speed. Higher = a gentle scroll already bends the cards.'],
+  ['speedRef', 'Full-speed reference (px/s)', 500, 8000, 50, 'Scroll speed that counts as full speed at sensitivity 1.'],
+  ['returnSpeed', 'Return speed (rad/s)', 3, 30, 0.5, 'How quickly the edges go back to flat (higher = snappier).'],
+  ['overshoot', 'Overshoot (share of the arc)', 0, 0.4, 0.01, 'How far the edges pass beyond flat on the way back, once (0.12 = 12%). 0 = no overshoot.'],
+  ['depthExtreme', 'Depth bell: front/back strength', 0, 1, 0.01, 'Bend of the front-most and back-most cards as a share of the middle-depth cards.'],
+  ['depthBand', 'Depth bell: width of strong band', 0.05, 1, 0.01, 'How much of the depth range bends strongly around the middle (higher = wider).'],
+  ['grain', 'Grain intensity', 0, 0.15, 0.001, 'Film grain on the cards (0 = off).'],
+  ['grainSpeed', 'Grain rise with scroll speed', 0, 4, 0.05, 'Extra grain at full scroll speed, as a multiple of the base grain.'],
+  ['grainRate', 'Grain frames per second', 1, 60, 1, 'How often the grain pattern changes.'],
 ];
 const TRAIL_SLIDERS = [
   ['frequency', 'Trail frequency', 1, 50, 1, 'Live is 25: a new image every 102 px of mouse travel (higher = closer together).'],
@@ -89,6 +101,9 @@ export function mountTunePanel({ trail, cards } = {}) {
   heading('Cards: aura, push, drift');
   addSliders(CARDS, CARD_SLIDERS);
 
+  heading('Cards: WebGL bend + grain (R16)', '<div style="opacity:.7;margin:2px 0 8px">Only with the WebGL cards on (?gl=1 forces them).</div>');
+  addSliders(BEND, BEND_SLIDERS, () => cards?.gl()?.reweigh());
+
   // Layout: sliders regenerate the layout; Reshuffle picks a new seed.
   const layoutHead = heading('Card layout', '<div data-seed style="margin:4px 0 8px"></div><button data-act="shuffle" style="padding:5px 10px;cursor:pointer;margin-bottom:8px">Reshuffle (new seed)</button>');
   const seedEl = layoutHead.querySelector('[data-seed]');
@@ -120,10 +135,11 @@ export function mountTunePanel({ trail, cards } = {}) {
       Object.assign(CARDS, DEFAULTS.CARDS);
       Object.assign(LAYOUT, DEFAULTS.LAYOUT);
       Object.assign(TRAIL, DEFAULTS.TRAIL);
-      syncReadouts(); showSeed(); cards?.relayout(); trail?.remeasure(); showPts();
+      Object.assign(BEND, DEFAULTS.BEND);
+      syncReadouts(); showSeed(); cards?.relayout(); cards?.gl()?.reweigh(); trail?.remeasure(); showPts();
       msg.textContent = 'Reset to the defaults in timeline.js';
     } else if (act === 'copy') {
-      const text = JSON.stringify({ CARDS, LAYOUT, TRAIL: Object.fromEntries(TRAIL_SLIDERS.map(([k]) => [k, TRAIL[k]])) }, null, 2);
+      const text = JSON.stringify({ CARDS, LAYOUT, BEND: Object.fromEntries(BEND_SLIDERS.map(([k]) => [k, BEND[k]])), TRAIL: Object.fromEntries(TRAIL_SLIDERS.map(([k]) => [k, TRAIL[k]])) }, null, 2);
       try { await navigator.clipboard.writeText(text); msg.textContent = 'Copied. Paste it in a message to send it.'; }
       catch { msg.textContent = 'Could not copy; values are in the console.'; }
       console.log('TUNE', text);

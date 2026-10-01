@@ -7,6 +7,7 @@ import { generateLayout } from '../data/layout.js';
 import { springFromBounce } from '../effects/springs.js';
 import { registerPointer, pointerEnabled } from '../effects/pointer.js';
 import { capW } from '../scale.js';
+import { createCardsGL } from '../effects/cards-gl.js';
 
 // Selected Work (was "archive"): 35 image cards scattered over a 250vh section, one element per card (CLAUDE.md rules 3 + 4).
 // Everything below was measured on anh-v.com and read from its published code (see docs/status.md, R13), then summed into
@@ -92,6 +93,12 @@ export function buildSelectedWork(root, cards) {
   };
   measure();
 
+  // R16: WebGL cards (bend + grain). null = the DOM cards stay (no WebGL, reduced motion, weak device, ?gl=0, or context lost).
+  const gl = createCardsGL({ section, els, cards, bx, by, bw, bh, onLost: () => { section.classList.remove('sw--gl'); gl.destroy(); glOn = false; lastX.fill(NaN); lastY.fill(NaN); if (!ticking) { ticking = true; gsap.ticker.add(tick); } } });
+  let glOn = !!gl;
+  if (gl) { section.classList.add('sw--gl'); gl.resize(W, H); gl.show(false); }
+  let prevSy = window.scrollY;
+
   const live = pointerEnabled;
   let on = false; // the section's range is active (cards can be on screen)
   let ticking = false; // the loop is registered on the ticker
@@ -117,6 +124,9 @@ export function buildSelectedWork(root, cards) {
   const tick = (_time, deltaMs) => {
     const dt = Math.min(deltaMs, 50) / 1000;
     const sy = window.scrollY;
+    let vel = (sy - prevSy) / Math.max(dt, 1e-3); // signed scroll speed in px/s (Lenis drives sy)
+    if (Math.abs(vel) > 20000) vel = 0; // a jump (back to top), not a scroll
+    prevSy = sy;
     const pSteps = Math.max(1, Math.ceil(dt / 0.004));
     const ph = dt / pSteps;
     let moving = false;
@@ -314,14 +324,15 @@ export function buildSelectedWork(root, cards) {
       const x = px[i] + mx + qx[i];
       const y = py[i] + my + lag + qy[i];
       if (Math.abs(x - lastX[i]) > 0.02 || Math.abs(y - lastY[i]) > 0.02 || lastX[i] !== lastX[i]) {
-        els[i].style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`;
+        if (glOn) { gl.ox[i] = x; gl.oy[i] = y; gl.markDirty(); } else els[i].style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`;
         lastX[i] = x;
         lastY[i] = y;
       }
     }
+    if (glOn && gl.draw(sy, dt, vel, scale)) moving = true; // R16: draw the cards; true while the bend is still settling
     if (live && (Math.abs(mouse.tx - mouse.x) > 0.0005 || Math.abs(mouse.vx) > 0.0005 || Math.abs(mouse.ty - mouse.y) > 0.0005 || Math.abs(mouse.vy) > 0.0005)) moving = true;
     // Off-screen: stop the loop only once every offset has settled.
-    if (!on && !moving) { gsap.ticker.remove(tick); ticking = false; }
+    if (!on && !moving) { gsap.ticker.remove(tick); ticking = false; if (glOn) gl.show(false); }
   };
 
   // Run the loop and the pointer listener only while the cards can be on screen.
@@ -338,13 +349,14 @@ export function buildSelectedWork(root, cards) {
         mouse.x = mouse.tx; mouse.y = mouse.ty; mouse.vx = 0; mouse.vy = 0;
       }
       if (!ticking) { ticking = true; gsap.ticker.add(tick); }
+      if (glOn) { prevSy = window.scrollY; gl.show(true); }
     } else if (unregister) { unregister(); unregister = null; } // the loop itself stops once everything has settled
   };
   ScrollTrigger.create({
     start: () => startScroll,
     end: () => endScroll,
     onToggle: (self) => toggle(self.isActive),
-    onRefresh: (self) => { measure(); toggle(self.isActive); },
+    onRefresh: (self) => { measure(); if (glOn) gl.resize(W, H); toggle(self.isActive); },
   });
 
   // Dev panel: regenerate the layout from LAYOUT and re-measure (keeps the springs, so cards glide to their new spots).
@@ -352,8 +364,9 @@ export function buildSelectedWork(root, cards) {
     pos = generateLayout(cards, LAYOUT);
     els.forEach((el, i) => { el.style.setProperty('--x', pos[i].x); el.style.setProperty('--y', pos[i].y); });
     measure();
+    if (glOn) gl.resize(W, H);
     ScrollTrigger.refresh();
     if (!ticking) { ticking = true; gsap.ticker.add(tick); }
   };
-  return { cards: els, relayout, positions: () => pos, debug: () => ({ px, py, tpx, tpy, bx, by, bw, bh }) };
+  return { cards: els, gl: () => gl, relayout, positions: () => pos, debug: () => ({ px, py, tpx, tpy, bx, by, bw, bh }) };
 }

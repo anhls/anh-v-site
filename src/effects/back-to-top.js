@@ -2,6 +2,7 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { BACK_TOP } from '../timeline.js';
 import { snapAllLayers } from './springs.js';
+import { weakDevice } from '../util/device.js';
 
 // "Go Back To Top" without the long scroll (R13g). Instead of scrolling the whole page back up (replaying every scrubbed
 // animation, 35 cards and image loads), cover the page with ONE black overlay (opacity only), jump to the top while it is
@@ -12,10 +13,7 @@ import { snapAllLayers } from './springs.js';
 //   reduced motion: instant jump with a very short plain fade.
 const param = new URLSearchParams(location.search).get('top');
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const weak = () => {
-  const mem = navigator.deviceMemory;
-  return navigator.hardwareConcurrency <= BACK_TOP.weakCores || (mem !== undefined && mem <= BACK_TOP.weakMemoryGb) || navigator.connection?.saveData === true;
-};
+const weak = () => weakDevice(BACK_TOP.weakCores, BACK_TOP.weakMemoryGb);
 const useAPlus = () => (param === 'aplus' ? true : param === 'a' ? false : !weak());
 
 let overlay = null;

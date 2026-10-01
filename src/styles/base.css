@@ -425,3 +425,8 @@ html.lenis, html.lenis body { height: auto; }
 .caption-hover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
 /* Back-to-top cover (R13g): one black layer, opacity only; z-index is set by back-to-top.js (9 below the wordmark, or 11). */
 .btt-overlay { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; will-change: opacity; }
+
+/* R16 WebGL cards: one fixed canvas over the viewport inside the Selected Work layer (same z as the DOM cards); the DOM cards
+   stay for layout, accessibility and as texture sources, but are invisible while the canvas draws them. */
+.sw__gl { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; pointer-events: none; visibility: hidden; }
+.sw--gl .sw__card { opacity: 0; }
