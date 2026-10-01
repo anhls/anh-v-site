@@ -15,10 +15,16 @@ const CARD_SLIDERS = [
   ['pushDamping', 'Push spring damping', 5, 200, 1, 'New. Lower = more bounce.'],
   ['mouseStrength', 'Background drift amount', 0, 4, 0.05, 'Live\'s mouse drift (every card follows the mouse over the whole screen). 0 = off. 1 = live.'],
   ['mouseStiffness', 'Drift smoothing (spring)', 100, 2000, 25, 'Spring stiffness of the drift. Lower = slower, floatier.'],
-  ['depthRange', 'Depth spread', 0, 2, 0.05, 'How much more front cards move than back cards (parting, push, drift, lag). 0 = all equal; 1 = live distances (back = 20% of front).'],
-  ['partingStrength', 'Parting strength', 0, 3, 0.05, '1 = live. How far cards push away from the centre line while they cross the screen (front cards; deeper cards less).'],
-  ['partingSoftness', 'Parting softness (s)', 0.1, 1.5, 0.01, 'Spring duration of the parting: higher = slower, floatier.'],
-  ['partingBounce', 'Parting bounce', 0, 0.7, 0.01, '0 = no overshoot; 0.3 = cards drift a little past and settle back.'],
+  ['depthRange', 'Depth spread', 0, 2, 0.05, 'How much more front cards move than back cards (aura, push, drift, lag). 0 = all equal; 1 = live distances (back = 20% of front).'],
+  ['auraMargin', 'Aura margin (px)', 0, 600, 5, 'New (R13e). How far from the frame (px at 1920, rect to rect) cards feel it.'],
+  ['auraStrength', 'Aura strength (px)', 0, 400, 5, 'Push at the frame edge for a front card; fades with distance. Deeper cards are pushed less (depth spread).'],
+  ['auraFalloff', 'Aura falloff', 0.3, 4, 0.05, '1 = linear fade to the margin; higher = concentrated near the frame.'],
+  ['auraClearance', 'Aura clearance', 0, 1, 0.05, '1 = a card closer than the minimum gap is always pushed fully clear; 0 = only the soft push.'],
+  ['auraMinGap', 'Aura minimum gap (px)', 0, 200, 1, 'Space kept between a card and the frame at rest (px at 1920).'],
+  ['auraBias', 'Aura sideways bias', 1, 6, 0.1, '1 = straight away from the frame centre; higher = cards part sideways more than up/down.'],
+  ['auraLead', 'Aura look-ahead (s)', 0, 1, 0.05, 'While scrolling, the aura is evaluated this many seconds ahead, so cards are already aside when they reach the frame. 0 = off.'],
+  ['partingSoftness', 'Aura settle softness (s)', 0.1, 1.5, 0.01, 'Spring duration of the aura offset: higher = slower, floatier.'],
+  ['partingBounce', 'Aura settle bounce', 0, 0.7, 0.01, '0 = no overshoot; 0.3 = cards drift a little past and settle back.'],
   ['lagStrength', 'Lag strength', 0, 4, 0.05, '0 = off. Multiplies the delay of every card.'],
   ['lagFrontSec', 'Lag, front cards (s)', 0, 0.5, 0.01, 'Delay of the front-most layer at lag strength 1.'],
   ['lagBackSec', 'Lag, deepest cards (s)', 0, 1.5, 0.01, 'Delay of the back layer at lag strength 1.'],
@@ -77,7 +83,7 @@ export function mountTunePanel({ trail, cards } = {}) {
   });
   const syncReadouts = () => readouts.forEach((r) => { r.input.value = r.obj[r.key]; r.v.textContent = r.obj[r.key]; });
 
-  heading('Cards: parting, push, drift');
+  heading('Cards: aura, push, drift');
   addSliders(CARDS, CARD_SLIDERS);
 
   // Layout: sliders regenerate the layout; Reshuffle picks a new seed.

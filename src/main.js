@@ -16,7 +16,7 @@ import { initClickSound } from './effects/clicksound.js';
 import { buildSpawner } from './effects/spawner.js';
 import { buildCaptionHover } from './effects/caption-hover.js';
 import { buildTrail } from './effects/trail.js';
-import { SCROLL } from './timeline.js';
+import { SCROLL, CARDS } from './timeline.js';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -39,7 +39,7 @@ initNav(data.hero.wordmark, lenis);
 buildSpawner(app, data.spawnerImages);
 buildCaptionHover(app, data.hero.captions);
 const trail = buildTrail(app, data.trailImages);
-if (import.meta.env.DEV) { window.__trail = trail; window.__cards = cardsApi; } // dev only: the tuning panel and tools/scratch checks
+if (import.meta.env.DEV) { window.__trail = trail; window.__cards = cardsApi; window.__CARDS = CARDS; } // dev only: the tuning panel and tools/scratch checks
 initClickSound(data.hero.clickSound);
 
 // Loader first: hold scrolling until what is visible on the first screen is ready.

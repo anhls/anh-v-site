@@ -11,6 +11,13 @@ import { imgAttrs } from '../util/media.js';
 //   driven    spring-chased layers (#3, the two peels, the mask float): their targets are computed straight from the
 //             scroll position over px ranges (capped units, see src/scale.js); springs.js chases them and writes the DOM.
 //   overlays  their own scrubbed tween, chased through a spring.
+// The frame (the masked image in the middle of the screen), kept up to date from the hero's own animation so other effects
+// (the Selected Work aura, R13e) can read it without touching the DOM: w, h = current size in px (from the mask tween's inline
+// style), fo, fi = the two float offsets in px (spring values). The frame is centred on the screen horizontally and sits at
+// innerHeight / 2 + fo + fi vertically.
+export const frameState = { w: 0, h: 0, fo: 0, fi: 0 };
+const unitPx = (s, full, vw, vh) => { const v = parseFloat(s); return s.endsWith('vw') ? (v * vw) / 100 : s.endsWith('vh') ? (v * vh) / 100 : s.endsWith('%') ? (v * full) / 100 : v; };
+
 export function buildHero(root, hero) {
   const captions = hero.captions
     .map((c) => `<li><span>${c.title}</span><span>${c.client}</span><span>${c.role}</span></li>`)
@@ -83,6 +90,13 @@ export function buildHero(root, hero) {
 
   // Direct layers.
   HERO.mask.forEach((t) => add(tl, el.wrapper, t));
+  const readMask = () => { // inline style strings only (no layout read)
+    const st = el.wrapper.style;
+    if (st.width) frameState.w = unitPx(st.width, innerWidth, innerWidth, innerHeight);
+    if (st.height) frameState.h = unitPx(st.height, innerHeight, innerWidth, innerHeight);
+  };
+  tl.eventCallback('onUpdate', readMask);
+  readMask();
   HERO.strip.filter((t) => !t.spring).forEach((t) => add(tl, el[t.el], t));
   const d = HERO.details;
   add(tl, el.video, d.video);
@@ -128,6 +142,8 @@ export function buildHero(root, hero) {
       springs,
       apply: (v) => {
         node.style.transform = `translate3d(0, ${v.y ?? 0}px, 0)${v.scale === undefined ? '' : ` scale(${v.scale})`}`;
+        if (name === 'floatOuter') frameState.fo = v.y ?? 0;
+        else if (name === 'floatInner') frameState.fi = v.y ?? 0;
       },
     });
   });
@@ -135,7 +151,7 @@ export function buildHero(root, hero) {
     start: 0,
     end: 'max',
     onUpdate: (self) => setTargets(self.scroll()),
-    onRefresh: (self) => { resolve(); setTargets(self.scroll()); },
+    onRefresh: (self) => { resolve(); setTargets(self.scroll()); readMask(); },
   });
 
   // Overlays darken over their own range, which runs past the mask timeline; chased through a spring.

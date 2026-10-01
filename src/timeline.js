@@ -154,8 +154,11 @@ export const INDEX = {
 
 // Selected Work cards (R13). Measured on live (1920 and 2560) and read from its published code; see docs/status.md.
 // These are the DEFAULTS; the dev tuning panel (?tune) edits this object live and "copy values" prints it as JSON.
-//   partingStrength  1 = live. Scales the sideways + downward push of cards away from the centre line while a card crosses the
-//                    screen (live: x up to 0.2 of the width, y up to 0.3 of the height, times 1.1, strongest near the centre line).
+//   aura*            (R13e) the repulsion aura around the frame (the masked image in the middle). Distances in px at 1920, rect to rect:
+//                    auraMargin = how far out the aura reaches; auraStrength = push at the frame edge, fading by (1 - gap / margin) ^ auraFalloff;
+//                    auraClearance 0..1 = how firmly a card that is closer than auraMinGap is pushed fully clear (1 = always); auraBias = how
+//                    much more sideways than up/down (1 = straight away from the centre, 2.5 = mostly sideways); auraLead = seconds of look-ahead
+//                    while scrolling, so cards are already aside when they arrive (0 = off; it only acts while the page moves). Replaces live's parting.
 //   mouseStrength    (R13c: the background drift amount, 0 = off) 1 = live. Scales every card's mouse offset (live: +-20 px for the back layer up to +-100 px for layer 4).
 //   mouseSmoothing   spring stiffness for the mouse offset (live fitted: 650, damping 100).
 //   depthRange       (depth spread) 1 = live layer distances (20/25/50/75/100). 0 = every card moves like the back layer; 2 = twice the spread.
@@ -167,7 +170,14 @@ export const INDEX = {
 //                    bounce 0 = no overshoot, 0.3 = drifts about 5% past and settles back.
 // Anh's tuned values (R13b): mouse 1.3, depth range 0.85, lag 0.9 / 0.03 s / 0.25 s.
 export const CARDS = {
-  partingStrength: 1.15,
+  // R13e: the aura around the frame replaces live's parting (partingSoftness / partingBounce still shape the settle).
+  auraMargin: 220,
+  auraStrength: 140,
+  auraFalloff: 1.5,
+  auraClearance: 1,
+  auraMinGap: 24,
+  auraBias: 2.5,
+  auraLead: 0.3,
   partingSoftness: 0.8,
   partingBounce: 0.25,
   mouseStrength: 0.5,

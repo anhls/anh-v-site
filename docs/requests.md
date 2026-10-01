@@ -2,33 +2,37 @@
 
 Only open and upcoming work lives here. Finished requests move to docs/archive/ (R1-R10: archive/requests-R1-R10.md, R11: archive/requests-R11.md, R11b: archive/requests-R11b.md, R11c: archive/requests-R11c.md, R12: archive/requests-R12.md, R13: archive/requests-R13.md, R13b: archive/requests-R13b.md).
 
-## R13c [done] depth-driven parting, mouse push-away, new card layout (use Sonnet 5.5)
-Order (Anh 2026-10-02): R13b -> R14 media -> R13c -> R13d back-to-top -> WebGL bend -> ... -> back-to-top "rewind" polish at the very end.
-Keep it lean: set reasonable starting defaults and stop; Anh tunes by eye with the panel.
+## R13e [done] repulsion aura around the frame (use Sonnet 5.5)
+Anh tuned R13c and found cards still slide under/over the centre frame (the float/mask): e.g. the "10" card and a sneaker overlap the Bitis frame. The live-style parting is based on each card's SCREEN position, not on where the frame is. Anh wants a repulsion aura around the frame: cards always drift away from the middle image.
+1. Source = the frame's real rectangle every frame (mask width/height + float offsets + scroll), taken from the hero's own animation state (export a cheap getter from hero.js / timeline values). No DOM reads in the loop.
+2. Field: for each card, distance from the card's edge to the frame's edge (rect to rect). Within an aura margin, push the card outward, direction = frame centre -> card centre (horizontal bias so cards part sideways more than vertically, slider), strength rising as the gap shrinks ((1 - d/margin)^falloff). Overlap (d <= 0) must be pushed fully clear: with clearance = 1 no card ever overlaps the frame at rest, keeping a minimum gap (slider).
+3. It REPLACES the live-style parting (parting strength becomes aura strength; keep the R13b spring for the settle, softness/bounce sliders stay). Mouse push, drift and lag stay on top, all summed into one transform per card.
+4. Depth: front cards react strongest/fastest, back cards gentler (existing depth spread). Back cards may still pass behind the frame only if clearance < 1; at the default every card clears it.
+5. ?tune panel: aura margin, aura strength, falloff, clearance (soft..guaranteed), minimum gap, horizontal bias; all in Copy values. Remove or hide the old parting-only sliders that no longer apply.
+6. Checks: script at the 6 target screens (1920x1080, 2560x1440, 3840x2160, 1440x900, 1512x982, 1728x1117): scroll through Selected Work with the mouse parked off-screen and report the smallest card-to-frame gap per frame (must stay >= minimum gap once settled; brief overlap allowed only mid-spring while scrolling fast, report max). Frame time while scrolling + mouse. compare (cards skipped) must stay 574/574 at 1920 and 2560.
+Current CARDS defaults stay unless renamed; LAYOUT seed 7 defaults stay.
 
-Anh (2026-10-02): the 8 "BackImageNoReact" cards were only a Framer workaround, because Framer could not make cards react differently by depth. Bake depth into the interaction instead. Depth = the card's layer (cards.json parallaxDistance: back 20, layer1 25, layer2 50, layer3 75, front 100).
+## R13d (after R13e): back-to-top A+ / A fallback + More Projects list clears the wordmark (Sonnet 4.6 is fine)
+Problem: the footer link smooth-scrolls the whole page back to the top, replaying every scrubbed animation, 35 cards and image loads, so it is long and laggy.
+- A+ (default): everything EXCEPT the big AV wordmark fades to black (~0.4s, ONE black overlay layered just below the wordmark, opacity only) -> instant jump to scrollY 0 while hidden (Lenis scrollTo(0, { immediate: true }), ScrollTrigger.update, every section in its top state, nav in its big state, no loader replay) -> the hero fades back in around the wordmark (~0.6s). The wordmark is big at the footer and big at the top: it must not move or flicker.
+- A (fallback): same, overlay above everything (wordmark included). Use when navigator.hardwareConcurrency <= 4, navigator.deviceMemory <= 4 (when available) or Save-Data is on. No frame-time measuring.
+- prefers-reduced-motion: instant jump with a very short plain fade.
+- Timings and the fallback rule in timeline.js; force a path with ?top=aplus / ?top=a.
+- Check: one 4x CPU-throttled run of A+ (report the worst frame), no visible wordmark jump. Full compare at both sizes.
 
-1. Parting: ALL 35 cards take part (drop the `scroll: false` exception for the 8 cards). Parting amount scales with depth: front cards pushed furthest, back cards least. Keep live's parting targets as the front-card reference and the R13b parting spring.
-2. Mouse push-away (new, what Anh originally wanted): cards near the cursor are pushed AWAY from it (direction = from the cursor to the card centre), strength fading with distance over a radius (smooth falloff, zero outside the radius), and scaled by depth (front strongest, back weakest). Use each card's current on-screen centre (from cached base positions + current offsets; no DOM reads in the loop). Spring-smoothed like the current mouse effect.
-3. Keep live's global mouse drift (Parallax Floating) as a gentle background layer, with its own amount slider (0 = off).
-4. Panel (?tune) sliders, all in Copy values: push radius, push strength, falloff softness, depth spread (how much more front cards move than back cards; applies to parting and push), background drift amount. Sensible starting defaults; Anh tunes by eye.
-5. Card 11: treat like the others (no investigation).
-6. Touch / reduced motion: no mouse push or drift (as now). Performance: still one transform per card per frame; report slow frames while scrolling + moving the mouse.
-7. Compare: SKIP the card probes (they now differ from live by design; do not fit new reference values). Every other probe must still pass at 1920x1080 and 2560x1440.
+Later (polish, after everything else, Anh's call): the "rewind" version C (page streaks upward, jump, settles back in; transform/opacity only on one wrapper + one overlay, blur only on strong devices), with A as its fallback.
 
-8. New card layout (Anh 2026-10-02): the Framer layout was pre-placed "half parted" (an open lane down the middle) only because Framer had no responsive way to part them. Replace it with a more random scatter where some cards start near or across the centre line, so the parting has visible work to do.
-   - Keep each card's identity: same image, same depth layer, same side (left/right) and the same rough vertical order through the section, so the story of the section stays the same.
-   - Generate positions from a SEED (same layout on every visit; never random per page load). Controls: scatter amount (how far cards may move from their current spot), centre pull (share of cards that start near/over the centre line, and how close), minimum gap (relax overlaps so cards don't pile up; small overlaps between different depths are fine), vertical jitter.
-   - ?tune panel: those sliders plus a "Reshuffle" button (new seed) and the seed in Copy values, so Anh can flick through layouts and keep the one he likes. Bake the chosen seed + values into data (or timeline.js) so the production build has no generator cost at load if that is simpler.
-   - Parting is per card from its own screen position, so cards near the centre will part hardest: check that the frame passing through stays readable (cards near the centre must clear the frame) and that the depth scaling (item 1) still reads.
-Current CARDS defaults (Anh's tuning, keep unless the new model needs renaming): partingStrength 1.15, partingSoftness 0.8, partingBounce 0.25, mouseStrength 1.4, mouseStiffness 1375, mouseDamping 100, depthRange 0.85, lagStrength 0.9, lagFrontSec 0.03, lagBackSec 0.25. The trail (R15) fades out over Selected Work: check the two still read well together.
-Target screens: 1920x1080, 2560x1440, 3840x2160, 1440x900, 1512x982, 1728x1117.
+Also in R13d (Anh 2026-10-02): More Projects list vs the returning big wordmark. The pinned list ("BITIS SEASON 09" etc.) overlaps the big "^ V" wordmark when it comes back at the footer (live has the same bug; seen at 2560x1440).
+- Fix by layout, not new motion: move the list block (names + "More Projects" label + "See more work" link, kept aligned together) further up, and scale it down slightly only if needed, so the list's bottom always clears the wordmark's top with a visible gap.
+- Make it a rule, not one fitted number: the wordmark scales with width, the list is capped, so compute the list position from the wordmark's top edge (e.g. list bottom = wordmark top - gap, clamped so the list never goes under the nav), with a max scale-down of about 85%.
+- Target screens (Anh's priority): 16:9 from FHD to 4K (1920x1080, 2560x1440, 3840x2160) and MacBook 16:10 (1440x900, 1512x982, 1728x1117). Check every one of these with a screenshot at the moment the wordmark is fully back: no overlap, list still reads as centred. Report the gap at each size.
+- This departs from live on purpose; update or skip the More Projects compare probes that move.
+Also look at the one ~45 ms frame at the start of each R13c test run (first frame of Selected Work?): if it is image decode or first layout, fix it cheaply (e.g. decode="async" + pre-decode just before the section) or report why not.
 
 ## Queued (plans agreed with Anh, in this order; each becomes a request after the one before is committed)
-1. R13d back-to-top A+ (A fallback) + More Projects list clears the returning wordmark: docs/plans/r13d-back-to-top.md
-2. Selected Work step 2, WebGL edge bend: docs/plans/selected-work-section.md
-3. Project pages (Bitis template first), Works page, tablet/phone, launch prep, then back-to-top "rewind" polish.
-4. Check later (low priority, Anh 2026-10-02): 4K at 100% scaling (3840x2160 CSS) squeezes the capped section positions (Selected Work ~1 screen down, trail barely runs). Consider letting section positions keep scaling on very tall viewports.
+1. Selected Work step 2, WebGL edge bend: docs/plans/selected-work-section.md
+2. Project pages (Bitis template first), Works page, tablet/phone, launch prep, then back-to-top "rewind" polish.
+3. Check later (low priority, Anh 2026-10-02): 4K at 100% scaling (3840x2160 CSS) squeezes the capped section positions (Selected Work ~1 screen down, trail barely runs). Consider letting section positions keep scaling on very tall viewports.
 
 ## Later: Selected Work step 2 (WebGL edge bend)
 Plan: docs/plans/selected-work-section.md step 2. After Anh tunes R13 with the panel.

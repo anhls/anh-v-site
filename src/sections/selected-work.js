@@ -1,7 +1,8 @@
 import { imgAttrs, videoInfo } from '../util/media.js';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { CARDS, PARTING, LAYOUT } from '../timeline.js';
+import { CARDS, LAYOUT } from '../timeline.js';
+import { frameState } from './hero.js';
 import { generateLayout } from '../data/layout.js';
 import { springFromBounce } from '../effects/springs.js';
 import { registerPointer, pointerEnabled } from '../effects/pointer.js';
@@ -10,9 +11,9 @@ import { capW } from '../scale.js';
 // Selected Work (was "archive"): 35 image cards scattered over a 250vh section, one element per card (CLAUDE.md rules 3 + 4).
 // Everything below was measured on anh-v.com and read from its published code (see docs/status.md, R13), then summed into
 // ONE transform per card per frame on the shared gsap ticker:
-//   1. Parting (live, scroll): each card, from where it is on the screen, is pushed sideways away from the centre line and
-//      down, strongest while it crosses the middle of the screen and for cards near the centre line; the offset is eased at
-//      0.2 per 60 fps frame. It is not tied to the frame element. R13c: ALL cards part, scaled by depth (depthWeight).
+//   1. Aura (R13e, replaces live's screen-position parting): cards are pushed away from the frame (the masked image in the
+//      middle), measured rect to rect from the hero's own state (frameState), sideways-biased, and always cleared to a minimum
+//      gap. Scaled by depth. The R13b spring settles the offset.
 //   2. Mouse (live): Framer "Parallax Floating". offset = -(mouse - screen centre) / (half the screen) * distance, x and y,
 //      on a spring. distance = the card's layer value (20..100 px). There is no radius. Only card 11 ignores the mouse.
 //      R13b: live's targets are kept, but the offset follows them through a spring (CARDS.partingSoftness / partingBounce)
@@ -49,23 +50,21 @@ export function buildSelectedWork(root, cards) {
   const by = new Float64Array(n); // base centre y (px from the top of the page)
   const bh = new Float64Array(n); // card height (px)
   const bw = new Float64Array(n); // card width (px)
-  const dw = new Float64Array(n); // depth weight: 1 for the front layer, less for deeper cards (parting and push)
   const qx = new Float64Array(n); // push offset (spring position), velocity, target
   const qy = new Float64Array(n);
   const vqx = new Float64Array(n);
   const vqy = new Float64Array(n);
   const tqx = new Float64Array(n);
   const tqy = new Float64Array(n);
-  const px = new Float64Array(n); // parting offset (spring position)
+  const px = new Float64Array(n); // aura offset (spring position)
   const py = new Float64Array(n);
-  const vpx = new Float64Array(n); // parting spring velocity
+  const vpx = new Float64Array(n); // aura spring velocity
   const vpy = new Float64Array(n);
-  const tpx = new Float64Array(n); // parting target (live's formula; kept while a card is out of range)
+  const tpx = new Float64Array(n); // aura target (R13e)
   const tpy = new Float64Array(n);
   const sm = new Float64Array(n); // lagged scroll position
   const lastX = new Float64Array(n).fill(NaN);
   const lastY = new Float64Array(n).fill(NaN);
-  const armed = new Uint8Array(n);
   let W = innerWidth;
   let H = innerHeight;
   let scale = 1;
@@ -108,10 +107,12 @@ export function buildSelectedWork(root, cards) {
     },
   };
 
+  const aura = { T: 0, ux: 0, uy: 0 };
+  let prevSy = window.scrollY;
+  let scrollVel = 0; // px/s, smoothed
   const tick = (_time, deltaMs) => {
     const dt = Math.min(deltaMs, 50) / 1000;
     const sy = window.scrollY;
-    const [pk, pc] = springFromBounce(CARDS.partingSoftness, CARDS.partingBounce);
     const pSteps = Math.max(1, Math.ceil(dt / 0.004));
     const ph = dt / pSteps;
     let moving = false;
@@ -137,11 +138,47 @@ export function buildSelectedWork(root, cards) {
       }
     }
 
+    // The frame (R13e): centred horizontally, vertically at H/2 plus the two float offsets. Read from the hero's own state.
+    // Look-ahead: while scrolling, the aura is evaluated where the card will be in auraLead seconds, so the spring (which needs a
+    // moment) has already moved it aside when the card gets there. At rest the look-ahead is 0.
+    const sv = dt > 0 ? (sy - prevSy) / dt : 0;
+    prevSy = sy;
+    scrollVel += (sv - scrollVel) * Math.min(1, dt / 0.08);
+    const ahead = Math.max(-H, Math.min(H, scrollVel * CARDS.auraLead));
+    const fw = frameState.w;
+    const fh = frameState.h;
+    const fcx = W / 2;
+    const fcy = H / 2 + frameState.fo + frameState.fi;
+    const aMargin = CARDS.auraMargin * scale;
+    const aStrength = CARDS.auraStrength * scale;
+    const aGap = CARDS.auraMinGap * scale;
+
+    // Aura target for a card whose centre is (dx, dy) from the frame centre: sets aura.T (distance) and aura.ux / aura.uy (direction).
+    const auraAt = (dx, dy, hw, hh, side, w) => {
+      const gx = Math.abs(dx) - hw - fw / 2; // gap along x (negative = overlapping on that axis)
+      const gy = Math.abs(dy) - hh - fh / 2;
+      const gap = gx > 0 || gy > 0 ? Math.hypot(Math.max(gx, 0), Math.max(gy, 0)) : Math.max(gx, gy);
+      aura.T = 0; aura.ux = 0; aura.uy = 0;
+      if (gap >= aMargin) return;
+      let vx = dx * CARDS.auraBias;
+      let vy = dy;
+      if (Math.abs(vx) + Math.abs(vy) < 1e-3) { vx = side; vy = 0; }
+      const len = Math.hypot(vx, vy);
+      aura.ux = vx / len;
+      aura.uy = vy / len;
+      aura.T = aStrength * (1 - Math.max(gap, 0) / aMargin) ** CARDS.auraFalloff * w;
+      if (gx < aGap && gy < aGap) { // closer than the minimum gap on both axes: how far along u until one axis clears
+        const reqX = Math.abs(aura.ux) > 1e-3 ? (aGap - gx) / Math.abs(aura.ux) : Infinity;
+        const reqY = Math.abs(aura.uy) > 1e-3 ? (aGap - gy) / Math.abs(aura.uy) : Infinity;
+        aura.T = Math.max(aura.T, CARDS.auraClearance * Math.min(reqX, reqY));
+      }
+    };
+
     for (let i = 0; i < n; i++) {
       const c = cards[i];
       const w = (20 + (c.mouse - 20) * CARDS.depthRange) / wDen;
 
-      // Mouse offset ("away": opposite to the mouse).
+      // Mouse offset ("away": opposite to the mouse) = the gentle background drift.
       let mx = 0;
       let my = 0;
       if (live) {
@@ -150,33 +187,15 @@ export function buildSelectedWork(root, cards) {
         my = -mouse.y * d;
       }
 
-      // Parting: needs the card's centre on screen INCLUDING its own offsets, like live (it reads the element's rect).
-      {
-        const h = bh[i];
-        const cx = bx[i] + px[i] + mx;
-        const cy = by[i] - sy + py[i] + my;
-        if (!armed[i] && cy - h / 2 < H - PARTING.armed * h && cy + h / 2 > PARTING.armed * h) armed[i] = 1;
-        if (armed[i]) {
-          const dx = cx - W / 2;
-          const f = Math.min(Math.abs(dx) / (W / 2), 1);
-          const g = 1 - Math.min(Math.max((cy + h) / (H + 2 * h), 0), 1);
-          if (g > 0 && g < 1) {
-            const t = (1 - Math.abs(g - 0.5) * 2) * CARDS.partingStrength;
-            const tx = w * t * (W * PARTING.xMin + (W * PARTING.xMax - W * PARTING.xMin) * (1 - f)) * (dx < 0 ? -1 : 1) * PARTING.z;
-            const ty = w * t * (H * PARTING.yMin + (H * PARTING.yMax - H * PARTING.yMin) * (1 - f)) * PARTING.z;
-            tpx[i] = tx;
-            tpy[i] = ty;
-          }
-        }
-        // The spring keeps running toward the last target, also while the card is out of range, so nothing freezes mid-motion.
-        for (let q = 0; q < pSteps; q++) {
-          vpx[i] += (pk * (tpx[i] - px[i]) - pc * vpx[i]) * ph;
-          vpy[i] += (pk * (tpy[i] - py[i]) - pc * vpy[i]) * ph;
-          px[i] += vpx[i] * ph;
-          py[i] += vpy[i] * ph;
-        }
-        if (Math.abs(vpx[i]) + Math.abs(vpy[i]) > 0.05 || Math.abs(tpx[i] - px[i]) + Math.abs(tpy[i] - py[i]) > 0.05) moving = true;
-      }
+      // Lag: the card's scroll position trails the real one; deeper cards (smaller layer value) trail longer.
+      let lag = 0;
+      if (live && CARDS.lagStrength > 0 && !far) {
+        const depth = Math.min(Math.max(1 - (((c.mouse || 100) - 20) / 80) * CARDS.depthRange, 0), 1.5); // 0 front .. 1 back
+        const tau = CARDS.lagStrength * (CARDS.lagFrontSec + (CARDS.lagBackSec - CARDS.lagFrontSec) * depth);
+        sm[i] += (sy - sm[i]) * (tau > 0 ? 1 - Math.exp(-dt / tau) : 1);
+        lag = sy - sm[i];
+        if (Math.abs(lag) > 0.05) moving = true;
+      } else sm[i] = sy; // lag is off, or the section is more than a screen beyond the on-screen range: drop it (invisible)
 
       // Push: away from the pointer. Distance is from the pointer to the card's edge (0 inside the card); direction is from the
       // pointer to the card's centre. Reads only cached numbers (base position + current offsets).
@@ -201,15 +220,31 @@ export function buildSelectedWork(root, cards) {
       }
       if (Math.abs(vqx[i]) + Math.abs(vqy[i]) > 0.05 || Math.abs(tqx[i] - qx[i]) + Math.abs(tqy[i] - qy[i]) > 0.05) moving = true;
 
-      // Lag: the card's scroll position trails the real one; deeper cards (smaller layer value) trail longer.
-      let lag = 0;
-      if (live && CARDS.lagStrength > 0 && !far) {
-        const depth = Math.min(Math.max(1 - (((c.mouse || 100) - 20) / 80) * CARDS.depthRange, 0), 1.5); // 0 front .. 1 back
-        const tau = CARDS.lagStrength * (CARDS.lagFrontSec + (CARDS.lagBackSec - CARDS.lagFrontSec) * depth);
-        sm[i] += (sy - sm[i]) * (tau > 0 ? 1 - Math.exp(-dt / tau) : 1);
-        lag = sy - sm[i];
-        if (Math.abs(lag) > 0.05) moving = true;
-      } else sm[i] = sy; // lag is off, or the section is more than a screen beyond the on-screen range: drop it (invisible)
+      // Aura (R13e): the card's rect (without its own aura offset) against the frame's rect. The target moves the card away from
+      // the frame centre (sideways-biased) by the soft aura push, and at least far enough to leave auraMinGap between the rects.
+      // Evaluated where the card is now AND where it will be after the look-ahead; the stronger push wins.
+      if (!far && fw > 0) {
+        const dx = bx[i] + mx + qx[i] - fcx;
+        const dy = by[i] - sy + lag + my + qy[i] - fcy;
+        auraAt(dx, dy, bw[i] / 2, bh[i] / 2, pos[i].x < 0 ? -1 : 1, w);
+        let T = aura.T, ux = aura.ux, uy = aura.uy;
+        if (ahead > 1 || ahead < -1) {
+          auraAt(dx, dy - ahead, bw[i] / 2, bh[i] / 2, pos[i].x < 0 ? -1 : 1, w);
+          if (aura.T > T) { T = aura.T; ux = aura.ux; uy = aura.uy; }
+        }
+        tpx[i] = ux * T;
+        tpy[i] = uy * T;
+      } else { tpx[i] = 0; tpy[i] = 0; }
+      // The R13b spring settles the aura offset (it keeps running toward the last target, so nothing freezes mid-motion).
+      // Front cards settle fastest (0.45 x the softness), the deepest ones slowest, so deep cards drift and front cards get out of the way.
+      const [pk, pc] = springFromBounce(CARDS.partingSoftness * (0.45 + 0.55 * (1 - w)), CARDS.partingBounce);
+      for (let q = 0; q < pSteps; q++) {
+        vpx[i] += (pk * (tpx[i] - px[i]) - pc * vpx[i]) * ph;
+        vpy[i] += (pk * (tpy[i] - py[i]) - pc * vpy[i]) * ph;
+        px[i] += vpx[i] * ph;
+        py[i] += vpy[i] * ph;
+      }
+      if (Math.abs(vpx[i]) + Math.abs(vpy[i]) > 0.05 || Math.abs(tpx[i] - px[i]) + Math.abs(tpy[i] - py[i]) > 0.05) moving = true;
 
       const x = px[i] + mx + qx[i];
       const y = py[i] + my + lag + qy[i];
@@ -255,5 +290,5 @@ export function buildSelectedWork(root, cards) {
     ScrollTrigger.refresh();
     if (!ticking) { ticking = true; gsap.ticker.add(tick); }
   };
-  return { cards: els, relayout, positions: () => pos };
+  return { cards: els, relayout, positions: () => pos, debug: () => ({ px, py, tpx, tpy, bx, by, bw, bh }) };
 }
