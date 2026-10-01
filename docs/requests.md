@@ -64,6 +64,18 @@ After R16b: R16c (frame warp on its own canvas, poster while scrolling): docs/pl
 
 ## R16b-fix [done] (archived in docs/archive/requests-R16b-fix.md)
 
+## R16c (next): centre frame warp on its own canvas, poster while scrolling (use Sonnet 5.5)
+Anh (2026-10-02): extend the scroll warp to the centre frame (hero mask), but on a separate canvas from the Selected Work cards, and only while scrolling.
+
+1. Own canvas, same layer as the frame today (under the cards, under About / index title / nav / wordmark). Independent settings and on/off from the cards (R16b).
+2. Hand-off model: at rest the normal DOM frame shows (video plays, images, peels, overlay exactly as now) and the canvas is hidden. When scroll speed passes a small threshold: the canvas takes over at the identical pixels (no visible swap; R16 reached 0.03 px), the DOM frame is hidden, and the warp (same screen-space style and spring as R16b, own sliders) is applied. When scrolling stops and the warp has sprung back to flat: hand back to the DOM frame.
+3. Hero video while warping (Anh's call): show the video's static artwork (the poster / thumbnail from R14) on the canvas instead of live video frames, and pause the video; resume playback when scrolling stops and the DOM frame is back. Make the swap from video to poster soft (short crossfade, ~0.15 s) so the image change does not pop. Option on ?tune: "frozen current frame" (one upload of the current video frame) vs "poster" (default poster).
+4. The canvas must rebuild the frame's current look every frame from known state (no DOM reads): mask rect (frameState from hero.js, R13e), which image(s) are showing (#1 video poster / #2 portrait / #3 stack), the two peels' offsets, the darkening overlay and any fades. Text layered over the frame (About, index title) stays DOM above it.
+5. ?tune: frame warp on/off, strength, reach, pinch/arc balance, curl, speed threshold for the hand-off, video mode (poster / frozen frame); in Copy values.
+6. Fallback: weak devices, reduced motion, no WebGL -> today's DOM frame, no warp. Checks: hand-off invisible (screenshot diff at the swap moment, 1920 + 2560), no flicker on fast scroll start/stop, video resumes from where it paused, frame time on the 6 screens incl. 120 Hz (8.3 ms), compare unchanged. Screenshots to tools/scratch/r16c-shots/.
+7. Match the card warp's current behaviour (R16b-fix): scroll down recedes, scroll up inflates, Anh's WARP tuning as the starting point but own sliders.
+8. While in this area: the one ~41.6 ms frame at ~6060 px page scroll (561vh: end of the project index / start of More Projects), seen in R16b-fix at 1920 and 1512x982 with ?gl=0 too. Find the cause (layout, image decode, a ScrollTrigger refresh, the index/More Projects hand-over) and fix it if cheap; report.
+
 ## Queued (plans agreed with Anh, in this order; each becomes a request after the one before is committed)
 2. Project pages (Bitis template first), Works page, tablet/phone, launch prep, then back-to-top "rewind" polish.
 3. Check later (low priority, Anh 2026-10-02): 4K at 100% scaling (3840x2160 CSS) squeezes the capped section positions (Selected Work ~1 screen down, trail barely runs). Consider letting section positions keep scaling on very tall viewports.
