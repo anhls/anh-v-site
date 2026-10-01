@@ -43,7 +43,7 @@ const ALL_PROBES = {
   mpLabel: ['.framer-385i7c', '.more-projects__label', 'top', 1.5],          // More Projects label ("Client" on live)
   mpName1: ['.framer-1ry0rr0-con', '.more-projects__list li@0', 'top', 1.5],  // first name (Forbes)
   mpName3: ['.framer-1i6cfbr-con', '.more-projects__list li@2', 'top', 1.5],  // third name (Sulwhasoo)
-  footLink: ['.framer-195hxhu', '.footer__top', 'top', 1.5],                   // Go Back To Top
+  footLink: ['.framer-195hxhu', '.footer .footer__top', 'top', 1.5],                   // Go Back To Top
   aboutRev: ['ABOUT_LIVE', '.about__text', 'share', 6], // % of the About words/letters that are mostly lit (opacity > 0.6)
 };
 const LATE_PROBES = new Set(['mpLabel', 'mpName1', 'mpName3', 'footLink']); // the only probes compared at 600vh and beyond

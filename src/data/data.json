@@ -60,12 +60,12 @@
   ],
   "moreProjects": {
     "label": "More Projects",
-    "year": 2025,
     "items": [
       { "name": "Forbes Vanguard", "slug": "forbes", "image": "https://framerusercontent.com/images/vnRzwgUH7uvpqoRCCWRLGLOvwQ.jpg" },
       { "name": "Techcombank Priority", "slug": "tcb-priority", "image": "https://framerusercontent.com/images/QUzoZUsI26ew5csK6GR0cPOsKQ.jpg" },
       { "name": "Sulwhasoo", "slug": "sulwhasoo", "image": "https://framerusercontent.com/images/feZNJaO2rFpJz1tp7lULn6PRjnY.jpg" },
-      { "name": "Similac Virgo 2024", "slug": "similac", "image": "https://framerusercontent.com/images/YWTonqftN7SBxLUONPaxNkRdIJE.jpg" }
+      { "name": "Similac Virgo 2024", "slug": "similac", "image": "https://framerusercontent.com/images/YWTonqftN7SBxLUONPaxNkRdIJE.jpg" },
+      { "name": "Bitis Season 09", "slug": "bitis09", "image": "https://framerusercontent.com/images/AlABm8NL9nRp1XFUf62ccnFB8.jpg?scale-down-to=2048" }
     ],
     "more": { "name": "See more work", "href": "/work/" }
   },
