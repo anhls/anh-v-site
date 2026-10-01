@@ -63,6 +63,7 @@ uniform sampler2D uScene;
 uniform vec2 uRes;            // canvas size in device px
 uniform float uAmt;           // signed warp, -1..1 (x strength)
 uniform vec4 uShape;          // pinch, arc, persp, reach
+uniform vec2 uMargin;         // overscan of the offscreen buffer, as a share of the screen width / height (each side)
 uniform float uSym;           // weight of the leading side (1 = both sides alike)
 uniform float uGrain;
 uniform float uSeed;
@@ -81,10 +82,15 @@ void main() {
   vec2 q = p;
   q.x = p.x / max(1.0 - uShape.x * a * w, 0.25);
   q.y = p.y * (1.0 + uShape.z * a * w);
-  q.y -= sign(uAmt) * uShape.y * a * w * (1.0 - 4.0 * p.x * p.x);
-  vec2 src = vec2(q.x + 0.5, 0.5 + q.y);   // y down
+  // Arc. Scrolling UP (uAmt < 0) keeps the R16b look (the arc term magnifies a little: the "inflate"). Scrolling DOWN (uAmt > 0)
+  // bows each edge outward instead, so every term compresses (pinch, perspective and arc all push the source farther from the
+  // centre): the content recedes, nothing is magnified (checked on a grid, see docs/status.md R16b-fix).
+  float arcK = uShape.y * a * w * (1.0 - 4.0 * p.x * p.x);
+  q.y += (uAmt > 0.0) ? (v >= 0.0 ? arcK : -arcK) : arcK;
+  vec2 src = vec2(q.x + 0.5, 0.5 + q.y);   // y down, in screen units; the buffer also holds the overscan around the screen
+  vec2 uv = vec2((src.x + uMargin.x) / (1.0 + 2.0 * uMargin.x), (src.y + uMargin.y) / (1.0 + 2.0 * uMargin.y));
   vec4 c = vec4(0.0);
-  if (src.x >= 0.0 && src.x <= 1.0 && src.y >= 0.0 && src.y <= 1.0) c = texture(uScene, vec2(src.x, 1.0 - src.y));
+  if (uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0) c = texture(uScene, vec2(uv.x, 1.0 - uv.y));
   float n = h(gl_FragCoord.xy + uSeed) - 0.5;
   c.rgb = clamp(c.rgb + n * uGrain * c.a, 0.0, 1.0);
   o = c;
@@ -119,15 +125,26 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
   gl.attachShader(post, compile(gl.FRAGMENT_SHADER, POST_FRAG));
   gl.linkProgram(post);
   const postOk = gl.getProgramParameter(post, gl.LINK_STATUS);
-  const P = Object.fromEntries(['uScene', 'uRes', 'uAmt', 'uShape', 'uSym', 'uGrain', 'uSeed'].map((k) => [k, gl.getUniformLocation(post, k)]));
+  const P = Object.fromEntries(['uScene', 'uRes', 'uAmt', 'uShape', 'uMargin', 'uSym', 'uGrain', 'uSeed'].map((k) => [k, gl.getUniformLocation(post, k)]));
   const emptyVao = gl.createVertexArray();
   // Offscreen buffers (made on first use, rebuilt on resize): a multisampled renderbuffer the cards are drawn into (same edge
   // quality as the canvas), resolved into a texture that the post shader samples.
   let fb = null;
+  // The warp samples the picture beyond the screen edge (content that is just off screen is pulled in), so the offscreen buffer
+  // holds the screen plus an overscan margin on every side, sized from the warp settings (px, rounded up to 8).
+  const margins = () => {
+    const sMax = Math.max(WARP.strengthUp, WARP.strengthDown) * 1.2; // the spring overshoots a little past 1
+    const my = Math.min(Math.ceil(((WARP.persp * 0.5 + WARP.arc) * sMax * H + 4) / 8) * 8, Math.round(H * 0.7));
+    const k = Math.min(WARP.pinch * sMax, 0.7);
+    const mx = Math.min(Math.ceil((W * 0.5 * (1 / (1 - k) - 1) + 4) / 8) * 8, Math.round(W * 0.5));
+    return [mx, my];
+  };
   const makeFb = () => {
+    const [mx, my] = margins();
     if (fb) { gl.deleteFramebuffer(fb.ms); gl.deleteFramebuffer(fb.res); gl.deleteRenderbuffer(fb.rb); gl.deleteTexture(fb.tex); }
-    const w = canvas.width;
-    const h = canvas.height;
+    const dprNow = canvas.width / W;
+    const w = Math.round((W + 2 * mx) * dprNow);
+    const h = Math.round((H + 2 * my) * dprNow);
     // multisampling costs memory (samples x 4 bytes per pixel): 4 samples up to ~6 M pixels, 2 up to ~14 M, none beyond
     const px = w * h;
     const samples = Math.min(px > 14e6 ? 0 : px > 6e6 ? 2 : 4, gl.getParameter(gl.MAX_SAMPLES));
@@ -148,7 +165,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, res);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    fb = { ms, res, rb, tex, w, h };
+    fb = { ms, res, rb, tex, w, h, mx, my, key: `${canvas.width}x${canvas.height}:${mx}:${my}` };
   };
 
   // One strip mesh shared by every card: COLS + 1 columns x 2 rows (the bend only depends on x, so two rows are enough).
@@ -293,7 +310,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
     computeWeights();
     dirty = true;
     // build the offscreen buffers and compile the warp shader a moment after load / resize, not on the first fast scroll
-    if (postOk) setTimeout(() => { if (lost) return; if (!fb || fb.w !== canvas.width || fb.h !== canvas.height) makeFb(); gl.bindFramebuffer(gl.FRAMEBUFFER, fb.ms); gl.clear(gl.COLOR_BUFFER_BIT); postPass(0.01, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); dirty = true; }, 400);
+    if (postOk) setTimeout(() => { if (lost) return; ensureFb(); gl.bindFramebuffer(gl.FRAMEBUFFER, fb.ms); gl.clear(gl.COLOR_BUFFER_BIT); postPass(0.01, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); dirty = true; }, 400);
   };
 
   // Warm-up: one tiny draw now (during the loader), so the driver compiles the shaders before the first card is needed.
@@ -312,12 +329,18 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
   canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); lost = true; api.active = false; onLost?.(); });
   section.prepend(canvas);
 
+  const ensureFb = () => {
+    const [mx, my] = margins();
+    if (!fb || fb.key !== `${canvas.width}x${canvas.height}:${mx}:${my}`) makeFb();
+  };
+
   // Resolves the multisampled buffer into the texture and draws it to the screen through the warp shader.
   const postPass = (amt, grainAmt, seed) => {
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fb.ms);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb.res);
     gl.blitFramebuffer(0, 0, fb.w, fb.h, 0, 0, fb.w, fb.h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, canvas.width, canvas.height);
     gl.disable(gl.BLEND);
     gl.useProgram(post);
     gl.bindVertexArray(emptyVao);
@@ -327,6 +350,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
     gl.uniform2f(P.uRes, canvas.width, canvas.height);
     gl.uniform1f(P.uAmt, Math.max(-1, Math.min(1, amt)));
     gl.uniform4f(P.uShape, WARP.pinch, WARP.arc, WARP.persp, WARP.reach);
+    gl.uniform2f(P.uMargin, fb.mx / W, fb.my / H);
     gl.uniform1f(P.uSym, WARP.sym);
     gl.uniform1f(P.uGrain, grainAmt);
     gl.uniform1f(P.uSeed, seed);
@@ -337,9 +361,9 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
   };
 
   // Draws every card (flat geometry, plus the optional per-card bend) into the bound framebuffer.
-  const paintCards = (grainAmt, seed, scale, sy) => {
+  const paintCards = (grainAmt, seed, scale, sy, mx, my) => {
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.uniform2f(U.uView, W, H);
+    gl.uniform2f(U.uView, W + 2 * mx, H + 2 * my);
     gl.uniform1f(U.uShape, BEND.arcShape);
     gl.uniform1f(U.uGrain, grainAmt);
     gl.uniform1f(U.uSeed, seed);
@@ -349,9 +373,9 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
       const t = isVideo[i] && vtex[i] ? vtex[i] : tex[i];
       const cx = bx[i] + ox[i];
       const cy = by[i] - sy + oy[i];
-      if (cy + bh[i] / 2 + arcMax < 0 || cy - bh[i] / 2 - arcMax > H || cx + bw[i] / 2 < 0 || cx - bw[i] / 2 > W) continue;
+      if (cy + bh[i] / 2 + arcMax < -my || cy - bh[i] / 2 - arcMax > H + my || cx + bw[i] / 2 < -mx || cx - bw[i] / 2 > W + mx) continue;
       const bendPx = Math.max(-bh[i] * 0.3, Math.min(bh[i] * 0.3, bend.x * arcMax * bendW[i]));
-      gl.uniform2f(U.uCenter, cx, cy);
+      gl.uniform2f(U.uCenter, cx + mx, cy + my);
       gl.uniform1f(U.uBend, bendPx);
       // the card itself (skipped while its dark layer fully covers it)
       if (t && !(darkCard[i] && hd[i] >= 0.999)) {
@@ -414,13 +438,14 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
 
     const grainAmt = BEND.grain * (1 + BEND.grainSpeed * grainSpeed);
     const seed = (grainStep % 997) * 17.31;
-    const amt = bend.x * WARP.strength;
+    const amt = bend.x * (bend.x > 0 ? WARP.strengthDown : WARP.strengthUp); // + = scrolling down (recede), - = up (inflate)
     const usePost = postOk && Math.abs(amt) > 0.0015;
     if (usePost) {
-      if (!fb || fb.w !== canvas.width || fb.h !== canvas.height) makeFb();
+      ensureFb();
       gl.bindFramebuffer(gl.FRAMEBUFFER, fb.ms);
+      gl.viewport(0, 0, fb.w, fb.h);
     }
-    paintCards(usePost ? 0 : grainAmt, seed, scale, sy);
+    paintCards(usePost ? 0 : grainAmt, seed, scale, sy, usePost ? fb.mx : 0, usePost ? fb.my : 0);
     if (usePost) {
       postPass(amt, grainAmt, seed);
     }

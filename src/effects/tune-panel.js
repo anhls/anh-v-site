@@ -58,7 +58,8 @@ const CAPTION_SLIDERS = [
   ['textOutSec', 'Caption title: colour fade back (s)', 0.05, 1.2, 0.01, 'R17. How long the orange takes to fade back (live: about 0.35 s; it turns orange at once).'],
 ];
 const WARP_SLIDERS = [
-  ['strength', 'Warp strength', 0, 2, 0.01, 'R16b. One distortion over ALL the cards, driven by scroll speed. 0 = off (cards stay flat).'],
+  ['strengthUp', 'Strength, scrolling up', 0, 2, 0.01, 'R16b-fix. One distortion over ALL the cards, driven by scroll speed. Scrolling UP the content near the edge bulges toward it. 0 = off.'],
+  ['strengthDown', 'Strength, scrolling down', 0, 2, 0.01, 'R16b-fix. Scrolling DOWN the content near the edge recedes (smaller, narrower, a sheet curling away; never magnified). 0 = off.'],
   ['reach', 'Warp reach (share of screen)', 0.1, 1, 0.01, 'How far in from the top / bottom edge the warp fades in (1 = from the middle).'],
   ['pinch', 'Pinch (sides pulled in)', 0, 0.7, 0.01, 'How much narrower the content gets at the screen edge at full speed (the hourglass).'],
   ['arc', 'Arc (lines bow)', 0, 0.4, 0.005, 'How far horizontal lines bow, as a share of the screen height, against the scroll direction.'],
@@ -96,67 +97,66 @@ export function mountTunePanel({ trail, cards } = {}) {
   box.style.cssText =
     'position:fixed;top:12px;right:12px;z-index:99999;width:300px;max-height:calc(100vh - 24px);overflow:auto;padding:12px 14px;' +
     'background:rgba(20,20,20,.92);color:#fff;font:12px/1.35 system-ui,sans-serif;border-radius:8px;box-shadow:0 4px 24px rgba(0,0,0,.4);';
-  box.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><strong>Tuning (cards, layout, hero trail)</strong><button data-act="hide" style="all:unset;cursor:pointer;opacity:.7">hide</button></div>
+  box.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><strong>Tuning (cards, layout, captions, trail)</strong><button data-act="hide" style="all:unset;cursor:pointer;opacity:.7">hide</button></div>
     <div data-body></div>
-    <div style="display:flex;gap:8px;margin-top:10px"><button data-act="copy" style="flex:1;padding:6px;cursor:pointer">Copy values</button><button data-act="reset" style="padding:6px;cursor:pointer">Reset</button></div>
+    <div style="display:flex;gap:8px;margin-top:10px"><button data-act="copy" style="flex:1;padding:6px;cursor:pointer">Copy values</button><button data-act="reset" style="padding:6px;cursor:pointer">Reset to defaults</button></div>
     <div data-msg style="margin-top:6px;opacity:.7;min-height:1.2em"></div>`;
   const body = box.querySelector('[data-body]');
   const msg = box.querySelector('[data-msg]');
   const readouts = [];
 
-  const heading = (text, extra = '') => {
-    const d = document.createElement('div');
-    d.style.cssText = 'margin-top:12px;border-top:1px solid rgba(255,255,255,.2);padding-top:10px';
-    d.innerHTML = `<strong>${text}</strong>${extra}`;
+  // Sections are collapsible (<details>). ADVANCED, not shown but still in the arrays above and in Copy values: cardBend, arcShape, maxArc,
+  // depthExtreme, depthBand (per-card bend), sepPasses, speedRef, grainRate, auraClearance, mouseStiffness, hover stiffness / damping,
+  // darkScale, lineOutSec. To bring one back, add its id ('GROUP.key') to a section list below.
+  const DEFS = {};
+  const reg = (group, obj, defs) => defs.forEach((d) => { DEFS[`${group}.${d[0]}`] = [obj, d]; });
+  reg('WARP', WARP, WARP_SLIDERS); reg('BEND', BEND, BEND_SLIDERS); reg('CARDS', CARDS, CARD_SLIDERS); reg('HOVER', CARD_HOVER, HOVER_SLIDERS);
+  reg('CAPTION', CAPTION_HOVER, CAPTION_SLIDERS); reg('LAYOUT', LAYOUT, LAYOUT_SLIDERS); reg('TRAIL', TRAIL, TRAIL_SLIDERS);
+
+  const section = (title, ids, { open = false, note = '', onInput, extra } = {}) => {
+    const d = document.createElement('details');
+    d.open = open;
+    d.style.cssText = 'margin-top:8px;border-top:1px solid rgba(255,255,255,.2);padding-top:8px';
+    d.innerHTML = `<summary style="cursor:pointer;font-weight:600">${title}</summary>${note ? `<div style="opacity:.7;margin:4px 0 8px">${note}</div>` : ''}`;
+    if (extra) d.insertAdjacentHTML('beforeend', extra);
+    ids.forEach((id) => {
+      const [obj, [key, label, min, max, step, hint]] = DEFS[id];
+      const row = document.createElement('label');
+      row.style.cssText = 'display:block;margin:6px 0 9px';
+      row.title = hint;
+      row.innerHTML = `<span style="display:flex;justify-content:space-between"><span>${label}</span><span data-v></span></span><input type="range" min="${min}" max="${max}" step="${step}" style="width:100%">`;
+      const input = row.querySelector('input');
+      const v = row.querySelector('[data-v]');
+      input.value = obj[key];
+      v.textContent = obj[key];
+      input.addEventListener('input', () => { obj[key] = parseFloat(input.value); v.textContent = obj[key]; onInput?.(key); });
+      readouts.push({ obj, key, input, v });
+      d.appendChild(row);
+    });
     body.appendChild(d);
     return d;
   };
-  const addSliders = (obj, defs, onInput) => defs.forEach(([key, label, min, max, step, hint]) => {
-    const row = document.createElement('label');
-    row.style.cssText = 'display:block;margin-bottom:9px';
-    row.title = hint;
-    row.innerHTML = `<span style="display:flex;justify-content:space-between"><span>${label}</span><span data-v></span></span><input type="range" min="${min}" max="${max}" step="${step}" style="width:100%">`;
-    const input = row.querySelector('input');
-    const v = row.querySelector('[data-v]');
-    input.value = obj[key];
-    v.textContent = obj[key];
-    input.addEventListener('input', () => { obj[key] = parseFloat(input.value); v.textContent = obj[key]; onInput?.(); });
-    readouts.push({ obj, key, input, v });
-    body.appendChild(row);
-  });
   const syncReadouts = () => readouts.forEach((r) => { r.input.value = r.obj[r.key]; r.v.textContent = r.obj[r.key]; });
 
-  heading('Cards: aura, push, drift');
-  addSliders(CARDS, CARD_SLIDERS);
-
-  heading('Hero caption hover (R17)', '<div style="opacity:.7;margin:2px 0 8px">Scroll to the top of the page and hover a caption. The offset spring is in timeline.js.</div>');
-  addSliders(CAPTION_HOVER, CAPTION_SLIDERS);
-
-  heading('Cards: hover (R17)');
-  addSliders(CARD_HOVER, HOVER_SLIDERS);
-
-  heading('Cards: screen-space warp (R16b)', '<div style="opacity:.7;margin:2px 0 8px">Speed, spring and overshoot come from the bend settings below.</div>');
-  addSliders(WARP, WARP_SLIDERS);
-
-  heading('Cards: WebGL bend + grain (R16)', '<div style="opacity:.7;margin:2px 0 8px">Only with the WebGL cards on (?gl=1 forces them).</div>');
-  addSliders(BEND, BEND_SLIDERS, () => cards?.gl()?.reweigh());
-
-  // Layout: sliders regenerate the layout; Reshuffle picks a new seed.
-  const layoutHead = heading('Card layout', '<div data-seed style="margin:4px 0 8px"></div><button data-act="shuffle" style="padding:5px 10px;cursor:pointer;margin-bottom:8px">Reshuffle (new seed)</button>');
-  const seedEl = layoutHead.querySelector('[data-seed]');
+  section('Warp (scroll)', ['WARP.strengthUp', 'WARP.strengthDown', 'WARP.reach', 'WARP.pinch', 'WARP.arc', 'WARP.persp', 'WARP.sym', 'BEND.sensitivity', 'BEND.returnSpeed', 'BEND.overshoot'], { open: true, note: 'One distortion over all the cards. The last three (speed sensitivity, return speed, overshoot) are shared by both directions.' });
+  section('Grain', ['BEND.grain', 'BEND.grainSpeed']);
+  section('Aura (around the frame)', ['CARDS.auraWeight', 'CARDS.auraMargin', 'CARDS.auraStrength', 'CARDS.auraVertical', 'CARDS.auraFalloff', 'CARDS.auraMinGap', 'CARDS.partingSoftness', 'CARDS.partingBounce']);
+  section('Mouse (push + drift)', ['CARDS.pushRadius', 'CARDS.pushStrength', 'CARDS.pushFalloff', 'CARDS.pushStiffness', 'CARDS.pushDamping', 'CARDS.mouseStrength']);
+  section('Hover (card under the pointer)', ['HOVER.scale', 'HOVER.darkRest', 'HOVER.drift', 'HOVER.pushStrength', 'HOVER.pushRadius']);
+  section('Cards', ['CARDS.depthRange', 'CARDS.sepMaxCover', 'CARDS.sepStrength', 'CARDS.lagStrength', 'CARDS.lagFrontSec', 'CARDS.lagBackSec']);
+  const layout = section('Layout', ['LAYOUT.scatter', 'LAYOUT.centreShare', 'LAYOUT.centreBand', 'LAYOUT.minGap', 'LAYOUT.yJitter'], { onInput: () => cards?.relayout(), extra: '<div data-seed style="margin:4px 0 8px"></div><button data-act="shuffle" style="padding:5px 10px;cursor:pointer;margin-bottom:8px">Reshuffle (new seed)</button>' });
+  const seedEl = layout.querySelector('[data-seed]');
   const showSeed = () => { seedEl.textContent = `seed ${LAYOUT.seed}`; };
   showSeed();
-  addSliders(LAYOUT, LAYOUT_SLIDERS, () => cards?.relayout());
-
-  const trailHead = heading('Hero image trail', '<div data-trail-pts style="opacity:.7;margin:2px 0 8px"></div>');
-  const pts = trailHead.querySelector('[data-trail-pts]');
+  section('Captions (hero)', ['CAPTION.revealSec', 'CAPTION.hideSec', 'CAPTION.fromScale', 'CAPTION.lineInSec', 'CAPTION.textOutSec'], { note: 'Scroll to the top of the page and hover a caption.' });
+  const trailSec = section('Hero image trail', ['TRAIL.frequency', 'TRAIL.visibleFor', 'TRAIL.startMaskShare', 'TRAIL.fadeAtScreen', 'TRAIL.fadeLenVh', 'TRAIL.fadeCurve', 'TRAIL.minScale'], { onInput: () => { trail?.remeasure(); showPts(); }, extra: '<div data-trail-pts style="opacity:.7;margin:2px 0 8px"></div>' });
+  const pts = trailSec.querySelector('[data-trail-pts]');
   const showPts = () => {
     if (!trail) return;
-    const s = trail.state, H = innerHeight;
-    pts.textContent = `start ${Math.round(s.start)} px (${(s.start / H * 100).toFixed(0)} vh), fade ${Math.round(s.fadeStart)} to ${Math.round(s.fadeEnd)} px (${(s.fadeStart / H * 100).toFixed(0)} to ${(s.fadeEnd / H * 100).toFixed(0)} vh)`;
+    const st = trail.state, H = innerHeight;
+    pts.textContent = `start ${Math.round(st.start)} px (${(st.start / H * 100).toFixed(0)} vh), fade ${Math.round(st.fadeStart)} to ${Math.round(st.fadeEnd)} px (${(st.fadeStart / H * 100).toFixed(0)} to ${(st.fadeEnd / H * 100).toFixed(0)} vh)`;
   };
   showPts();
-  addSliders(TRAIL, TRAIL_SLIDERS, () => { trail?.remeasure(); showPts(); });
 
   box.addEventListener('click', async (e) => {
     const act = e.target.closest('[data-act]')?.dataset.act;
@@ -179,7 +179,7 @@ export function mountTunePanel({ trail, cards } = {}) {
       syncReadouts(); showSeed(); cards?.relayout(); cards?.gl()?.reweigh(); trail?.remeasure(); showPts();
       msg.textContent = 'Reset to the defaults in timeline.js';
     } else if (act === 'copy') {
-      const text = JSON.stringify({ CARDS, LAYOUT, CARD_HOVER: Object.fromEntries(HOVER_SLIDERS.map(([k]) => [k, CARD_HOVER[k]])), CAPTION_HOVER: Object.fromEntries(CAPTION_SLIDERS.map(([k]) => [k, CAPTION_HOVER[k]])), BEND: Object.fromEntries(BEND_SLIDERS.map(([k]) => [k, BEND[k]])), WARP: Object.fromEntries(WARP_SLIDERS.map(([k]) => [k, WARP[k]])), TRAIL: Object.fromEntries(TRAIL_SLIDERS.map(([k]) => [k, TRAIL[k]])) }, null, 2);
+      const text = JSON.stringify({ CARDS, LAYOUT, CARD_HOVER, CAPTION_HOVER, BEND, WARP, TRAIL }, null, 2); // every value, including the ones without a slider
       try { await navigator.clipboard.writeText(text); msg.textContent = 'Copied. Paste it in a message to send it.'; }
       catch { msg.textContent = 'Could not copy; values are in the console.'; }
       console.log('TUNE', text);
