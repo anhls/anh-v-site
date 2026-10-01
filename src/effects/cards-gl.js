@@ -220,7 +220,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
     if (!src.complete || !src.naturalWidth) return;
     loading[i] = 1;
     inflight++;
-    const make = window.createImageBitmap ? createImageBitmap(src, { premultiplyAlpha: 'premultiply', imageOrientation: 'none' }) : Promise.resolve(src);
+    const make = window.createImageBitmap ? createImageBitmap(src, { premultiplyAlpha: 'premultiply', imageOrientation: 'from-image' }) : Promise.resolve(src);
     make.then((bmp) => { inflight--; pending.push([i, bmp]); }).catch(() => { inflight--; loading[i] = 0; });
   };
   const flushOne = () => {

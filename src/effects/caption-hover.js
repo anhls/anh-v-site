@@ -15,7 +15,7 @@ export function buildCaptionHover(root, captions) {
 
   const box = document.createElement('div');
   box.className = 'caption-hover';
-  box.innerHTML = captions.map((c) => `<img ${imgAttrs(c.image, `${C.w / 19.2}vw`)} alt="" draggable="false">`).join('');
+  box.innerHTML = captions.map((c) => `<img ${imgAttrs(c.image, `${C.w / 19.2}vw`, true)} alt="" draggable="false">`).join('');
   root.appendChild(box);
   const imgs = [...box.children];
 

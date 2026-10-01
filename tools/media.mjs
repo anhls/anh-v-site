@@ -15,7 +15,7 @@ const SRC = resolve(ROOT, '../_site-media');
 const OUT = resolve(ROOT, 'public/media');
 const MANIFEST = resolve(ROOT, 'src/data/media-manifest.json');
 const FORCE = process.argv.includes('--force');
-const VERSION = 3; // bump when the encoding settings below change
+const VERSION = 4; // bump when the encoding settings below change
 
 const old = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, 'utf8')) : {};
 const manifest = {};
@@ -34,7 +34,7 @@ const cardBox = {};
 for (const c of cards) if (c.src.startsWith('/media/')) cardBox[basename(c.src, extname(c.src))] = { w: c.w, h: c.h };
 
 // Display width (px at 1920) per folder when there is no card box. Hero stills are full-bleed.
-const DEFAULT_W = { captions: 1920, hero: 1920, 'selected-work': 400, spawner: 648, trail: 200 };
+const DEFAULT_W = { captions: 430 /* hover previews only (22.24vw) */, hero: 1920, 'selected-work': 400, spawner: 648, trail: 200 };
 
 // Images also used by the click spawner (drawn up to 60vh tall: 648 px high at 1080) or the cursor trail (200 px square), by live URL.
 const liveKey = (u) => u.split('?')[0];
@@ -159,6 +159,36 @@ const PROJECT_MEDIA = {
   },
 };
 
+// R18: images that data.json still pointed at on the live host (they were loaded unoptimised from framerusercontent.com). The originals are
+// downloaded once into tools/live-media/ (committed, small) and converted like the rest; data.json keeps the live URL, util/media.js maps it.
+const LIVE_EXTRA = {
+  'home/hero-s2': { live: 'https://framerusercontent.com/images/aZoZ5nVZFbgwsySGNQ5CXL2rQ.jpg', widths: [800, 1600, 2560] },
+  // the billboard is also a small More Projects strip image: a small file set for the live-URL consumers (the hero layer keeps the big one)
+  'home/billboard-small': { live: 'https://framerusercontent.com/images/AlABm8NL9nRp1XFUf62ccnFB8.jpg', widths: [640, 1280], src: 'hero/s3_middle.jpg' },
+  'home/more-projects-tcb': { live: 'https://framerusercontent.com/images/QUzoZUsI26ew5csK6GR0cPOsKQ.jpg', widths: [640, 1280] },
+};
+async function liveExtra(key, v) {
+  const file = v.src ? resolve(SRC, v.src) : resolve(ROOT, 'tools/live-media', `${key.replace('/', '-')}${extname(v.live)}`);
+  if (!existsSync(file)) {
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, Buffer.from(await (await fetch(v.live)).arrayBuffer()));
+  }
+  const s = sig(file);
+  if (fresh(key, s)) { manifest[key] = old[key]; return; }
+  const meta = await sharp(file).metadata();
+  const [dir, name] = key.split('/');
+  mkdirSync(resolve(OUT, dir), { recursive: true });
+  const files = [];
+  for (const w of [...new Set(v.widths.map((x) => Math.min(x, meta.width)))]) {
+    const out = `${dir}/${name}-${w}.webp`;
+    const info = await sharp(file).resize({ width: w, withoutEnlargement: true }).webp({ quality: 80, effort: 5 }).toFile(resolve(OUT, out));
+    files.push({ file: out, width: info.width, height: info.height, bytes: info.size });
+  }
+  manifest[key] = { type: 'image', source: { width: meta.width, height: meta.height }, alpha: false, sig: s, files };
+  console.log('image', key, `${meta.width}x${meta.height}`, '->', files.map((f) => `${f.width}w ${(f.bytes / 1024).toFixed(0)}KB`).join(', '));
+}
+for (const [key, v] of Object.entries(LIVE_EXTRA)) await liveExtra(key, v);
+
 async function projectImage(slug, name, rel) {
   const key = `${slug}/${name}`;
   const file = resolve(SRC, rel);
@@ -220,14 +250,24 @@ for (const [slug, m] of Object.entries(PROJECT_MEDIA)) {
 
 // Live URL -> local key, so data.json can keep naming live URLs while the site serves local files.
 const byLive = {};
+// A live URL can appear in several folders (a card, a hover preview, a hero layer). The consumers that go through data.json URLs are all small
+// (cards, hover previews, the More Projects strip, trail, spawner), so take the SMALLEST converted file set that still reaches 1000 px (2x of
+// the biggest of them at 2560), never the full-bleed hero variant. R18: they used to get the 1800-2560 px hero file.
+const cands = {};
 for (const row of rows) {
   if (!row.live) continue;
   const [folder, f] = row.site.split('/');
   const key = `${outDir(folder)}/${basename(f, extname(f))}`;
-  if (manifest[key]) byLive[row.live] = key;
+  if (manifest[key]) (cands[row.live] ||= []).push(key);
+}
+const widest = (k) => Math.max(...manifest[k].files.map((x) => x.width || 0));
+for (const [live, keys] of Object.entries(cands)) {
+  const ok = keys.filter((k) => widest(k) >= 1000).sort((x, y) => widest(x) - widest(y));
+  byLive[live] = ok[0] || keys.sort((x, y) => widest(y) - widest(x))[0];
 }
 byLive['https://framerusercontent.com/images/nR62Oa7NyQO1PwrJeyiW8TKmQ.gif'] = 'selected-work/watch-anim'; // card id 30 (343x343)
 byLive['https://framerusercontent.com/assets/Fj182DxNzTt7FJdPdgdLo4CAM0.mp4'] = 'hero/video';
+for (const [key, v] of Object.entries(LIVE_EXTRA)) byLive[v.live] = key;
 manifest.__byLive = byLive;
 
 writeFileSync(MANIFEST, JSON.stringify(manifest, null, 1) + '\n');

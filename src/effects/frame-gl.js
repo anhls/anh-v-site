@@ -107,7 +107,7 @@ export function createFrameGL(handles) {
     if (cors) img.crossOrigin = 'anonymous';
     img.decoding = 'async';
     img.onload = () => {
-      const make = createImageBitmap ? createImageBitmap(img, { premultiplyAlpha: 'premultiply', imageOrientation: 'none' }) : Promise.resolve(img);
+      const make = createImageBitmap ? createImageBitmap(img, { premultiplyAlpha: 'premultiply', imageOrientation: 'from-image' }) : Promise.resolve(img);
       make.then((bmp) => {
         if (!lost) {
           const t = makeTex(true);
@@ -127,7 +127,7 @@ export function createFrameGL(handles) {
   };
   let failed = false; // a texture could not be loaded (e.g. CORS): the DOM frame stays
   const need = {
-    s2: [handles.image, true],
+    s2: [() => handles.s2img?.currentSrc || imgSrc(handles.image), false], // the file the DOM <img> picked (R18: no second download from the live host)
     // the gallery stills: the very file the DOM <img> picked (srcset), so both draw the same pixels; set once the DOM image has loaded
     g0: [() => handles.gallery[0].currentSrc || imgSrc(handles.galleryRefs[0]), false],
     g1: [() => handles.gallery[1].currentSrc || imgSrc(handles.galleryRefs[1]), false],
