@@ -62,8 +62,8 @@ export const SECTIONS = {
   captions: [0, 261],
   about: [0, 190],
   index: [190, 590],
-  archive: [211, 461],
-  clients: [590, 730],
+  selectedWork: [211, 461], // was "archive"
+  moreProjects: [590, 730], // was "clients"
   footer: [620, 730],
 };
 

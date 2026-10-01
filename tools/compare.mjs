@@ -20,7 +20,7 @@ const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > 0 ?
 const flag = (k) => process.argv.includes('--' + k);
 const LOCAL = arg('local', 'http://localhost:5199/');
 const LIVE = arg('live', 'https://www.anh-v.com/');
-const POINTS = arg('points', '0,15,30,45,60,75,90,140,150,157,165,178,189,200,213,220,330,345,420,500,535,560').split(',').map(Number);
+const POINTS = arg('points', '0,15,30,45,60,75,90,140,150,157,165,178,189,200,213,220,330,345,420,500,535,560,600,630').split(',').map(Number);
 const SETTLE = +arg('settle', 2000);
 const SIZES = arg('sizes', `${arg('width', 1920)}x${arg('height', 1080)}`).split(',').map((s) => s.split('x').map(Number));
 const DUMP = arg('dump', ''); // --dump file.json writes every probe value, per size (live + local), for fitting ranges
@@ -40,8 +40,13 @@ const ALL_PROBES = {
   overlay: ['.framer-3xg1dm', '.hero__overlay', 'op', 0.06],
   row1: ['.framer-11eb7tc', '.index__inner@0', 'ty', 12], row2: ['.framer-1o8mqob', '.index__inner@1', 'ty', 12], row3: ['.framer-1z84ym', '.index__inner@2', 'ty', 12],
   aboutTop: ['ABOUT_LIVE', '.about__text', 'top', 1.5],
+  mpLabel: ['.framer-385i7c', '.more-projects__label', 'top', 1.5],          // More Projects label ("Client" on live)
+  mpName1: ['.framer-1ry0rr0-con', '.more-projects__list li@0', 'top', 1.5],  // first name (Forbes)
+  mpName3: ['.framer-1i6cfbr-con', '.more-projects__list li@2', 'top', 1.5],  // third name (Sulwhasoo)
+  footLink: ['.framer-195hxhu', '.footer__top', 'top', 1.5],                   // Go Back To Top
   aboutRev: ['ABOUT_LIVE', '.about__text', 'share', 6], // % of the About words/letters that are mostly lit (opacity > 0.6)
 };
+const LATE_PROBES = new Set(['mpLabel', 'mpName1', 'mpName3', 'footLink']); // the only probes compared at 600vh and beyond
 const ONLY = arg('only', '');
 const PROBES = ONLY ? Object.fromEntries(ONLY.split(',').map((n) => { if (!ALL_PROBES[n]) throw new Error(`unknown probe ${n}`); return [n, ALL_PROBES[n]]; })) : ALL_PROBES;
 
@@ -127,6 +132,7 @@ async function runSize(browser, w, h) {
   const live = Object.fromEntries(POINTS.map((v) => [v, cache.points[v].v]));
   let bad = 0, total = 0;
   for (const v of POINTS) for (const [name, p] of Object.entries(PROBES)) {
+    if (v >= 600 && !LATE_PROBES.has(name)) continue; // past 585vh the hero deliberately differs from live (R11b: ours fades to black, live's image vanishes)
     const a = live[v]?.[name], b = local[v]?.[name]; if (a == null || b == null) continue; total++;
     if (Math.abs(a - b) > p[3]) { bad++; console.log(`${w}x${h} ${String(v).padStart(3)}vh ${name.padEnd(9)} live ${a}  local ${b}`); }
   }

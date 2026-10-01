@@ -15,7 +15,7 @@ Goal: replace the slow, non-responsive Framer site with a fast static site that 
 ## What is actually live (verified from the published site)
 Live pages: /, /work/tcb-priority, /work/bitis09, /work/sulwhasoo, /work/similac, /work/forbes.
 Not published, ignore: /contact, /work, /playground, /work/:slug template, /work/tcb, /work/ddtv9, /work/7up-tet.
-Nav: About -> #2section, Works -> #archive, Contact -> #contact (a section on home, not a page).
+Nav: About -> #2section, Works -> #selected-work, Contact -> #contact (a section on home, not a page).
 The 404 page still has the template title "Dune - Portfolio & Creative Agency": give the rebuild its own 404.
 Method used to verify: the published .mjs chunks have source maps listing shipped source files. Framer's MCP getNodeXml only reads the page currently focused in the editor.
 
@@ -53,8 +53,8 @@ The whole page is 730vh tall. The sections do NOT follow each other after the he
   | Click spawner area | 0-100 | absolute, top 0 | 3 |
   | About ("sticky2-wrapper") | 0-190 | in flow: 90vh spacer + 100vh sticky block | 4 (sticky block 3) |
   | Project index ("sticky3-wrapper") | 190-590 | in flow: 50vh blank + 100vh sticky block | sticky block 6 |
-  | Archive ("section3") | 211-461 | absolute, top 211vh (2280px), 250vh tall | 4 |
-  | Clients ("sticky4-wrapper") | 590-730 | in flow: 100vh sticky block | 4 |
+  | Selected Work (was "archive", "section3") | 211-461 | absolute, top 211vh (2280px), 250vh tall | 4 |
+  | More Projects (was "clients", "sticky4-wrapper") | 590-730 | in flow: 100vh sticky block | 4 |
   | Footer | 620-730 | absolute, bottom 0, 110vh | - |
 - How they pair up: About lights up around the small mask (17vw x 50vh). The project index titles (PRJ-01/02/03) swap while the 3 images in the mask's #3 section peel away, so each project title goes with one image. The archive cards scroll past the mask and part around it. Clients appear over the full-screen image as the overlay darkens.
 - About reveal (live): letters light from ~40vh to ~95vh of page scroll, sequentially (about one letter mid-fade at a time).
@@ -70,10 +70,10 @@ Nav + wordmark (measured on live site at 1920x1080): state switch is time-based,
 - Links (12px text, y 43 in both states), left edge x: About 496 -> 1443, Works 1556 -> 1523, Contact 1769 -> 1600. In vw: About 25.8 -> 75.2, Works 81.0 -> 79.3, Contact 92.1 -> 83.3. So the links regroup to the right, next to each other, in the scrolled state.
 - Each link label exists twice (stacked 18px apart): a hover roll effect.
 About: 90vh spacer, then sticky. "ABOUT" label + icon sit at the start of the first line; the text starts with blank spaces to leave room for them. Text: "Vu Tuan Anh, Art Director. Based in Ho Chi Minh City with over 5 years of experience in design. I focus on turning ideas into thoughtful visuals - blending motion, layout, and typography to create work that feels clear, expressive, and alive."
-Archive ("parting of the Red Sea"): the 35 small floating cards react to the cursor (mouse parallax) AND split apart / move away to the sides as the main image scrolls up through them. 19 cards in the left half (positioned from the right edge of that half), 16 in the right half (from its left edge). Positions/sizes/layers/parallax for all 35 cards: docs/framer-extract/cards.json.
+Selected Work (was "archive"; "parting of the Red Sea"): the 35 small floating cards react to the cursor (mouse parallax) AND split apart / move away to the sides as the main image scrolls up through them. 19 cards in the left half (positioned from the right edge of that half), 16 in the right half (from its left edge). Positions/sizes/layers/parallax for all 35 cards: docs/framer-extract/cards.json.
 Project index (400vh, sticky): the 3 rows sit in the same spot. Each title rolls in letter by letter, then slides up and out, driven by scroll (scrubbed, not time-based).
-Clients (140vh, sticky): same behavior as the project index (letter-by-letter roll in, slide up out, scrubbed). "Client" at left 60px, "2025" at right 60px.
-Footer: 110vh, "Go Back To Top" link with a line animation, at the right.
+More Projects (was "clients"; 140vh, sticky; CORRECTED R12 from live): a static list of names (no roll in), 80px uppercase in 64px bands, centred. "Client" (we say "More Projects") at left 60px, "2025" at right 60px. Hover: see motion-spec section 8.
+Footer: 110vh, "Go Back To Top" link CENTRED (live), 30px box 30px above the page bottom, 1px line through the text that grows from a dot on hover.
 
 ## Why the Framer site is slow
 34 parallax loops on every frame (each reads computed style), plus a per-item scroll loop with layout reads via a hosted lazyScrollAnimation module, per-letter React state on scroll, ~6.7 MB home transfer (two GIFs = 3.3 MB), fixed 1920 layout (viewport meta width=1920), 1100 DOM nodes.
@@ -96,7 +96,7 @@ Highest quality available; the build makes the small web versions. Placeholders 
 - Hero image 2 (#2 section) and the 3 images of #3 section, in stacking order (bottom, middle, top). Note: in the rebuild these are also the images behind PRJ-01/02/03.
 - Wordmark "^ V": SVG (or the .ai it came from).
 - 4 caption hover images (one per hero caption: Techcombank Priority, Di De Tro Ve 09, Sulwhasoo, Similac).
-- 35 archive card images (see docs/framer-extract/cards.json for sizes/order); cut-out objects as transparent PNG. 3 of them are GIFs on the live site (150x84, 343x343, 219x219): send the source video/frames if possible, they become short MP4/WebM loops.
+- 35 Selected Work card images (see docs/framer-extract/cards.json for sizes/order); cut-out objects as transparent PNG. 3 of them are GIFs on the live site (150x84, 343x343, 219x219): send the source video/frames if possible, they become short MP4/WebM loops.
 - Click sound: keep the mixkit file or send your own.
 - Project page media (Bitis first): later.
 

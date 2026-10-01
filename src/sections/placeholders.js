@@ -5,15 +5,15 @@ import { SECTIONS } from '../timeline.js';
 const len = ([a, b]) => `${b - a}vh`;
 
 export function buildPlaceholders(root) {
-  const { index, archive, clients, footer } = SECTIONS;
+  const { index, selectedWork, moreProjects, footer } = SECTIONS;
   root.insertAdjacentHTML('beforeend', `
     <section class="index" id="index" style="height:${len(index)}">
       <div class="index__blank"></div>
       <div class="index__sticky"></div>
     </section>
-    <section class="clients" id="clients" style="height:${len(clients)}">
-      <div class="clients__sticky"></div>
+    <section class="more-projects" id="more-projects" style="height:${len(moreProjects)}">
+      <div class="more-projects__sticky"></div>
     </section>
-    <section class="archive" id="archive" style="top:${archive[0]}vh;height:${len(archive)}"></section>
+    <section class="selected-work" id="selected-work" style="top:${selectedWork[0]}vh;height:${len(selectedWork)}"></section>
     <footer class="footer" id="contact" style="height:${len(footer)}"></footer>`);
 }

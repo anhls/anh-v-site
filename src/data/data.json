@@ -3,7 +3,7 @@
     "title": "Anh V",
     "nav": [
       { "label": "About", "href": "#2section" },
-      { "label": "Works", "href": "#archive" },
+      { "label": "Works", "href": "#selected-work" },
       { "label": "Contact", "href": "#contact" }
     ]
   },
@@ -31,7 +31,7 @@
     "text": "Vu Tuan Anh, Art Director. Based in Ho Chi Minh City with over 5 years of experience in design. I focus on turning ideas into thoughtful visuals - blending motion, layout, and typography to create work that feels clear, expressive, and alive."
   },
   "spawnerImages": [],
-  "archiveCards": [],
+  "selectedWorkCards": [],
   "projects": [
     {
       "slug": "tcb-priority", "index": "PRJ-01", "title": "Techcombank Priority", "client": "Techcombank",
@@ -58,11 +58,16 @@
       "year": null, "live": true, "hero": { "type": "video", "src": "" }, "details": {}, "media": [], "chapters": []
     }
   ],
-  "clients": [
-    { "name": "Forbes Vanguard", "slug": "forbes" },
-    { "name": "Techcombank Priority", "slug": "tcb-priority" },
-    { "name": "Sulwhasoo", "slug": "sulwhasoo" },
-    { "name": "Similac Virgo 2024", "slug": "similac" },
-    { "name": "Bitis Season 09", "slug": "bitis09" }
-  ]
+  "moreProjects": {
+    "label": "More Projects",
+    "year": 2025,
+    "items": [
+      { "name": "Forbes Vanguard", "slug": "forbes", "image": "https://framerusercontent.com/images/vnRzwgUH7uvpqoRCCWRLGLOvwQ.jpg" },
+      { "name": "Techcombank Priority", "slug": "tcb-priority", "image": "https://framerusercontent.com/images/QUzoZUsI26ew5csK6GR0cPOsKQ.jpg" },
+      { "name": "Sulwhasoo", "slug": "sulwhasoo", "image": "https://framerusercontent.com/images/feZNJaO2rFpJz1tp7lULn6PRjnY.jpg" },
+      { "name": "Similac Virgo 2024", "slug": "similac", "image": "https://framerusercontent.com/images/YWTonqftN7SBxLUONPaxNkRdIJE.jpg" }
+    ],
+    "more": { "name": "See more work", "href": "/work/" }
+  },
+  "footer": { "topLabel": "Go Back To Top" }
 }

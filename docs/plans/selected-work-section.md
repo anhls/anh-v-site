@@ -1,6 +1,8 @@
-# Plan: archive section motion (not a request yet; agreed with Anh 2026-10-01)
+# Plan: Selected Work section motion (was "archive"; not a request yet; agreed with Anh 2026-10-01)
 
-Turn into requests after R12. Home page archive = showcase of recent/outstanding work; a separate full Works page comes later (nav "Works" will point there).
+Name (Anh, internal only): this section is "Selected Work" = the most impressive work. The file keeps its old name until R12 renames it.
+
+Turn into requests after R12. Home page Selected Work = showcase of the most impressive work; a separate full Works page comes later (nav "Works" will point there).
 Card data: docs/framer-extract/cards.json (35 cards, positions, sizes, layers). Derive each card's depth (z) from its Framer layer/parallax values; confirm with Anh.
 
 ## Step 1: DOM version (also the fallback for phones, weak devices, prefers-reduced-motion)

@@ -59,7 +59,8 @@ Variant transitions are tweens with an overshoot ease cubic-bezier(.59,.25,.12,1
 
 ## 8. Hover cursors
 - Hero caption hover image: follows the cursor with spring 500 / 60 / 1, offset x +50px, placed right of the cursor, aligned to its end (bottom).
-- Client names (clients section): each name has its own image cursor, offset x +200px, y +20px, placed right, centred, spring 500 / 60 / 1. Name states Default / Grey / Hover: hovering one name turns the others grey, spring bounce 0.2 / 0.4s.
+- More Projects names (was clients; measured R12): static list, no roll in. Each name = two stacked copies 74px apart in a 64px band. Hover: the hovered name rolls up 74px (second copy, white) while all others grey to rgba(112,112,112,.7); spring bounce 0.2 / 0.4s. Image cursor: one 400x500 box, left edge at cursor +200px, centred 20px below the cursor, spring 500 / 60 / 1, holding all project images in a vertical strip (500px each) that slides to the hovered name; hidden when off the list. Built as: grey = opacity 0.31 of the first copy.
+- Footer "Go Back To Top": 12px, centred, 30px box ending 30px above the page bottom, 1px line through the text: a 1px dot at rest, scaleX to full width on hover (spring).
 
 ## 9. Page end (decided R11b 2026-10-01)
 On live, the hero mask layer disappears at ~585vh (GSAP pin ends) while the overlay is only at ~0.68, so the image pops away. **Confirmed decision: the rebuild keeps its fade-to-black (hero stays under the overlay to 630vh). The live pop is a Framer GSAP-pin artefact, not the intended design.** Do not replicate it.

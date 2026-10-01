@@ -8,6 +8,8 @@ import { buildHero } from './sections/hero.js';
 import { buildAbout } from './sections/about.js';
 import { buildPlaceholders } from './sections/placeholders.js';
 import { buildIndex } from './sections/project-index.js';
+import { buildMoreProjects } from './sections/more-projects.js';
+import { buildFooter } from './sections/footer.js';
 import { initNav } from './effects/nav.js';
 import { initClickSound } from './effects/clicksound.js';
 import { SCROLL } from './timeline.js';
@@ -20,12 +22,14 @@ lenis.on('scroll', ScrollTrigger.update);
 gsap.ticker.add((time) => lenis.raf(time * 1000));
 gsap.ticker.lagSmoothing(0);
 
-// Sections are added here one by one (archive, clients, footer come next).
+// Sections are added here one by one (selected work comes next).
 const app = document.getElementById('app');
 const hero = buildHero(app, data.hero);
 buildAbout(app, data.about);
 buildPlaceholders(app);
 buildIndex(app, data.projects);
+buildMoreProjects(app, data.moreProjects);
+buildFooter(app, data.footer, lenis);
 initNav(data.hero.wordmark, lenis);
 initClickSound(data.hero.clickSound);
 
