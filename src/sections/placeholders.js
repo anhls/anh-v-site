@@ -14,6 +14,6 @@ export function buildPlaceholders(root) {
     <section class="more-projects" id="more-projects" style="height:${len(moreProjects)}">
       <div class="more-projects__sticky"></div>
     </section>
-    <section class="selected-work" id="selected-work" style="top:${selectedWork[0]}vh;height:${len(selectedWork)}"></section>
+    <section class="selected-work" id="selected-work" style="height:${len(selectedWork)}"></section>
     <footer class="footer" id="contact" style="height:${len(footer)}"></footer>`);
 }

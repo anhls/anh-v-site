@@ -392,3 +392,19 @@ html.lenis, html.lenis body { height: auto; }
 
 .selected-work { position: absolute; left: 0; right: 0; z-index: 4; pointer-events: none; }
 .footer { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; pointer-events: none; } /* above the More Projects block, but only the link takes the pointer */
+
+/* Selected Work cards (R13): one element per card. x / y / size come from data.json (px at the 1920 reference, y in vh
+   from the section top); sizes and x scale with --ux (fixed above 1920, as on live), y with the window height. JS only
+   writes transforms. The section top is a capped distance (2280px above 1080). */
+.selected-work { top: calc(var(--uy) * 211.11); overflow-x: clip; }
+.sw__card {
+  position: absolute;
+  left: calc(50% + var(--x) * var(--ux) / 19.2 - var(--w) * var(--ux) / 38.4);
+  top: calc(var(--y) * 1vh - var(--h) * var(--ux) / 38.4);
+  width: calc(var(--w) * var(--ux) / 19.2);
+  height: calc(var(--h) * var(--ux) / 19.2);
+  object-fit: cover;
+  will-change: transform;
+  user-select: none;
+  -webkit-user-drag: none;
+}

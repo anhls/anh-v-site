@@ -151,3 +151,29 @@ export const INDEX = {
     titleNext: { stagger: 0.05, duration: 0.2, ease: [0.87, 0.01, 0.13, 1.01] },  // row 2 and 3 titles
   },
 };
+
+// Selected Work cards (R13). Measured on live (1920 and 2560) and read from its published code; see docs/status.md.
+// These are the DEFAULTS; the dev tuning panel (?tune) edits this object live and "copy values" prints it as JSON.
+//   partingStrength  1 = live. Scales the sideways + downward push of cards away from the centre line while a card crosses the
+//                    screen (live: x up to 0.2 of the width, y up to 0.3 of the height, times 1.1, strongest near the centre line).
+//   mouseStrength    1 = live. Scales every card's mouse offset (live: +-20 px for the back layer up to +-100 px for layer 4).
+//   mouseSmoothing   spring stiffness for the mouse offset (live fitted: 650, damping 100).
+//   depthRange       1 = live layer distances (20/25/50/75/100). 0 = every card moves like the back layer; 2 = twice the spread.
+//                    Also scales how much heavier the deep cards lag.
+//   lagStrength      NEW (not on live). 0 = off. Multiplies the lag time constants below.
+//   lagFrontSec / lagBackSec  time constant (seconds) for the front-most / deepest card: the card's scroll position chases the real one with this delay.
+export const CARDS = {
+  partingStrength: 1,
+  mouseStrength: 1,
+  mouseStiffness: 650,
+  mouseDamping: 100,
+  depthRange: 1,
+  lagStrength: 1,
+  lagFrontSec: 0.04,
+  lagBackSec: 0.18,
+};
+// Live's constants, fixed (not tunable): parting target = t * (0.01W + 0.19W * (1 - f)) * 1.1 sideways and
+// t * (0.01H + 0.29H * (1 - f)) * 1.1 down, eased at 0.2 per 60 fps frame; a card is armed once 10% of it has been visible.
+export const PARTING = { xMax: 0.2, xMin: 0.01, yMax: 0.3, yMin: 0.01, z: 1.1, lerp: 0.2, armed: 0.1 };
+// Where the cards sit: the section starts 211.11 capped vh down the page (2280px at 1080 and above); card y is vh from there.
+export const CARD_LAYOUT = { sectionTopCappedVh: 2280 / 10.8 };

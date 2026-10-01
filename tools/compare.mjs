@@ -20,14 +20,14 @@ const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > 0 ?
 const flag = (k) => process.argv.includes('--' + k);
 const LOCAL = arg('local', 'http://localhost:5199/');
 const LIVE = arg('live', 'https://www.anh-v.com/');
-const POINTS = arg('points', '0,15,30,45,60,75,90,140,150,157,165,178,189,200,213,220,330,345,420,500,535,560,600,630').split(',').map(Number);
+const POINTS = arg('points', '0,15,30,45,60,75,90,140,150,157,165,178,189,200,213,220,250,270,290,310,330,345,370,395,420,445,470,500,535,560,600,630').split(',').map(Number);
 const SETTLE = +arg('settle', 2000);
 const SIZES = arg('sizes', `${arg('width', 1920)}x${arg('height', 1080)}`).split(',').map((s) => s.split('x').map(Number));
 const DUMP = arg('dump', ''); // --dump file.json writes every probe value, per size (live + local), for fitting ranges
 const CACHE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'live-cache');
 
 // name: [liveSelector, localSelector, kind, tolerance]
-// kinds: share (% of leaf spans lit), ty (translateY px), sc (scale), op (own opacity), opc (opacity incl. ancestors), w (width vw), ctr (centre % of viewport height), top (top % of viewport height)
+// kinds: cxp (centre x from the window centre, px), cyp (centre y from the window top, px), share (% of leaf spans lit), ty (translateY px), sc (scale), op (own opacity), opc (opacity incl. ancestors), w (width vw), ctr (centre % of viewport height), top (top % of viewport height)
 const ALL_PROBES = {
   maskW: ['.framer-2w3dnm', '.hero__wrapper', 'w', 1.5],
   maskCtr: ['.framer-2w3dnm', '.hero__wrapper', 'ctr', 1.5],
@@ -44,6 +44,12 @@ const ALL_PROBES = {
   mpName1: ['.framer-1ry0rr0-con', '.more-projects__list li@0', 'top', 1.5],  // first name (Forbes)
   mpName3: ['.framer-1i6cfbr-con', '.more-projects__list li@2', 'top', 1.5],  // third name (Sulwhasoo)
   footLink: ['.framer-195hxhu', '.footer .footer__top', 'top', 1.5],                   // Go Back To Top
+  // Selected Work: one card per layer (back 13, layer1 17, layer2 30, layer3 26, layer4 8), centre x / y in px at settled scroll points, mouse parked.
+  swBackX: ['SW@12', 'SW@12', 'cxp', 8], swBackY: ['SW@12', 'SW@12', 'cyp', 8],
+  swL1X: ['SW@16', 'SW@16', 'cxp', 8], swL1Y: ['SW@16', 'SW@16', 'cyp', 8],
+  swL2X: ['SW@29', 'SW@29', 'cxp', 8], swL2Y: ['SW@29', 'SW@29', 'cyp', 8],
+  swL3X: ['SW@25', 'SW@25', 'cxp', 8], swL3Y: ['SW@25', 'SW@25', 'cyp', 8],
+  swL4X: ['SW@7', 'SW@7', 'cxp', 8], swL4Y: ['SW@7', 'SW@7', 'cyp', 8],
   aboutRev: ['ABOUT_LIVE', '.about__text', 'share', 6], // % of the About words/letters that are mostly lit (opacity > 0.6)
 };
 const LATE_PROBES = new Set(['mpLabel', 'mpName1', 'mpName3', 'footLink']); // the only probes compared at 600vh and beyond
@@ -54,6 +60,7 @@ const probeFn = ({ probes, side }) => {
   const vh = innerHeight / 100;
   const pick = (sel) => {
     if (sel === 'ABOUT_LIVE') { const c = [...document.querySelectorAll('*')].filter((e) => e.textContent.includes('Vu Tuan Anh') && e.querySelectorAll('span').length > 100); return c[c.length - 1]; }
+    if (sel.startsWith('SW@')) return document.querySelectorAll(side === 'live' ? 'section.framer-1uw4ebn img' : '.sw__card')[+sel.slice(3)];
     const [s, n] = sel.split('@'); const all = document.querySelectorAll(s.replace(':nth-of-type(n)', '')); return all[n ? +n : 0];
   };
   const out = {};
@@ -65,6 +72,7 @@ const probeFn = ({ probes, side }) => {
       case 'ty': v = m.f; break; case 'sc': v = m.a; break; case 'op': v = +cs.opacity; break;
       case 'opc': { v = 1; let x = el; while (x && x !== document.body) { v *= +getComputedStyle(x).opacity; x = x.parentElement; } break; }
       case 'share': { const sp = [...el.querySelectorAll('span')].filter((x) => !x.querySelector('span')); v = (sp.filter((x) => +getComputedStyle(x).opacity > 0.6).length / sp.length) * 100; break; }
+      case 'cxp': v = r.left + r.width / 2 - innerWidth / 2; break; case 'cyp': v = r.top + r.height / 2; break;
       case 'w': v = (r.width / innerWidth) * 100; break; case 'ctr': v = (r.top + r.height / 2) / vh; break; case 'top': v = r.top / vh; break;
     }
     out[name] = Math.round(v * 100) / 100;
@@ -133,7 +141,10 @@ async function runSize(browser, w, h) {
   let bad = 0, total = 0;
   for (const v of POINTS) for (const [name, p] of Object.entries(PROBES)) {
     if (v >= 600 && !LATE_PROBES.has(name)) continue; // past 585vh the hero deliberately differs from live (R11b: ours fades to black, live's image vanishes)
-    const a = live[v]?.[name], b = local[v]?.[name]; if (a == null || b == null) continue; total++;
+    const a = live[v]?.[name], b = local[v]?.[name]; if (a == null || b == null) continue;
+    // Selected Work cards: a card that has scrolled off the screen keeps a stale parting offset that depends on the exact scroll path; only compare cards that are on screen on live.
+    if (name.startsWith('sw')) { const y = live[v]?.[name.replace(/X$/, 'Y')]; if (y != null && (y < -100 || y > h + 100)) continue; }
+    total++;
     if (Math.abs(a - b) > p[3]) { bad++; console.log(`${w}x${h} ${String(v).padStart(3)}vh ${name.padEnd(9)} live ${a}  local ${b}`); }
   }
   console.log(`compare: ${total - bad}/${total} within tolerance, ${bad} mismatches (${w}x${h}, ${need.length ? `live measured at ${need.length} point${need.length > 1 ? 's' : ''}` : 'live from cache'}, ${Math.round((Date.now() - t0) / 1000)}s)`);

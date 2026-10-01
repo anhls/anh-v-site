@@ -8,6 +8,7 @@ import { buildHero } from './sections/hero.js';
 import { buildAbout } from './sections/about.js';
 import { buildPlaceholders } from './sections/placeholders.js';
 import { buildIndex } from './sections/project-index.js';
+import { buildSelectedWork } from './sections/selected-work.js';
 import { buildMoreProjects } from './sections/more-projects.js';
 import { buildFooter } from './sections/footer.js';
 import { initNav } from './effects/nav.js';
@@ -22,12 +23,13 @@ lenis.on('scroll', ScrollTrigger.update);
 gsap.ticker.add((time) => lenis.raf(time * 1000));
 gsap.ticker.lagSmoothing(0);
 
-// Sections are added here one by one (selected work comes next).
+// Sections are added here one by one.
 const app = document.getElementById('app');
 const hero = buildHero(app, data.hero);
 buildAbout(app, data.about);
 buildPlaceholders(app);
 buildIndex(app, data.projects);
+buildSelectedWork(app, data.selectedWorkCards);
 buildMoreProjects(app, data.moreProjects);
 buildFooter(app, data.footer, lenis);
 initNav(data.hero.wordmark, lenis);
@@ -44,3 +46,6 @@ runLoader(data.loader.text, firstScreen, hero.loadDeferred).then(() => {
   ScrollTrigger.refresh();
   window.__siteReady = true; // tools/compare.mjs waits for this instead of a fixed delay
 });
+
+// Dev only: ?tune opens the Selected Work tuning panel. The condition is a build-time constant, so none of this ships.
+if (import.meta.env.DEV && new URLSearchParams(location.search).has('tune')) import('./effects/tune-panel.js').then((m) => m.mountTunePanel());
