@@ -167,11 +167,11 @@ export const INDEX = {
 //                    bounce 0 = no overshoot, 0.3 = drifts about 5% past and settles back.
 // Anh's tuned values (R13b): mouse 1.3, depth range 0.85, lag 0.9 / 0.03 s / 0.25 s.
 export const CARDS = {
-  partingStrength: 1,
-  partingSoftness: 0.45,
-  partingBounce: 0.3,
-  mouseStrength: 1.3,
-  mouseStiffness: 650,
+  partingStrength: 1.15,
+  partingSoftness: 0.8,
+  partingBounce: 0.25,
+  mouseStrength: 1.4,
+  mouseStiffness: 1375,
   mouseDamping: 100,
   depthRange: 0.85,
   lagStrength: 0.9,
