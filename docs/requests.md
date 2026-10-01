@@ -12,7 +12,20 @@ Anh tuned R13c and found cards still slide under/over the centre frame (the floa
 6. Checks: script at the 6 target screens (1920x1080, 2560x1440, 3840x2160, 1440x900, 1512x982, 1728x1117): scroll through Selected Work with the mouse parked off-screen and report the smallest card-to-frame gap per frame (must stay >= minimum gap once settled; brief overlap allowed only mid-spring while scrolling fast, report max). Frame time while scrolling + mouse. compare (cards skipped) must stay 574/574 at 1920 and 2560.
 Current CARDS defaults stay unless renamed; LAYOUT seed 7 defaults stay.
 
-## R13d (after R13e): back-to-top A+ / A fallback + More Projects list clears the wordmark (Sonnet 4.6 is fine)
+## R13f [done] aura feel like live — smooth, not snappy (use Sonnet 5.5)
+Anh tested R13e: the aura's direction and reach are fine, but it feels TOO SNAPPY. Goal: tune and fix it so the motion LOOKS like the current live site's parting (smooth, continuous, eased), while keeping the aura idea (cards always move away from the frame, and clear it once settled).
+Causes found in R13e code (fix these):
+1. Hard clearance: cards closer than auraMinGap are placed at a cleared position (a jump). Make clearance a soft TARGET the card's spring travels to; no instant displacement, ever.
+2. Look-ahead switching: "now" vs "look-ahead" push, stronger one wins (max) -> the target jumps when they swap. Blend them continuously (or drop look-ahead if the smooth version is good enough).
+3. Front cards settle at 0.45x softness: too fast. Same settle character for every card (back cards may be slightly heavier, nothing faster than the base softness).
+4. Narrow, steep field (margin 220, falloff 1.5): ease the force in with a smooth curve (smoothstep-like, zero slope at the margin edge).
+Match live's look:
+- Use live's parting as the reference for the MOTION PROFILE: how far a card moves sideways/down vs scroll position, and the easing character (live: target eased at 0.2 per 60 fps frame, no overshoot) plus Anh's small bounce (partingBounce 0.25). Use the live cache / --cards probes to measure live card trajectories over scroll (displacement vs scroll, for front and back layers) and fit the aura parameters (margin, strength, bias, curve, settle) so our displacement-vs-scroll curves have the same shape and similar amplitude. The layout differs (seeded scatter), so compare curves, not absolute positions.
+- Report: for 3-4 representative cards, live curve vs ours (numbers or a small plot image in tools/scratch), and the max single-frame target jump (must be ~0 at constant scroll speed).
+- Add one "weight" slider on ?tune (overall heaviness/floatiness of the aura motion); keep the other aura sliders. Put the fitted values as defaults.
+- Accept brief overlap during fast scrolling; once settled every card clears the frame (min gap). Recheck at the 6 target screens; frame time; compare 574/574 (cards skipped).
+
+## R13d (after R13f): back-to-top A+ / A fallback + More Projects list clears the wordmark (Sonnet 4.6 is fine)
 Problem: the footer link smooth-scrolls the whole page back to the top, replaying every scrubbed animation, 35 cards and image loads, so it is long and laggy.
 - A+ (default): everything EXCEPT the big AV wordmark fades to black (~0.4s, ONE black overlay layered just below the wordmark, opacity only) -> instant jump to scrollY 0 while hidden (Lenis scrollTo(0, { immediate: true }), ScrollTrigger.update, every section in its top state, nav in its big state, no loader replay) -> the hero fades back in around the wordmark (~0.6s). The wordmark is big at the footer and big at the top: it must not move or flicker.
 - A (fallback): same, overlay above everything (wordmark included). Use when navigator.hardwareConcurrency <= 4, navigator.deviceMemory <= 4 (when available) or Save-Data is on. No frame-time measuring.

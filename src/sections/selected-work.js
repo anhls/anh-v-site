@@ -12,8 +12,8 @@ import { capW } from '../scale.js';
 // Everything below was measured on anh-v.com and read from its published code (see docs/status.md, R13), then summed into
 // ONE transform per card per frame on the shared gsap ticker:
 //   1. Aura (R13e, replaces live's screen-position parting): cards are pushed away from the frame (the masked image in the
-//      middle), measured rect to rect from the hero's own state (frameState), sideways-biased, and always cleared to a minimum
-//      gap. Scaled by depth. The R13b spring settles the offset.
+//      middle), measured rect to rect from the hero's own state (frameState). A continuous field (R13f): sideways push on the
+//      card's own side, eased in, guaranteed minimum gap once settled, plus a gentle vertical push. Scaled by depth.
 //   2. Mouse (live): Framer "Parallax Floating". offset = -(mouse - screen centre) / (half the screen) * distance, x and y,
 //      on a spring. distance = the card's layer value (20..100 px). There is no radius. Only card 11 ignores the mouse.
 //      R13b: live's targets are kept, but the offset follows them through a spring (CARDS.partingSoftness / partingBounce)
@@ -107,9 +107,7 @@ export function buildSelectedWork(root, cards) {
     },
   };
 
-  const aura = { T: 0, ux: 0, uy: 0 };
-  let prevSy = window.scrollY;
-  let scrollVel = 0; // px/s, smoothed
+  const aura = { X: 0, Y: 0 };
   const tick = (_time, deltaMs) => {
     const dt = Math.min(deltaMs, 50) / 1000;
     const sy = window.scrollY;
@@ -139,12 +137,6 @@ export function buildSelectedWork(root, cards) {
     }
 
     // The frame (R13e): centred horizontally, vertically at H/2 plus the two float offsets. Read from the hero's own state.
-    // Look-ahead: while scrolling, the aura is evaluated where the card will be in auraLead seconds, so the spring (which needs a
-    // moment) has already moved it aside when the card gets there. At rest the look-ahead is 0.
-    const sv = dt > 0 ? (sy - prevSy) / dt : 0;
-    prevSy = sy;
-    scrollVel += (sv - scrollVel) * Math.min(1, dt / 0.08);
-    const ahead = Math.max(-H, Math.min(H, scrollVel * CARDS.auraLead));
     const fw = frameState.w;
     const fh = frameState.h;
     const fcx = W / 2;
@@ -152,26 +144,25 @@ export function buildSelectedWork(root, cards) {
     const aMargin = CARDS.auraMargin * scale;
     const aStrength = CARDS.auraStrength * scale;
     const aGap = CARDS.auraMinGap * scale;
+    const aVert = CARDS.auraVertical * scale;
 
-    // Aura target for a card whose centre is (dx, dy) from the frame centre: sets aura.T (distance) and aura.ux / aura.uy (direction).
+    // Aura target for a card whose centre is (dx, dy) from the frame centre: sets aura.X / aura.Y (px). Built from continuous
+    // functions only, so the target never jumps:
+    //  - sideways: the card keeps its own side of the frame (`side`, fixed by the layout; no direction flip as it passes the
+    //    centre line). Soft push = auraStrength x smoothstep(1 - gap / margin) ^ falloff, and at least the distance that leaves
+    //    auraMinGap between the rects, faded in over the last auraMargin px of vertical approach (anticipation, zero slope).
+    //  - vertical: a gentle push away from the frame, its sign eased through zero over the frame's half height.
     const auraAt = (dx, dy, hw, hh, side, w) => {
-      const gx = Math.abs(dx) - hw - fw / 2; // gap along x (negative = overlapping on that axis)
+      const gx = dx * side - hw - fw / 2; // gap along x on the card's own side (very negative if it sits across the line)
       const gy = Math.abs(dy) - hh - fh / 2;
       const gap = gx > 0 || gy > 0 ? Math.hypot(Math.max(gx, 0), Math.max(gy, 0)) : Math.max(gx, gy);
-      aura.T = 0; aura.ux = 0; aura.uy = 0;
-      if (gap >= aMargin) return;
-      let vx = dx * CARDS.auraBias;
-      let vy = dy;
-      if (Math.abs(vx) + Math.abs(vy) < 1e-3) { vx = side; vy = 0; }
-      const len = Math.hypot(vx, vy);
-      aura.ux = vx / len;
-      aura.uy = vy / len;
-      aura.T = aStrength * (1 - Math.max(gap, 0) / aMargin) ** CARDS.auraFalloff * w;
-      if (gx < aGap && gy < aGap) { // closer than the minimum gap on both axes: how far along u until one axis clears
-        const reqX = Math.abs(aura.ux) > 1e-3 ? (aGap - gx) / Math.abs(aura.ux) : Infinity;
-        const reqY = Math.abs(aura.uy) > 1e-3 ? (aGap - gy) / Math.abs(aura.uy) : Infinity;
-        aura.T = Math.max(aura.T, CARDS.auraClearance * Math.min(reqX, reqY));
-      }
+      const u = Math.min(Math.max(1 - Math.max(gap, 0) / aMargin, 0), 1);
+      const s = (u * u * (3 - 2 * u)) ** CARDS.auraFalloff;
+      let X = aStrength * s * w;
+      const tv = Math.min(Math.max((gy - aGap) / aMargin, 0), 1);
+      X = Math.max(X, CARDS.auraClearance * (1 - tv * tv * (3 - 2 * tv)) * Math.max(aGap - gx, 0));
+      aura.X = side * X;
+      aura.Y = aVert * s * w * (dy / Math.hypot(dy, (fh / 2 + hh) * 0.5 + 1));
     };
 
     for (let i = 0; i < n; i++) {
@@ -220,24 +211,15 @@ export function buildSelectedWork(root, cards) {
       }
       if (Math.abs(vqx[i]) + Math.abs(vqy[i]) > 0.05 || Math.abs(tqx[i] - qx[i]) + Math.abs(tqy[i] - qy[i]) > 0.05) moving = true;
 
-      // Aura (R13e): the card's rect (without its own aura offset) against the frame's rect. The target moves the card away from
-      // the frame centre (sideways-biased) by the soft aura push, and at least far enough to leave auraMinGap between the rects.
-      // Evaluated where the card is now AND where it will be after the look-ahead; the stronger push wins.
+      // Aura (R13e/f): the card's rect (without its own aura offset) against the frame's rect; see auraAt.
       if (!far && fw > 0) {
-        const dx = bx[i] + mx + qx[i] - fcx;
-        const dy = by[i] - sy + lag + my + qy[i] - fcy;
-        auraAt(dx, dy, bw[i] / 2, bh[i] / 2, pos[i].x < 0 ? -1 : 1, w);
-        let T = aura.T, ux = aura.ux, uy = aura.uy;
-        if (ahead > 1 || ahead < -1) {
-          auraAt(dx, dy - ahead, bw[i] / 2, bh[i] / 2, pos[i].x < 0 ? -1 : 1, w);
-          if (aura.T > T) { T = aura.T; ux = aura.ux; uy = aura.uy; }
-        }
-        tpx[i] = ux * T;
-        tpy[i] = uy * T;
+        auraAt(bx[i] + mx + qx[i] - fcx, by[i] - sy + lag + my + qy[i] - fcy, bw[i] / 2, bh[i] / 2, pos[i].x < 0 ? -1 : 1, w);
+        tpx[i] = aura.X;
+        tpy[i] = aura.Y;
       } else { tpx[i] = 0; tpy[i] = 0; }
       // The R13b spring settles the aura offset (it keeps running toward the last target, so nothing freezes mid-motion).
-      // Front cards settle fastest (0.45 x the softness), the deepest ones slowest, so deep cards drift and front cards get out of the way.
-      const [pk, pc] = springFromBounce(CARDS.partingSoftness * (0.45 + 0.55 * (1 - w)), CARDS.partingBounce);
+      // Every card settles with the base softness x auraWeight; the deepest ones are up to 1.25x heavier, none are faster.
+      const [pk, pc] = springFromBounce(CARDS.partingSoftness * CARDS.auraWeight * (1 + 0.25 * (1 - w)), CARDS.partingBounce);
       for (let q = 0; q < pSteps; q++) {
         vpx[i] += (pk * (tpx[i] - px[i]) - pc * vpx[i]) * ph;
         vpy[i] += (pk * (tpy[i] - py[i]) - pc * vpy[i]) * ph;
