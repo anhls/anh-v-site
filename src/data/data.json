@@ -537,7 +537,12 @@
         "blocks": [
           {
             "t": "hero",
-            "img": "bitis09/hero"
+            "img": "bitis09/hero",
+            "parallax": {
+              "y": 0.25,
+              "s": 1,
+              "ds": 1
+            }
           },
           {
             "t": "text",
@@ -549,12 +554,24 @@
             "left": {
               "kind": "img",
               "ref": "bitis09/insight-a",
-              "fit": "cover"
+              "fit": "cover",
+              "parallax": {
+                "y": 0.15,
+                "s": 1.4,
+                "ds": -1,
+                "ox": "100%"
+              }
             },
             "right": {
               "kind": "img",
               "ref": "bitis09/soobin",
-              "fit": "cover"
+              "fit": "cover",
+              "parallax": {
+                "y": 0.15,
+                "s": 1.4,
+                "ds": -1,
+                "ox": "0%"
+              }
             }
           },
           {

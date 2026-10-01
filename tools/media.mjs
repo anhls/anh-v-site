@@ -15,7 +15,7 @@ const SRC = resolve(ROOT, '../_site-media');
 const OUT = resolve(ROOT, 'public/media');
 const MANIFEST = resolve(ROOT, 'src/data/media-manifest.json');
 const FORCE = process.argv.includes('--force');
-const VERSION = 2; // bump when the encoding settings below change
+const VERSION = 3; // bump when the encoding settings below change
 
 const old = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, 'utf8')) : {};
 const manifest = {};
@@ -152,7 +152,7 @@ const PROJECT_MEDIA = {
       sketch: 'bitis09/img-sketch.png', finale: 'archive/card-img-02.jpg',
     },
     loops: {
-      tagline: { src: 'bitis09/img-tagline.gif', maxW: 1920 }, campaign: { src: 'bitis09/vid-live-1-campaign.mp4', maxW: 1440 },
+      tagline: { src: 'bitis09/img-tagline.gif', maxW: 1920, alpha: true }, campaign: { src: 'bitis09/vid-live-1-campaign.mp4', maxW: 1440 },
       'timecross-a': { src: 'bitis09/vid-live-2-timecross-a.mp4', maxW: 1280 }, 'timecross-b': { src: 'bitis09/vid-live-3-timecross-b.mp4', maxW: 1280 },
       wrapup: { src: 'bitis09/vid-live-4-wrapup.mp4', maxW: 1600 }, concept: { src: 'bitis09/vid-live-5-concept.mp4', maxW: 1000 },
     },
@@ -189,6 +189,19 @@ async function projectLoop(slug, name, v) {
   const h = Math.round((w * sh) / sw / 2) * 2;
   const scale = `scale=${w}:${h}:flags=lanczos,format=yuv420p`;
   const webm = `${slug}/${name}.webm`, mp4 = `${slug}/${name}.mp4`, poster = `${slug}/${name}-poster.webp`;
+  if (v.alpha) {
+    // Transparent loop (never flattened onto a colour): VP9 WebM with alpha for Chrome / Firefox / Edge, an animated WebP with alpha
+    // for Safari (it plays no WebM alpha) and as a poster. No MP4 (H.264 has no alpha).
+    const webp = `${slug}/${name}.webp`;
+    const aScale = `fps=25,scale=${w}:${h}:flags=lanczos,format=yuva420p`;
+    ff('-i', file, '-vf', aScale, '-c:v', 'libvpx-vp9', '-pix_fmt', 'yuva420p', '-auto-alt-ref', '0', '-crf', '34', '-b:v', '0', '-an', resolve(OUT, webm));
+    await sharp(file, { animated: true }).resize({ width: Math.min(w, 1280) }).webp({ quality: 75, alphaQuality: 90, effort: 5, loop: 0 }).toFile(resolve(OUT, webp));
+    await sharp(file, { pages: 1 }).resize({ width: Math.min(w, 1280) }).webp({ quality: 78, alphaQuality: 90 }).toFile(resolve(OUT, poster));
+    const af = [webm, webp, poster].map((f) => ({ file: f, bytes: statSync(resolve(OUT, f)).size }));
+    manifest[key] = { type: 'video', width: w, height: h, alpha: true, webm, webp, poster, sig: s, files: af };
+    console.log('loop (alpha)', key, `${w}x${h}`, af.map((f) => `${basename(f.file)} ${(f.bytes / 1024).toFixed(0)}KB`).join(', '));
+    return;
+  }
   ff('-i', file, '-vf', scale, '-c:v', 'libvpx-vp9', '-crf', '34', '-b:v', '0', '-an', resolve(OUT, webm));
   ff('-i', file, '-vf', scale, '-c:v', 'libx264', '-crf', '27', '-preset', 'slow', '-movflags', '+faststart', '-an', resolve(OUT, mp4));
   const png = resolve(OUT, `${slug}/${name}-poster.png`);

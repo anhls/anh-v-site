@@ -33,7 +33,7 @@ export function imgSrc(ref) {
 export function videoInfo(ref) {
   const m = entry(ref);
   if (!m || m.type !== 'video') return null;
-  return { webm: m.webm && `/media/${m.webm}`, mp4: `/media/${m.mp4}`, poster: `/media/${m.poster}` };
+  return { webm: m.webm && `/media/${m.webm}`, mp4: m.mp4 && `/media/${m.mp4}`, webp: m.webp && `/media/${m.webp}`, alpha: !!m.alpha, poster: `/media/${m.poster}` };
 }
 
 // The manifest entry of a converted image ({ source: {width, height}, files }) or null.
