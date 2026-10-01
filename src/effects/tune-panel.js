@@ -161,7 +161,7 @@ export function mountTunePanel({ trail, cards } = {}) {
   const syncReadouts = () => readouts.forEach((r) => { r.input.value = r.obj[r.key]; r.v.textContent = r.obj[r.key]; });
 
   section('Warp (scroll)', ['WARP.strengthUp', 'WARP.strengthDown', 'WARP.reach', 'WARP.curl', 'WARP.camDown', 'WARP.camUp', 'WARP.bowDown', 'WARP.sym', 'BEND.sensitivity', 'BEND.returnSpeed', 'BEND.overshoot'], { open: true, note: 'One distortion over all the cards. The last three (speed sensitivity, return speed, overshoot) are shared by both directions.' });
-  section('Frame warp (centre image, R16c)', ['FRAME.on', 'FRAME.strengthUp', 'FRAME.strengthDown', 'FRAME.reach', 'FRAME.pinch', 'FRAME.pinchDown', 'FRAME.arc', 'FRAME.persp', 'FRAME.sym', 'FRAME.threshold', 'FRAME.deadzone', 'FRAME.coverZoom', 'FRAME.videoMode', 'FRAME.fadeSec'], { note: 'Own settings; the speed spring (sensitivity, return, overshoot) is shared with the cards.' });
+  section('Frame warp (centre image, R16c)', ['FRAME.on', 'FRAME.strengthUp', 'FRAME.strengthDown', 'FRAME.reach', 'FRAME.sym', 'FRAME.threshold', 'FRAME.deadzone', 'FRAME.coverZoom', 'FRAME.videoMode', 'FRAME.fadeSec'], { note: 'Own strength / reach; the shape (curl, camera, bow) is the Warp section's, so the frame bends exactly like the cards. The speed spring is shared too.' });
   section('Grain', ['BEND.grain', 'BEND.grainSpeed']);
   section('Aura (around the frame)', ['CARDS.auraWeight', 'CARDS.auraMargin', 'CARDS.auraStrength', 'CARDS.auraVertical', 'CARDS.auraFalloff', 'CARDS.auraMinGap', 'CARDS.partingSoftness', 'CARDS.partingBounce']);
   section('Mouse (push + drift)', ['CARDS.pushRadius', 'CARDS.pushStrength', 'CARDS.pushFalloff', 'CARDS.pushStiffness', 'CARDS.pushDamping', 'CARDS.mouseStrength']);

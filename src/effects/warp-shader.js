@@ -28,7 +28,7 @@ precision highp float;
 uniform sampler2D uScene;
 uniform vec2 uRes;            // canvas size in device px
 uniform float uAmt;           // signed warp, -1..1 (x strength); + = scrolling down
-uniform vec4 uShape;          // frame mode: pinch, arc, persp, reach   |   cylinder mode: curl, camera distance (down), camera distance (up), reach
+uniform vec4 uShape;          // curl, camera distance (positive side), camera distance (negative side), reach (R16h: the frame canvas uses this same cylinder in its own space)
 uniform vec2 uMargin;         // overscan of the offscreen buffer, as a share of the screen width / height (each side)
 uniform float uSym;           // weight of the leading side (1 = both sides alike)
 uniform float uPinchDown;     // frame mode: pinch while scrolling down; uShape.x is the pinch for scrolling up
@@ -49,23 +49,7 @@ void main() {
   float a = abs(uAmt);
   vec2 q = p;
   bool ok = true;
-  if (fr) {
-    float B = max(uShape.w * 0.5, 0.0005);
-    float t = clamp((abs(p.y) - y0) / B, 0.0, 1.0);
-    float w = t * t;
-    if (uAmt > 0.0) {
-      w *= (side > 0.0) ? 1.0 : uSym;
-      float arc = min(uShape.y, uShape.z * 0.5);
-      q.x = p.x / max(1.0 - uPinchDown * a * w, 0.25);
-      q.y = p.y + side * a * w * (uShape.z * 0.5 - arc * (1.0 - 4.0 * p.x * p.x));
-    } else {
-      w *= (side < 0.0) ? 1.0 : uSym;
-      q.x = p.x / max(1.0 - uShape.x * a * w, 0.25);
-      q.y = p.y * (1.0 + uShape.z * a * w);
-      q.y += uShape.y * a * w * (1.0 - 4.0 * p.x * p.x);
-    }
-    if (uZoom > 1.0) q /= uZoom;
-  } else {
+  {
     // cylinder: the sheet is flat up to y0 from the centre, then follows an arc of radius R (angle th), away (+) or toward (-) the viewer
     float aS = a * (side > 0.0 ? (uAmt > 0.0 ? 1.0 : uSym) : (uAmt < 0.0 ? 1.0 : uSym));
     float e = abs(p.y);
@@ -101,6 +85,7 @@ void main() {
       }
     }
   }
+  if (fr && uZoom > 1.0) q /= uZoom; // R16g cover zoom
   vec2 src = fr ? vec2((uFrame.x + q.x * uFrame.z) / uRes.x, (uFrame.y + q.y * uFrame.w) / uRes.y) : vec2(q.x + 0.5, q.y + 0.5); // y down, screen units
   vec2 uv = vec2((src.x + uMargin.x) / (1.0 + 2.0 * uMargin.x), (src.y + uMargin.y) / (1.0 + 2.0 * uMargin.y));
   vec4 c = vec4(0.0);

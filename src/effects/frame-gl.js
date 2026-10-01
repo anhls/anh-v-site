@@ -1,5 +1,5 @@
 import { gsap } from 'gsap';
-import { BEND, FRAME_WARP as FW, WARP_DIR } from '../timeline.js';
+import { BEND, FRAME_WARP as FW, WARP, WARP_DIR } from '../timeline.js';
 import { frameCoverZoom } from './warp-model.js';
 import { frameState, frameLayers } from '../sections/hero.js';
 import { weakDevice } from '../util/device.js';
@@ -290,6 +290,8 @@ export function createFrameGL(handles) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     fb = { ms, res, rb, tex: t, w, h };
   };
+  const camPair = WARP_DIR > 0 ? [WARP.camDown, WARP.camUp] : [WARP.camUp, WARP.camDown];
+  const bowPair = WARP_DIR > 0 ? [WARP.bowDown, WARP.bowUp] : [WARP.bowUp, WARP.bowDown];
   const postPass = (amt, rect) => {
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fb.ms);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb.res);
@@ -302,20 +304,20 @@ export function createFrameGL(handles) {
     gl.uniform1i(P.uScene, 0);
     gl.uniform2f(P.uRes, canvas.width, canvas.height);
     gl.uniform1f(P.uAmt, Math.max(-1, Math.min(1, amt)));
-    gl.uniform4f(P.uShape, WARP_DIR > 0 ? FW.pinch : FW.pinchDown, FW.arc, FW.persp, FW.reach);
+    // R16h: the same cylinder and direction mapping as the cards (cards-gl.js), in the frame's own space. The shader's first camera / bow slot
+    // belongs to its positive (recede) side, which WARP_DIR = -1 turns into scrolling UP.
+    gl.uniform4f(P.uShape, WARP.curl, ...camPair, FW.reach);
+    gl.uniform2f(P.uBow, ...bowPair);
     gl.uniform2f(P.uMargin, 0, 0);
     gl.uniform4f(P.uFrame, rect[0] * dpr, rect[1] * dpr, rect[2] * dpr, rect[3] * dpr); // the warp runs in the frame's own space (R16d)
     gl.uniform1f(P.uSym, FW.sym);
-    gl.uniform1f(P.uPinchDown, WARP_DIR > 0 ? FW.pinchDown : FW.pinch);
     // R16g: cover zoom. Only when the frame fills the screen (share of the screen, smoothstep over the last 15%), so small frames keep their look.
     const share = Math.min((rect[2] * rect[3]) / (W * H), 1);
     const k = Math.min(Math.max((share - 0.85) / 0.15, 0), 1);
     const cw = k * k * (3 - 2 * k) * FW.coverZoom;
     let zoom = 1;
     if (cw > 0) {
-      const pn = WARP_DIR > 0 ? FW.pinch : FW.pinchDown;
-      const pp = WARP_DIR > 0 ? FW.pinchDown : FW.pinch;
-      zoom = 1 + cw * (frameCoverZoom(Math.max(-1, Math.min(1, amt)), pn, FW.arc, FW.persp, FW.reach, FW.sym, pp, W / rect[2], H / rect[3]) + 0.004 * Math.min(1, Math.abs(amt) / 0.1) - 1); // + 0.4%: keeps the 1 px antialiased picture edge off the screen border
+      zoom = 1 + cw * (frameCoverZoom(Math.max(-1, Math.min(1, amt)), WARP.curl, camPair[0], camPair[1], bowPair[0], bowPair[1], FW.reach, FW.sym, W / rect[2], H / rect[3]) + 0.004 * Math.min(1, Math.abs(amt) / 0.1) - 1); // + 0.4%: keeps the 1 px antialiased picture edge off the screen border
     }
     bend.zoom = zoom; bend.rect = rect;
     gl.uniform1f(P.uZoom, zoom);
