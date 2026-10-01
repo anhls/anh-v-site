@@ -272,7 +272,7 @@ export const MORE_PROJECTS_FIT = { gapVh: 5, gapMinPx: 28, safeTopVh: 12, minSca
 // width of the strong middle band (0..1 of the depth range); grain = film grain amplitude (0 = off), grainSpeed = how much scroll
 // speed adds to it; grainRate = grain frames per second. dprCap = canvas pixel ratio cap, dprCapLarge above 2560 px wide.
 export const BEND = {
-  arcShape: 1, cardBend: 0, maxArc: 14, speedRef: 1750, sensitivity: 1.5, returnSpeed: 10, overshoot: 0.07,
+  arcShape: 1, cardBend: 0, maxArc: 14, speedRef: 1750, sensitivity: 2.15, returnSpeed: 10, overshoot: 0.13,
   depthExtreme: 0.19, depthBand: 0.6,
   grain: 0.044, grainSpeed: 0.6, grainRate: 12,
   dprCap: 2, dprCapLarge: 1.5, weakCores: 4, weakMemoryGb: 4, textureBudgetMb: 256,
@@ -286,7 +286,7 @@ export const BEND = {
 // the sheet has turned after the band at full strength; camDown / camUp = camera distance in screen heights (smaller = stronger perspective);
 // bowDown / bowUp = a shallow dome added across the sheet (rows bow with their middle farthest out, sides shrink toward the centre line).
 // pinch / pinchDown / arc / persp are the older three-term model, now used only by the FRAME canvas (FRAME_WARP has its own copies).
-export const WARP = { strengthUp: 0.7, strengthDown: 0.7, reach: 0.6, sym: 0, curl: 0.6, camDown: 1.6, camUp: 0.8, bowDown: 0.3, bowUp: 0, pinch: 0.07, pinchDown: 0.2, arc: 0.255, persp: 0.43 };
+export const WARP = { strengthUp: 1.15, strengthDown: 1.15, reach: 1, sym: 1, curl: 0.7, camDown: 1.6, camUp: 1.6, bowDown: 0.05, bowUp: 0, pinch: 0.07, pinchDown: 0.2, arc: 0.255, persp: 0.43 };
 
 // R16c: the centre frame (hero mask) warps while the page scrolls, on its own canvas (effects/frame-gl.js). At rest the normal DOM
 // frame shows; when the scroll speed passes `threshold` (px/s) the canvas takes over at the same pixels, applies the same kind of warp
@@ -294,6 +294,6 @@ export const WARP = { strengthUp: 0.7, strengthDown: 0.7, reach: 0.6, sym: 0, cu
 // sprung flat. on = 0 turns it off; videoMode 0 = show the video's poster while warping (crossfade `fadeSec`), 1 = the frozen current
 // frame. The DOM video is paused while the canvas shows the frame and resumes when it hands back.
 export const FRAME_WARP = {
-  on: 1, strengthUp: 0.7, strengthDown: 0.7, reach: 0.6, pinch: 0.07, pinchDown: 0.2, arc: 0.255, persp: 0.43, sym: 0,
-  threshold: 300, fadeSec: 0.15, videoMode: 1, lodBias: 0, softScaled: 1,
+  on: 1, strengthUp: 1.39, strengthDown: 1.39, reach: 1, pinch: 0.11, pinchDown: 0.11, arc: 0.185, persp: 0.59, sym: 1,
+  threshold: 400, fadeSec: 0.15, videoMode: 1, lodBias: 0, softScaled: 1,
 };

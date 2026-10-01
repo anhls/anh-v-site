@@ -70,6 +70,12 @@ After R16b: R16c (frame warp on its own canvas, poster while scrolling): docs/pl
 
 ## R16e [done, quick mode] (archived in docs/archive/requests-R16e.md)
 
+## R16f (next, quick mode): swap warp directions + frame warp lingers in More Projects (use Sonnet 5.5)
+Anh's tuning after R16e is now the default (WARP, FRAME_WARP, BEND sensitivity 2.15 / overshoot 0.13 in timeline.js).
+1. Swap the direction for EVERYTHING (cards' cylinder warp AND the centre frame's own-space warp): what scrolling UP does now must happen when scrolling DOWN, and vice versa. Anh: "got the effect but reverse direction, just need to switch them for all". One shared sign flip (e.g. a WARP_DIR constant applied where the scroll direction becomes the warp sign), so the per-direction sliders (strengthUp/Down, camUp/Down, bowUp/Down, pinch/pinchDown) follow the new mapping: rename or swap their values so each slider still controls what its label says on screen. Check with real wheel input (?warptest) at 2560x1440 both ways; screenshots to tools/scratch/r16f-shots/.
+2. Frame warp lingers in More Projects (Anh's screenshot: the full-screen frame stays warped/bulged for a long time before returning to normal, while the More Projects list is shown). Likely cause: in that part of the page something keeps the measured scroll speed above the hand-back threshold or keeps the warp target non-zero (e.g. Lenis still easing out its 3 s glide, the More Projects fit / sticky translate, the wordmark spring, ScrollTrigger refresh, or the frame size changing (mask grow 500-585vh) being counted as motion). Find it (log warp target, speed source and hand-back state per frame while scrolling into More Projects and stopping), then fix so the frame settles flat within the same time as elsewhere (~0.5 s after the scroll visibly stops). The warp must be driven by the page scroll velocity only, not by layout or mask-size changes.
+3. QUICK MODE: real-wheel checks + screenshots, normal-speed frame time at 2560, compare 542/542. Stress tests stay in the perf pass.
+
 ## Queued (plans agreed with Anh, in this order; each becomes a request after the one before is committed)
 0. Perf pass (deferred stress tests from R16d): 4x CPU runs, 6-screen frame-time matrix incl. 120 Hz, fallback re-runs, hand-off diffs for the frame canvas. Run once the warp looks right to Anh.
 2. Project pages (Bitis template first), Works page, tablet/phone, launch prep, then back-to-top "rewind" polish.
