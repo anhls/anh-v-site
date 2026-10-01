@@ -32,6 +32,7 @@ uniform vec4 uShape;          // frame mode: pinch, arc, persp, reach   |   cyli
 uniform vec2 uMargin;         // overscan of the offscreen buffer, as a share of the screen width / height (each side)
 uniform float uSym;           // weight of the leading side (1 = both sides alike)
 uniform float uPinchDown;     // frame mode: pinch while scrolling down; uShape.x is the pinch for scrolling up
+uniform float uZoom;           // frame mode (R16g): magnify the picture about the frame centre so the warped frame still covers its rectangle
 uniform vec2 uBow;            // cylinder mode: dome depth while scrolling down / up (rows bow, sides pinch)
 uniform vec4 uFrame;          // frame space: centre x, centre y, width, height in device px (width <= 0 = screen space, cylinder)
 uniform float uGrain;
@@ -63,6 +64,7 @@ void main() {
       q.y = p.y * (1.0 + uShape.z * a * w);
       q.y += uShape.y * a * w * (1.0 - 4.0 * p.x * p.x);
     }
+    if (uZoom > 1.0) q /= uZoom;
   } else {
     // cylinder: the sheet is flat up to y0 from the centre, then follows an arc of radius R (angle th), away (+) or toward (-) the viewer
     float aS = a * (side > 0.0 ? (uAmt > 0.0 ? 1.0 : uSym) : (uAmt < 0.0 ? 1.0 : uSym));

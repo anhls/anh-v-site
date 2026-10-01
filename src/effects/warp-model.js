@@ -63,3 +63,45 @@ export function cylinderMargins(amtMax, curl, cam, reach, sym, bow = 0) {
   }
   return [Math.max(mx, 0), Math.max(my, 0)];
 }
+
+// R16g: JS twin of the FRAME branch in warp-shader.js (the three-term model in the frame's own space: p = frame-relative, centred, y down,
+// both axes -0.5..0.5). `neg` = shader uShape.x (pinch on the amt <= 0 side), `pos` = uPinchDown (pinch on the amt > 0 side).
+export function frameSource(px, py, amt, neg, arc0, persp, reach, sym, pos) {
+  const y0 = (1 - reach) / 2;
+  const side = py >= 0 ? 1 : -1;
+  const a = Math.abs(amt);
+  const B = Math.max(reach * 0.5, 0.0005);
+  const t = Math.min(Math.max((Math.abs(py) - y0) / B, 0), 1);
+  let w = t * t;
+  let qx = px;
+  let qy = py;
+  if (amt > 0) {
+    w *= side > 0 ? 1 : sym;
+    const arc = Math.min(arc0, persp * 0.5);
+    qx = px / Math.max(1 - pos * a * w, 0.25);
+    qy = py + side * a * w * (persp * 0.5 - arc * (1 - 4 * px * px));
+  } else {
+    w *= side < 0 ? 1 : sym;
+    qx = px / Math.max(1 - neg * a * w, 0.25);
+    qy = py * (1 + persp * a * w);
+    qy += arc0 * a * w * (1 - 4 * px * px);
+  }
+  return [qx, qy];
+}
+
+// Zoom z >= 1 about the frame centre so that the SCREEN border (ex, ey = screen size / frame size, 1 when the frame fills the screen; the frame can
+// be a hair smaller while the mask is still growing) maps inside the picture (|q| <= 0.5 on both axes after dividing by z). Relative to
+// the same border at amt = 0, so it is exactly 1 at amt = 0 (the rest hand-off stays pixel-matched).
+export function frameCoverZoom(amt, neg, arc0, persp, reach, sym, pos, ex = 1, ey = 1, n = 61) {
+  if (amt === 0) return 1;
+  let m = 0;
+  let m0 = 0.5 * Math.max(ex, ey, 1);
+  for (let i = 0; i < n; i++) {
+    const u = -0.5 + i / (n - 1);
+    for (const [px, py] of [[u * ex, -0.5 * ey], [u * ex, 0.5 * ey], [-0.5 * ex, u * ey], [0.5 * ex, u * ey]]) {
+      const [qx, qy] = frameSource(px, py, amt, neg, arc0, persp, reach, sym, pos);
+      m = Math.max(m, Math.abs(qx), Math.abs(qy));
+    }
+  }
+  return Math.max(1, m / m0);
+}

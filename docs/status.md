@@ -132,3 +132,10 @@ Newest at the bottom. Keep each entry to 8 lines or fewer: what changed, compare
 - Fix: FRAME_WARP.deadzone = 300 px/s (slider "Ignore slow scroll"): speed below it adds no warp and counts as calm. Hand-back now ~0.25 s after the last wheel (was ~3 s). Cards unchanged.
 - Checks (2560x1440, real wheel, ?warptest): down amt max 0 / min -1.10, up +1.10; screenshots tools/scratch/r16f-shots/. compare 542/542 at 1920x1080 and 2560x1440.
 - Open: headless frame time is slow, so judge the feel on Anh's machine; tune deadzone if the end of the warp feels cut off.
+
+## 2026-10-01 R16g (quick mode): frame warp covers the screen
+- Cover zoom in the frame post shader (uZoom, divides the frame-space sample point). zCover comes from a JS twin of the frame warp (frameSource / frameCoverZoom in warp-model.js), border sampled 61 pts/side per frame, measured against the SCREEN border relative to amt 0, so exactly 1 at rest. +0.4% margin (ramped in over amt 0..0.1) keeps the antialiased edge off the border.
+- Weight = smoothstep(0.85..1) of the frame's share of the screen, x FRAME_WARP.coverZoom (default 1, slider "Cover zoom", in Copy values). Small frames unchanged.
+- zCover (Anh's numbers, persp 0.18, arc 0): amt 0.25 / 0.5 / 1.0 / 1.15 = 1.045 / 1.090 / 1.180 / 1.180 (shader clamps amt at 1), same for down and up. Grid 121x121 per side (tools/scratch/r16g-zcover.mjs): 0 border points outside the picture, both directions.
+- Real wheel at 2560 and 1920: black band at the top was ~58 px at coverZoom 0, none at 1 except 1 px row (known difference, not visible). Bands seen while the mask is still growing (rect < screen) are the unwarped frame itself, same in the DOM at rest. Shots: tools/scratch/r16g-shots/. compare 542/542 at both sizes. Frame time not re-measured (cost is a few hundred flops per frame).
+- Crop at peak: 18% zoom (the frame picture loses ~8% per side at full warp); image softness slightly higher at peak, not visible in shots.

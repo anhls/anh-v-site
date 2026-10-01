@@ -1,5 +1,6 @@
 import { gsap } from 'gsap';
 import { BEND, FRAME_WARP as FW, WARP_DIR } from '../timeline.js';
+import { frameCoverZoom } from './warp-model.js';
 import { frameState, frameLayers } from '../sections/hero.js';
 import { weakDevice } from '../util/device.js';
 import { POST_VERT, POST_FRAG } from './warp-shader.js';
@@ -68,7 +69,7 @@ export function createFrameGL(handles) {
   if (!quad || !post) return null;
   const uniforms = (p, names) => Object.fromEntries(names.map((k) => [k, gl.getUniformLocation(p, k)]));
   const Q = uniforms(quad, ['uView', 'uRect', 'uA', 'uB', 'uUvA', 'uUvB', 'uMix', 'uColor', 'uMode', 'uAlpha', 'uBias']);
-  const P = uniforms(post, ['uScene', 'uRes', 'uAmt', 'uShape', 'uMargin', 'uSym', 'uPinchDown', 'uBow', 'uFrame', 'uGrain', 'uSeed']);
+  const P = uniforms(post, ['uScene', 'uRes', 'uAmt', 'uShape', 'uMargin', 'uSym', 'uPinchDown', 'uZoom', 'uBow', 'uFrame', 'uGrain', 'uSeed']);
   const emptyVao = gl.createVertexArray();
   gl.bindVertexArray(emptyVao);
   gl.enable(gl.BLEND);
@@ -306,6 +307,18 @@ export function createFrameGL(handles) {
     gl.uniform4f(P.uFrame, rect[0] * dpr, rect[1] * dpr, rect[2] * dpr, rect[3] * dpr); // the warp runs in the frame's own space (R16d)
     gl.uniform1f(P.uSym, FW.sym);
     gl.uniform1f(P.uPinchDown, WARP_DIR > 0 ? FW.pinchDown : FW.pinch);
+    // R16g: cover zoom. Only when the frame fills the screen (share of the screen, smoothstep over the last 15%), so small frames keep their look.
+    const share = Math.min((rect[2] * rect[3]) / (W * H), 1);
+    const k = Math.min(Math.max((share - 0.85) / 0.15, 0), 1);
+    const cw = k * k * (3 - 2 * k) * FW.coverZoom;
+    let zoom = 1;
+    if (cw > 0) {
+      const pn = WARP_DIR > 0 ? FW.pinch : FW.pinchDown;
+      const pp = WARP_DIR > 0 ? FW.pinchDown : FW.pinch;
+      zoom = 1 + cw * (frameCoverZoom(Math.max(-1, Math.min(1, amt)), pn, FW.arc, FW.persp, FW.reach, FW.sym, pp, W / rect[2], H / rect[3]) + 0.004 * Math.min(1, Math.abs(amt) / 0.1) - 1); // + 0.4%: keeps the 1 px antialiased picture edge off the screen border
+    }
+    bend.zoom = zoom; bend.rect = rect;
+    gl.uniform1f(P.uZoom, zoom);
     gl.uniform1f(P.uGrain, 0);
     gl.uniform1f(P.uSeed, 0);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -428,7 +441,7 @@ export function createFrameGL(handles) {
     canvas,
     preload: () => { preload(); const loop = () => { pump(); if (!ready && !failed && !lost) setTimeout(loop, 60); }; loop(); },
     isActive: () => active,
-    state: () => ({ active, ready, failed, bend: bend.x, amt: bend.amt, mix: videoMix, calmSince, fading, speed: dbgSpeed }),
+    state: () => ({ active, ready, failed, bend: bend.x, amt: bend.amt, zoom: bend.zoom, rect: bend.rect, mix: videoMix, calmSince, fading, speed: dbgSpeed }),
     handBackNow: () => { if (active) handBack(); },
     force: (on) => { forced = !!on; if (!on && active) { fading = 1; } }, // dev only
   };

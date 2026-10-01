@@ -298,5 +298,5 @@ export const WARP = { strengthUp: 1.15, strengthDown: 1.15, reach: 1, sym: 1, cu
 // frame. The DOM video is paused while the canvas shows the frame and resumes when it hands back.
 export const FRAME_WARP = {
   on: 1, strengthUp: 1.39, strengthDown: 1.39, reach: 1, pinch: 0.11, pinchDown: 0.11, arc: 0, persp: 0.18, sym: 1,
-  threshold: 400, deadzone: 580, fadeSec: 0.15, videoMode: 1, lodBias: 0, softScaled: 1,
+  threshold: 400, deadzone: 580, coverZoom: 1, fadeSec: 0.15, videoMode: 1, lodBias: 0, softScaled: 1,
 };
