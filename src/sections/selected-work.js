@@ -1,7 +1,7 @@
 import { imgAttrs, videoInfo } from '../util/media.js';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { CARDS, LAYOUT, CARD_HOVER } from '../timeline.js';
+import { CARDS, LAYOUT, CARD_HOVER, POOL } from '../timeline.js';
 import { frameState } from './hero.js';
 import { generateLayout } from '../data/layout.js';
 import { springFromBounce } from '../effects/springs.js';
@@ -28,14 +28,15 @@ export function buildSelectedWork(root, cards) {
   const section = root.querySelector('.selected-work');
   if (!section || !cards?.length) return;
 
-  // R13c: positions come from the seeded generator (src/data/layout.js), starting from the Framer positions in data.json.
-  let pos = generateLayout(cards, LAYOUT);
+  // R13c: positions come from the seeded generator (src/data/layout.js), starting from the positions cards-gen.js gives each card (R22).
+  const layoutParams = () => ({ ...LAYOUT, seed: LAYOUT.seed + POOL.seed });
+  let pos = generateLayout(cards, layoutParams());
   section.innerHTML = cards
     .map((c, i) => {
       const style = `--x:${pos[i].x};--y:${pos[i].y};--w:${c.w};--h:${c.h};z-index:${c.z}`;
       const vid = videoInfo(c.src);
       // R17: the dark layer of the "dark bg frame" cards (DOM fallback only; the WebGL path draws it itself), right after its card
-      const dark = pointerEnabled && CARD_HOVER.darkIds.includes(c.id) ? `<div class="sw__dark" aria-hidden="true" style="${style}"></div>` : '';
+      const dark = pointerEnabled && c.dark ? `<div class="sw__dark" aria-hidden="true" style="${style}"></div>` : '';
       // Animated cards: muted looping video (WebM with alpha first, MP4 as fallback), played only while near the screen.
       if (vid) return `<video class="sw__card" muted loop playsinline preload="none" poster="${vid.poster}" draggable="false" style="${style}">${vid.webm ? `<source src="${vid.webm}" type="video/webm">` : ''}<source src="${vid.mp4}" type="video/mp4"></video>${dark}`;
       return `<img class="sw__card" ${imgAttrs(c.src, `${(c.w / 19.2).toFixed(1)}vw`)} alt="" loading="lazy" decoding="async" draggable="false" style="${style}">${dark}`;
@@ -115,6 +116,8 @@ export function buildSelectedWork(root, cards) {
   let prevSy = window.scrollY;
 
   const live = pointerEnabled;
+  // R22: a click on the hovered card opens its project page (the reveal has already played while the pointer was on it).
+  if (live) window.addEventListener('click', () => { if (hov >= 0 && on) window.location.href = `/work/${cards[hov].slug}.html`; });
   let on = false; // the section's range is active (cards can be on screen)
   let ticking = false; // the loop is registered on the ticker
   // Shared mouse spring (every card's spring is the same and linear, so one normalised state serves all of them).
@@ -466,7 +469,7 @@ export function buildSelectedWork(root, cards) {
 
   // Dev panel: regenerate the layout from LAYOUT and re-measure (keeps the springs, so cards glide to their new spots).
   const relayout = () => {
-    pos = generateLayout(cards, LAYOUT);
+    pos = generateLayout(cards, layoutParams());
     els.forEach((el, i) => { for (const t of [el, darkEls[i]]) { t?.style.setProperty('--x', pos[i].x); t?.style.setProperty('--y', pos[i].y); } });
     measure();
     if (glOn) gl.resize(W, H);

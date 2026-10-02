@@ -205,18 +205,30 @@ export const CARDS = {
 // centreShare: share of cards pulled to start near or across the centre line, within centreBand px of it; minGap: px kept
 // between cards on neighbouring depths; yJitter: max vh a card may move up or down.
 export const LAYOUT = { seed: 92708, scatter: 225, centreShare: 0.3, centreBand: 560, minGap: 81, yJitter: 8 };
+// R22: Selected Work cards are generated from the project image pool (src/data/cards-gen.js). POOL.seed picks the images and
+// every per-card value (?seed=N in the URL overrides it, for the seed audition); count = cards on the page. CARD_SIZE: three
+// size tiers (px at 1920, scaled with scale.js): each card is fitted inside its tier's box keeping the image's ratio (clamped to
+// maxRatio, cropped with cover), short side at least minShort. weights = share small / medium / large. Large cards sit in front
+// (mouse 100, z 5) and push most, small ones at the back. darkLum: stills with a mean brightness (0-255) below it get the dark
+// hover layer. x range = start distance from the centre line (px), y range = vh from the section top; both are the starting
+// point for LAYOUT.
+const urlSeed = new URLSearchParams(location.search).get('seed');
+export const POOL = { seed: urlSeed !== null && urlSeed !== '' ? Number(urlSeed) : 1, count: 35 };
+export const CARD_SIZE = {
+  tiers: [{ w: 200, h: 170 }, { w: 290, h: 250 }, { w: 384, h: 324 }],
+  weights: [0.5, 0.35, 0.15], maxRatio: 2.2, minShort: 120, darkLum: 50,
+  xMin: 330, xMax: 1070, yTop: 78, yBottom: 363,
+};
 // Live's constants, fixed (not tunable): parting target = t * (0.01W + 0.19W * (1 - f)) * 1.1 sideways and
 // t * (0.01H + 0.29H * (1 - f)) * 1.1 down (live eases to them at 0.2 per 60 fps frame; we use the CARDS spring); a card is armed once 10% of it has been visible.
 export const PARTING = { xMax: 0.2, xMin: 0.01, yMax: 0.3, yMin: 0.01, z: 1.1, lerp: 0.2, armed: 0.1 };
 // R17 card hover, measured on live (1920x1080, frame-by-frame, tools/scratch/r17-live2.mjs): the card under the pointer scales
-// 1 -> 1.2 on a critically damped spring (stiffness ~250, damping ~31, no overshoot, ~0.6 s). 19 of the 35 cards ("dark bg frame":
-// ids below) are covered at rest by an opaque rgb(10,10,10) layer 4 px bigger on every side that fades out (opacity = 1 - progress)
+// 1 -> 1.2 on a critically damped spring (stiffness ~250, damping ~31, no overshoot, ~0.6 s). the "dark bg frame" cards (since R22: the cards flagged `dark` by cards-gen.js, by image brightness) are covered at rest by an opaque rgb(10,10,10) layer 4 px bigger on every side that fades out (opacity = 1 - progress)
 // while it scales 1 -> 1.15 on the same progress. Added here: the hovered card stops (its pointer push fades out, drift drops to
 // `drift`) and becomes the source of the push-away for its neighbours (pushStrength px / pushRadius px at 1920, rect to rect, the
 // same falloff and depth weight as the pointer push). darkRest scales the dark layer (1 = live, 0 = no dark layers).
 export const CARD_HOVER = {
   scale: 1.2, darkScale: 1.15, darkPad: 4, darkRest: 1, stiffness: 250, damping: 31.6, drift: 0.25, pushStrength: 95, pushRadius: 125,
-  darkIds: [2, 3, 4, 5, 6, 7, 12, 13, 15, 16, 19, 20, 21, 22, 23, 24, 31, 32, 33],
 };
 // Where the cards sit: the section starts 211.11 capped vh down the page (2280px at 1080 and above); card y is vh from there.
 export const CARD_LAYOUT = { sectionTopCappedVh: 2280 / 10.8 };

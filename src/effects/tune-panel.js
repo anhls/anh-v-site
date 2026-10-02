@@ -1,4 +1,4 @@
-import { CARDS, TRAIL, LAYOUT, BEND, WARP, FRAME_WARP, CARD_HOVER, CAPTION_HOVER } from '../timeline.js';
+import { POOL, CARDS, TRAIL, LAYOUT, BEND, WARP, FRAME_WARP, CARD_HOVER, CAPTION_HOVER } from '../timeline.js';
 
 // Dev-only tuning panel (Selected Work cards, card layout, hero trail). Opens with ?tune in the URL; main.js imports this
 // file only when import.meta.env.DEV is true, so it is never part of the production build. Sliders write straight into the
@@ -167,10 +167,11 @@ export function mountTunePanel({ trail, cards } = {}) {
   section('Mouse (push + drift)', ['CARDS.pushRadius', 'CARDS.pushStrength', 'CARDS.pushFalloff', 'CARDS.pushStiffness', 'CARDS.pushDamping', 'CARDS.mouseStrength']);
   section('Hover (card under the pointer)', ['HOVER.scale', 'HOVER.darkRest', 'HOVER.drift', 'HOVER.pushStrength', 'HOVER.pushRadius']);
   section('Cards', ['CARDS.depthRange', 'CARDS.sepMaxCover', 'CARDS.sepStrength', 'CARDS.lagStrength', 'CARDS.lagFrontSec', 'CARDS.lagBackSec']);
-  const layout = section('Layout', ['LAYOUT.scatter', 'LAYOUT.centreShare', 'LAYOUT.centreBand', 'LAYOUT.minGap', 'LAYOUT.yJitter'], { onInput: () => cards?.relayout(), extra: '<div data-seed style="margin:4px 0 8px"></div><button data-act="shuffle" style="padding:5px 10px;cursor:pointer;margin-bottom:8px">Reshuffle (new seed)</button>' });
+  const layout = section('Layout', ['LAYOUT.scatter', 'LAYOUT.centreShare', 'LAYOUT.centreBand', 'LAYOUT.minGap', 'LAYOUT.yJitter'], { onInput: () => cards?.relayout(), extra: '<div style="margin:4px 0 8px">Card seed (images + sizes; reloads) <input data-pool-seed type="number" style="width:80px"> <button data-act="poolseed">Apply</button></div><div data-seed style="margin:4px 0 8px"></div><button data-act="shuffle" style="padding:5px 10px;cursor:pointer;margin-bottom:8px">Reshuffle (new seed)</button>' });
   const seedEl = layout.querySelector('[data-seed]');
   const showSeed = () => { seedEl.textContent = `seed ${LAYOUT.seed}`; };
   showSeed();
+  layout.querySelector('[data-pool-seed]').value = POOL.seed;
   section('Captions (hero)', ['CAPTION.revealSec', 'CAPTION.hideSec', 'CAPTION.fromScale', 'CAPTION.lineInSec', 'CAPTION.textOutSec'], { note: 'Scroll to the top of the page and hover a caption.' });
   const trailSec = section('Hero image trail', ['TRAIL.frequency', 'TRAIL.visibleFor', 'TRAIL.startMaskShare', 'TRAIL.fadeAtScreen', 'TRAIL.fadeLenVh', 'TRAIL.fadeCurve', 'TRAIL.minScale'], { onInput: () => { trail?.remeasure(); showPts(); }, extra: '<div data-trail-pts style="opacity:.7;margin:2px 0 8px"></div>' });
   const pts = trailSec.querySelector('[data-trail-pts]');
@@ -187,6 +188,10 @@ export function mountTunePanel({ trail, cards } = {}) {
       const hidden = body.style.display === 'none';
       body.style.display = hidden ? '' : 'none';
       e.target.textContent = hidden ? 'hide' : 'show';
+    } else if (act === 'poolseed') {
+      const u = new URL(location.href);
+      u.searchParams.set('seed', box.querySelector('[data-pool-seed]').value || '1');
+      location.href = u.href;
     } else if (act === 'shuffle') {
       LAYOUT.seed = Math.floor(Math.random() * 100000);
       showSeed();

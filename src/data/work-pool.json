@@ -1,0 +1,602 @@
+[
+ {
+  "slug": "bitis09",
+  "key": "bitis09/billboard",
+  "hash": 2431333663,
+  "w": 3000,
+  "h": 2250,
+  "lum": 76
+ },
+ {
+  "slug": "bitis09",
+  "key": "bitis09/finale",
+  "hash": 1468117451,
+  "w": 1800,
+  "h": 1172,
+  "lum": 132
+ },
+ {
+  "slug": "bitis09",
+  "key": "bitis09/gallery-1",
+  "hash": 3151466348,
+  "w": 6000,
+  "h": 3376,
+  "lum": 229
+ },
+ {
+  "slug": "bitis09",
+  "key": "bitis09/hero",
+  "hash": 2652664612,
+  "w": 1920,
+  "h": 1080,
+  "lum": 98
+ },
+ {
+  "slug": "bitis09",
+  "key": "bitis09/insight-a",
+  "hash": 473555562,
+  "w": 1080,
+  "h": 1080,
+  "lum": 93
+ },
+ {
+  "slug": "bitis09",
+  "key": "bitis09/look-a",
+  "hash": 2229510725,
+  "w": 1920,
+  "h": 1080,
+  "lum": 158
+ },
+ {
+  "slug": "bitis09",
+  "key": "bitis09/look-b",
+  "hash": 2179177868,
+  "w": 1024,
+  "h": 1536,
+  "lum": 181
+ },
+ {
+  "slug": "bitis09",
+  "key": "bitis09/promo-a",
+  "hash": 1499398473,
+  "w": 2480,
+  "h": 3508,
+  "lum": 242
+ },
+ {
+  "slug": "bitis09",
+  "key": "bitis09/promo-b",
+  "hash": 1449065616,
+  "w": 1920,
+  "h": 1080,
+  "lum": 244
+ },
+ {
+  "slug": "bitis09",
+  "key": "bitis09/sketch",
+  "hash": 219585744,
+  "w": 2480,
+  "h": 3508,
+  "lum": 248
+ },
+ {
+  "slug": "bitis09",
+  "key": "bitis09/soobin",
+  "hash": 2710062784,
+  "w": 1080,
+  "h": 1080,
+  "lum": 100
+ },
+ {
+  "slug": "bitis09",
+  "key": "bitis09/tagline-side",
+  "hash": 4213665602,
+  "w": 1920,
+  "h": 1080,
+  "lum": 235
+ },
+ {
+  "slug": "bitis09",
+  "key": "bitis09/tet",
+  "hash": 345458737,
+  "w": 2000,
+  "h": 2732,
+  "lum": 143
+ },
+ {
+  "slug": "bitis09",
+  "key": "bitis09/wrapup-a",
+  "hash": 2157246803,
+  "w": 1172,
+  "h": 1172,
+  "lum": 14
+ },
+ {
+  "slug": "forbes",
+  "key": "forbes/13a",
+  "hash": 1541103946,
+  "w": 6000,
+  "h": 4500,
+  "lum": 13
+ },
+ {
+  "slug": "forbes",
+  "key": "forbes/15a",
+  "hash": 1339478328,
+  "w": 2000,
+  "h": 1501,
+  "lum": 5
+ },
+ {
+  "slug": "forbes",
+  "key": "forbes/15b",
+  "hash": 1389811185,
+  "w": 1400,
+  "h": 1960,
+  "lum": 22
+ },
+ {
+  "slug": "forbes",
+  "key": "forbes/17",
+  "hash": 2059635043,
+  "w": 7680,
+  "h": 4320,
+  "lum": 95
+ },
+ {
+  "slug": "forbes",
+  "key": "forbes/18b",
+  "hash": 1894860968,
+  "w": 7680,
+  "h": 4320,
+  "lum": 8
+ },
+ {
+  "slug": "forbes",
+  "key": "forbes/19a",
+  "hash": 1475567588,
+  "w": 7680,
+  "h": 4320,
+  "lum": 8
+ },
+ {
+  "slug": "forbes",
+  "key": "forbes/19b",
+  "hash": 1525900445,
+  "w": 7680,
+  "h": 4320,
+  "lum": 102
+ },
+ {
+  "slug": "forbes",
+  "key": "forbes/20",
+  "hash": 4190142393,
+  "w": 1800,
+  "h": 1172,
+  "lum": 118
+ },
+ {
+  "slug": "forbes",
+  "key": "forbes/21a",
+  "hash": 3724986821,
+  "w": 1800,
+  "h": 1172,
+  "lum": 157
+ },
+ {
+  "slug": "forbes",
+  "key": "forbes/21b",
+  "hash": 3674653964,
+  "w": 1800,
+  "h": 1172,
+  "lum": 168
+ },
+ {
+  "slug": "forbes",
+  "key": "forbes/22",
+  "hash": 4156587155,
+  "w": 2000,
+  "h": 1501,
+  "lum": 20
+ },
+ {
+  "slug": "forbes",
+  "key": "forbes/dir1",
+  "hash": 306333369,
+  "w": 7680,
+  "h": 4320,
+  "lum": 3
+ },
+ {
+  "slug": "forbes",
+  "key": "forbes/hero",
+  "hash": 4093872559,
+  "w": 1800,
+  "h": 1172,
+  "lum": 12
+ },
+ {
+  "slug": "forbes",
+  "key": "forbes/pair-l",
+  "hash": 4192955490,
+  "w": 1800,
+  "h": 1172,
+  "lum": 78
+ },
+ {
+  "slug": "similac",
+  "key": "similac/13a",
+  "hash": 2107425549,
+  "w": 1800,
+  "h": 1172,
+  "lum": 27
+ },
+ {
+  "slug": "similac",
+  "key": "similac/13b",
+  "hash": 2057092692,
+  "w": 1800,
+  "h": 1172,
+  "lum": 24
+ },
+ {
+  "slug": "similac",
+  "key": "similac/16",
+  "hash": 1134924957,
+  "w": 1426,
+  "h": 802,
+  "lum": 134
+ },
+ {
+  "slug": "similac",
+  "key": "similac/hero",
+  "hash": 3653692802,
+  "w": 1800,
+  "h": 1172,
+  "lum": 125
+ },
+ {
+  "slug": "similac",
+  "key": "similac/pair-r",
+  "hash": 1443660893,
+  "w": 1800,
+  "h": 1172,
+  "lum": 207
+ },
+ {
+  "slug": "sulwhasoo",
+  "key": "sulwhasoo/b04a",
+  "hash": 3840613062,
+  "w": 1920,
+  "h": 1080,
+  "lum": 226
+ },
+ {
+  "slug": "sulwhasoo",
+  "key": "sulwhasoo/b06a",
+  "hash": 4042238680,
+  "w": 1800,
+  "h": 1348,
+  "lum": 121
+ },
+ {
+  "slug": "sulwhasoo",
+  "key": "sulwhasoo/b06b",
+  "hash": 4092571537,
+  "w": 1800,
+  "h": 1348,
+  "lum": 81
+ },
+ {
+  "slug": "sulwhasoo",
+  "key": "sulwhasoo/b10a",
+  "hash": 2153568229,
+  "w": 2000,
+  "h": 2000,
+  "lum": 65
+ },
+ {
+  "slug": "sulwhasoo",
+  "key": "sulwhasoo/b10b",
+  "hash": 2103235372,
+  "w": 1920,
+  "h": 1080,
+  "lum": 27
+ },
+ {
+  "slug": "sulwhasoo",
+  "key": "sulwhasoo/b11b",
+  "hash": 2808042465,
+  "w": 1536,
+  "h": 1920,
+  "lum": 144
+ },
+ {
+  "slug": "sulwhasoo",
+  "key": "sulwhasoo/b12a",
+  "hash": 1951942611,
+  "w": 1920,
+  "h": 1080,
+  "lum": 222
+ },
+ {
+  "slug": "sulwhasoo",
+  "key": "sulwhasoo/b13a",
+  "hash": 2556083990,
+  "w": 1800,
+  "h": 1172,
+  "lum": 89
+ },
+ {
+  "slug": "sulwhasoo",
+  "key": "sulwhasoo/b13b",
+  "hash": 2539306371,
+  "w": 1335,
+  "h": 868,
+  "lum": 190
+ },
+ {
+  "slug": "sulwhasoo",
+  "key": "sulwhasoo/b15a",
+  "hash": 2087296396,
+  "w": 1920,
+  "h": 1080,
+  "lum": 40
+ },
+ {
+  "slug": "sulwhasoo",
+  "key": "sulwhasoo/b15b",
+  "hash": 2137629253,
+  "w": 1920,
+  "h": 1080,
+  "lum": 47
+ },
+ {
+  "slug": "sulwhasoo",
+  "key": "sulwhasoo/b17a",
+  "hash": 2959335226,
+  "w": 1800,
+  "h": 1172,
+  "lum": 87
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b04a",
+  "hash": 2912234555,
+  "w": 2000,
+  "h": 1303,
+  "lum": 22
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b06a",
+  "hash": 3113860173,
+  "w": 1800,
+  "h": 1172,
+  "lum": 80
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b06b",
+  "hash": 3063527316,
+  "w": 1800,
+  "h": 1172,
+  "lum": 8
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b10a",
+  "hash": 57938468,
+  "w": 3680,
+  "h": 2760,
+  "lum": 147
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b13a",
+  "hash": 325835919,
+  "w": 2000,
+  "h": 2000,
+  "lum": 8
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b13c",
+  "hash": 359391157,
+  "w": 2177,
+  "h": 2176,
+  "lum": 45
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b15a",
+  "hash": 124210301,
+  "w": 1080,
+  "h": 1080,
+  "lum": 24
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b15b",
+  "hash": 73877444,
+  "w": 1000,
+  "h": 1000,
+  "lum": 28
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b15c",
+  "hash": 90655063,
+  "w": 1000,
+  "h": 1000,
+  "lum": 13
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b17a",
+  "hash": 4217551979,
+  "w": 7680,
+  "h": 4320,
+  "lum": 27
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b17b",
+  "hash": 4234329598,
+  "w": 7680,
+  "h": 4320,
+  "lum": 28
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b18a",
+  "hash": 325100444,
+  "w": 7680,
+  "h": 4320,
+  "lum": 30
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b18b",
+  "hash": 375433301,
+  "w": 7680,
+  "h": 4320,
+  "lum": 18
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b21a",
+  "hash": 1740495896,
+  "w": 1920,
+  "h": 1080,
+  "lum": 88
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b21b",
+  "hash": 1790828753,
+  "w": 2067,
+  "h": 2756,
+  "lum": 84
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b21c",
+  "hash": 1774051134,
+  "w": 2067,
+  "h": 3150,
+  "lum": 27
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b21d",
+  "hash": 1824383991,
+  "w": 1600,
+  "h": 886,
+  "lum": 131
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b22a",
+  "hash": 2008496515,
+  "w": 1800,
+  "h": 1172,
+  "lum": 114
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b23a",
+  "hash": 1538870278,
+  "w": 1800,
+  "h": 1172,
+  "lum": 81
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b23b",
+  "hash": 1522092659,
+  "w": 1800,
+  "h": 1172,
+  "lum": 68
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b24a",
+  "hash": 1539708921,
+  "w": 1800,
+  "h": 1172,
+  "lum": 79
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b26a",
+  "hash": 2411747751,
+  "w": 8000,
+  "h": 4500,
+  "lum": 3
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b26b",
+  "hash": 2428525370,
+  "w": 8000,
+  "h": 4500,
+  "lum": 8
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b26c",
+  "hash": 2445302989,
+  "w": 1920,
+  "h": 1080,
+  "lum": 78
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b26e",
+  "hash": 2344637275,
+  "w": 8000,
+  "h": 4500,
+  "lum": 6
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b26f",
+  "hash": 2361414894,
+  "w": 1080,
+  "h": 1920,
+  "lum": 25
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b26g",
+  "hash": 2378192513,
+  "w": 8000,
+  "h": 4500,
+  "lum": 5
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b27a",
+  "hash": 1942224682,
+  "w": 2000,
+  "h": 2000,
+  "lum": 34
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b27b",
+  "hash": 1925447063,
+  "w": 1800,
+  "h": 1172,
+  "lum": 43
+ },
+ {
+  "slug": "tcb-priority",
+  "key": "tcb-priority/b28a",
+  "hash": 1942960157,
+  "w": 1886,
+  "h": 1080,
+  "lum": 15
+ }
+]

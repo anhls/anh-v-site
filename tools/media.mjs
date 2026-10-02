@@ -303,3 +303,5 @@ const all = Object.values(manifest).flatMap((m) => m.files || []);
 const total = all.reduce((a, f) => a + f.bytes, 0);
 const big = all.reduce((a, f) => (f.bytes > a.bytes ? f : a), { bytes: 0 });
 console.log(`\n${all.length} files, ${(total / 1048576).toFixed(1)} MB total; largest ${big.file} ${(big.bytes / 1048576).toFixed(2)} MB`);
+
+await (await import("./work-pool.mjs")).buildPool();

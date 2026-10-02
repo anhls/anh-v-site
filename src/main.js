@@ -9,6 +9,8 @@ import { buildAbout } from './sections/about.js';
 import { buildPlaceholders } from './sections/placeholders.js';
 import { buildIndex } from './sections/project-index.js';
 import { buildSelectedWork } from './sections/selected-work.js';
+import { generateCards } from './data/cards-gen.js';
+import workPool from './data/work-pool.json';
 import { buildMoreProjects } from './sections/more-projects.js';
 import { buildFooter } from './sections/footer.js';
 import { initNav } from './effects/nav.js';
@@ -34,7 +36,7 @@ const frameGL = createFrameGL(hero.frame); // R16c: the centre frame's own canva
 buildAbout(app, data.about);
 buildPlaceholders(app);
 buildIndex(app, data.projects);
-const cardsApi = buildSelectedWork(app, data.selectedWorkCards);
+const cardsApi = buildSelectedWork(app, generateCards(workPool));
 buildMoreProjects(app, data.moreProjects);
 buildFooter(app, data.footer, lenis);
 initNav(data.hero.wordmark, lenis);

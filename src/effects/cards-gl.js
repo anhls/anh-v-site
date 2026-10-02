@@ -143,7 +143,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
   const hs = new Float32Array(n).fill(1); // hover scale per card (R17)
   const hd = new Float32Array(n); // dark layer opacity per card (0 = none)
   const hp = new Float32Array(n); // hover progress 0..1 (drives the dark layer's own scale)
-  const darkCard = cards.map((c) => CARD_HOVER.darkIds.includes(c.id));
+  const darkCard = cards.map((c) => !!c.dark);
   const isVideo = els.map((el) => el.tagName === 'VIDEO');
   const tex = new Array(n).fill(null); // image (or poster) texture
   const vtex = new Array(n).fill(null); // video texture (alpha WebM / MP4), once the video has a frame
