@@ -39,7 +39,7 @@ export const TOTAL = 730; // page height in vh
 // R23d: gainCap / gainFrom / gainTo / gainDecay = the wheel acceleration (src/util/scroll-gain.js): the distance per wheel tick is multiplied
 // by 1 (slow notches) rising to gainCap as the wheel speed goes from gainFrom to gainTo (px/s); gainDecay = seconds the speed is held.
 export const SCROLL = {
-  gainCap: 2.5, gainFrom: 700, gainTo: 3500, gainDecay: 0.35,
+  gainCap: 2.5, gainFrom: 700, gainTo: 3500, gainDecay: 0.74,
   duration: 3,
   easing: (t) => Math.min(1, 1.001 - 2 ** (-10 * t)),
 };
@@ -242,10 +242,10 @@ export const DEPTH = { slot: 0.5, frontShare: Number.isFinite(urlFront) ? urlFro
 // focusScale (image growth) / focusPush (px at 1920, the cards move out) / focusNeighbour (share of the pitch) / focusRampSec (pop guard).
 // dupGap = the least distance (vw in the side mode, vh in the vertical one) between a duplicate and its twin.
 export const WORK = {
-  seed: 3, frameW: 42, frameH: 46, gapSide: 16, gapVert: 26, overlapMax: 0.2, minGap: 24, slack: 0.22, wheel: 0.75,
-  warpStrength: 1.15, warpRiseSec: 1.5, warpSettleSec: 0.7,
+  seed: 3, frameW: 42, frameH: 46, gapSide: 16, gapVert: 26, overlapMax: 0.2, minGap: 24, slack: 0.35, wheel: 0.75,
+  warpStrength: 1.15, warpRiseSec: 1.5, warpSettleSec: 1.4,
   morphSec: 2, morphStagger: 0.45, morphEase: 3, morphLanding: 0.12, dupGap: 40,
-  snapDelay: 1, snapWindow: 0.5, snapSec: 2, focusScale: 1.16, focusPush: 95, focusNeighbour: 0.06, focusRampSec: 0.7, focusPushRadius: 400, focusPushOthers: 0.6,
+  snapDelay: 1, snapWindow: 0.5, snapSec: 2, focusScale: 1.14, focusPush: 95, focusNeighbour: 0.06, focusRampSec: 1.25, focusPushRadius: 400, focusPushOthers: 0.6,
 };
 // Cards per project (R23b, the same rules as BAND_LIMITS on the homepage): count and total area (px2 at 1920) of the cards along one
 // project's edges. Over a max: dropped by the seeded hash; under a min: duplicates of the project's own images.
