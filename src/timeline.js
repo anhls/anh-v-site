@@ -246,6 +246,11 @@ export const WORK = {
   warpStrength: 1.15, warpRiseSec: 1.5, warpSettleSec: 1.4,
   morphSec: 2, morphStagger: 0.45, morphEase: 3, morphLanding: 0.12, dupGap: 40,
   snapDelay: 1, snapWindow: 0.5, snapSec: 2, focusScale: 1.14, focusPush: 95, focusNeighbour: 0.06, focusRampSec: 1.25, focusPushRadius: 400, focusPushOthers: 0.6,
+  // R22e overshoot (src/util/overshoot.js; 0 = the old curve): the end passes the target by this share of the distance / value once, then settles.
+  // overshootSettle = the share of a clocked animation (snap, morph, drag release) the settle takes; followerSettleSec = the same in seconds for the
+  // focus (its bump plays when a build completes). The R25 transition and the homepage animations do not use it.
+  dragInertia: 0.5,
+  snapOvershoot: 0.04, focusOvershootScale: 0.06, focusOvershootPush: 0.08, nameOvershoot: 0.04, morphOvershoot: 0.05, dragOvershoot: 0.05, overshootSettle: 0.4, followerSettleSec: 0.45,
 };
 // Cards per project (R23b, the same rules as BAND_LIMITS on the homepage): count and total area (px2 at 1920) of the cards along one
 // project's edges. Over a max: dropped by the seeded hash; under a min: duplicates of the project's own images.
@@ -262,7 +267,10 @@ export const BAND_LIMITS = (() => { try { const u = JSON.parse(urlParams.get('li
   { minN: 3, maxN: 5, minA: 270000, maxA: 470000 },
   { minN: 7, maxN: 12, minA: 590000, maxA: 1020000 },
 ]; })();
-export const BAND_RULES = { dupMinGapVh: 40, sideSlice: 6, sideSliceMax: 2, maxDarkRun: 2 };
+// R22e: darkOverlapMax = most two dark-layer cards may overlap, pairOverlapMax = most any two cards may overlap (both as a share of the
+// smaller card's area; 0 = none); no point is ever covered by 3 cards (src/data/overlap.js).
+const urlDarkOv = parseFloat(urlParams.get('darkov')), urlPairOv = parseFloat(urlParams.get('pairov')); // ?darkov= / ?pairov= (the tune panels' Apply)
+export const BAND_RULES = { dupMinGapVh: 40, sideSlice: 6, sideSliceMax: 2, maxDarkRun: 2, darkOverlapMax: Number.isFinite(urlDarkOv) ? urlDarkOv : 0.1, pairOverlapMax: Number.isFinite(urlPairOv) ? urlPairOv : 0.3 };
 // Live's constants, fixed (not tunable): parting target = t * (0.01W + 0.19W * (1 - f)) * 1.1 sideways and
 // t * (0.01H + 0.29H * (1 - f)) * 1.1 down (live eases to them at 0.2 per 60 fps frame; we use the CARDS spring); a card is armed once 10% of it has been visible.
 export const PARTING = { xMax: 0.2, xMin: 0.01, yMax: 0.3, yMin: 0.01, z: 1.1, lerp: 0.2, armed: 0.1 };

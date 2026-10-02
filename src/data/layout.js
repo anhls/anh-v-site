@@ -71,5 +71,6 @@ export function generateLayout(cards, P) {
     for (let i = 0; i < n; i++) { x[i] = clampX(cards[i], x[i]); if (Math.sign(x[i]) !== side[i]) x[i] = side[i] * Math.max(40, cards[i].xLo ?? 0); /* R22d: a card keeps its side of the line */ y[i] = clampY(cards[i], y[i]); }
     if (!moved) break;
   }
-  return cards.map((_, i) => ({ x: Math.round(x[i] * 10) / 10, y: Math.round(y[i] * 1000) / 1000 }));
+  // R22e: a card may carry ax / ay (px / vh): the overlap pass's final nudge, added after the relaxation (overlap.js)
+  return cards.map((c, i) => ({ x: Math.round((x[i] + (c.ax || 0)) * 10) / 10, y: Math.round((y[i] + (c.ay || 0)) * 1000) / 1000 }));
 }

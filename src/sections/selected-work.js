@@ -4,6 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { CARDS, LAYOUT, CARD_HOVER, POOL } from '../timeline.js';
 import { frameState } from './hero.js';
 import { generateLayout } from '../data/layout.js';
+import { pushTarget, stepPushSpring } from '../effects/card-push.js';
 import { springFromBounce } from '../effects/springs.js';
 import { registerPointer, pointerEnabled } from '../effects/pointer.js';
 import { capW } from '../scale.js';
@@ -75,6 +76,11 @@ export function buildSelectedWork(root, cards) {
   const lastS = new Float64Array(n).fill(NaN);
   const lastD = new Float64Array(n).fill(NaN);
   const srcs = new Int32Array(n); // cards whose hover progress is above zero (push sources)
+  // R22e: the pointer / hover push is the shared card-push.js (also used by the Work page)
+  const Q = { x: qx, y: qy };
+  const V = { x: vqx, y: vqy };
+  const pOut = { x: 0, y: 0 };
+  const PS = { pointerOn: false, px: 0, py: 0, pw: 1, R: 0, pushMax: 0, falloff: 1, hsPush: 0, hRad: 0, hoverScale: 1, nSrc: 0, srcs, srcX: new Float64Array(n), srcY: new Float64Array(n), bw, bh, hp };
   let hov = -1; // the card under the pointer (topmost), -1 = none
   const lastX = new Float64Array(n).fill(NaN);
   const lastY = new Float64Array(n).fill(NaN);
@@ -196,6 +202,9 @@ export function buildSelectedWork(root, cards) {
     const pw = 1 - maxP; // the pointer's own push gives way to the hovered card's push
     const hsPush = CARD_HOVER.pushStrength * scale;
     const hRad = CARD_HOVER.pushRadius * scale;
+    PS.pointerOn = pushOn; PS.px = mouse.px; PS.py = mouse.py; PS.pw = pw; PS.R = R; PS.pushMax = pushMax; PS.falloff = CARDS.pushFalloff;
+    PS.hsPush = hsPush; PS.hRad = hRad; PS.hoverScale = CARD_HOVER.scale; PS.nSrc = nSrc;
+    for (let k = 0; k < nSrc; k++) { const s = srcs[k]; PS.srcX[s] = bx[s] + fox[s]; PS.srcY[s] = by[s] - sy + foy[s]; }
 
     // Mouse spring, sub-stepped so a stiff setting stays stable.
     if (live) {
@@ -271,49 +280,11 @@ export function buildSelectedWork(root, cards) {
         const cxm = bx[i] + px[i] + mx; // the card's centre WITHOUT its own push (so the push cannot feed back into itself)
         const cym = by[i] - sy + py[i] + my + lag;
         const own = 1 - hp[i]; // a hovered card stops: its push eases to 0
-        const L = 0.35 * Math.min(bw[i], bh[i]);
-        // pointer as the source (fades out while a card is hovered). The direction is divided by max(distance, L), so it stays
-        // continuous (and fades to zero) when the pointer is on or near the card centre: no swinging.
-        if (pushOn && pw > 0.001 && own > 0.001) {
-          const dxm = cxm - mouse.px;
-          const dym = cym - mouse.py;
-          const exm = Math.max(Math.abs(dxm) - bw[i] / 2, 0);
-          const eym = Math.max(Math.abs(dym) - bh[i] / 2, 0);
-          const r = Math.hypot(exm, eym);
-          if (r < R) {
-            const f = (1 - r / R) ** CARDS.pushFalloff;
-            const inv = 1 / Math.max(Math.hypot(dxm, dym), L);
-            tqx[i] += dxm * inv * pushMax * f * w * pw * own;
-            tqy[i] += dym * inv * pushMax * f * w * pw * own;
-          }
-        }
-        // hovered cards as the source: neighbours are pushed away from the (enlarged) hovered rectangle, rect to rect
-        if (own > 0.001 && hsPush > 0) {
-          for (let k = 0; k < nSrc; k++) {
-            const s = srcs[k];
-            if (s === i) continue;
-            const grow = 1 + (CARD_HOVER.scale - 1) * hp[s];
-            const dxm = cxm - (bx[s] + fox[s]);
-            const dym = cym - (by[s] - sy + foy[s]);
-            const exm = Math.max(Math.abs(dxm) - (bw[s] * grow + bw[i]) / 2, 0);
-            const eym = Math.max(Math.abs(dym) - (bh[s] * grow + bh[i]) / 2, 0);
-            const r = Math.hypot(exm, eym);
-            if (r < hRad) {
-              const f = (1 - r / hRad) ** CARDS.pushFalloff;
-              const inv = 1 / Math.max(Math.hypot(dxm, dym), L);
-              tqx[i] += dxm * inv * hsPush * f * w * hp[s] * own;
-              tqy[i] += dym * inv * hsPush * f * w * hp[s] * own;
-            }
-          }
-        }
+        pushTarget(pOut, PS, i, cxm, cym, bw[i], bh[i], w, own);
+        tqx[i] = pOut.x;
+        tqy[i] = pOut.y;
       }
-      for (let q = 0; q < pSteps; q++) {
-        vqx[i] += (uk * (tqx[i] - qx[i]) - uc * vqx[i]) * ph;
-        vqy[i] += (uk * (tqy[i] - qy[i]) - uc * vqy[i]) * ph;
-        qx[i] += vqx[i] * ph;
-        qy[i] += vqy[i] * ph;
-      }
-      if (Math.abs(vqx[i]) + Math.abs(vqy[i]) > 0.05 || Math.abs(tqx[i] - qx[i]) + Math.abs(tqy[i] - qy[i]) > 0.05) moving = true;
+      if (stepPushSpring(Q, V, i, tqx[i], tqy[i], uk, uc, ph, pSteps)) moving = true;
 
       // Aura (R13e/f): the card's rect (without its own aura offset) against the frame's rect; see auraAt.
       if (!far && fw > 0) {
@@ -476,5 +447,5 @@ export function buildSelectedWork(root, cards) {
     ScrollTrigger.refresh();
     if (!ticking) { ticking = true; gsap.ticker.add(tick); }
   };
-  return { cards: els, gl: () => gl, hover: () => ({ hov, hp }), relayout, positions: () => pos, debug: () => ({ px, py, tpx, tpy, bx, by, bw, bh }) };
+  return { cards: els, data: cards, gl: () => gl, hover: () => ({ hov, hp }), relayout, positions: () => pos, debug: () => ({ px, py, tpx, tpy, bx, by, bw, bh, qx, qy, PS, startScroll, endScroll }) };
 }

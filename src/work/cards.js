@@ -8,7 +8,9 @@
 // Two steps: buildProjectCards() decides WHICH cards a project has (mode independent: images, tiers, edges, dark flags, the
 // along-the-strip fraction of the originals); placeCards() turns that into pixel positions for one mode (side or vertical). A card is the
 // same card in both modes, which is what lets the toggle morph every card from its place in one layout to its place in the other.
-import { WORK, WORK_LIMITS, CARD_SIZE, BAND_RULES, CARD_HOVER, LAYOUT } from '../timeline.js';
+import { WORK, WORK_LIMITS, CARD_SIZE, BAND_RULES, CARD_HOVER, LAYOUT, CARDS } from '../timeline.js';
+import { applyFocus } from './focus.js';
+import { fixOverlaps, allViolations } from '../data/overlap.js';
 import { generateLayout } from '../data/layout.js';
 import { cardDepth } from '../data/depth.js';
 import { rng, mix, fit } from '../data/cards-gen.js';
@@ -169,7 +171,8 @@ export function placeCards(projects, M) {
   flat.forEach((f, i) => {
     const k = projects[f.pi].indexOf(f.c);
     const w = f.c.w * sc, h = f.c.h * sc;
-    out[f.pi][k] = { along: (pos[i].y - f.base) * VH * sc, cross: pos[i].x * sc, w, h, alongSize: M.vertical ? h : w, crossSize: M.vertical ? w : h };
+    // R22e: f.c.nudge[mode] (px at 1920) = the overlap pass's final move along the strip
+    out[f.pi][k] = { along: (pos[i].y - f.base) * VH * sc + (f.c.nudge?.[M.vertical ? 'vertical' : 'side'] || 0) * sc, cross: pos[i].x * sc + (f.c.nudgeX?.[M.vertical ? 'vertical' : 'side'] || 0) * sc, w, h, alongSize: M.vertical ? h : w, crossSize: M.vertical ? w : h };
   });
   return out;
 }
@@ -195,4 +198,133 @@ export function balanceDark(projects, placedModes) {
       for (const k of byRank) { if (list[k].dark || k === b) continue; list[k].dark = true; if (bad() >= 0) list[k].dark = false; else break; }
     }
   });
+}
+
+// ---- R22e: overlap rules on the Work page ------------------------------------------------------------------------------------------------
+// The frame sizes of both modes for a window (the same numbers work.js lays out with).
+export function workMetrics(W, H, scale) {
+  const fw = (WORK.frameW * W) / 100, fh = (WORK.frameH * H) / 100;
+  const mk = (v) => ({ vertical: v, alongF: v ? fh : fw, crossF: v ? fw : fh, scale, gap: v ? (WORK.gapVert * H) / 100 : (WORK.gapSide * W) / 100, gapPx: (WORK.dupGap * (v ? H : W)) / 100, viewAlong: v ? H : W, viewCross: v ? W : H });
+  return { side: mk(false), vertical: mk(true) };
+}
+
+// The rules of overlap.js on the laid-out Work cards, in BOTH modes, at rest, with the mouse drift at its corners and with the focus
+// push at full progress of each project (applyFocus), every time in the view centred on each project (so the loop seam is covered).
+// Fixes: nudge along the strip (per mode, stored in card.nudge[mode], px at 1920), then undark / swap depth, then drop. structural = false
+// (a resize): nudges only. Returns { fixed, remaining, steps }.
+export function fixWorkLayout(projects, Ms, { structural = true, check = false } = {}) {
+  const N = projects.length;
+  let placed = null, flat = [], scen = [];
+  const modes = ['side', 'vertical'];
+  const wrap = (v, P) => ((((v + P / 2) % P) + P) % P) - P / 2;
+  let builds = 0;
+  const build = () => {
+    builds++;
+    placed = { side: placeCards(projects, Ms.side), vertical: placeCards(projects, Ms.vertical) };
+    flat = [];
+    projects.forEach((list, pi) => list.forEach((c, k) => flat.push({ c, pi, k })));
+    scen = [];
+    for (const mode of modes) {
+      const M = Ms[mode], pitch = M.alongF + M.gap, period = N * pitch, sc = M.scale;
+      const n = flat.length;
+      const X0 = Float64Array.from(flat, (f) => placed[mode][f.pi][f.k].cross);
+      const Y0 = Float64Array.from(flat, (f) => f.pi * pitch + placed[mode][f.pi][f.k].along);
+      const Wv = Float64Array.from(flat, (f) => placed[mode][f.pi][f.k].crossSize);
+      const Hv = Float64Array.from(flat, (f) => placed[mode][f.pi][f.k].alongSize);
+      const dd = Float64Array.from(flat, (f) => (20 + (f.c.mouse - 20) * CARDS.depthRange) * CARDS.mouseStrength * sc);
+      for (let k = 0; k < N; k++) {
+        const wy = (y) => wrap(y - k * pitch, period) + k * pitch;
+        const Yk = Float64Array.from(Y0, wy);
+        const push = (x, y) => scen.push({ mode, x, y, w: Wv, h: Hv, view: k });
+        push(Float64Array.from(X0), Float64Array.from(Yk)); // at rest, the view centred on project k
+        for (const [sx, sy] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) push(Float64Array.from(X0, (v, i) => v + sx * dd[i]), Float64Array.from(Yk, (v, i) => v + sy * dd[i]));
+        // the focus push of project k at full progress (x across the strip, y along it)
+        const nI = N + n;
+        const A = { n: nI, N, kind: new Uint8Array(nI).fill(1), proj: new Int8Array(nI), mouse: new Float64Array(nI), X: new Float64Array(nI), Y: new Float64Array(nI), W: new Float64Array(nI), H: new Float64Array(nI), vertical: true, pitch, scale: sc };
+        for (let q = 0; q < N; q++) { A.kind[q] = 0; A.proj[q] = q; A.mouse[q] = 60; A.X[q] = 0; A.Y[q] = wy(q * pitch); A.W[q] = M.crossF; A.H[q] = M.alongF; }
+        flat.forEach((f, i) => { A.proj[N + i] = f.pi; A.mouse[N + i] = f.c.mouse; A.X[N + i] = X0[i]; A.Y[N + i] = Yk[i]; A.W[N + i] = Wv[i]; A.H[N + i] = Hv[i]; });
+        // full progress INCLUDING the overshoot of the build (the drawn values pass 1 by focusOvershootScale / focusOvershootPush once)
+        const fS = new Float64Array(N), fPu = new Float64Array(N); fS[k] = 1 + WORK.focusOvershootScale; fPu[k] = 1 + WORK.focusOvershootPush;
+        applyFocus(A, fS, WORK, CARDS, new Float64Array(N), fPu);
+        push(A.X.slice(N), A.Y.slice(N));
+      }
+    }
+  };
+  const idxOf = (c) => flat.findIndex((f) => f.c === c);
+  const bound = (mode) => { const M = Ms[mode], pitchVh = (M.alongF + M.gap) / M.scale / 10.8; return M.alongF / 2 + M.gap / 2 + Math.max(CARD_SIZE.bandSlack, WORK.slack * pitchVh) * 10.8 * M.scale; };
+  const ctx = {
+    dark: () => flat.map((f) => !!f.c.dark),
+    scenarios: () => scen,
+    rank: (i) => mix(flat[i].c.hash, WORK.seed + 53),
+    locked: (i) => !!(flat[i].c.dup || flat[i].c.hasDup),
+    isDup: (i) => !!flat[i].c.dup,
+    // a duplicate pair translates as one along the strip (its distance is kept), inside both cards' bands
+    nudgeRange: (i, mode) => {
+      let lo = -Infinity, hi = Infinity;
+      for (const g of ctx.group(i)) { const f = flat[g], along = placed[mode][f.pi][f.k].along, b = bound(mode); lo = Math.max(lo, -b - along); hi = Math.min(hi, b - along); }
+      return { lo, hi };
+    },
+    nudge: (i, d, mode) => {
+      const { lo, hi } = ctx.nudgeRange(i, mode), a = Math.max(lo, Math.min(hi, d)), M = Ms[mode];
+      for (const g of ctx.group(i)) {
+        const f = flat[g];
+        f.c.nudge = f.c.nudge || { side: 0, vertical: 0 };
+        f.c.nudge[mode] += a / M.scale;
+        placed[mode][f.pi][f.k].along += a;
+        for (const s of scen) if (s.mode === mode) s.y[g] += a; // the scenarios follow (the focus push is kept as computed: checked again at the end)
+      }
+      return a;
+    },
+    // across the strip (the side and the band stay): between the image edge (a card may overlap it by overlapMax) and the screen edge
+    nudgeXRange: (i, mode) => {
+      const f = flat[i], M = Ms[mode], q = placed[mode][f.pi][f.k], cs = q.crossSize;
+      const xLo = M.crossF / 2 - WORK.overlapMax * cs + cs / 2, xHi = Math.max(xLo + 1, M.viewCross / 2 - cs / 2 - 6), x = q.cross;
+      return x >= 0 ? { lo: xLo - x, hi: xHi - x } : { lo: -xHi - x, hi: -xLo - x };
+    },
+    nudgeX: (i, d, mode) => {
+      const f = flat[i], { lo, hi } = ctx.nudgeXRange(i, mode), a = Math.max(lo, Math.min(hi, d)), M = Ms[mode];
+      f.c.nudgeX = f.c.nudgeX || { side: 0, vertical: 0 };
+      f.c.nudgeX[mode] += a / M.scale;
+      placed[mode][f.pi][f.k].cross += a;
+      for (const s of scen) if (s.mode === mode) s.x[i] += a;
+      return a;
+    },
+    group: (i) => { const c = flat[i].c, t = c.dup ? c.twin : c.hasDup ? flat.find((g) => g.c.dup && g.c.twin === c)?.c : null; const ti = t ? idxOf(t) : -1; return ti >= 0 ? [i, ti] : [i]; },
+    refresh: () => build(),
+    structural: structural ? {
+      undark: (i) => { const c = flat[i].c, prev = c.dark; if (!prev) return null; c.dark = false; return { layout: false, revert: () => { c.dark = prev; } }; }, // only the flag changes: no re-layout
+      swapDepth: (i, attempt) => {
+        const f = flat[i], c = f.c;
+        const others = projects[f.pi].filter((o) => o !== c && !o.dup && !o.hasDup && Math.abs(o.mouse - c.mouse) >= 10).sort((p, q) => Math.abs(q.mouse - c.mouse) - Math.abs(p.mouse - c.mouse) || mix(p.hash, WORK.seed + 53) - mix(q.hash, WORK.seed + 53));
+        const o = others[attempt];
+        if (!o) return null;
+        const swap = () => { for (const k of ['mouse', 'z', 'depth', 'front']) { const t = c[k]; c[k] = o[k]; o[k] = t; } };
+        swap();
+        return { revert: swap };
+      },
+      drop: (i) => {
+        const f = flat[i], c = f.c, list = projects[f.pi];
+        if (c.dup || c.hasDup || list.length <= WORK_LIMITS.minN) return null;
+        const top = list.filter((o) => o.edge < 0).length - (c.edge < 0 ? 1 : 0);
+        if (Math.abs(list.length - 1 - 2 * top) > 1) return null; // the edges stay even
+        const at = list.indexOf(c);
+        list.splice(at, 1);
+        return { revert: () => { list.splice(at, 0, c); } };
+      },
+    } : null,
+  };
+  build();
+  if (check) { const l = allViolations(ctx, BAND_RULES); return { fixed: l.length === 0, remaining: l, steps: 0 }; } // report only
+  let res = fixOverlaps(ctx, BAND_RULES);
+  // the nudges moved the cards along the strip: the dark runs along it are re-checked, then the rules once more (focus scenarios recomputed exactly)
+  for (let round = 0; round < 3; round++) {
+    balanceDark(projects, [placed.side, placed.vertical]);
+    build();
+    const left = allViolations(ctx, BAND_RULES);
+    if (!left.length) { res = { fixed: true, remaining: [], steps: res.steps }; break; }
+    res = fixOverlaps(ctx, BAND_RULES);
+    if (res.fixed) { balanceDark(projects, [placed.side, placed.vertical]); build(); const l2 = allViolations(ctx, BAND_RULES); res = { fixed: l2.length === 0, remaining: l2, steps: res.steps }; if (!l2.length) break; }
+  }
+  res.builds = builds;
+  return res;
 }

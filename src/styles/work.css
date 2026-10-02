@@ -28,3 +28,7 @@
 .work__name { position: fixed; left: 0; right: 0; top: var(--index-top); height: calc(var(--index-size) * 0.8); overflow: hidden; z-index: 5; pointer-events: none; color: #fff; }
 .work__title { position: absolute; inset: 0; display: block; text-align: center; white-space: nowrap; font-size: var(--index-size); font-weight: 500; line-height: 0.8; letter-spacing: -0.01em; visibility: hidden; }
 .work__char { display: inline-block; will-change: transform; }
+/* R22e: hold and drag the strip (desktop mouse): grab, grabbing while held (also over the cards and images) */
+.work { cursor: grab; }
+.work .work__item { cursor: grab; }
+.work.is-dragging, .work.is-dragging .work__item { cursor: grabbing; }

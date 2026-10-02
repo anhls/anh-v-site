@@ -1,5 +1,5 @@
 import { tuneStore, makeCollapse } from './tune-store.js';
-import { SCROLL, DEPTH, POOL, BAND_LIMITS, CARDS, TRAIL, LAYOUT, BEND, WARP, FRAME_WARP, CARD_HOVER, CAPTION_HOVER } from '../timeline.js';
+import { BAND_RULES, SCROLL, DEPTH, POOL, BAND_LIMITS, CARDS, TRAIL, LAYOUT, BEND, WARP, FRAME_WARP, CARD_HOVER, CAPTION_HOVER } from '../timeline.js';
 
 // Dev-only tuning panel (Selected Work cards, card layout, hero trail). Opens with ?tune in the URL; main.js imports this
 // file only when import.meta.env.DEV is true, so it is never part of the production build. Sliders write straight into the
@@ -51,6 +51,10 @@ const SCROLL_SLIDERS = [
   ['gainFrom', 'Acceleration starts at (px/s of wheel)', 100, 3000, 25, 'R23d. Wheel speed below this scrolls 1:1 (slow notches).'],
   ['gainTo', 'Full acceleration at (px/s of wheel)', 500, 10000, 50, 'R23d. Wheel speed at which the cap is reached.'],
   ['gainDecay', 'Speed hold / decay (s)', 0.05, 1.5, 0.01, 'R23d. How long the wheel-speed estimate is held after the wheel slows down.'],
+];
+const RULE_SLIDERS = [
+  ['darkOverlapMax', 'Dark-on-dark overlap, most (share of the smaller card)', 0, 0.6, 0.01, 'R22e. Two cards with the dark rest layer may overlap by at most this share of the smaller one (they merge into one black blob). Applies after Apply (reload).'],
+  ['pairOverlapMax', 'Any pair overlap, most (share of the smaller card)', 0, 1, 0.01, 'R22e. No card may be more than this share hidden by another. Applies after Apply (reload).'],
 ];
 const DEPTH_SLIDERS = [['frontShare', 'Cards in front of the centre frame (share)', 0, 1, 0.01, 'R23d. Share of the cards drawn in front of the frame (the rest behind). Applies after Apply (reload).']];
 const BAND_NAMES = ['Techcombank', 'Swap zone 1', 'Bitis', 'Swap zone 2', 'Sulwhasoo'];
@@ -142,7 +146,7 @@ export function mountTunePanel({ trail, cards } = {}) {
   const body = box.querySelector('[data-body]');
   const msg = box.querySelector('[data-msg]');
   const readouts = [];
-  const store = tuneStore('home', ['BAND', 'DEPTH.', 'HOVER.darkShare']); // the ones that change which cards exist apply through the URL (Apply)
+  const store = tuneStore('home', ['BAND', 'DEPTH.', 'HOVER.darkShare', 'RULES.']); // the ones that change which cards exist apply through the URL (Apply)
 
   // Sections are collapsible (<details>). ADVANCED, not shown but still in the arrays above and in Copy values: cardBend, arcShape, maxArc,
   // depthExtreme, depthBand (per-card bend), sepPasses, speedRef, grainRate, auraClearance, mouseStiffness, hover stiffness / damping,
@@ -151,7 +155,7 @@ export function mountTunePanel({ trail, cards } = {}) {
   const reg = (group, obj, defs) => defs.forEach((d) => { DEFS[`${group}.${d[0]}`] = [obj, d]; });
   reg('WARP', WARP, WARP_SLIDERS); reg('FRAME', FRAME_WARP, FRAME_SLIDERS); reg('BEND', BEND, BEND_SLIDERS); reg('CARDS', CARDS, CARD_SLIDERS); reg('HOVER', CARD_HOVER, HOVER_SLIDERS);
   BAND_LIMITS.forEach((lim, i) => reg('BAND' + i, lim, BAND_SLIDERS.map((d) => [d[0], `${BAND_NAMES[i]}: ${d[1]}`, ...d.slice(2)])));
-  reg('SCROLL', SCROLL, SCROLL_SLIDERS); reg('DEPTH', DEPTH, DEPTH_SLIDERS);
+  reg('SCROLL', SCROLL, SCROLL_SLIDERS); reg('DEPTH', DEPTH, DEPTH_SLIDERS); reg('RULES', BAND_RULES, RULE_SLIDERS);
   reg('CAPTION', CAPTION_HOVER, CAPTION_SLIDERS); reg('LAYOUT', LAYOUT, LAYOUT_SLIDERS); reg('TRAIL', TRAIL, TRAIL_SLIDERS);
 
   const section = (title, ids, { open = false, note = '', onInput, extra } = {}) => {
@@ -192,7 +196,7 @@ export function mountTunePanel({ trail, cards } = {}) {
   showSeed();
   layout.querySelector('[data-pool-seed]').value = POOL.seed;
   section('Scroll (wheel acceleration)', ['SCROLL.gainCap', 'SCROLL.gainFrom', 'SCROLL.gainTo', 'SCROLL.gainDecay'], { note: 'Applies to every page: the distance per wheel tick rises with the wheel speed. Cap 1 = linear.' });
-  section('Card bands + dark share (Apply reloads)', ['DEPTH.frontShare', 'HOVER.darkShare', ...BAND_LIMITS.flatMap((_, i) => BAND_SLIDERS.map((d) => `BAND${i}.${d[0]}`))], { note: 'Cards per band of the Selected Work (limits from the old layout). Move the sliders, then press Apply: the cards are generated again on reload.', extra: '<button data-act="poolseed" style="padding:5px 10px;cursor:pointer;margin-bottom:8px">Apply (reload)</button>' });
+  section('Card bands + dark share (Apply reloads)', ['DEPTH.frontShare', 'RULES.darkOverlapMax', 'RULES.pairOverlapMax', 'HOVER.darkShare', ...BAND_LIMITS.flatMap((_, i) => BAND_SLIDERS.map((d) => `BAND${i}.${d[0]}`))], { note: 'Cards per band of the Selected Work (limits from the old layout). Move the sliders, then press Apply: the cards are generated again on reload.', extra: '<button data-act="poolseed" style="padding:5px 10px;cursor:pointer;margin-bottom:8px">Apply (reload)</button>' });
   section('Captions (hero)', ['CAPTION.revealSec', 'CAPTION.hideSec', 'CAPTION.fromScale', 'CAPTION.lineInSec', 'CAPTION.textOutSec'], { note: 'Scroll to the top of the page and hover a caption.' });
   const trailSec = section('Hero image trail', ['TRAIL.frequency', 'TRAIL.visibleFor', 'TRAIL.startMaskShare', 'TRAIL.fadeAtScreen', 'TRAIL.fadeLenVh', 'TRAIL.fadeCurve', 'TRAIL.minScale'], { onInput: () => { trail?.remeasure(); showPts(); }, extra: '<div data-trail-pts style="opacity:.7;margin:2px 0 8px"></div>' });
   const pts = trailSec.querySelector('[data-trail-pts]');
@@ -210,6 +214,8 @@ export function mountTunePanel({ trail, cards } = {}) {
       u.searchParams.set('seed', box.querySelector('[data-pool-seed]').value || POOL.seed);
       u.searchParams.set('dark', CARD_HOVER.darkShare);
       u.searchParams.set('front', DEPTH.frontShare);
+      u.searchParams.set('darkov', BAND_RULES.darkOverlapMax);
+      u.searchParams.set('pairov', BAND_RULES.pairOverlapMax);
       u.searchParams.set('limits', JSON.stringify(BAND_LIMITS));
       location.href = u.href;
     } else if (act === 'shuffle') {

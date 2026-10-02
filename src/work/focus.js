@@ -9,16 +9,17 @@
 //   (as layout.js does), only pairs where at least one card was moved, so the resting layout is never touched.
 // A = { n, N, kind[] (0 frame, 1 card), proj[], mouse[], X[], Y[], W[], H[] (centres and sizes, px; X / Y are edited in place),
 //       vertical, pitch, scale } ; P = WORK-like numbers ; D = { depthRange } ; returns the image scale per frame in `fs` (length N).
-export function applyFocus(A, fP, P, D, fs) {
+export function applyFocus(A, fP, P, D, fs, fPush = fP) {
+  // fP drives the image scale and the cards' growth with it; fPush the pushes and the neighbours' move (R22e: each has its own overshoot)
   const { n, N, kind, proj, mouse, X, Y, W, H, vertical, pitch, scale } = A;
   let any = false;
-  for (let q = 0; q < N; q++) { fs[q] = 1 + (P.focusScale - 1) * fP[q]; if (fP[q] > 0) any = true; }
+  for (let q = 0; q < N; q++) { fs[q] = 1 + (P.focusScale - 1) * fP[q]; if (fP[q] > 0 || fPush[q] > 0) any = true; }
   if (!any) return false;
   const h = Math.floor(N / 2);
   const rel = (d) => ((((d + h) % N) + N) % N) - h;
   // 1. neighbours move away as wholes along the strip
   const shift = new Float64Array(N);
-  for (let p = 0; p < N; p++) for (let q = 0; q < N; q++) { if (fP[q] <= 0) continue; const r = rel(p - q); if (r === 1 || r === -1) shift[p] += r * P.focusNeighbour * pitch * fP[q]; }
+  for (let p = 0; p < N; p++) for (let q = 0; q < N; q++) { if (fPush[q] <= 0) continue; const r = rel(p - q); if (r === 1 || r === -1) shift[p] += r * P.focusNeighbour * pitch * fPush[q]; }
   const bx0 = new Float64Array(n), by0 = new Float64Array(n);
   for (let i = 0; i < n; i++) {
     const s = shift[proj[i]];
@@ -33,12 +34,12 @@ export function applyFocus(A, fP, P, D, fs) {
     const w = (20 + (mouse[i] - 20) * D.depthRange) / wDen;
     let dx = 0, dy = 0;
     for (let q = 0; q < N; q++) {
-      const f = fP[q];
-      if (f <= 0) continue;
+      const f = fP[q], fp = fPush[q];
+      if (f <= 0 && fp <= 0) continue;
       const fx = X[q], fy = Y[q]; // the image centre (the frames were shifted in step 1 like their cards)
       const rx = bx0[i] - fx, ry = by0[i] - fy, r = Math.hypot(rx, ry) || 1;
       if (proj[i] === q) {
-        const g = (P.focusScale - 1) * f, ps = P.focusPush * scale * f;
+        const g = (P.focusScale - 1) * f, ps = P.focusPush * scale * fp;
         dx += rx * g + (ps * rx) / r; dy += ry * g + (ps * ry) / r;
       } else {
         // gap between the card's rectangle and the image's (grown) rectangle
@@ -46,7 +47,7 @@ export function applyFocus(A, fP, P, D, fs) {
         const gap = Math.hypot(gx, gy);
         if (gap >= R) continue;
         const k = (1 - gap / R) ** 1.5;
-        const ps = P.focusPush * scale * P.focusPushOthers * w * f * k;
+        const ps = P.focusPush * scale * P.focusPushOthers * w * fp * k;
         dx += (ps * rx) / r; dy += (ps * ry) / r;
       }
     }

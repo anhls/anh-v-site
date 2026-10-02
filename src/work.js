@@ -12,7 +12,9 @@ import { createCardsGL } from './effects/cards-gl.js';
 import { imgAttrs } from './util/media.js';
 import { installScrollGain } from './util/scroll-gain.js';
 import { applyFocus } from './work/focus.js';
-import { buildProjectCards, placeCards, balanceDark } from './work/cards.js';
+import { pushTarget, stepPushSpring } from './effects/card-push.js';
+import { withOvershoot, settleBump } from './util/overshoot.js';
+import { buildProjectCards, placeCards, balanceDark, workMetrics, fixWorkLayout } from './work/cards.js';
 
 // Work page (R23, R23b). A strip of the projects' main images, endless, driven by Lenis (infinite mode: the page itself never moves, its
 // scroll value is only read). Every project's image owns its cards along its two edges (src/work/cards.js). Everything is drawn by the
@@ -66,6 +68,8 @@ const iconEl = toggleEl.querySelector('.work__icon');
 
 // ---- items: the N frames first, then every project's cards (the same objects in both layouts)
 const projCards = buildProjectCards(pool, slugs);
+// R22e: the overlap rules (no triple overlap, dark-on-dark and pair caps) are enforced before the items exist: a card may be dropped
+fixWorkLayout(projCards, workMetrics(innerWidth, innerHeight, capW() / 1920));
 const items = [];
 projects.forEach((p, i) => items.push({ kind: 'frame', proj: i, slug: p.slug, z: frameZ(), mouse: 20 + 80 * DEPTH.slot, dark: false, ref: heroRef(p) }));
 projCards.forEach((list, i) => list.forEach((c, j) => items.push({ kind: 'card', proj: i, j, slug: c.slug, z: c.z, mouse: c.mouse, dark: c.dark, src: c.src, card: c })));
@@ -97,9 +101,12 @@ const nearArr = new Uint8Array(n); // item within 0.8 of a view length of the ce
 const activate = (it) => { if (it.active) return; it.active = true; const d = it.img.dataset; if (d.srcset) it.img.srcset = d.srcset; it.img.src = d.src; };
 let gl = null; // the card canvas (created below)
 let fine = false;
+let laidOnce = false;
 const layouts = () => {
   W = innerWidth; H = innerHeight; scale = capW() / 1920;
   const fw = (WORK.frameW * W) / 100, fh = (WORK.frameH * H) / 100;
+  if (laidOnce) fixWorkLayout(projCards, workMetrics(W, H, scale), { structural: false }); // a resize: nudges only (the card set stays)
+  laidOnce = true;
   const placedAll = {};
   for (const mode of ['side', 'vertical']) {
     const v = mode === 'vertical';
@@ -151,10 +158,20 @@ let glOn = false;
 }
 
 // ---- pointer: parallax (the homepage mouse drift), hover (zoom, the dark layer fades), click opens the project page (the anchors)
-const mouse = { tx: 0, ty: 0, x: 0, y: 0 };
-if (fine) addEventListener('pointermove', (e) => { mouse.tx = (e.clientX - W / 2) / (W / 2); mouse.ty = (e.clientY - H / 2) / (H / 2); }, { passive: true });
+const mouse = { tx: 0, ty: 0, x: 0, y: 0, px: -1e5, py: -1e5, known: false }; // px, py: the raw pointer (the push), tx, ty: normalised (the drift)
+if (fine) {
+  addEventListener('pointermove', (e) => { mouse.tx = (e.clientX - W / 2) / (W / 2); mouse.ty = (e.clientY - H / 2) / (H / 2); mouse.px = e.clientX; mouse.py = e.clientY; mouse.known = true; }, { passive: true });
+  document.addEventListener('pointerleave', () => { mouse.px = -1e5; mouse.py = -1e5; }); // the pointer left the window: nothing is pushed
+}
+// R22e: the homepage pointer push + hover push (card-push.js, shared with sections/selected-work.js), with the same CARDS / CARD_HOVER values
+const qx = new Float64Array(n), qy = new Float64Array(n), vqx = new Float64Array(n), vqy = new Float64Array(n);
+const Q = { x: qx, y: qy }, V = { x: vqx, y: vqy };
+const pOut = { x: 0, y: 0 };
+const psrcs = new Int32Array(n);
+const PS = { pointerOn: false, px: 0, py: 0, pw: 1, R: 0, pushMax: 0, falloff: 1, hsPush: 0, hRad: 0, hoverScale: 1, nSrc: 0, srcs: psrcs, srcX: new Float64Array(n), srcY: new Float64Array(n), bw, bh, hp: null };
 let hov = -1;
 const hp = new Float64Array(n), hv = new Float64Array(n); // hover progress (critically damped spring, as the homepage cards)
+PS.hp = hp;
 if (fine) items.forEach((it, i) => { if (it.kind !== 'card') return; it.el.addEventListener('pointerenter', () => { hov = i; }); it.el.addEventListener('pointerleave', () => { if (hov === i) hov = -1; }); });
 
 // ---- strip maths
@@ -195,6 +212,8 @@ const ease = (u) => {
   const v = (C * p) / T, s = u - T;
   return C + v * s - (v * s * s) / (2 * L);
 };
+// R22e: + the overshoot over the landing window (morphLanding is now the settle time): passes 1 by morphOvershoot once, ends exactly on 1
+const easeO = (u) => withOvershoot(ease, WORK.morphOvershoot, WORK.morphLanding, `${WORK.morphEase},${WORK.morphLanding}`)(u);
 let morph = null; // { from, to, SA, SB, t0, delay[] }
 let iconAngle = NaN;
 const setAngle = (a) => { if (a !== iconAngle) { iconAngle = a; iconEl.style.setProperty('--a', `${a.toFixed(2)}deg`); } };
@@ -215,10 +234,65 @@ let lastDirty = 0;
 const circ = (t) => (t < 0.5 ? (1 - Math.sqrt(1 - (2 * t) ** 2)) / 2 : (Math.sqrt(1 - (-2 * t + 2) ** 2) + 1) / 2);
 const relIdx = (d) => { const h = Math.floor(N / 2); return ((((d + h) % N) + N) % N) - h; };
 const fP = new Float64Array(N);
+const fSc = settleBump(N), fPu = settleBump(N), fNm = settleBump(N); // what is DRAWN: fP, plus each animation's own overshoot when a build completes
 let snap = null; // { from, to, t0 }
 let lastWheel = performance.now();
 let wmScrolled = reduced; // R23f: the wordmark plays big -> small once; true from the first real scroll for the rest of the visit (reduced motion: from the start)
 const cancelSnap = () => { snap = null; lastWheel = performance.now(); wmScrolled = true; };
+// ---- R22e: hold and drag (desktop mouse). The strip follows the pointer 1:1 (the scroll gain does not apply) along the mode's axis; on release
+// it carries the pointer's velocity as an inertia (WORK.dragInertia seconds of travel, ends on an easeOutCubic with the overshoot dragOvershoot)
+// and then the soft snap takes over as usual. A drag past 6 px swallows the click that would open a project; a plain click still works.
+// Everything moves `off` only: Lenis (R23c re-base handling, gain) and the counter are untouched. Wheel / key / touch / a new grab cancel it.
+let drag = null; // { id, last, total, captured, samples: [[t, pos]] }
+let inertia = null; // { from, to, t0, dur }
+let dragMoved = false;
+let dragAccum = 0; // S change made by the drag / inertia since the last frame (px): the warp follows it like a wheel scroll
+const easeOutCubic = (t) => 1 - (1 - t) ** 3;
+const axisOf = (e) => (vertical ? e.clientY : e.clientX);
+const endDrag = () => {
+  if (!drag) return;
+  const d = drag;
+  drag = null;
+  root.classList.remove('is-dragging');
+  try { if (d.captured) document.documentElement.releasePointerCapture(d.id); } catch { /* already released */ }
+  if (!d.total || d.total <= 6) return;
+  // the pointer's speed over the last 90 ms, as strip speed (the strip moves against the pointer's coordinate)
+  const now = performance.now();
+  const s = d.samples.filter((q) => now - q[0] < 90);
+  if (s.length >= 2) {
+    const v = -((s[s.length - 1][1] - s[0][1]) / Math.max((s[s.length - 1][0] - s[0][0]) / 1000, 0.008));
+    if (Math.abs(v) > 30) inertia = { from: S, to: S + v * WORK.dragInertia, t0: now, dur: WORK.dragInertia * 3000 };
+  }
+};
+addEventListener('pointerdown', (e) => {
+  if (e.pointerType !== 'mouse' || e.button !== 0 || morph || fading) return;
+  if (e.target.closest?.('.work__toggle, .work__count, [data-tune-panel]') || e.target.closest?.('div[style*="99999"]')) return;
+  dragMoved = false;
+  drag = { id: e.pointerId, last: axisOf(e), total: 0, captured: false, samples: [[performance.now(), axisOf(e)]] };
+  inertia = null; snap = null; lastWheel = performance.now(); wmScrolled = true;
+  e.preventDefault(); // no text selection, no image drag
+}, { capture: true });
+addEventListener('pointermove', (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  if (e.buttons === 0) { endDrag(); return; } // released outside the window (or the up event was lost): never stuck
+  const pos = axisOf(e), dpos = pos - drag.last;
+  drag.last = pos;
+  drag.total += Math.abs(dpos);
+  if (drag.total > 6) {
+    dragMoved = true;
+    root.classList.add('is-dragging');
+    if (!drag.captured) { try { document.documentElement.setPointerCapture(drag.id); drag.captured = true; } catch { /* not capturable */ } } // from here the move / up come even outside the window
+  }
+  off -= dpos; // 1:1: the content follows the pointer
+  dragAccum -= dpos;
+  drag.samples.push([performance.now(), pos]);
+  if (drag.samples.length > 12) drag.samples.shift();
+}, { capture: true, passive: true });
+for (const type of ['pointerup', 'pointercancel']) addEventListener(type, (e) => { if (drag && e.pointerId === drag.id) endDrag(); }, { capture: true });
+addEventListener('blur', endDrag);
+document.addEventListener('visibilitychange', () => { if (document.hidden) endDrag(); });
+addEventListener('click', (e) => { if (dragMoved) { e.preventDefault(); e.stopPropagation(); dragMoved = false; } }, { capture: true });
+addEventListener('wheel', () => { inertia = null; }, { capture: true, passive: true });
 addEventListener('wheel', cancelSnap, { capture: true, passive: true });
 addEventListener('touchstart', cancelSnap, { capture: true, passive: true });
 addEventListener('keydown', cancelSnap, { capture: true });
@@ -227,12 +301,12 @@ const updateNames = () => {
   const travel = navTravel();
   const stag = 0.7;
   titleEls.forEach((t, p) => {
-    const f = fP[p];
+    const f = fNm.x[p];
     if (Math.abs(f - t.f) < 0.0004) return;
     t.f = f;
     t.el.style.visibility = f > 0.001 ? 'visible' : 'hidden';
-    const nC = Math.max(t.chars.length - 1, 1);
-    t.chars.forEach((c, i) => { const cp = Math.min(1, Math.max(0, f * (1 + stag) - (stag * i) / nC)); const e = cp * cp * (3 - 2 * cp); c.style.transform = `translate3d(0,${((1 - e) * travel).toFixed(2)}px,0)`; });
+    const nC = Math.max(t.chars.length - 1, 1); // above 1 (the overshoot) a character rises past its rest position and settles back
+    t.chars.forEach((c, i) => { const cp = Math.max(0, f * (1 + stag) - (stag * i) / nC); const e = cp >= 1 ? cp : cp * cp * (3 - 2 * cp); c.style.transform = `translate3d(0,${((1 - e) * travel).toFixed(2)}px,0)`; });
   });
 };
 
@@ -246,11 +320,23 @@ const tick = (_time, deltaMs) => {
   let vel = ((virt - prevVirt) * WORK.wheel) / Math.max(dt, 1e-3);
   prevVirt = virt;
   if (Math.abs(vel) > 20000 || morph) vel = 0;
+  // drag / inertia: the soft snap and the focus stay out of the way while the strip is held or coasting
+  if (drag) { lastWheel = now; snap = null; }
+  if (inertia && !morph) {
+    const t = Math.min(1, (now - inertia.t0) / inertia.dur);
+    const target = inertia.from + (inertia.to - inertia.from) * withOvershoot(easeOutCubic, WORK.dragOvershoot, WORK.overshootSettle, 'outCubic')(t);
+    const before = S;
+    off += target - S; S = target;
+    dragAccum += S - before;
+    lastWheel = now; snap = null;
+    if (t >= 1) inertia = null;
+  } else if (inertia) inertia = null;
+  if (dragAccum) { vel += dragAccum / Math.max(dt, 1e-3); dragAccum = 0; }
   const snapOk = glOn && !reduced && !morph;
   if (snapOk) {
     if (snap) {
       const t = Math.min(1, (now - snap.t0) / 1000 / Math.max(WORK.snapSec, 0.05));
-      const target = snap.from + (snap.to - snap.from) * circ(t);
+      const target = snap.from + (snap.to - snap.from) * withOvershoot(circ, WORK.snapOvershoot, WORK.overshootSettle, 'circ')(t);
       off += target - S; S = target;
       if (t >= 1) snap = null;
     } else if (now - lastWheel > WORK.snapDelay * 1000 && Math.abs(vel) < 250) {
@@ -274,6 +360,10 @@ const tick = (_time, deltaMs) => {
       const nv = fP[q] + Math.max(-rate, Math.min(rate, tgt - fP[q]));
       if (nv !== fP[q]) { fP[q] = nv; focusMoving = true; }
     }
+    // R22e: the drawn values follow fP with their own overshoot (0 = identical to fP)
+    if (fSc.step(fP, now, WORK.focusOvershootScale, WORK.followerSettleSec)) focusMoving = true;
+    if (fPu.step(fP, now, WORK.focusOvershootPush, WORK.followerSettleSec)) focusMoving = true;
+    if (fNm.step(fP, now, WORK.nameOvershoot, WORK.followerSettleSec)) focusMoving = true;
     updateNames();
   }
   syncWarp();
@@ -294,6 +384,16 @@ const tick = (_time, deltaMs) => {
     }
   }
 
+  // the hovered cards are push sources (their hover progress), the pointer a source too (it gives way to a hovered card)
+  let nSrc = 0, maxP = 0;
+  for (let i = N; i < n; i++) if (hp[i] > 0.002) { psrcs[nSrc++] = i; if (hp[i] > maxP) maxP = hp[i]; }
+  const pSteps = Math.max(1, Math.ceil(dt / 0.004)), ph = dt / pSteps;
+  PS.pointerOn = fine && mouse.known && CARDS.pushStrength > 0 && !morph;
+  PS.px = mouse.px; PS.py = mouse.py; PS.pw = 1 - maxP; PS.R = CARDS.pushRadius * scale; PS.pushMax = CARDS.pushStrength * scale; PS.falloff = CARDS.pushFalloff;
+  PS.hsPush = morph ? 0 : CARD_HOVER.pushStrength * scale; PS.hRad = CARD_HOVER.pushRadius * scale; PS.hoverScale = CARD_HOVER.scale; PS.nSrc = nSrc;
+  const wDen = 20 + 80 * CARDS.depthRange;
+  let pushMoving = false;
+
   // positions
   const L = cur();
   const LA = morph ? LAY[morph.from] : L;
@@ -302,13 +402,13 @@ const tick = (_time, deltaMs) => {
   const sB = morph ? morph.SB : S;
   const dur = Math.max(WORK.morphSec - WORK.morphStagger, 0.05);
   let anyF = false;
-  for (let q = 0; q < N; q++) if (fP[q] > 0) anyF = true;
+  for (let q = 0; q < N; q++) if (fSc.x[q] > 0 || fPu.x[q] > 0) anyF = true;
   for (let i = 0; i < n; i++) {
     const it = items[i];
     let x, y, shown;
     if (morph) {
       const u = Math.min(1, Math.max(0, ((now - morph.t0) / 1000 - morph.delay[i]) / dur));
-      const e = ease(u);
+      const e = easeO(u);
       const a = place(i, LA, sA);
       const ax = out.x, ay = out.y, ad = out.d;
       const b = place(i, LB, sB);
@@ -325,7 +425,8 @@ const tick = (_time, deltaMs) => {
   }
   // R23f: the focus (the centred project grows, every card is pushed away from the focused image, neighbours move off) is applied to the
   // base positions of this frame; fsArr = the image scale per project
-  if (focusMoving || anyF) { FA.vertical = L.M.vertical; FA.pitch = L.pitch; FA.scale = scale; applyFocus(FA, fP, WORK, CARDS, fsArr); } else fsArr.fill(1);
+  if (focusMoving || anyF) { FA.vertical = L.M.vertical; FA.pitch = L.pitch; FA.scale = scale; applyFocus(FA, fSc.x, WORK, CARDS, fsArr, fPu.x); } else fsArr.fill(1);
+  for (let k = 0; k < nSrc; k++) { const sI = psrcs[k]; PS.srcX[sI] = px[sI]; PS.srcY[sI] = py[sI]; }
   for (let i = 0; i < n; i++) {
     const it = items[i];
     const x = px[i], y = py[i], shown = shownA[i] === 1;
@@ -333,7 +434,15 @@ const tick = (_time, deltaMs) => {
     let dx = 0, dy = 0;
     if (it.kind === 'card' && fine && !morph) {
       const d = (20 + (it.mouse - 20) * CARDS.depthRange) * CARDS.mouseStrength * scale;
-      dx = -mouse.x * d; dy = -mouse.y * d;
+      const keep = 1 - hp[i] * (1 - CARD_HOVER.drift); // the hovered card keeps only a little of the drift (as on the homepage)
+      dx = -mouse.x * d * keep; dy = -mouse.y * d * keep;
+    }
+    if (it.kind === 'card' && fine) {
+      // the push: from the card's centre WITHOUT its own push (so it cannot feed back), cancelled during the toggle morph like the drift
+      const wt = (20 + (it.mouse - 20) * CARDS.depthRange) / wDen;
+      if (!morph && mouse.known) pushTarget(pOut, PS, i, x + dx, y + dy, bw[i], bh[i], wt, 1 - hp[i]); else { pOut.x = 0; pOut.y = 0; }
+      if (stepPushSpring(Q, V, i, pOut.x, pOut.y, CARDS.pushStiffness, CARDS.pushDamping, ph, pSteps)) pushMoving = true;
+      dx += qx[i]; dy += qy[i];
     }
     const fs = it.kind === 'frame' ? fsArr[it.proj] : 1;
     const sc = (1 + (CARD_HOVER.scale - 1) * hp[i]) * fs;
@@ -349,7 +458,7 @@ const tick = (_time, deltaMs) => {
   }
 
   // the toggle icon turns with the morph (same duration and easing as the images); at rest it shows the current mode
-  if (morph) { const e0 = ease(Math.min(1, Math.max(0, (now - morph.t0) / 1000 / Math.max(WORK.morphSec - WORK.morphStagger, 0.05)))); const a0 = morph.from === 'vertical' ? 90 : 0, a1 = morph.to === 'vertical' ? 90 : 0; setAngle(a0 + (a1 - a0) * e0); } else setAngle(vertical ? 90 : 0);
+  if (morph) { const e0 = easeO(Math.min(1, Math.max(0, (now - morph.t0) / 1000 / Math.max(WORK.morphSec - WORK.morphStagger, 0.05)))); const a0 = morph.from === 'vertical' ? 90 : 0, a1 = morph.to === 'vertical' ? 90 : 0; setAngle(a0 + (a1 - a0) * e0); } else setAngle(vertical ? 90 : 0);
   // the counter: the unwrapped nearest project, with hysteresis (another project must be clearly nearer before it changes)
   const pitchNow = (morph ? LB : L).pitch;
   const pos = (morph ? sB : S) / pitchNow;
@@ -359,7 +468,7 @@ const tick = (_time, deltaMs) => {
 
   if (glOn) {
     if (morph) { const b = gl.bend(); b.x = 0; b.v = 0; } // the warp is held flat while the layouts morph
-    const moving = Math.abs(vel) > 0.5 || hoverMoving || !!morph || focusMoving || !!snap || Math.abs(mouse.tx - mouse.x) > 0.0005 || Math.abs(mouse.ty - mouse.y) > 0.0005;
+    const moving = Math.abs(vel) > 0.5 || hoverMoving || pushMoving || !!morph || focusMoving || !!snap || Math.abs(mouse.tx - mouse.x) > 0.0005 || Math.abs(mouse.ty - mouse.y) > 0.0005;
     if (moving) lastDirty = now;
     if (moving || now - lastDirty < 80) gl.markDirty();
     gl.draw(0, dt, vel, scale);
@@ -391,7 +500,7 @@ function finishMorph() {
 let fading = false;
 const setMode = (mode) => {
   if (morph || fading || (mode === 'vertical') === vertical) return;
-  snap = null;
+  snap = null; inertia = null; if (drag) endDrag();
   const L0 = cur();
   const kProj = Math.round(S / L0.pitch);
   if (glOn) {
@@ -428,6 +537,6 @@ initNav(data.hero.wordmark, lenis, { gateFrame: false, position: () => (wmScroll
 document.title = 'Work | Anh V';
 if (import.meta.env.DEV) {
   window.__SCROLL = SCROLL; window.__WORK = WORK;
-  window.__work = { setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, get snap() { return snap; }, fP, get kCount() { return kCount; }, bx, by, bw, bh, vis, hp };
+  window.__work = { setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, q: Q, PS,  get snap() { return snap; }, get drag() { return drag; }, get inertia() { return inertia; }, fP, fSc, fPu, fNm, get kCount() { return kCount; }, bx, by, bw, bh, vis, hp };
   if (params.has('tune')) import('./work/tune.js').then((m) => m.mountWorkTune({ relayout }));
 }

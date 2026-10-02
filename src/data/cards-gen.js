@@ -7,10 +7,11 @@
 // (INDEX.swap), so each indexed project gets a band of start y (vh from the section top) where its title is the one showing at the
 // centre; projects without a title in the index (and extras with no project) go in the two swap zones, where one title slides out
 // and the next in.
-import { POOL, CARD_SIZE, INDEX, CARD_LAYOUT, BAND_LIMITS, BAND_RULES, CARD_HOVER, LAYOUT } from '../timeline.js';
+import { POOL, CARD_SIZE, INDEX, CARD_LAYOUT, BAND_LIMITS, BAND_RULES, CARD_HOVER, CARDS, LAYOUT } from '../timeline.js';
 import { generateLayout } from './layout.js';
 import { cardDepth } from './depth.js';
 import { scrollPx, dist } from '../scale.js';
+import { fixOverlaps, allViolations } from './overlap.js';
 
 export function rng(seed) {
   let a = seed >>> 0;
@@ -191,15 +192,87 @@ export function generateCards(allPool, rows = [], seed = POOL.seed, count = POOL
     for (const c of l) { run = c.dark ? run + 1 : 0; if (run > BAND_RULES.maxDarkRun) return c; }
     return null;
   };
-  for (const b of bands) {
-    for (let it = 0; it < 40; it++) {
-      const bad = runBreak(b);
-      if (!bad) break;
-      bad.dark = false;
-      // darken the best-ranked light card elsewhere if that makes no new run; otherwise the share just ends a little lower
-      byRank.find((c) => { if (c.dark || c === bad) return false; c.dark = true; if (runBreak(c.band)) { c.dark = false; return false; } return true; });
+  const enforceRuns = () => {
+    for (const b of bands) {
+      for (let it = 0; it < 40; it++) {
+        const bad = runBreak(b);
+        if (!bad) break;
+        bad.dark = false;
+        // darken the best-ranked light card elsewhere if that makes no new run; otherwise the share just ends a little lower
+        byRank.find((c) => { if (c.dark || c === bad) return false; c.dark = true; if (runBreak(c.band)) { c.dark = false; return false; } return true; });
+      }
     }
-  }
+  };
+  enforceRuns();
+
+  // 6. R22e overlaps: no point under 3 cards, dark-on-dark and any pair capped (overlap.js), at rest and with the mouse drift and the aura at
+  // their extremes (the cards move by depth, so a pair that looks safe can stack). Nudge along the band, then undark / swap depth, then drop.
+  const VH = 10.8;
+  let pos = layout();
+  let ay0 = cards.map((c) => c.ay || 0);
+  const ctx = {
+    n: 0, w: null, h: null, _dark: null,
+    dark: () => ctx._dark,
+    base: () => ({ x: ctx._bx, y: ctx._by }),
+    scenarios: () => ctx._sc,
+    rank: (i) => rank(cards[i], 91),
+    locked: (i) => !!(cards[i].dup || cards[i].hasDup),
+    isDup: (i) => !!cards[i].dup,
+    // a duplicate pair translates as one (the distance between its two cards is kept), inside both cards' bands
+    group: (i) => { const c = cards[i], t = c.dup ? c.twin : c.hasDup ? cards.find((o) => o.dup && o.twin === c) : null; const ti = t ? cards.indexOf(t) : -1; return ti >= 0 ? [i, ti] : [i]; },
+    nudgeRange: (i) => {
+      let lo = -Infinity, hi = Infinity;
+      for (const g of ctx.group(i)) { const c = cards[g], cy = ctx._by[g] / VH; lo = Math.max(lo, (c.yMin - cy) * VH); hi = Math.min(hi, (c.yMax - cy) * VH); }
+      return { lo, hi };
+    },
+    // across the strip: stays on its own side of the centre line, between 330 px (the frame's aura) and 1000 px from it
+    nudgeXRange: (i) => { const x = ctx._bx[i], s = Math.sign(x) || 1; return s > 0 ? { lo: 330 - x, hi: 1000 - x } : { lo: -1000 - x, hi: -330 - x }; },
+    nudgeX: (i, d) => { const { lo, hi } = ctx.nudgeXRange(i), a = Math.max(lo, Math.min(hi, d)); cards[i].ax = (cards[i].ax || 0) + a; ctx._bx[i] += a; return a; },
+    nudge: (i, d) => {
+      const { lo, hi } = ctx.nudgeRange(i), a = Math.max(lo, Math.min(hi, d));
+      for (const g of ctx.group(i)) { cards[g].ay = (cards[g].ay || 0) + a / VH; ctx._by[g] += a; }
+      return a;
+    },
+    refresh: () => {
+      pos = layout(); ay0 = cards.map((c) => c.ay || 0); ctx.n = cards.length;
+      ctx._bx = Float64Array.from(cards, (c, i) => pos[i].x); ctx._by = Float64Array.from(cards, (c, i) => pos[i].y * VH);
+      // the scenarios: rest + the four corners of the pointer range (the largest relative shift of two cards is at a corner), with and without the aura
+      const wDen = 20 + 80 * CARDS.depthRange;
+      const dd = Float64Array.from(cards, (c) => (20 + (c.mouse - 20) * CARDS.depthRange) * CARDS.mouseStrength);
+      const au = Float64Array.from(cards, (c, i) => (Math.abs(ctx._bx[i]) < 900 ? Math.sign(ctx._bx[i] || 1) * CARDS.auraStrength * ((20 + (c.mouse - 20) * CARDS.depthRange) / wDen) : 0));
+      ctx._sc = [];
+      for (const aura of [0, 1]) for (const [mx, my] of [[0, 0], [-1, -1], [-1, 1], [1, -1], [1, 1]]) ctx._sc.push({ dx: Float64Array.from(dd, (d, i) => -mx * d + aura * au[i]), dy: Float64Array.from(dd, (d) => -my * d) }); ctx.w = Float64Array.from(cards, (c) => c.w); ctx.h = Float64Array.from(cards, (c) => c.h); ctx._dark = cards.map((c) => !!c.dark); },
+    structural: {
+      undark: (i) => { const c = cards[i], prev = c.dark; if (!prev) return null; c.dark = false; return { revert: () => { c.dark = prev; } }; },
+      swapDepth: (i, attempt) => {
+        const c = cards[i];
+        const others = cards.filter((o) => o !== c && o.band === c.band && !o.dup && !o.hasDup && Math.abs(o.mouse - c.mouse) >= 10).sort((p, q) => Math.abs(q.mouse - c.mouse) - Math.abs(p.mouse - c.mouse) || rank(p, 91) - rank(q, 91));
+        const o = others[attempt];
+        if (!o) return null;
+        const swap = () => { for (const k of ['mouse', 'z', 'depth', 'front']) { const t = c[k]; c[k] = o[k]; o[k] = t; } };
+        swap();
+        return { revert: swap };
+      },
+      drop: (i) => {
+        const c = cards[i];
+        if (c.dup || c.hasDup) return null;
+        const inBand = cards.filter((o) => o.band === c.band);
+        if (inBand.length <= c.band.limits.minN) return null;
+        const left = inBand.filter((o) => pos[cards.indexOf(o)].x < 0).length - (pos[i].x < 0 ? 1 : 0);
+        if (Math.abs(inBand.length - 1 - 2 * left) > 1) return null; // the sides stay even
+        cards.splice(i, 1);
+        return { revert: () => { cards.splice(i, 0, c); } };
+      },
+    },
+  };
+  ctx.refresh();
+  const res = globalThis.__noOverlapFix ? { fixed: true, remaining: [], steps: 0 } : fixOverlaps(ctx, BAND_RULES);
+  if (!res.fixed) warn(`overlaps left after the fix pass: ${res.remaining.length}`);
+  const fp = layout();
+  cards.forEach((c, i) => { c.py = fp[i].y; });
+  enforceRuns();
+  cards.forEach((c, i) => { c.id = i + 1; }); // the order is kept: the layout draws its scatter per card index
+  cards.overlapReport = res;
 
   return cards;
 }
