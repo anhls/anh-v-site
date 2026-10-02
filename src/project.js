@@ -34,4 +34,6 @@ if (project?.page) {
   initNav(data.hero.wordmark, lenis, { gateFrame: false }); // after the footer exists: the big wordmark returns when it is reached
   ScrollTrigger.refresh();
   document.title = project.page.title;
+  // Dev only: ?tune opens the wheel-acceleration panel (a build-time constant, nothing ships).
+  if (import.meta.env.DEV && new URLSearchParams(location.search).has('tune')) import('./effects/tune-scroll.js').then((m) => m.mountScrollTune());
 }

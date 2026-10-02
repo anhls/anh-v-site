@@ -4,9 +4,9 @@ import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import data from './data/data.json';
 import pool from './data/work-pool.json';
-import { WORK, BEND, WARP, CARDS, CARD_HOVER, DEPTH, SCROLL } from './timeline.js';
+import { WORK, BEND, WARP, CARDS, CARD_HOVER, DEPTH, SCROLL, INDEX } from './timeline.js';
 import { frameZ } from './data/depth.js';
-import { capW } from './scale.js';
+import { capW, dist } from './scale.js';
 import { initNav } from './effects/nav.js';
 import { createCardsGL } from './effects/cards-gl.js';
 import { imgAttrs } from './util/media.js';
@@ -48,15 +48,19 @@ app.innerHTML = `
   <div class="work__spacer"></div>
   <div class="work" id="work">
     <div class="work__stage"></div>
-    <div class="work__count" aria-live="polite">01 / 0${N}</div>
-    <button type="button" class="work__toggle" aria-label="Switch to vertical scroll">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><g class="work__icon"><rect x="3.5" y="5" width="3" height="14"/><rect x="10.5" y="5" width="3" height="14"/><rect x="17.5" y="5" width="3" height="14"/></g></svg>
-    </button>
-  </div>`;
+  </div>
+  <div class="work__name" aria-hidden="true">${projects.map((p) => `<span class="work__title">${[...p.title].map((c) => `<span class="work__char">${c === ' ' ? '&nbsp;' : c}</span>`).join('')}</span>`).join('')}</div>
+  <div class="work__count" aria-live="polite">01 / 0${N}</div>
+  <button type="button" class="work__toggle" aria-label="Switch to vertical scroll">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><g class="work__icon"><rect x="3.5" y="5" width="3" height="14"/><rect x="10.5" y="5" width="3" height="14"/><rect x="17.5" y="5" width="3" height="14"/></g></svg>
+  </button>`;
 const root = app.querySelector('.work');
 const stage = root.querySelector('.work__stage');
-const countEl = root.querySelector('.work__count');
-const toggleEl = root.querySelector('.work__toggle');
+// R23e: the counter and the toggle are children of the page, not of .work: their own top layer above the canvas and every click anchor
+const countEl = app.querySelector('.work__count');
+const toggleEl = app.querySelector('.work__toggle');
+const nameEl = app.querySelector('.work__name');
+const titleEls = [...nameEl.querySelectorAll('.work__title')].map((el) => ({ el, chars: [...el.querySelectorAll('.work__char')], f: -1 }));
 const iconEl = toggleEl.querySelector('.work__icon');
 
 // ---- items: the N frames first, then every project's cards (the same objects in both layouts)
@@ -162,7 +166,7 @@ const advance = () => {
   virt += d;
 };
 let off = 0; // strip position S = virt * wheel + off (changes on a mode switch / resize so the same project stays centred)
-let S = 0, prevS = 0;
+let S = 0, prevS = 0, prevVirt = 0;
 const wrap = (v, P) => ((((v + P / 2) % P) + P) % P) - P / 2;
 const out = { x: 0, y: 0, d: 0 };
 // centre of item i (screen px) in layout L with the strip at s (into `out`); returns false when it is far off screen
@@ -187,23 +191,81 @@ const ease = (u) => {
   return C + v * s - (v * s * s) / (2 * L);
 };
 let morph = null; // { from, to, SA, SB, t0, delay[] }
-const counterRect = { x: 0, y: 0, w: 0, h: 0 };
-const toggleRect = { x: 0, y: 0, w: 0, h: 0 };
 let iconAngle = NaN;
 const setAngle = (a) => { if (a !== iconAngle) { iconAngle = a; iconEl.style.setProperty('--a', `${a.toFixed(2)}deg`); } };
-let counterHidden = false;
 let lastIdx = -1;
 let kCount = 0; // the counter's project index (unwrapped)
 let lastDirty = 0;
+
+// ---- R23e: soft snap to the centre + the focus effect of the centred project
+// Snap: once the wheel has been quiet for WORK.snapDelay and Lenis has finished gliding, the nearest project, if it lies within
+// WORK.snapWindow of a pitch from the centre, is drifted to the centre over WORK.snapSec along easeInOutCirc. It moves `off` only (Lenis is
+// never touched): any new wheel / key / touch input cancels it at once and the strip carries on from where it is (0 px jump).
+// Focus: ONE progress value per project (fP[p], 0..1) = easeInOutCirc of how far that project is centred (1 - distance / window); it
+// scales the image (focusScale), pushes the project's cards outward (focusPush, plus the same growth as the image), moves the two
+// neighbouring projects away along the strip (focusNeighbour of a pitch) and rises the project's name (the homepage index title style).
+// It follows the position, so it builds while the drift centres the project and unwinds the same way when the user scrolls on; a rate
+// limit (WORK.focusRampSec for the whole range) only guards against pops (toggle, resize). Held off during the toggle morph. WebGL path
+// and no reduced motion only (the DOM fallback has neither the snap nor the focus).
+const circ = (t) => (t < 0.5 ? (1 - Math.sqrt(1 - (2 * t) ** 2)) / 2 : (Math.sqrt(1 - (-2 * t + 2) ** 2) + 1) / 2);
+const relIdx = (d) => { const h = Math.floor(N / 2); return ((((d + h) % N) + N) % N) - h; };
+const fP = new Float64Array(N);
+let snap = null; // { from, to, t0 }
+let lastWheel = performance.now();
+const cancelSnap = () => { snap = null; lastWheel = performance.now(); };
+addEventListener('wheel', cancelSnap, { capture: true, passive: true });
+addEventListener('touchstart', cancelSnap, { capture: true, passive: true });
+addEventListener('keydown', cancelSnap, { capture: true });
+const navTravel = () => dist(INDEX.travelVh); // how far a title rises (px), like the homepage index rows (a capped distance)
+const updateNames = () => {
+  const travel = navTravel();
+  const stag = 0.7;
+  titleEls.forEach((t, p) => {
+    const f = fP[p];
+    if (Math.abs(f - t.f) < 0.0004) return;
+    t.f = f;
+    t.el.style.visibility = f > 0.001 ? 'visible' : 'hidden';
+    const nC = Math.max(t.chars.length - 1, 1);
+    t.chars.forEach((c, i) => { const cp = Math.min(1, Math.max(0, f * (1 + stag) - (stag * i) / nC)); const e = cp * cp * (3 - 2 * cp); c.style.transform = `translate3d(0,${((1 - e) * travel).toFixed(2)}px,0)`; });
+  });
+};
 
 const tick = (_time, deltaMs) => {
   const dt = Math.min(deltaMs, 50) / 1000;
   const now = performance.now();
   advance();
   S = virt * WORK.wheel + off;
-  let vel = (S - prevS) / Math.max(dt, 1e-3);
-  prevS = S;
+  // the warp follows the wheel / Lenis motion only (not the snap drift, not offsets from a toggle or a resize)
+  let vel = ((virt - prevVirt) * WORK.wheel) / Math.max(dt, 1e-3);
+  prevVirt = virt;
   if (Math.abs(vel) > 20000 || morph) vel = 0;
+  const snapOk = glOn && !reduced && !morph;
+  if (snapOk) {
+    if (snap) {
+      const t = Math.min(1, (now - snap.t0) / 1000 / Math.max(WORK.snapSec, 0.05));
+      const target = snap.from + (snap.to - snap.from) * circ(t);
+      off += target - S; S = target;
+      if (t >= 1) snap = null;
+    } else if (now - lastWheel > WORK.snapDelay * 1000 && Math.abs(vel) < 250) {
+      // the wheel has been quiet and Lenis' glide is nearly over: where the glide will end (S + what is left of it) picks the project
+      const pt = cur().pitch, pred = S + (lenis.targetScroll - lenis.animatedScroll) * WORK.wheel, k = Math.round(pred / pt), d = k * pt - pred;
+      if (Math.abs(d) <= WORK.snapWindow * pt && Math.abs(k * pt - S) > 0.5) snap = { from: S, to: k * pt, t0: now };
+    }
+  } else snap = null;
+  prevS = S;
+  // focus progress per project
+  let focusMoving = false;
+  {
+    const pt = cur().pitch, k = Math.round(S / pt), win = Math.max(WORK.snapWindow, 0.05);
+    const c = Math.max(0, 1 - Math.abs(S - k * pt) / (win * pt)), pk = ((k % N) + N) % N;
+    const rate = dt / Math.max(WORK.focusRampSec, 0.02);
+    for (let q = 0; q < N; q++) {
+      const tgt = snapOk && q === pk ? circ(c) : 0;
+      const nv = fP[q] + Math.max(-rate, Math.min(rate, tgt - fP[q]));
+      if (nv !== fP[q]) { fP[q] = nv; focusMoving = true; }
+    }
+    updateNames();
+  }
   syncWarp();
 
   // mouse spring + hover springs
@@ -229,6 +291,8 @@ const tick = (_time, deltaMs) => {
   const sA = morph ? morph.SA : S;
   const sB = morph ? morph.SB : S;
   const dur = Math.max(WORK.morphSec - WORK.morphStagger, 0.05);
+  let anyF = false;
+  for (let q = 0; q < N; q++) if (fP[q] > 0) anyF = true;
   for (let i = 0; i < n; i++) {
     const it = items[i];
     let x, y, shown;
@@ -253,7 +317,23 @@ const tick = (_time, deltaMs) => {
       dx = -mouse.x * d; dy = -mouse.y * d;
     }
     if (nearArr[i] && !it.active) activate(it);
-    const sc = 1 + (CARD_HOVER.scale - 1) * hp[i];
+    // focus: the centred project's image grows and its cards move out with it (plus the push); its neighbours move away along the strip
+    let fs = 1;
+    if (focusMoving || anyF) {
+      const pj = it.proj;
+      let da = 0, dc = 0;
+      const fo = fP[pj];
+      if (fo > 0) {
+        if (it.kind === 'frame') fs = 1 + (WORK.focusScale - 1) * fo;
+        else {
+          const ra = L.pos[i].along - pj * L.pitch, rc = L.pos[i].cross, r = Math.hypot(ra, rc) || 1, g = (WORK.focusScale - 1) * fo, ps = WORK.focusPush * scale * fo;
+          da += ra * g + (ps * ra) / r; dc += rc * g + (ps * rc) / r;
+        }
+      }
+      for (let q = 0; q < N; q++) if (fP[q] > 0) { const rr = relIdx(pj - q); if (rr === 1 || rr === -1) da += rr * WORK.focusNeighbour * L.pitch * fP[q]; }
+      if (da || dc) { if (L.M.vertical) { x += dc; y += da; } else { x += da; y += dc; } }
+    }
+    const sc = (1 + (CARD_HOVER.scale - 1) * hp[i]) * fs;
     bx[i] = x; by[i] = y;
     if (glOn) {
       gl.ox[i] = dx; gl.oy[i] = dy; gl.hs[i] = sc; gl.hp[i] = hp[i];
@@ -267,13 +347,6 @@ const tick = (_time, deltaMs) => {
 
   // the toggle icon turns with the morph (same duration and easing as the images); at rest it shows the current mode
   if (morph) { const e0 = ease(Math.min(1, Math.max(0, (now - morph.t0) / 1000 / Math.max(WORK.morphSec - WORK.morphStagger, 0.05)))); const a0 = morph.from === 'vertical' ? 90 : 0, a1 = morph.to === 'vertical' ? 90 : 0; setAngle(a0 + (a1 - a0) * e0); } else setAngle(vertical ? 90 : 0);
-  // the counter must not sit over a card: it fades out while one overlaps it
-  let hit = false;
-  for (let i = N; i < n && !hit; i++) {
-    if (!vis[i]) continue;
-    if ((Math.abs(bx[i] - counterRect.x) < bw[i] / 2 + counterRect.w / 2 && Math.abs(by[i] - counterRect.y) < bh[i] / 2 + counterRect.h / 2) || (Math.abs(bx[i] - toggleRect.x) < bw[i] / 2 + toggleRect.w / 2 && Math.abs(by[i] - toggleRect.y) < bh[i] / 2 + toggleRect.h / 2)) hit = true;
-  }
-  if (hit !== counterHidden) { counterHidden = hit; countEl.classList.toggle('is-hidden', hit); toggleEl.classList.toggle('is-hidden', hit); }
   // the counter: the unwrapped nearest project, with hysteresis (another project must be clearly nearer before it changes)
   const pitchNow = (morph ? LB : L).pitch;
   const pos = (morph ? sB : S) / pitchNow;
@@ -283,7 +356,7 @@ const tick = (_time, deltaMs) => {
 
   if (glOn) {
     if (morph) { const b = gl.bend(); b.x = 0; b.v = 0; } // the warp is held flat while the layouts morph
-    const moving = Math.abs(vel) > 0.5 || hoverMoving || !!morph || Math.abs(mouse.tx - mouse.x) > 0.0005 || Math.abs(mouse.ty - mouse.y) > 0.0005;
+    const moving = Math.abs(vel) > 0.5 || hoverMoving || !!morph || focusMoving || !!snap || Math.abs(mouse.tx - mouse.x) > 0.0005 || Math.abs(mouse.ty - mouse.y) > 0.0005;
     if (moving) lastDirty = now;
     if (moving || now - lastDirty < 80) gl.markDirty();
     gl.draw(0, dt, vel, scale);
@@ -295,10 +368,6 @@ gsap.ticker.add(tick);
 setTimeout(() => items.forEach((it, i) => setTimeout(() => activate(it), i * 15)), 800);
 
 // ---- mode switch
-const measureCounter = () => {
-  const r = countEl.getBoundingClientRect(); counterRect.x = r.left + r.width / 2; counterRect.y = r.top + r.height / 2; counterRect.w = r.width + 24; counterRect.h = r.height + 16;
-  const t = toggleEl.getBoundingClientRect(); toggleRect.x = t.left + t.width / 2; toggleRect.y = t.top + t.height / 2; toggleRect.w = t.width; toggleRect.h = t.height;
-};
 const commit = (mode) => {
   vertical = mode === 'vertical';
   store.set(mode);
@@ -319,6 +388,7 @@ function finishMorph() {
 let fading = false;
 const setMode = (mode) => {
   if (morph || fading || (mode === 'vertical') === vertical) return;
+  snap = null;
   const L0 = cur();
   const kProj = Math.round(S / L0.pitch);
   if (glOn) {
@@ -341,20 +411,19 @@ toggleEl.addEventListener('click', () => setMode(vertical ? 'side' : 'vertical')
 
 let rt = 0;
 const relayout = () => {
+  snap = null;
   const f = S / cur().pitch;
   layouts();
   off += f * cur().pitch - S;
   if (glOn) gl.resize(W, H);
-  measureCounter();
 };
 addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(relayout, 120); });
 
 commit(vertical ? 'vertical' : 'side');
-measureCounter();
 initNav(data.hero.wordmark, lenis, { gateFrame: false, position: () => Math.abs(virt) });
 document.title = 'Work | Anh V';
 if (import.meta.env.DEV) {
-  window.__SCROLL = SCROLL;
-  window.__work = { setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, bx, by, bw, bh, vis, hp };
+  window.__SCROLL = SCROLL; window.__WORK = WORK;
+  window.__work = { setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, get snap() { return snap; }, fP, get kCount() { return kCount; }, bx, by, bw, bh, vis, hp };
   if (params.has('tune')) import('./work/tune.js').then((m) => m.mountWorkTune({ relayout }));
 }

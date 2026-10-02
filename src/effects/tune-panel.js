@@ -1,10 +1,11 @@
+import { tuneStore, makeCollapse } from './tune-store.js';
 import { SCROLL, DEPTH, POOL, BAND_LIMITS, CARDS, TRAIL, LAYOUT, BEND, WARP, FRAME_WARP, CARD_HOVER, CAPTION_HOVER } from '../timeline.js';
 
 // Dev-only tuning panel (Selected Work cards, card layout, hero trail). Opens with ?tune in the URL; main.js imports this
 // file only when import.meta.env.DEV is true, so it is never part of the production build. Sliders write straight into the
 // CARDS / LAYOUT / TRAIL objects from timeline.js (the effects read them every frame), so changes show immediately.
 // "Copy values" puts the current numbers on the clipboard as JSON so they can be sent back and pasted into timeline.js.
-const DEFAULTS = { CARDS: { ...CARDS }, LAYOUT: { ...LAYOUT }, TRAIL: { ...TRAIL }, BEND: { ...BEND }, WARP: { ...WARP }, FRAME_WARP: { ...FRAME_WARP }, CARD_HOVER: { ...CARD_HOVER }, CAPTION_HOVER: { ...CAPTION_HOVER } };
+const DEFAULTS = { CARDS: { ...CARDS }, LAYOUT: { ...LAYOUT }, TRAIL: { ...TRAIL }, BEND: { ...BEND }, WARP: { ...WARP }, FRAME_WARP: { ...FRAME_WARP }, CARD_HOVER: { ...CARD_HOVER }, CAPTION_HOVER: { ...CAPTION_HOVER }, SCROLL: { ...SCROLL } };
 
 // [key, label, min, max, step, hint]
 const CARD_SLIDERS = [
@@ -134,13 +135,14 @@ export function mountTunePanel({ trail, cards } = {}) {
   box.style.cssText =
     'position:fixed;top:12px;right:12px;z-index:99999;width:300px;max-height:calc(100vh - 24px);overflow:auto;padding:12px 14px;' +
     'background:rgba(20,20,20,.92);color:#fff;font:12px/1.35 system-ui,sans-serif;border-radius:8px;box-shadow:0 4px 24px rgba(0,0,0,.4);';
-  box.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><strong>Tuning (cards, layout, captions, trail)</strong><button data-act="hide" style="all:unset;cursor:pointer;opacity:.7">hide</button></div>
+  box.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><strong>Tuning (cards, layout, captions, trail)</strong><button data-act="hide"></button></div>
     <div data-body></div>
-    <div style="display:flex;gap:8px;margin-top:10px"><button data-act="copy" style="flex:1;padding:6px;cursor:pointer">Copy values</button><button data-act="reset" style="padding:6px;cursor:pointer">Reset to defaults</button></div>
+    <div data-row style="display:flex;gap:8px;margin-top:10px"><button data-act="copy" style="flex:1;padding:6px;cursor:pointer">Copy values</button><button data-act="reset" style="padding:6px;cursor:pointer">Reset to defaults</button></div>
     <div data-msg style="margin-top:6px;opacity:.7;min-height:1.2em"></div>`;
   const body = box.querySelector('[data-body]');
   const msg = box.querySelector('[data-msg]');
   const readouts = [];
+  const store = tuneStore('home', ['BAND', 'DEPTH.', 'HOVER.darkShare']); // the ones that change which cards exist apply through the URL (Apply)
 
   // Sections are collapsible (<details>). ADVANCED, not shown but still in the arrays above and in Copy values: cardBend, arcShape, maxArc,
   // depthExtreme, depthBand (per-card bend), sepPasses, speedRef, grainRate, auraClearance, mouseStiffness, hover stiffness / damping,
@@ -168,7 +170,7 @@ export function mountTunePanel({ trail, cards } = {}) {
       const v = row.querySelector('[data-v]');
       input.value = obj[key];
       v.textContent = obj[key];
-      input.addEventListener('input', () => { obj[key] = parseFloat(input.value); v.textContent = obj[key]; onInput?.(key); });
+      input.addEventListener('input', () => { obj[key] = parseFloat(input.value); v.textContent = obj[key]; store.set(id, obj[key]); onInput?.(key); });
       readouts.push({ obj, key, input, v });
       d.appendChild(row);
     });
@@ -203,11 +205,7 @@ export function mountTunePanel({ trail, cards } = {}) {
 
   box.addEventListener('click', async (e) => {
     const act = e.target.closest('[data-act]')?.dataset.act;
-    if (act === 'hide') {
-      const hidden = body.style.display === 'none';
-      body.style.display = hidden ? '' : 'none';
-      e.target.textContent = hidden ? 'hide' : 'show';
-    } else if (act === 'poolseed') {
+    if (act === 'poolseed') {
       const u = new URL(location.href);
       u.searchParams.set('seed', box.querySelector('[data-pool-seed]').value || POOL.seed);
       u.searchParams.set('dark', CARD_HOVER.darkShare);
@@ -227,6 +225,8 @@ export function mountTunePanel({ trail, cards } = {}) {
       Object.assign(FRAME_WARP, DEFAULTS.FRAME_WARP);
       Object.assign(CARD_HOVER, DEFAULTS.CARD_HOVER);
       Object.assign(CAPTION_HOVER, DEFAULTS.CAPTION_HOVER);
+      Object.assign(SCROLL, DEFAULTS.SCROLL);
+      store.clear();
       syncReadouts(); showSeed(); cards?.relayout(); cards?.gl()?.reweigh(); trail?.remeasure(); showPts();
       msg.textContent = 'Reset to the defaults in timeline.js';
     } else if (act === 'copy') {
@@ -237,4 +237,9 @@ export function mountTunePanel({ trail, cards } = {}) {
     }
   });
   document.body.appendChild(box);
+  makeCollapse(box, [body, box.querySelector('[data-row]'), msg], box.querySelector('[data-act="hide"]'));
+  // the values kept from the last visit (only while ?tune is in the URL)
+  const kept = store.values();
+  for (const id of Object.keys(kept)) { const def = DEFS[id]; if (def) def[0][def[1][0]] = kept[id]; }
+  if (Object.keys(kept).length) { syncReadouts(); cards?.relayout(); cards?.gl()?.reweigh(); trail?.remeasure(); showPts(); msg.textContent = `Re-applied ${Object.keys(kept).length} saved values (Reset to defaults clears them)`; }
 }

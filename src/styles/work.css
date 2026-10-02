@@ -14,12 +14,17 @@
 .work.is-morphing .work__item { pointer-events: none; }
 /* Counter (left) and toggle icon (right): the same row, margins, type size and scale.js sizing as PRJ - 01 (left) and the YEAR (right) of the
    homepage project index (base.css .index__label / .index__year: --index-x from the edge, the row 0.325 index-sizes below the band top). */
-.work { --row-y: calc(var(--index-top) + var(--index-size) * 0.325); --tg-glyph: calc(var(--index-label-size) * 1.5); --tg-box: calc(var(--tg-glyph) * 2.4); }
-.work__count { position: fixed; z-index: 8; left: var(--index-x); top: var(--row-y); font-size: var(--index-label-size); line-height: 1; color: #fff; mix-blend-mode: difference; font-variant-numeric: tabular-nums; transition: opacity 0.2s ease; }
-.work__count.is-hidden, .work__toggle.is-hidden { opacity: 0; }
-.work__toggle { all: unset; position: fixed; z-index: 8; box-sizing: border-box; width: var(--tg-box); height: var(--tg-box); right: calc(var(--index-x) - (var(--tg-box) - var(--tg-glyph)) / 2); top: calc(var(--row-y) + var(--index-label-size) / 2 - var(--tg-box) / 2); display: grid; place-items: center; cursor: pointer; color: #fff; mix-blend-mode: difference; opacity: 0.72; transition: opacity 0.2s ease; }
+.work-page { --row-y: calc(var(--index-top) + var(--index-size) * 0.325); --tg-glyph: calc(var(--index-label-size) * 1.5); --tg-box: calc(var(--tg-glyph) * 2.4); }
+.work__count { position: fixed; z-index: 12; left: var(--index-x); top: var(--row-y); font-size: var(--index-label-size); line-height: 1; color: #fff; mix-blend-mode: difference; font-variant-numeric: tabular-nums; transition: opacity 0.2s ease; }
+.work__toggle { all: unset; position: fixed; z-index: 12; box-sizing: border-box; width: var(--tg-box); height: var(--tg-box); right: calc(var(--index-x) - (var(--tg-box) - var(--tg-glyph)) / 2); top: calc(var(--row-y) + var(--index-label-size) / 2 - var(--tg-box) / 2); display: grid; place-items: center; cursor: pointer; color: #fff; mix-blend-mode: difference; opacity: 0.72; transition: opacity 0.2s ease; }
 .work__toggle:hover, .work__toggle:focus-visible { opacity: 1; }
-.work__toggle.is-hidden { opacity: 0; pointer-events: none; }
 .work__toggle:focus-visible { outline: 1px solid #f04a0e; outline-offset: -4px; }
 .work__toggle svg { width: var(--tg-glyph); height: var(--tg-glyph); overflow: visible; fill: currentColor; }
 .work__icon { transform-origin: 12px 12px; transform: rotate(var(--a, 0deg)); }
+/* R23e: the counter and the toggle (z 12) are children of the page, above the nav (10) and the wordmark (9), the project name (5), the canvas and every click anchor
+   (the anchors share .work's stacking context, z up to about 21). Always fully visible; the difference blend keeps them readable. */
+/* The focused project's name: the homepage project index title (base.css .index__band / .index__title: same band, size, weight, leading,
+   tracking), rising per character as the focus builds (work.js). Above the canvas and the cards, below the nav. */
+.work__name { position: fixed; left: 0; right: 0; top: var(--index-top); height: calc(var(--index-size) * 0.8); overflow: hidden; z-index: 5; pointer-events: none; color: #fff; }
+.work__title { position: absolute; inset: 0; display: block; text-align: center; white-space: nowrap; font-size: var(--index-size); font-weight: 500; line-height: 0.8; letter-spacing: -0.01em; visibility: hidden; }
+.work__char { display: inline-block; will-change: transform; }
