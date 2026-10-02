@@ -5,7 +5,7 @@ import { WORK, WORK_LIMITS, CARD_HOVER } from '../timeline.js';
 const SLIDERS = [
   ['warpStrength', 'Warp strength (homepage 1.15)', 0, 3, 0.05], ['warpRiseSec', 'Warp rise time (s)', 0.05, 1.5, 0.01], ['warpSettleSec', 'Warp settle time (s)', 0.1, 2.5, 0.01], ['wheel', 'Wheel speed', 0.2, 4, 0.05],
   ['frameW', 'Frame width (vw)', 15, 60, 0.5], ['frameH', 'Frame height (vh)', 20, 80, 0.5], ['gapSide', 'Gap, side scroll (vw)', 2, 40, 0.5], ['gapVert', 'Gap, vertical (vh)', 2, 60, 0.5],
-  ['overlapMin', 'Edge overlap, min', 0, 0.5, 0.01], ['overlapMax', 'Edge overlap, max', 0, 0.5, 0.01], ['edgeReach', 'Cards past the frame ends (x their length)', 0, 1, 0.01], ['dupGap', 'Duplicate distance (vw / vh)', 10, 60, 1],
+  ['overlapMax', 'Most a card may overlap the image (share of its size)', 0, 0.6, 0.01], ['dupGap', 'Duplicate distance (vw / vh)', 10, 60, 1], ['minGap', 'Minimum gap between cards (px at 1920)', 0, 120, 1], ['slack', 'Drift past the project length (x pitch)', 0, 0.8, 0.01],
   ['morphSec', 'Toggle morph (s)', 0.2, 2.5, 0.05], ['morphStagger', 'Toggle stagger (s)', 0, 1, 0.01], ['morphEase', 'Toggle ease exponent', 1, 6, 0.1], ['seed', 'Layout seed (reload)', 1, 999, 1],
 ];
 const RELOAD = [

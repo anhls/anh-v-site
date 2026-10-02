@@ -9,7 +9,7 @@ import { capW } from './scale.js';
 import { initNav } from './effects/nav.js';
 import { createCardsGL } from './effects/cards-gl.js';
 import { imgAttrs } from './util/media.js';
-import { buildProjectCards, placeCards } from './work/cards.js';
+import { buildProjectCards, placeCards, balanceDark } from './work/cards.js';
 
 // Work page (R23, R23b). A strip of the projects' main images, endless, driven by Lenis (infinite mode: the page itself never moves, its
 // scroll value is only read). Every project's image owns its cards along its two edges (src/work/cards.js). Everything is drawn by the
@@ -81,14 +81,18 @@ const LAY = { side: null, vertical: null }; // { M, pitch, period, pos[] (per it
 const vis = new Uint8Array(n); // item shown (DOM visibility)
 const nearArr = new Uint8Array(n); // item within 0.8 of a view length of the centre along the strip: its picture is requested at once; the rest follow when idle (below)
 const activate = (it) => { if (it.active) return; it.active = true; const d = it.img.dataset; if (d.srcset) it.img.srcset = d.srcset; it.img.src = d.src; };
+let gl = null; // the card canvas (created below)
+let fine = false;
 const layouts = () => {
   W = innerWidth; H = innerHeight; scale = capW() / 1920;
   const fw = (WORK.frameW * W) / 100, fh = (WORK.frameH * H) / 100;
+  const placedAll = {};
   for (const mode of ['side', 'vertical']) {
     const v = mode === 'vertical';
     const M = { vertical: v, alongF: v ? fh : fw, crossF: v ? fw : fh, scale, gap: v ? (WORK.gapVert * H) / 100 : (WORK.gapSide * W) / 100, gapPx: (WORK.dupGap * (v ? H : W)) / 100, viewAlong: v ? H : W, viewCross: v ? W : H };
     const pitch = M.alongF + M.gap;
     const placed = placeCards(projCards, M);
+    placedAll[mode] = placed;
     const pos = items.map((it) => {
       if (it.kind === 'frame') return { along: it.proj * pitch, cross: 0, alongSize: M.alongF, crossSize: M.crossF };
       const p = placed[it.proj][it.j];
@@ -96,7 +100,9 @@ const layouts = () => {
     });
     LAY[mode] = { M, pitch, period: N * pitch, pos };
   }
+  balanceDark(projCards, [placedAll.side, placedAll.vertical]); // dark runs <= 2 along the strip in both modes
   items.forEach((it, i) => {
+    if (it.kind === 'card') { it.dark = it.card.dark; if (gl) { gl.darkCard[i] = it.dark; gl.hd[i] = it.dark && fine ? CARD_HOVER.darkRest : 0; } }
     const w = it.kind === 'frame' ? fw : it.card.w * scale;
     const h = it.kind === 'frame' ? fh : it.card.h * scale;
     bw[i] = w; bh[i] = h;
@@ -115,8 +121,7 @@ const syncWarp = () => {
   bendP.settleSpeed = 7 / Math.max(WORK.warpSettleSec, 0.02);
 };
 syncWarp();
-const fine = matchMedia('(pointer: fine)').matches && !reduced;
-let gl = null;
+fine = matchMedia('(pointer: fine)').matches && !reduced;
 let glOn = false;
 {
   const fallback = () => { glOn = false; root.classList.remove('work--gl'); gl?.destroy?.(); gl = null; };
@@ -139,7 +144,19 @@ const hp = new Float64Array(n), hv = new Float64Array(n); // hover progress (cri
 if (fine) items.forEach((it, i) => { if (it.kind !== 'card') return; it.el.addEventListener('pointerenter', () => { hov = i; }); it.el.addEventListener('pointerleave', () => { if (hov === i) hov = -1; }); });
 
 // ---- strip maths
-let off = 0; // strip position S = Lenis value * wheel + off (changes on a mode switch / resize so the same project stays centred)
+// R23c: Lenis' infinite mode re-bases its scroll value by its `limit` now and then (after a pause in the wheel, when the real page
+// scroll position wraps), which made S, and with it the counter and the whole strip, jump back. So the strip never reads the raw value: it
+// accumulates the CHANGE of it (a change of about a whole `limit` is the re-base, not movement) into `virt`, which only ever follows the wheel.
+let virt = 0, rawPrev = lenis.animatedScroll;
+const advance = () => {
+  const raw = lenis.animatedScroll;
+  let d = raw - rawPrev;
+  rawPrev = raw;
+  const lim = lenis.limit;
+  if (lim > 0 && Math.abs(d) > lim / 2) d -= Math.round(d / lim) * lim;
+  virt += d;
+};
+let off = 0; // strip position S = virt * wheel + off (changes on a mode switch / resize so the same project stays centred)
 let S = 0, prevS = 0;
 const wrap = (v, P) => ((((v + P / 2) % P) + P) % P) - P / 2;
 const out = { x: 0, y: 0, d: 0 };
@@ -160,12 +177,14 @@ let morph = null; // { from, to, SA, SB, t0, delay[] }
 const counterRect = { x: 0, y: 0, w: 0, h: 0 };
 let counterHidden = false;
 let lastIdx = -1;
+let kCount = 0; // the counter's project index (unwrapped)
 let lastDirty = 0;
 
 const tick = (_time, deltaMs) => {
   const dt = Math.min(deltaMs, 50) / 1000;
   const now = performance.now();
-  S = lenis.animatedScroll * WORK.wheel + off;
+  advance();
+  S = virt * WORK.wheel + off;
   let vel = (S - prevS) / Math.max(dt, 1e-3);
   prevS = S;
   if (Math.abs(vel) > 20000 || morph) vel = 0;
@@ -237,7 +256,11 @@ const tick = (_time, deltaMs) => {
     if (Math.abs(bx[i] - counterRect.x) < bw[i] / 2 + counterRect.w / 2 && Math.abs(by[i] - counterRect.y) < bh[i] / 2 + counterRect.h / 2) hit = true;
   }
   if (hit !== counterHidden) { counterHidden = hit; countEl.classList.toggle('is-hidden', hit); }
-  const idx = ((Math.round((morph ? sB : S) / (morph ? LB : L).pitch) % N) + N) % N;
+  // the counter: the unwrapped nearest project, with hysteresis (another project must be clearly nearer before it changes)
+  const pitchNow = (morph ? LB : L).pitch;
+  const pos = (morph ? sB : S) / pitchNow;
+  if (morph || Math.abs(pos - kCount) > 0.58) kCount = Math.round(pos);
+  const idx = ((kCount % N) + N) % N;
   if (idx !== lastIdx) { lastIdx = idx; countEl.textContent = `${String(idx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`; }
 
   if (glOn) {
@@ -266,7 +289,8 @@ function finishMorph() {
   const m = morph;
   morph = null;
   commit(m.to);
-  off = m.SB - lenis.animatedScroll * WORK.wheel;
+  advance();
+  off = m.SB - virt * WORK.wheel;
   lenis.start();
   prevS = m.SB;
   root.classList.remove('is-morphing');
@@ -286,6 +310,7 @@ const setMode = (mode) => {
     setTimeout(() => {
       commit(mode);
       off += kProj * LAY[mode].pitch - S;
+      kCount = kProj;
       stage.classList.remove('is-switching');
       fading = false;
     }, 200);
@@ -305,9 +330,9 @@ addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(relayout, 1
 
 commit(vertical ? 'vertical' : 'side');
 measureCounter();
-initNav(data.hero.wordmark, lenis, { gateFrame: false, position: () => Math.abs(lenis.animatedScroll) });
+initNav(data.hero.wordmark, lenis, { gateFrame: false, position: () => Math.abs(virt) });
 document.title = 'Work | Anh V';
 if (import.meta.env.DEV) {
-  window.__work = { setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, bx, by, bw, bh, vis, hp };
+  window.__work = { setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, bx, by, bw, bh, vis, hp };
   if (params.has('tune')) import('./work/tune.js').then((m) => m.mountWorkTune({ relayout }));
 }
