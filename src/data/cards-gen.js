@@ -7,7 +7,8 @@
 // (INDEX.swap), so each indexed project gets a band of start y (vh from the section top) where its title is the one showing at the
 // centre; projects without a title in the index (and extras with no project) go in the two swap zones, where one title slides out
 // and the next in.
-import { POOL, CARD_SIZE, INDEX, CARD_LAYOUT } from '../timeline.js';
+import { POOL, CARD_SIZE, INDEX, CARD_LAYOUT, BAND_LIMITS, BAND_RULES, CARD_HOVER, LAYOUT } from '../timeline.js';
+import { generateLayout } from './layout.js';
 import { scrollPx, dist } from '../scale.js';
 
 function rng(seed) {
@@ -34,26 +35,6 @@ export function cardBands(rows) {
   return { bands, zones };
 }
 
-// How many cards each group gets: in proportion to its weight (its scroll length), no more than it has, the leftover shared on.
-function quotas(counts, weights, total) {
-  const q = counts.map(() => 0);
-  let left = total;
-  while (left > 0) {
-    const open = counts.map((c, i) => i).filter((i) => q[i] < counts[i]);
-    if (!open.length) break;
-    const wsum = open.reduce((a, i) => a + weights[i], 0);
-    const share = open.map((i) => Math.min(counts[i] - q[i], Math.floor((left * weights[i]) / wsum)));
-    let gave = share.reduce((a, b) => a + b, 0);
-    open.forEach((i, k) => { q[i] += share[k]; });
-    left -= gave;
-    if (gave === 0) { // rounding: one card to the open group furthest below its share
-      const i = open.reduce((m, j) => (weights[j] / (q[j] + 1) > weights[m] / (q[m] + 1) ? j : m));
-      q[i]++; left--;
-    }
-  }
-  return q;
-}
-
 // Fit the image's own ratio (clamped to maxRatio, the rest is cropped by cover) inside the tier box; short side >= minShort.
 function fit(srcW, srcH, box) {
   let r = srcW / srcH;
@@ -65,45 +46,159 @@ function fit(srcW, srcH, box) {
   return { w: Math.round(w), h: Math.round(h) };
 }
 
+// The five bands in page order: row 1, swap zone 1, row 2, swap zone 2, row 3 (limits from BAND_LIMITS, same order).
+function bandList(rows) {
+  const { bands, zones } = cardBands(rows);
+  const out = [];
+  bands.forEach((b, i) => {
+    out.push({ kind: 'row', slug: b.slug, lo: b.lo, hi: b.hi });
+    if (zones[i]) out.push({ kind: 'zone', slug: null, lo: zones[i][0], hi: zones[i][1] });
+  });
+  out.forEach((b, i) => { b.limits = BAND_LIMITS[i] || { minN: 0, maxN: Infinity, minA: 0, maxA: Infinity }; });
+  return out;
+}
+
+const area = (c) => c.w * c.h;
+const sum = (list) => list.reduce((a, c) => a + area(c), 0);
+const TIER_MOUSE = [[20, 25], [50, 75], [100, 100]];
+
+function setTier(c, e, tier, mouse) {
+  const { w, h } = fit(e.w, e.h, CARD_SIZE.tiers[tier]);
+  Object.assign(c, { tier, w, h, mouse, z: tier === 2 ? 5 : mouse === 20 ? 2 : 3 }); // small back cards z 2, the rest 3, large front cards 5
+}
+
+// One card from an image: tier, size, depth and start x from the image's own hash (salt makes a duplicate differ from its twin).
+function makeCard(e, band, seed, salt = 0) {
+  const r = rng(mix(e.hash, seed + 7 + salt * 977));
+  const t = r();
+  const tier = t < CARD_SIZE.weights[0] ? 0 : t < CARD_SIZE.weights[0] + CARD_SIZE.weights[1] ? 1 : 2;
+  const mouse = TIER_MOUSE[tier][r() < 0.5 ? 0 : 1];
+  const c = { id: 0, slug: e.slug, key: e.key, hash: e.hash, band, dup: false, dark: false, scroll: true, src: `/media/${e.key}.webp`, srcSize: { w: e.w, h: e.h } };
+  setTier(c, e, tier, mouse);
+  c.x = (r() < 0.5 ? -1 : 1) * (CARD_SIZE.xMin + r() * (CARD_SIZE.xMax - CARD_SIZE.xMin));
+  const ry = rng(mix(e.hash, seed + 11 + salt * 977));
+  c.y = band.lo + ry() * (band.hi - band.lo);
+  c.yMin = band.lo - CARD_SIZE.bandSlack;
+  c.yMax = band.hi + CARD_SIZE.bandSlack;
+  return c;
+}
+
+const warn = (...a) => { if (import.meta.env?.DEV) console.warn('[cards]', ...a); };
+
 export function generateCards(allPool, rows = [], seed = POOL.seed, count = POOL.count) {
   // R22b: only featured images (src/data/selected.json, marked by tools/work-pool.mjs); none featured = the whole pool
   let pool = allPool.filter((e) => e.selected);
-  if (!pool.length) { pool = allPool; if (import.meta.env?.DEV) console.warn('selected.json is empty or missing: Selected Work uses the whole pool'); }
-  // 1. picks: groups = the indexed projects (own band each) + everything else (the swap zones); images ranked by their seeded
-  // hash, each group's share (by band length) taken from the top. Not forced to be even.
-  const { bands, zones } = cardBands(rows);
-  const zoneLen = zones.reduce((a, z) => a + z[1] - z[0], 0);
-  const groups = [...bands.map((b) => ({ band: b, items: pool.filter((e) => e.slug === b.slug), w: b.hi - b.lo })), { band: null, items: pool.filter((e) => !rows.includes(e.slug)), w: zoneLen || 1 }];
-  groups.forEach((g) => g.items.sort((a, b) => mix(a.hash, seed) - mix(b.hash, seed)));
-  const q = quotas(groups.map((g) => g.items.length), groups.map((g) => g.w), Math.min(count, pool.length));
-  const picked = groups.flatMap((g, i) => g.items.slice(0, q[i]).map((e) => ({ e, band: g.band })));
+  if (!pool.length) { pool = allPool; warn('selected.json is empty or missing: Selected Work uses the whole pool'); }
+  const bands = bandList(rows);
+  const rank = (e, salt) => mix(e.hash, seed + salt);
 
-  // 2. each card from its own hash
-  const cards = picked.map(({ e, band }) => {
-    const r = rng(mix(e.hash, seed + 7));
-    const t = r();
-    const tier = t < CARD_SIZE.weights[0] ? 0 : t < CARD_SIZE.weights[0] + CARD_SIZE.weights[1] ? 1 : 2;
-    const { w, h } = fit(e.w, e.h, CARD_SIZE.tiers[tier]);
-    const mouse = [[20, 25], [50, 75], [100, 100]][tier][r() < 0.5 ? 0 : 1];
-    return {
-      id: 0, slug: e.slug, key: e.key, tier, w, h, mouse, scroll: true,
-      z: tier === 2 ? 5 : mouse === 20 ? 2 : 3, // small back cards z 2, the rest 3, large front cards 5 (as before)
-      dark: e.lum < CARD_SIZE.darkLum,
-      src: `/media/${e.key}.webp`,
-      x: (r() < 0.5 ? -1 : 1) * (CARD_SIZE.xMin + r() * (CARD_SIZE.xMax - CARD_SIZE.xMin)),
-      y: 0, yMin: 0, yMax: 0,
-    };
-  });
-  // start y inside the card's own band (small slack so layout may drift it a little over the edge), or in one of the swap zones
-  cards.forEach((c, i) => {
-    const r = rng(mix(picked[i].e.hash, seed + 11));
-    const [lo, hi] = picked[i].band ? [picked[i].band.lo, picked[i].band.hi] : zones.length ? zones[Math.floor(r() * zones.length)] : [CARD_SIZE.yTop, CARD_SIZE.yBottom];
-    c.y = lo + r() * (hi - lo);
-    c.yMin = lo - CARD_SIZE.bandSlack;
-    c.yMax = hi + CARD_SIZE.bandSlack;
-  });
+  // 1. images -> bands: an indexed project's images go to its band; the rest (no title in the index) alternate over the swap zones
+  const zoneBands = bands.filter((b) => b.kind === 'zone');
+  const imgs = new Map(bands.map((b) => [b, []]));
+  pool.filter((e) => rows.includes(e.slug)).forEach((e) => imgs.get(bands.find((b) => b.slug === e.slug)).push(e));
+  pool.filter((e) => !rows.includes(e.slug)).sort((a, b) => rank(a, 5) - rank(b, 5)).forEach((e, k) => { if (zoneBands.length) imgs.get(zoneBands[k % zoneBands.length]).push(e); });
 
+  let cards = [];
+  for (const b of bands) {
+    const lim = b.limits;
+    const list = imgs.get(b).map((e) => makeCard(e, b, seed));
+    // 2. too many (count or area): drop by the seeded hash (the max wins over the min; the top-up below may add a duplicate back)
+    list.sort((p, q) => rank(p, 31) - rank(q, 31));
+    while (list.length > 1 && (list.length > lim.maxN || sum(list) > lim.maxA)) list.pop();
+    // 3. too few (count or area): duplicates of the band's own images, one per image at most, within the maxima
+    const base = list.slice();
+    if (base.length * 2 < lim.minN) warn(`band ${b.slug || 'swap zone'}: ${base.length} featured image(s) for a min of ${lim.minN}, at most one duplicate each`);
+    for (const twin of base) {
+      if ((list.length >= lim.minN && sum(list) >= lim.minA) || list.length >= lim.maxN) break;
+      const e = { hash: twin.hash, key: twin.key, slug: twin.slug, w: twin.srcSize.w, h: twin.srcSize.h };
+      const d = makeCard(e, b, seed, 1);
+      const others = [0, 1, 2].filter((t) => t !== twin.tier);
+      const tier = others[Math.floor(rng(mix(twin.hash, seed + 61))() * others.length)];
+      setTier(d, e, tier, TIER_MOUSE[tier][rng(mix(twin.hash, seed + 62))() < 0.5 ? 0 : 1]);
+      if (sum(list) + area(d) > lim.maxA) continue;
+      // opposite side, >= dupMinGapVh apart along y (the pair is pinned in y and side so the layout cannot undo it)
+      const gap = BAND_RULES.dupMinGapVh;
+      const ry = rng(mix(twin.hash, seed + 63));
+      let up = ry() < 0.5;
+      const room = (dir) => (dir ? twin.yMax - twin.y : twin.y - twin.yMin);
+      if (room(up) < gap && room(!up) >= gap) up = !up;
+      if (room(up) < gap) twin.y = up ? twin.yMin : twin.yMax; // neither way fits: the twin goes to the far edge of the band
+      d.y = up ? Math.min(twin.y + gap + ry() * Math.max(0, twin.yMax - twin.y - gap), twin.yMax) : Math.max(twin.y - gap - ry() * Math.max(0, twin.y - gap - twin.yMin), twin.yMin);
+      d.x = -Math.sign(twin.x) * Math.abs(d.x);
+      d.dup = true; d.dark = true; d.twin = twin;
+      twin.pinY = d.pinY = true; twin.keepSide = d.keepSide = true; twin.hasDup = true;
+      list.push(d);
+    }
+    if (list.length < lim.minN) warn(`band ${b.slug || 'swap zone'}: ${list.length} cards, min ${lim.minN} (stills ran out)`);
+    cards.push(...list);
+  }
+  // total cap (POOL.count): drop the lowest-priority originals by hash, never a pair member
+  if (cards.length > count) {
+    const drop = cards.filter((c) => !c.dup && !c.hasDup).sort((a, b) => rank(b, 71) - rank(a, 71)).slice(0, cards.length - count);
+    cards = cards.filter((c) => !drop.includes(c));
+  }
+
+  // Order and ids first: the layout (scatter + relaxation, layout.js) works per card index, and steps 4 and 5 look at where it puts the cards.
   cards.sort((a, b) => a.y - b.y);
   cards.forEach((c, i) => { c.id = i + 1; });
+  const layout = () => generateLayout(cards, { ...LAYOUT, seed: LAYOUT.seed + seed });
+
+  // 4. even sides inside each band, on the laid-out positions: left and right differ by at most 1 per band and by at most
+  // sideSliceMax in any slice of sideSlice cards (y order). The card flipped is the one whose flip costs least (smallest |x| =
+  // smallest shift); duplicate pairs stay put. The layout is re-run after every flip (deterministic, a fraction of a millisecond).
+  // violation score of a band: how far left minus right is over 1 for the whole band (x10), plus how far it is over sideSliceMax in each slice
+  const score = (signs) => {
+    let sc = Math.max(0, Math.abs(signs.reduce((a, v) => a + v, 0)) - 1) * 10;
+    for (let i = 0; i + BAND_RULES.sideSlice <= signs.length; i++) sc += Math.max(0, Math.abs(signs.slice(i, i + BAND_RULES.sideSlice).reduce((a, v) => a + v, 0)) - BAND_RULES.sideSliceMax);
+    return sc;
+  };
+  for (let it = 0; it < 200; it++) { // one flip per round (a flip can move other cards through the relaxation), until every band passes
+    const pos = layout();
+    let flipped = false;
+    for (const b of bands) {
+      const list = cards.map((c, i) => ({ c, i })).filter((o) => o.c.band === b).sort((p, q) => pos[p.i].y - pos[q.i].y);
+      const signs = list.map((o) => (pos[o.i].x < 0 ? -1 : 1));
+      const now = score(signs);
+      if (!now) continue;
+      // the flip (of a card that may move) that lowers the score most; ties: the cheapest one (smallest |x|)
+      let best = null;
+      list.forEach((o, k) => {
+        if (o.c.keepSide) return;
+        signs[k] = -signs[k];
+        const sc = score(signs);
+        signs[k] = -signs[k];
+        if (sc < now && (!best || sc < best.sc || (sc === best.sc && Math.abs(pos[o.i].x) < Math.abs(pos[best.o.i].x)))) best = { o, sc };
+      });
+      if (best) { best.o.c.x = -best.o.c.x; flipped = true; break; }
+    }
+    if (!flipped) break;
+  }
+  const finalPos = layout();
+  cards.forEach((c, i) => { c.py = finalPos[i].y; });
+
+  // 5. dark rest layer: a seeded draw per card (not the image's brightness). Duplicates are always dark; the others are drawn so the
+  // overall share lands near CARD_HOVER.darkShare, and no more than maxDarkRun in a row in y order inside a band (duplicates skipped).
+  const others = cards.filter((c) => !c.dup);
+  const nDup = cards.length - others.length;
+  const need = Math.max(0, Math.min(others.length, Math.round(CARD_HOVER.darkShare * cards.length) - nDup));
+  const byRank = others.slice().sort((p, q) => rank(p, 53) - rank(q, 53));
+  others.forEach((c) => { c.dark = false; });
+  byRank.slice(0, need).forEach((c) => { c.dark = true; });
+  const runBreak = (b) => { // the first card that makes a run longer than maxDarkRun, or null
+    const l = others.filter((c) => c.band === b).sort((p, q) => p.py - q.py);
+    let run = 0;
+    for (const c of l) { run = c.dark ? run + 1 : 0; if (run > BAND_RULES.maxDarkRun) return c; }
+    return null;
+  };
+  for (const b of bands) {
+    for (let it = 0; it < 40; it++) {
+      const bad = runBreak(b);
+      if (!bad) break;
+      bad.dark = false;
+      // darken the best-ranked light card elsewhere if that makes no new run; otherwise the share just ends a little lower
+      byRank.find((c) => { if (c.dark || c === bad) return false; c.dark = true; if (runBreak(c.band)) { c.dark = false; return false; } return true; });
+    }
+  }
+
   return cards;
 }

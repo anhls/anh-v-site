@@ -30,11 +30,11 @@ export function generateLayout(cards, P) {
     // five draws per card, always, so changing one parameter does not reshuffle the others
     const r1 = rand(), r2 = rand(), r3 = rand(), r4 = rand(), r5 = rand();
     side[i] = c.x < 0 ? -1 : 1;
-    const centre = r3 < P.centreShare;
+    const centre = r3 < P.centreShare && !c.keepSide; // keepSide: a duplicate pair stays on opposite sides of the line
     // pulled cards start between 15% across the line and centreBand out from it
-    x[i] = centre ? side[i] * (r4 * 1.15 * P.centreBand - 0.15 * P.centreBand) : c.x + (r1 * 2 - 1) * P.scatter;
+    x[i] = centre ? side[i] * Math.max(r4 * 1.15 * P.centreBand - 0.15 * P.centreBand, 20) : c.x + (r1 * 2 - 1) * P.scatter;
     x[i] = Math.max(-X_LIMIT, Math.min(X_LIMIT, x[i]));
-    y[i] = clampY(c, c.y + (r2 * 2 - 1) * P.yJitter);
+    y[i] = clampY(c, c.pinY ? c.y : c.y + (r2 * 2 - 1) * P.yJitter); // pinY: a duplicate pair keeps its vertical distance
     void r5; // spare draw
   });
 
@@ -50,16 +50,17 @@ export function generateLayout(cards, P) {
         const oy = (cards[i].h + cards[j].h) / 2 + P.minGap - Math.abs(dy);
         if (ox <= 0 || oy <= 0) continue;
         moved = true;
-        if (ox < oy * 1.6) { // sideways is cheaper, and keeps the vertical order
+        const pi = cards[i].pinY, pj = cards[j].pinY;
+        if (ox < oy * 1.6 || (pi && pj)) { // sideways is cheaper, and keeps the vertical order
           const s = dx === 0 ? (side[j] || 1) : Math.sign(dx);
           x[i] -= (s * ox) / 2; x[j] += (s * ox) / 2;
         } else {
           const s = dy === 0 ? 1 : Math.sign(dy);
-          y[i] -= (s * oy) / 2 / VH; y[j] += (s * oy) / 2 / VH;
+          if (pi) y[j] += (s * oy) / VH; else if (pj) y[i] -= (s * oy) / VH; else { y[i] -= (s * oy) / 2 / VH; y[j] += (s * oy) / 2 / VH; }
         }
       }
     }
-    for (let i = 0; i < n; i++) { x[i] = Math.max(-X_LIMIT, Math.min(X_LIMIT, x[i])); y[i] = clampY(cards[i], y[i]); }
+    for (let i = 0; i < n; i++) { x[i] = Math.max(-X_LIMIT, Math.min(X_LIMIT, x[i])); if (Math.sign(x[i]) !== side[i]) x[i] = side[i] * 40; /* R22d: a card keeps its side of the line */ y[i] = clampY(cards[i], y[i]); }
     if (!moved) break;
   }
   return cards.map((_, i) => ({ x: Math.round(x[i] * 10) / 10, y: Math.round(y[i] * 1000) / 1000 }));

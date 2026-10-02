@@ -1,4 +1,4 @@
-import { POOL, CARDS, TRAIL, LAYOUT, BEND, WARP, FRAME_WARP, CARD_HOVER, CAPTION_HOVER } from '../timeline.js';
+import { POOL, BAND_LIMITS, CARDS, TRAIL, LAYOUT, BEND, WARP, FRAME_WARP, CARD_HOVER, CAPTION_HOVER } from '../timeline.js';
 
 // Dev-only tuning panel (Selected Work cards, card layout, hero trail). Opens with ?tune in the URL; main.js imports this
 // file only when import.meta.env.DEV is true, so it is never part of the production build. Sliders write straight into the
@@ -39,7 +39,15 @@ const LAYOUT_SLIDERS = [
   ['minGap', 'Minimum gap (px)', 0, 120, 1, 'Space kept between cards on neighbouring depths. Different depths may overlap.'],
   ['yJitter', 'Vertical jitter (vh)', 0, 30, 0.5, 'How far a card may move up or down.'],
 ];
+const BAND_SLIDERS = [
+  ['minN', 'min cards', 0, 20, 1, 'R22d. Under this (count or area) the band is topped up with duplicates of its own featured images.'],
+  ['maxN', 'max cards', 1, 30, 1, 'R22d. Over this the extra cards are dropped (seeded hash).'],
+  ['minA', 'min area (px2 at 1920)', 0, 1500000, 10000, 'R22d. Total card area; under it the band is topped up with duplicates.'],
+  ['maxA', 'max area (px2 at 1920)', 100000, 2000000, 10000, 'R22d. Total card area; over it the extra cards are dropped.'],
+];
+const BAND_NAMES = ['Techcombank', 'Swap zone 1', 'Bitis', 'Swap zone 2', 'Sulwhasoo'];
 const HOVER_SLIDERS = [
+  ['darkShare', 'Dark rest layer: share of cards', 0, 1, 0.01, 'R22d. Share of the cards covered at rest (seeded draw; duplicates are always covered). Applies after Apply (reload).'],
   ['scale', 'Hover scale', 1, 1.6, 0.01, 'R17. How much the hovered card grows (live: 1.2).'],
   ['stiffness', 'Hover spring stiffness', 40, 800, 5, 'R17. Speed of the hover in / out (live fits to about 250, critically damped). Higher = faster.'],
   ['damping', 'Hover spring damping', 5, 80, 0.5, 'R17. Live fits to about 31.6 (no overshoot). Lower = a little bounce.'],
@@ -133,6 +141,7 @@ export function mountTunePanel({ trail, cards } = {}) {
   const DEFS = {};
   const reg = (group, obj, defs) => defs.forEach((d) => { DEFS[`${group}.${d[0]}`] = [obj, d]; });
   reg('WARP', WARP, WARP_SLIDERS); reg('FRAME', FRAME_WARP, FRAME_SLIDERS); reg('BEND', BEND, BEND_SLIDERS); reg('CARDS', CARDS, CARD_SLIDERS); reg('HOVER', CARD_HOVER, HOVER_SLIDERS);
+  BAND_LIMITS.forEach((lim, i) => reg('BAND' + i, lim, BAND_SLIDERS.map((d) => [d[0], `${BAND_NAMES[i]}: ${d[1]}`, ...d.slice(2)])));
   reg('CAPTION', CAPTION_HOVER, CAPTION_SLIDERS); reg('LAYOUT', LAYOUT, LAYOUT_SLIDERS); reg('TRAIL', TRAIL, TRAIL_SLIDERS);
 
   const section = (title, ids, { open = false, note = '', onInput, extra } = {}) => {
@@ -172,6 +181,7 @@ export function mountTunePanel({ trail, cards } = {}) {
   const showSeed = () => { seedEl.textContent = `seed ${LAYOUT.seed}`; };
   showSeed();
   layout.querySelector('[data-pool-seed]').value = POOL.seed;
+  section('Card bands + dark share (Apply reloads)', ['HOVER.darkShare', ...BAND_LIMITS.flatMap((_, i) => BAND_SLIDERS.map((d) => `BAND${i}.${d[0]}`))], { note: 'Cards per band of the Selected Work (limits from the old layout). Move the sliders, then press Apply: the cards are generated again on reload.', extra: '<button data-act="poolseed" style="padding:5px 10px;cursor:pointer;margin-bottom:8px">Apply (reload)</button>' });
   section('Captions (hero)', ['CAPTION.revealSec', 'CAPTION.hideSec', 'CAPTION.fromScale', 'CAPTION.lineInSec', 'CAPTION.textOutSec'], { note: 'Scroll to the top of the page and hover a caption.' });
   const trailSec = section('Hero image trail', ['TRAIL.frequency', 'TRAIL.visibleFor', 'TRAIL.startMaskShare', 'TRAIL.fadeAtScreen', 'TRAIL.fadeLenVh', 'TRAIL.fadeCurve', 'TRAIL.minScale'], { onInput: () => { trail?.remeasure(); showPts(); }, extra: '<div data-trail-pts style="opacity:.7;margin:2px 0 8px"></div>' });
   const pts = trailSec.querySelector('[data-trail-pts]');
@@ -190,7 +200,9 @@ export function mountTunePanel({ trail, cards } = {}) {
       e.target.textContent = hidden ? 'hide' : 'show';
     } else if (act === 'poolseed') {
       const u = new URL(location.href);
-      u.searchParams.set('seed', box.querySelector('[data-pool-seed]').value || '1');
+      u.searchParams.set('seed', box.querySelector('[data-pool-seed]').value || POOL.seed);
+      u.searchParams.set('dark', CARD_HOVER.darkShare);
+      u.searchParams.set('limits', JSON.stringify(BAND_LIMITS));
       location.href = u.href;
     } else if (act === 'shuffle') {
       LAYOUT.seed = Math.floor(Math.random() * 100000);
