@@ -36,7 +36,7 @@ const frameGL = createFrameGL(hero.frame); // R16c: the centre frame's own canva
 buildAbout(app, data.about);
 buildPlaceholders(app);
 buildIndex(app, data.projects);
-const cardsApi = buildSelectedWork(app, generateCards(workPool));
+const cardsApi = buildSelectedWork(app, generateCards(workPool, data.projects.filter((p) => p.index).map((p) => p.slug)));
 buildMoreProjects(app, data.moreProjects);
 buildFooter(app, data.footer, lenis);
 initNav(data.hero.wordmark, lenis);

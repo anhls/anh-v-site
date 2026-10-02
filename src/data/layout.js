@@ -17,6 +17,9 @@ function rng(seed) {
   };
 }
 
+// R22c: a card may carry yMin / yMax (vh): its band plus a little slack, so jitter and relaxation cannot carry it into another project's band
+const clampY = (c, v) => Math.max(c.yMin ?? -Infinity, Math.min(c.yMax ?? Infinity, v));
+
 export function generateLayout(cards, P) {
   const rand = rng(Math.round(P.seed));
   const n = cards.length;
@@ -31,7 +34,7 @@ export function generateLayout(cards, P) {
     // pulled cards start between 15% across the line and centreBand out from it
     x[i] = centre ? side[i] * (r4 * 1.15 * P.centreBand - 0.15 * P.centreBand) : c.x + (r1 * 2 - 1) * P.scatter;
     x[i] = Math.max(-X_LIMIT, Math.min(X_LIMIT, x[i]));
-    y[i] = c.y + (r2 * 2 - 1) * P.yJitter;
+    y[i] = clampY(c, c.y + (r2 * 2 - 1) * P.yJitter);
     void r5; // spare draw
   });
 
@@ -56,7 +59,7 @@ export function generateLayout(cards, P) {
         }
       }
     }
-    for (let i = 0; i < n; i++) x[i] = Math.max(-X_LIMIT, Math.min(X_LIMIT, x[i]));
+    for (let i = 0; i < n; i++) { x[i] = Math.max(-X_LIMIT, Math.min(X_LIMIT, x[i])); y[i] = clampY(cards[i], y[i]); }
     if (!moved) break;
   }
   return cards.map((_, i) => ({ x: Math.round(x[i] * 10) / 10, y: Math.round(y[i] * 1000) / 1000 }));

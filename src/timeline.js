@@ -217,7 +217,7 @@ export const POOL = { seed: urlSeed !== null && urlSeed !== '' ? Number(urlSeed)
 export const CARD_SIZE = {
   tiers: [{ w: 200, h: 170 }, { w: 290, h: 250 }, { w: 384, h: 324 }],
   weights: [0.5, 0.35, 0.15], maxRatio: 2.2, minShort: 120, darkLum: 50,
-  xMin: 330, xMax: 1070, yTop: 78, yBottom: 363,
+  xMin: 330, xMax: 1070, yTop: 78, yBottom: 363, bandSlack: 6,
 };
 // Live's constants, fixed (not tunable): parting target = t * (0.01W + 0.19W * (1 - f)) * 1.1 sideways and
 // t * (0.01H + 0.29H * (1 - f)) * 1.1 down (live eases to them at 0.2 per 60 fps frame; we use the CARDS spring); a card is armed once 10% of it has been visible.
