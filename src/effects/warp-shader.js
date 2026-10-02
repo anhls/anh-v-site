@@ -37,6 +37,7 @@ uniform vec2 uBow;            // cylinder mode: dome depth while scrolling down 
 uniform vec4 uFrame;          // frame space: centre x, centre y, width, height in device px (width <= 0 = screen space, cylinder)
 uniform float uGrain;
 uniform float uSeed;
+uniform float uAxis;          // R23b: 1 = the cylinder turned 90 degrees (a horizontally scrolling strip); 0 = as before
 out vec4 o;
 float h(vec2 p) { vec3 q = fract(vec3(p.xyx) * 0.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
 void main() {
@@ -44,6 +45,7 @@ void main() {
   float fy = uRes.y - gl_FragCoord.y;                       // y down, device px
   vec2 p = fr ? vec2((gl_FragCoord.x - uFrame.x) / uFrame.z, (fy - uFrame.y) / uFrame.w)
               : vec2(gl_FragCoord.x / uRes.x - 0.5, fy / uRes.y - 0.5);   // centred, y down
+  if (uAxis > 0.5 && !fr) p = p.yx;
   float y0 = (1.0 - uShape.w) * 0.5;
   float side = p.y >= 0.0 ? 1.0 : -1.0;
   float a = abs(uAmt);
@@ -85,6 +87,7 @@ void main() {
       }
     }
   }
+  if (uAxis > 0.5 && !fr) q = q.yx;
   if (fr && uZoom > 1.0) q /= uZoom; // R16g cover zoom
   vec2 src = fr ? vec2((uFrame.x + q.x * uFrame.z) / uRes.x, (uFrame.y + q.y * uFrame.w) / uRes.y) : vec2(q.x + 0.5, q.y + 0.5); // y down, screen units
   vec2 uv = vec2((src.x + uMargin.x) / (1.0 + 2.0 * uMargin.x), (src.y + uMargin.y) / (1.0 + 2.0 * uMargin.y));

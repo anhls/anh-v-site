@@ -1,4 +1,4 @@
-import { BEND, WARP, WARP_DIR, CARD_HOVER } from '../timeline.js';
+import { BEND as BEND_DEF, WARP as WARP_DEF, WARP_DIR, CARD_HOVER } from '../timeline.js';
 import { weakDevice } from '../util/device.js';
 import { POST_VERT, POST_FRAG } from './warp-shader.js';
 import { cylinderMargins } from './warp-model.js';
@@ -54,7 +54,15 @@ const param = new URLSearchParams(location.search).get('gl');
 
 // els: the card elements (img / video); cards: data (z, w, h, mouse); arrays (shared with selected-work.js, filled by it): bx, by
 // (centre x / page y), bw, bh (px); the loop calls setOffset(i, x, y) for every card and then draw(...).
-export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
+// R23b: `bend` / `warp` (optional) replace the homepage BEND / WARP objects, so the Work page runs its own strength and timing through the
+// same renderer (read live: edit the objects and the next frame follows). BEND.riseSpeed / settleSpeed (optional) split the spring's natural
+// frequency: used while the warp is growing / while it eases back (default: returnSpeed for both). setAxis(1) turns the warp 90 degrees
+// (a horizontally scrolling strip: the cylinder bends around a vertical axis near the left / right edges). `near(i)` (optional) says
+// whether a card is close enough to be worth a texture (default: within 1.5 screen heights vertically, which suits the page scroll).
+export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, bend: bendOpt, warp: warpOpt, near: nearFn }) {
+  const BEND = bendOpt || BEND_DEF;
+  const WARP = warpOpt || WARP_DEF;
+  let axis = 0;
   if (param === '0' || (param !== '1' && (reduced || weakDevice(BEND.weakCores, BEND.weakMemoryGb)))) return null;
   const canvas = document.createElement('canvas');
   canvas.className = 'sw__gl';
@@ -78,7 +86,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
   gl.attachShader(post, compile(gl.FRAGMENT_SHADER, POST_FRAG));
   gl.linkProgram(post);
   const postOk = gl.getProgramParameter(post, gl.LINK_STATUS);
-  const P = Object.fromEntries(['uScene', 'uRes', 'uAmt', 'uShape', 'uMargin', 'uSym', 'uPinchDown', 'uBow', 'uFrame', 'uGrain', 'uSeed'].map((k) => [k, gl.getUniformLocation(post, k)]));
+  const P = Object.fromEntries(['uScene', 'uRes', 'uAmt', 'uShape', 'uMargin', 'uSym', 'uPinchDown', 'uBow', 'uFrame', 'uGrain', 'uSeed', 'uAxis'].map((k) => [k, gl.getUniformLocation(post, k)]));
   const emptyVao = gl.createVertexArray();
   // Offscreen buffers (made on first use, rebuilt on resize): a multisampled renderbuffer the cards are drawn into (same edge
   // quality as the canvas), resolved into a texture that the post shader samples.
@@ -90,8 +98,8 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
     const sMax = Math.max(WARP.strengthUp, WARP.strengthDown) * 1.2;
     const [fx, fy] = cylinderMargins(sMax, WARP.curl, WARP.camDown, WARP.reach, WARP.sym, WARP.bowDown);
     const [ux, uy] = cylinderMargins(sMax, WARP.curl, WARP.camUp, WARP.reach, WARP.sym, WARP.bowUp);
-    const my = Math.min(Math.ceil((Math.max(fy, uy) * H + 4) / 8) * 8, Math.round(H * 0.7));
-    const mx = Math.min(Math.ceil((Math.max(fx, ux) * W + 4) / 8) * 8, Math.round(W * 0.5));
+    const my = axis ? Math.min(Math.ceil((Math.max(fx, ux) * H + 4) / 8) * 8, Math.round(H * 0.5)) : Math.min(Math.ceil((Math.max(fy, uy) * H + 4) / 8) * 8, Math.round(H * 0.7));
+    const mx = axis ? Math.min(Math.ceil((Math.max(fy, uy) * W + 4) / 8) * 8, Math.round(W * 0.7)) : Math.min(Math.ceil((Math.max(fx, ux) * W + 4) / 8) * 8, Math.round(W * 0.5));
     return [mx, my];
   };
   const makeFb = () => {
@@ -330,6 +338,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
     gl.uniform4f(P.uFrame, 0, 0, 0, 0);
     gl.uniform1f(P.uGrain, grainAmt);
     gl.uniform1f(P.uSeed, seed);
+    gl.uniform1f(P.uAxis, axis);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     gl.enable(gl.BLEND);
     gl.useProgram(prog);
@@ -379,8 +388,8 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
     // Bend spring. target = tanh(speed / ref) signed; overshoot -> damping ratio (the usual 2nd-order step response).
     const os = Math.min(Math.max(BEND.overshoot, 0.001), 0.95);
     const zeta = -Math.log(os) / Math.sqrt(Math.PI * Math.PI + Math.log(os) ** 2);
-    const wn = BEND.returnSpeed;
     const target = Math.tanh((vel * BEND.sensitivity) / BEND.speedRef);
+    const wn = (Math.abs(target) > Math.abs(bend.x) ? BEND.riseSpeed : BEND.settleSpeed) ?? BEND.returnSpeed;
     const steps = Math.max(1, Math.ceil(dt / 0.004));
     const h = dt / steps;
     for (let s = 0; s < steps; s++) {
@@ -395,9 +404,9 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
     const reach = H * 1.5;
     for (let i = 0; i < n; i++) {
       const cy = by[i] - sy + oy[i];
-      const near = cy + bh[i] / 2 > -reach && cy - bh[i] / 2 < H + reach;
+      const near = nearFn ? nearFn(i) : cy + bh[i] / 2 > -reach && cy - bh[i] / 2 < H + reach;
       if (near) wantTexture(i);
-      else if (used > BEND.textureBudgetMb * 1048576 && (cy + bh[i] / 2 < -reach * 2 || cy - bh[i] / 2 > H + reach * 2)) release(i);
+      else if (used > BEND.textureBudgetMb * 1048576 && (nearFn || cy + bh[i] / 2 < -reach * 2 || cy - bh[i] / 2 > H + reach * 2)) release(i);
     }
     flushOne();
 
@@ -437,6 +446,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost }) {
     draw,
     show: (on) => { canvas.style.visibility = on ? 'visible' : 'hidden'; if (on) dirty = true; },
     markDirty: () => { dirty = true; },
+    setAxis: (a) => { axis = a ? 1 : 0; dirty = true; },
     reweigh: () => { computeWeights(); dirty = true; }, // after a depth-bell change in the tuning panel
     bend: () => bend,
     stats: () => ({ textureMb: used / 1048576, loaded: tex.filter(Boolean).length, bend: bend.x, bendRaw: bend.x }),

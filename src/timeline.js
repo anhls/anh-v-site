@@ -219,16 +219,23 @@ export const CARD_SIZE = {
   weights: [0.5, 0.35, 0.15], maxRatio: 2.2, minShort: 120,
   xMin: 330, xMax: 1070, yTop: 78, yBottom: 363, bandSlack: 6,
 };
-// R23 Work page (/work/). Sizes: frame w / h in vw / vh of the window (the same frame in both modes: along the strip it is w
-// for the side scroll and h for the vertical one); gapSide (vw) / gapVert (vh) = space between two frames, about 2 card widths /
-// heights; cards per gap cardsMin..cardsMax in two bands hugging the frame's two edges, overlapping the frame by overlapMin..Max of
-// the card's height (width in vertical mode). seed = layout of the gaps (each gap has its own, derived from it).
-// Wave (one shared function, src/work/wave.js): amplitude (vh), wavelength (share of the window along the strip), drift (cycles / s),
-// push (px at 1920: how far a crest moves the cards on its side away from the strip edge), pushSmooth (s). wheel = strip px per wheel px.
+// R23 / R23b Work page (/work/). Sizes: frame w / h in vw / vh of the window (the same frame in both modes: along the strip it is w
+// for the side scroll and h for the vertical one); gapSide (vw) / gapVert (vh) = the thin space between two frames (about 1-2 card
+// widths / heights; a card of a neighbour may overlap into it). Every project's frame owns its cards: they sit along its two edges
+// (top and bottom, or left and right in the vertical mode), overlapping the edge by overlapMin..Max of the card's size across the
+// strip, and may run past the ends of the frame by edgeReach x their own length. seed = layout (each project derives its own).
+// wheel = strip px per wheel px. Warp (the homepage cylinder warp, cards-gl.js, driven by the strip's speed): warpStrength (the
+// homepage WARP strength is 1.15), warpRiseSec / warpSettleSec = how fast it grows while moving / eases back flat after the wheel stops.
+// Toggle morph: morphSec (total), morphStagger (cards start up to this many s after the images), morphEase = ease-in-out exponent.
+// dupGap = the least distance (vw in the side mode, vh in the vertical one) between a duplicate and its twin.
 export const WORK = {
-  seed: 3, frameW: 34, frameH: 58, gapSide: 26, gapVert: 40, cardsMin: 4, cardsMax: 8, overlapMin: 0.1, overlapMax: 0.2,
-  amplitude: 3.4, wavelength: 0.62, drift: 0.07, push: 70, pushSmooth: 0.25, wheel: 1.1, bendSegments: 64,
+  seed: 3, frameW: 34, frameH: 58, gapSide: 16, gapVert: 26, overlapMin: 0.1, overlapMax: 0.2, edgeReach: 0.25, wheel: 1.1,
+  warpStrength: 1.15, warpRiseSec: 0.25, warpSettleSec: 0.7,
+  morphSec: 0.8, morphStagger: 0.25, morphEase: 3, dupGap: 40,
 };
+// Cards per project (R23b, the same rules as BAND_LIMITS on the homepage): count and total area (px2 at 1920) of the cards along one
+// project's edges. Over a max: dropped by the seeded hash; under a min: duplicates of the project's own images.
+export const WORK_LIMITS = (() => { try { const u = JSON.parse(urlParams.get('wlimits')); if (u && u.maxN) return u; } catch {} return { minN: 4, maxN: 8, minA: 150000, maxA: 420000 }; })(); // ?wlimits={...} overrides (tune panel)
 // R22d: cards per band (px2 at 1920, from the old curated layout: tools/band-limits.mjs, min 75% / max 130% of its count and area).
 // Order: Techcombank, swap zone 1, Bitis, swap zone 2, Sulwhasoo (the same five bands as cardBands() in cards-gen.js). Over a max
 // (count or area): extra cards are dropped by the seeded hash. Under a min: topped up with duplicates of the band's own featured
