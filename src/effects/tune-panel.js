@@ -1,4 +1,4 @@
-import { POOL, BAND_LIMITS, CARDS, TRAIL, LAYOUT, BEND, WARP, FRAME_WARP, CARD_HOVER, CAPTION_HOVER } from '../timeline.js';
+import { SCROLL, DEPTH, POOL, BAND_LIMITS, CARDS, TRAIL, LAYOUT, BEND, WARP, FRAME_WARP, CARD_HOVER, CAPTION_HOVER } from '../timeline.js';
 
 // Dev-only tuning panel (Selected Work cards, card layout, hero trail). Opens with ?tune in the URL; main.js imports this
 // file only when import.meta.env.DEV is true, so it is never part of the production build. Sliders write straight into the
@@ -45,6 +45,13 @@ const BAND_SLIDERS = [
   ['minA', 'min area (px2 at 1920)', 0, 1500000, 10000, 'R22d. Total card area; under it the band is topped up with duplicates.'],
   ['maxA', 'max area (px2 at 1920)', 100000, 2000000, 10000, 'R22d. Total card area; over it the extra cards are dropped.'],
 ];
+const SCROLL_SLIDERS = [
+  ['gainCap', 'Wheel acceleration: cap (1 = off)', 1, 5, 0.05, 'R23d. How many times further a wheel tick scrolls at full wheel speed (1 = linear, as before).'],
+  ['gainFrom', 'Acceleration starts at (px/s of wheel)', 100, 3000, 25, 'R23d. Wheel speed below this scrolls 1:1 (slow notches).'],
+  ['gainTo', 'Full acceleration at (px/s of wheel)', 500, 10000, 50, 'R23d. Wheel speed at which the cap is reached.'],
+  ['gainDecay', 'Speed hold / decay (s)', 0.05, 1.5, 0.01, 'R23d. How long the wheel-speed estimate is held after the wheel slows down.'],
+];
+const DEPTH_SLIDERS = [['frontShare', 'Cards in front of the centre frame (share)', 0, 1, 0.01, 'R23d. Share of the cards drawn in front of the frame (the rest behind). Applies after Apply (reload).']];
 const BAND_NAMES = ['Techcombank', 'Swap zone 1', 'Bitis', 'Swap zone 2', 'Sulwhasoo'];
 const HOVER_SLIDERS = [
   ['darkShare', 'Dark rest layer: share of cards', 0, 1, 0.01, 'R22d. Share of the cards covered at rest (seeded draw; duplicates are always covered). Applies after Apply (reload).'],
@@ -142,6 +149,7 @@ export function mountTunePanel({ trail, cards } = {}) {
   const reg = (group, obj, defs) => defs.forEach((d) => { DEFS[`${group}.${d[0]}`] = [obj, d]; });
   reg('WARP', WARP, WARP_SLIDERS); reg('FRAME', FRAME_WARP, FRAME_SLIDERS); reg('BEND', BEND, BEND_SLIDERS); reg('CARDS', CARDS, CARD_SLIDERS); reg('HOVER', CARD_HOVER, HOVER_SLIDERS);
   BAND_LIMITS.forEach((lim, i) => reg('BAND' + i, lim, BAND_SLIDERS.map((d) => [d[0], `${BAND_NAMES[i]}: ${d[1]}`, ...d.slice(2)])));
+  reg('SCROLL', SCROLL, SCROLL_SLIDERS); reg('DEPTH', DEPTH, DEPTH_SLIDERS);
   reg('CAPTION', CAPTION_HOVER, CAPTION_SLIDERS); reg('LAYOUT', LAYOUT, LAYOUT_SLIDERS); reg('TRAIL', TRAIL, TRAIL_SLIDERS);
 
   const section = (title, ids, { open = false, note = '', onInput, extra } = {}) => {
@@ -170,7 +178,7 @@ export function mountTunePanel({ trail, cards } = {}) {
   const syncReadouts = () => readouts.forEach((r) => { r.input.value = r.obj[r.key]; r.v.textContent = r.obj[r.key]; });
 
   section('Warp (scroll)', ['WARP.strengthUp', 'WARP.strengthDown', 'WARP.reach', 'WARP.curl', 'WARP.camDown', 'WARP.camUp', 'WARP.bowDown', 'WARP.sym', 'BEND.sensitivity', 'BEND.returnSpeed', 'BEND.overshoot'], { open: true, note: 'One distortion over all the cards. The last three (speed sensitivity, return speed, overshoot) are shared by both directions.' });
-  section('Frame warp (centre image, R16c)', ['FRAME.on', 'FRAME.strengthUp', 'FRAME.strengthDown', 'FRAME.reach', 'FRAME.sym', 'FRAME.threshold', 'FRAME.deadzone', 'FRAME.coverZoom', 'FRAME.videoMode', 'FRAME.fadeSec'], { note: 'Own strength / reach; the shape (curl, camera, bow) is the Warp section's, so the frame bends exactly like the cards. The speed spring is shared too.' });
+  section('Frame warp (centre image, R16c)', ['FRAME.on', 'FRAME.strengthUp', 'FRAME.strengthDown', 'FRAME.reach', 'FRAME.sym', 'FRAME.threshold', 'FRAME.deadzone', 'FRAME.coverZoom', 'FRAME.videoMode', 'FRAME.fadeSec'], { note: 'Own strength / reach; the shape (curl, camera, bow) is the Warp section (above), so the frame bends exactly like the cards. The speed spring is shared too.' });
   section('Grain', ['BEND.grain', 'BEND.grainSpeed']);
   section('Aura (around the frame)', ['CARDS.auraWeight', 'CARDS.auraMargin', 'CARDS.auraStrength', 'CARDS.auraVertical', 'CARDS.auraFalloff', 'CARDS.auraMinGap', 'CARDS.partingSoftness', 'CARDS.partingBounce']);
   section('Mouse (push + drift)', ['CARDS.pushRadius', 'CARDS.pushStrength', 'CARDS.pushFalloff', 'CARDS.pushStiffness', 'CARDS.pushDamping', 'CARDS.mouseStrength']);
@@ -181,7 +189,8 @@ export function mountTunePanel({ trail, cards } = {}) {
   const showSeed = () => { seedEl.textContent = `seed ${LAYOUT.seed}`; };
   showSeed();
   layout.querySelector('[data-pool-seed]').value = POOL.seed;
-  section('Card bands + dark share (Apply reloads)', ['HOVER.darkShare', ...BAND_LIMITS.flatMap((_, i) => BAND_SLIDERS.map((d) => `BAND${i}.${d[0]}`))], { note: 'Cards per band of the Selected Work (limits from the old layout). Move the sliders, then press Apply: the cards are generated again on reload.', extra: '<button data-act="poolseed" style="padding:5px 10px;cursor:pointer;margin-bottom:8px">Apply (reload)</button>' });
+  section('Scroll (wheel acceleration)', ['SCROLL.gainCap', 'SCROLL.gainFrom', 'SCROLL.gainTo', 'SCROLL.gainDecay'], { note: 'Applies to every page: the distance per wheel tick rises with the wheel speed. Cap 1 = linear.' });
+  section('Card bands + dark share (Apply reloads)', ['DEPTH.frontShare', 'HOVER.darkShare', ...BAND_LIMITS.flatMap((_, i) => BAND_SLIDERS.map((d) => `BAND${i}.${d[0]}`))], { note: 'Cards per band of the Selected Work (limits from the old layout). Move the sliders, then press Apply: the cards are generated again on reload.', extra: '<button data-act="poolseed" style="padding:5px 10px;cursor:pointer;margin-bottom:8px">Apply (reload)</button>' });
   section('Captions (hero)', ['CAPTION.revealSec', 'CAPTION.hideSec', 'CAPTION.fromScale', 'CAPTION.lineInSec', 'CAPTION.textOutSec'], { note: 'Scroll to the top of the page and hover a caption.' });
   const trailSec = section('Hero image trail', ['TRAIL.frequency', 'TRAIL.visibleFor', 'TRAIL.startMaskShare', 'TRAIL.fadeAtScreen', 'TRAIL.fadeLenVh', 'TRAIL.fadeCurve', 'TRAIL.minScale'], { onInput: () => { trail?.remeasure(); showPts(); }, extra: '<div data-trail-pts style="opacity:.7;margin:2px 0 8px"></div>' });
   const pts = trailSec.querySelector('[data-trail-pts]');
@@ -202,6 +211,7 @@ export function mountTunePanel({ trail, cards } = {}) {
       const u = new URL(location.href);
       u.searchParams.set('seed', box.querySelector('[data-pool-seed]').value || POOL.seed);
       u.searchParams.set('dark', CARD_HOVER.darkShare);
+      u.searchParams.set('front', DEPTH.frontShare);
       u.searchParams.set('limits', JSON.stringify(BAND_LIMITS));
       location.href = u.href;
     } else if (act === 'shuffle') {

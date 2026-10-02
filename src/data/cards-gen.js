@@ -9,6 +9,7 @@
 // and the next in.
 import { POOL, CARD_SIZE, INDEX, CARD_LAYOUT, BAND_LIMITS, BAND_RULES, CARD_HOVER, LAYOUT } from '../timeline.js';
 import { generateLayout } from './layout.js';
+import { cardDepth } from './depth.js';
 import { scrollPx, dist } from '../scale.js';
 
 export function rng(seed) {
@@ -60,11 +61,10 @@ function bandList(rows) {
 
 const area = (c) => c.w * c.h;
 const sum = (list) => list.reduce((a, c) => a + area(c), 0);
-const TIER_MOUSE = [[20, 25], [50, 75], [100, 100]];
 
-function setTier(c, e, tier, mouse) {
+function setTier(c, e, tier) {
   const { w, h } = fit(e.w, e.h, CARD_SIZE.tiers[tier]);
-  Object.assign(c, { tier, w, h, mouse, z: tier === 2 ? 5 : mouse === 20 ? 2 : 3 }); // small back cards z 2, the rest 3, large front cards 5
+  Object.assign(c, { tier, w, h }); // the depth (mouse, z) is the card's own seeded draw, not its size (R23d, depth.js)
 }
 
 // One card from an image: tier, size, depth and start x from the image's own hash (salt makes a duplicate differ from its twin).
@@ -72,9 +72,10 @@ function makeCard(e, band, seed, salt = 0) {
   const r = rng(mix(e.hash, seed + 7 + salt * 977));
   const t = r();
   const tier = t < CARD_SIZE.weights[0] ? 0 : t < CARD_SIZE.weights[0] + CARD_SIZE.weights[1] ? 1 : 2;
-  const mouse = TIER_MOUSE[tier][r() < 0.5 ? 0 : 1];
   const c = { id: 0, slug: e.slug, key: e.key, hash: e.hash, band, dup: false, dark: false, scroll: true, src: `/media/${e.key}.webp`, srcSize: { w: e.w, h: e.h } };
-  setTier(c, e, tier, mouse);
+  setTier(c, e, tier);
+  const dp = cardDepth(e.hash, seed + 3 + salt * 977);
+  Object.assign(c, { mouse: dp.mouse, z: dp.z, depth: dp.depth, front: dp.front });
   c.x = (r() < 0.5 ? -1 : 1) * (CARD_SIZE.xMin + r() * (CARD_SIZE.xMax - CARD_SIZE.xMin));
   const ry = rng(mix(e.hash, seed + 11 + salt * 977));
   c.y = band.lo + ry() * (band.hi - band.lo);
@@ -114,7 +115,7 @@ export function generateCards(allPool, rows = [], seed = POOL.seed, count = POOL
       const d = makeCard(e, b, seed, 1);
       const others = [0, 1, 2].filter((t) => t !== twin.tier);
       const tier = others[Math.floor(rng(mix(twin.hash, seed + 61))() * others.length)];
-      setTier(d, e, tier, TIER_MOUSE[tier][rng(mix(twin.hash, seed + 62))() < 0.5 ? 0 : 1]);
+      setTier(d, e, tier);
       if (sum(list) + area(d) > lim.maxA) continue;
       // opposite side, >= dupMinGapVh apart along y (the pair is pinned in y and side so the layout cannot undo it)
       const gap = BAND_RULES.dupMinGapVh;

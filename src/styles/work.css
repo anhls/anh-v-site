@@ -12,10 +12,14 @@
 .work--gl .work__item img { opacity: 0; } /* the canvas draws the pictures; the <img> stays as the click target, the hover target and the texture source */
 .work--gl .work__card:hover img { transform: none; }
 .work.is-morphing .work__item { pointer-events: none; }
-.work__count, .work__toggle { position: fixed; z-index: 8; bottom: calc(var(--uy, 1vh) * 3.2); font-size: 0.75rem; letter-spacing: 0.05em; color: #fff; mix-blend-mode: difference; }
-.work__count { left: 50%; transform: translateX(-50%); font-variant-numeric: tabular-nums; transition: opacity 0.2s ease; }
-.work__count.is-hidden { opacity: 0; }
-.work__toggle { right: calc(var(--ux, 1vw) * 3.125); display: flex; gap: 2px; }
-.work__toggle button { all: unset; cursor: pointer; padding: 5px 10px; border: 1px solid rgba(255, 255, 255, 0.5); }
-.work__toggle button[aria-pressed='true'] { background: #fff; color: #000; }
-.work__toggle button:focus-visible { outline: 1px solid #f04a0e; outline-offset: 2px; }
+/* Counter (left) and toggle icon (right): the same row, margins, type size and scale.js sizing as PRJ - 01 (left) and the YEAR (right) of the
+   homepage project index (base.css .index__label / .index__year: --index-x from the edge, the row 0.325 index-sizes below the band top). */
+.work { --row-y: calc(var(--index-top) + var(--index-size) * 0.325); --tg-glyph: calc(var(--index-label-size) * 1.5); --tg-box: calc(var(--tg-glyph) * 2.4); }
+.work__count { position: fixed; z-index: 8; left: var(--index-x); top: var(--row-y); font-size: var(--index-label-size); line-height: 1; color: #fff; mix-blend-mode: difference; font-variant-numeric: tabular-nums; transition: opacity 0.2s ease; }
+.work__count.is-hidden, .work__toggle.is-hidden { opacity: 0; }
+.work__toggle { all: unset; position: fixed; z-index: 8; box-sizing: border-box; width: var(--tg-box); height: var(--tg-box); right: calc(var(--index-x) - (var(--tg-box) - var(--tg-glyph)) / 2); top: calc(var(--row-y) + var(--index-label-size) / 2 - var(--tg-box) / 2); display: grid; place-items: center; cursor: pointer; color: #fff; mix-blend-mode: difference; opacity: 0.72; transition: opacity 0.2s ease; }
+.work__toggle:hover, .work__toggle:focus-visible { opacity: 1; }
+.work__toggle.is-hidden { opacity: 0; pointer-events: none; }
+.work__toggle:focus-visible { outline: 1px solid #f04a0e; outline-offset: -4px; }
+.work__toggle svg { width: var(--tg-glyph); height: var(--tg-glyph); overflow: visible; fill: currentColor; }
+.work__icon { transform-origin: 12px 12px; transform: rotate(var(--a, 0deg)); }

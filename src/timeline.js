@@ -36,7 +36,10 @@ export const TOTAL = 730; // page height in vh
 
 // Smooth scroll (Lenis). Framer's "Intensity 30" = duration 3 with Lenis' default easing. Lower duration = snappier
 // (try 2.5). `easing` is t (0..1) -> progress (0..1).
+// R23d: gainCap / gainFrom / gainTo / gainDecay = the wheel acceleration (src/util/scroll-gain.js): the distance per wheel tick is multiplied
+// by 1 (slow notches) rising to gainCap as the wheel speed goes from gainFrom to gainTo (px/s); gainDecay = seconds the speed is held.
 export const SCROLL = {
+  gainCap: 2.5, gainFrom: 700, gainTo: 3500, gainDecay: 0.35,
   duration: 3,
   easing: (t) => Math.min(1, 1.001 - 2 ** (-10 * t)),
 };
@@ -219,6 +222,11 @@ export const CARD_SIZE = {
   weights: [0.5, 0.35, 0.15], maxRatio: 2.2, minShort: 120,
   xMin: 330, xMax: 1070, yTop: 78, yBottom: 363, bandSlack: 6,
 };
+// R23d depth of the Selected Work cards, homepage and Work page (src/data/depth.js): seeded per card, not tied to the size. `slot` = where the
+// main image (homepage centre frame, Work page image) sits in the depth range 0 (far) .. 1 (near); `frontShare` = the share of the cards in
+// front of it (?front=0.5 in the URL overrides, for the tune panels). Drift follows the depth: far cards 20 px, near cards 100 px (CARDS).
+const urlFront = parseFloat(urlParams.get('front'));
+export const DEPTH = { slot: 0.5, frontShare: Number.isFinite(urlFront) ? urlFront : 0.5 };
 // R23 / R23b Work page (/work/). Sizes: frame w / h in vw / vh of the window (the same frame in both modes: along the strip it is w
 // for the side scroll and h for the vertical one); gapSide (vw) / gapVert (vh) = the thin space between two frames (about 1-2 card
 // widths / heights; a card of a neighbour may overlap into it). Every project's frame owns its cards (R23c): they scatter around it like
@@ -228,12 +236,13 @@ export const CARD_SIZE = {
 // slack = how far past its project's length a card may drift, as a share of one project's pitch. seed = layout (with LAYOUT.seed).
 // wheel = strip px per wheel px. Warp (the homepage cylinder warp, cards-gl.js, driven by the strip's speed): warpStrength (the
 // homepage WARP strength is 1.15), warpRiseSec / warpSettleSec = how fast it grows while moving / eases back flat after the wheel stops.
-// Toggle morph: morphSec (total), morphStagger (cards start up to this many s after the images), morphEase = ease-in-out exponent.
+// Toggle morph: morphSec (total), morphStagger (cards start up to this many s after the images), morphEase = ease-in exponent (R23d: slow
+// start, speeding up), morphLanding = share of the time for the short soft landing at the end.
 // dupGap = the least distance (vw in the side mode, vh in the vertical one) between a duplicate and its twin.
 export const WORK = {
   seed: 3, frameW: 34, frameH: 46, gapSide: 16, gapVert: 26, overlapMax: 0.2, minGap: 24, slack: 0.22, wheel: 1.1,
   warpStrength: 1.15, warpRiseSec: 0.25, warpSettleSec: 0.7,
-  morphSec: 0.8, morphStagger: 0.25, morphEase: 3, dupGap: 40,
+  morphSec: 0.8, morphStagger: 0.25, morphEase: 2.5, morphLanding: 0.12, dupGap: 40,
 };
 // Cards per project (R23b, the same rules as BAND_LIMITS on the homepage): count and total area (px2 at 1920) of the cards along one
 // project's edges. Over a max: dropped by the seeded hash; under a min: duplicates of the project's own images.

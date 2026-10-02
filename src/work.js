@@ -4,11 +4,13 @@ import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import data from './data/data.json';
 import pool from './data/work-pool.json';
-import { WORK, BEND, WARP, CARDS, CARD_HOVER } from './timeline.js';
+import { WORK, BEND, WARP, CARDS, CARD_HOVER, DEPTH, SCROLL } from './timeline.js';
+import { frameZ } from './data/depth.js';
 import { capW } from './scale.js';
 import { initNav } from './effects/nav.js';
 import { createCardsGL } from './effects/cards-gl.js';
 import { imgAttrs } from './util/media.js';
+import { installScrollGain } from './util/scroll-gain.js';
 import { buildProjectCards, placeCards, balanceDark } from './work/cards.js';
 
 // Work page (R23, R23b). A strip of the projects' main images, endless, driven by Lenis (infinite mode: the page itself never moves, its
@@ -33,6 +35,7 @@ let vertical = store.get() === 'vertical';
 const lenis = new Lenis({ infinite: true, gestureOrientation: 'both', lerp: 0.07, wheelMultiplier: 1 });
 gsap.ticker.add((time) => lenis.raf(time * 1000));
 gsap.ticker.lagSmoothing(0);
+installScrollGain(lenis);
 
 // ---- DOM
 const nav = document.createElement('nav');
@@ -46,25 +49,27 @@ app.innerHTML = `
   <div class="work" id="work">
     <div class="work__stage"></div>
     <div class="work__count" aria-live="polite">01 / 0${N}</div>
-    <div class="work__toggle" role="group" aria-label="Scroll direction">
-      <button type="button" data-mode="side">Side</button><button type="button" data-mode="vertical">Vertical</button>
-    </div>
+    <button type="button" class="work__toggle" aria-label="Switch to vertical scroll">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><g class="work__icon"><rect x="3.5" y="5" width="3" height="14"/><rect x="10.5" y="5" width="3" height="14"/><rect x="17.5" y="5" width="3" height="14"/></g></svg>
+    </button>
   </div>`;
 const root = app.querySelector('.work');
 const stage = root.querySelector('.work__stage');
 const countEl = root.querySelector('.work__count');
+const toggleEl = root.querySelector('.work__toggle');
+const iconEl = toggleEl.querySelector('.work__icon');
 
 // ---- items: the N frames first, then every project's cards (the same objects in both layouts)
 const projCards = buildProjectCards(pool, slugs);
 const items = [];
-projects.forEach((p, i) => items.push({ kind: 'frame', proj: i, slug: p.slug, z: 0, mouse: 0, dark: false, ref: heroRef(p) }));
+projects.forEach((p, i) => items.push({ kind: 'frame', proj: i, slug: p.slug, z: frameZ(), mouse: 20 + 80 * DEPTH.slot, dark: false, ref: heroRef(p) }));
 projCards.forEach((list, i) => list.forEach((c, j) => items.push({ kind: 'card', proj: i, j, slug: c.slug, z: c.z, mouse: c.mouse, dark: c.dark, src: c.src, card: c })));
 const n = items.length;
 items.forEach((it, i) => {
   const a = document.createElement('a');
   a.className = `work__item work__${it.kind}`;
   a.href = `/work/${it.slug}.html`;
-  a.style.zIndex = String(it.kind === 'frame' ? 1 : 2 + it.z);
+  a.style.zIndex = String(it.z); // the same order as the canvas (R23d): the image sits in the middle of the card depths
   if (it.kind === 'frame') a.setAttribute('aria-label', projects[it.proj].title);
   // the picture is only requested once the item is near the screen (activate()): the canvas then uploads exactly that file
   a.innerHTML = `<img ${imgAttrs(it.kind === 'frame' ? it.ref : it.src, it.kind === 'frame' ? `${WORK.frameW}vw` : '300px', true)} alt="" decoding="async" draggable="false">`;
@@ -172,9 +177,20 @@ const place = (i, L, s) => {
   return out.d < M.viewAlong / 2 + 40;
 };
 
-const ease = (u) => { const q = Math.max(WORK.morphEase, 1); return u < 0.5 ? 0.5 * (2 * u) ** q : 1 - 0.5 * (2 * (1 - u)) ** q; };
+// R23d: the morph starts slow and speeds up (ease-in, power WORK.morphEase), then a short soft landing (WORK.morphLanding of the time, constant
+// deceleration) so it settles instead of stopping dead. The landing continues the ease-in's speed, so the curve has no kink.
+const ease = (u) => {
+  const p = Math.max(WORK.morphEase, 1), L = Math.min(Math.max(WORK.morphLanding, 0.01), 0.5), T = 1 - L;
+  const C = 1 / (1 + (p * L) / (2 * T));
+  if (u <= T) return C * (u / T) ** p;
+  const v = (C * p) / T, s = u - T;
+  return C + v * s - (v * s * s) / (2 * L);
+};
 let morph = null; // { from, to, SA, SB, t0, delay[] }
 const counterRect = { x: 0, y: 0, w: 0, h: 0 };
+const toggleRect = { x: 0, y: 0, w: 0, h: 0 };
+let iconAngle = NaN;
+const setAngle = (a) => { if (a !== iconAngle) { iconAngle = a; iconEl.style.setProperty('--a', `${a.toFixed(2)}deg`); } };
 let counterHidden = false;
 let lastIdx = -1;
 let kCount = 0; // the counter's project index (unwrapped)
@@ -249,13 +265,15 @@ const tick = (_time, deltaMs) => {
     } else if (vis[i]) { it.el.style.visibility = 'hidden'; vis[i] = 0; }
   }
 
+  // the toggle icon turns with the morph (same duration and easing as the images); at rest it shows the current mode
+  if (morph) { const e0 = ease(Math.min(1, Math.max(0, (now - morph.t0) / 1000 / Math.max(WORK.morphSec - WORK.morphStagger, 0.05)))); const a0 = morph.from === 'vertical' ? 90 : 0, a1 = morph.to === 'vertical' ? 90 : 0; setAngle(a0 + (a1 - a0) * e0); } else setAngle(vertical ? 90 : 0);
   // the counter must not sit over a card: it fades out while one overlaps it
   let hit = false;
   for (let i = N; i < n && !hit; i++) {
     if (!vis[i]) continue;
-    if (Math.abs(bx[i] - counterRect.x) < bw[i] / 2 + counterRect.w / 2 && Math.abs(by[i] - counterRect.y) < bh[i] / 2 + counterRect.h / 2) hit = true;
+    if ((Math.abs(bx[i] - counterRect.x) < bw[i] / 2 + counterRect.w / 2 && Math.abs(by[i] - counterRect.y) < bh[i] / 2 + counterRect.h / 2) || (Math.abs(bx[i] - toggleRect.x) < bw[i] / 2 + toggleRect.w / 2 && Math.abs(by[i] - toggleRect.y) < bh[i] / 2 + toggleRect.h / 2)) hit = true;
   }
-  if (hit !== counterHidden) { counterHidden = hit; countEl.classList.toggle('is-hidden', hit); }
+  if (hit !== counterHidden) { counterHidden = hit; countEl.classList.toggle('is-hidden', hit); toggleEl.classList.toggle('is-hidden', hit); }
   // the counter: the unwrapped nearest project, with hysteresis (another project must be clearly nearer before it changes)
   const pitchNow = (morph ? LB : L).pitch;
   const pos = (morph ? sB : S) / pitchNow;
@@ -277,12 +295,15 @@ gsap.ticker.add(tick);
 setTimeout(() => items.forEach((it, i) => setTimeout(() => activate(it), i * 15)), 800);
 
 // ---- mode switch
-const measureCounter = () => { const r = countEl.getBoundingClientRect(); counterRect.x = r.left + r.width / 2; counterRect.y = r.top + r.height / 2; counterRect.w = r.width + 24; counterRect.h = r.height + 16; };
+const measureCounter = () => {
+  const r = countEl.getBoundingClientRect(); counterRect.x = r.left + r.width / 2; counterRect.y = r.top + r.height / 2; counterRect.w = r.width + 24; counterRect.h = r.height + 16;
+  const t = toggleEl.getBoundingClientRect(); toggleRect.x = t.left + t.width / 2; toggleRect.y = t.top + t.height / 2; toggleRect.w = t.width; toggleRect.h = t.height;
+};
 const commit = (mode) => {
   vertical = mode === 'vertical';
   store.set(mode);
   root.dataset.mode = mode;
-  root.querySelectorAll('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+  toggleEl.setAttribute('aria-label', vertical ? 'Switch to side scroll' : 'Switch to vertical scroll');
   if (glOn) gl.setAxis(vertical ? 0 : 1);
 };
 function finishMorph() {
@@ -316,7 +337,7 @@ const setMode = (mode) => {
     }, 200);
   }
 };
-root.querySelector('.work__toggle').addEventListener('click', (e) => { const b = e.target.closest('[data-mode]'); if (b) setMode(b.dataset.mode); });
+toggleEl.addEventListener('click', () => setMode(vertical ? 'side' : 'vertical'));
 
 let rt = 0;
 const relayout = () => {
@@ -333,6 +354,7 @@ measureCounter();
 initNav(data.hero.wordmark, lenis, { gateFrame: false, position: () => Math.abs(virt) });
 document.title = 'Work | Anh V';
 if (import.meta.env.DEV) {
+  window.__SCROLL = SCROLL;
   window.__work = { setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, bx, by, bw, bh, vis, hp };
   if (params.has('tune')) import('./work/tune.js').then((m) => m.mountWorkTune({ relayout }));
 }

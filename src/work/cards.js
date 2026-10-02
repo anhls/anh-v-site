@@ -10,9 +10,9 @@
 // same card in both modes, which is what lets the toggle morph every card from its place in one layout to its place in the other.
 import { WORK, WORK_LIMITS, CARD_SIZE, BAND_RULES, CARD_HOVER, LAYOUT } from '../timeline.js';
 import { generateLayout } from '../data/layout.js';
+import { cardDepth } from '../data/depth.js';
 import { rng, mix, fit } from '../data/cards-gen.js';
 
-const TIER_MOUSE = [[20, 25], [50, 75], [100, 100]];
 const warn = (...a) => { if (import.meta.env?.DEV) console.warn('[work cards]', ...a); };
 const area = (c) => c.w * c.h;
 const sum = (l) => l.reduce((a, c) => a + area(c), 0);
@@ -22,13 +22,13 @@ function make(e, pi, seed, salt = 0) {
   const r = rng(mix(e.hash, seed + pi * 131 + 7 + salt * 977));
   const t = r();
   const tier = t < CARD_SIZE.weights[0] ? 0 : t < CARD_SIZE.weights[0] + CARD_SIZE.weights[1] ? 1 : 2;
-  const mouse = TIER_MOUSE[tier][r() < 0.5 ? 0 : 1];
+  const dp = cardDepth(e.hash, seed + pi * 131 + 3 + salt * 977);
   const s = fit(e.w, e.h, CARD_SIZE.tiers[tier]);
-  return { slug: e.slug, key: e.key, hash: e.hash, src: `/media/${e.key}.webp`, srcSize: { w: e.w, h: e.h }, tier, mouse, z: tier === 2 ? 5 : mouse === 20 ? 2 : 3, w: s.w, h: s.h, dup: false, dark: false, edge: 0, f: 0 };
+  return { slug: e.slug, key: e.key, hash: e.hash, src: `/media/${e.key}.webp`, srcSize: { w: e.w, h: e.h }, tier, mouse: dp.mouse, z: dp.z, depth: dp.depth, front: dp.front, w: s.w, h: s.h, dup: false, dark: false, edge: 0, f: 0 };
 }
-function setTier(c, tier, mouse) {
+function setTier(c, tier) {
   const s = fit(c.srcSize.w, c.srcSize.h, CARD_SIZE.tiers[tier]);
-  Object.assign(c, { tier, mouse, z: tier === 2 ? 5 : mouse === 20 ? 2 : 3, w: s.w, h: s.h });
+  Object.assign(c, { tier, w: s.w, h: s.h });
 }
 
 export function buildProjectCards(pool, slugs, seed = WORK.seed, lim = WORK_LIMITS) {
@@ -45,7 +45,7 @@ export function buildProjectCards(pool, slugs, seed = WORK.seed, lim = WORK_LIMI
       const d = make({ hash: twin.hash, key: twin.key, slug, w: twin.srcSize.w, h: twin.srcSize.h }, pi, seed, 1);
       const others = [0, 1, 2].filter((t) => t !== twin.tier);
       const tier = others[Math.floor(rng(mix(twin.hash, seed + 61))() * others.length)];
-      setTier(d, tier, TIER_MOUSE[tier][rng(mix(twin.hash, seed + 62))() < 0.5 ? 0 : 1]);
+      setTier(d, tier);
       if (sum(list) + area(d) > lim.maxA) continue;
       d.dup = true; d.dark = true; d.twin = twin; twin.hasDup = true;
       list.push(d);

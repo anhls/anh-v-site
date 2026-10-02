@@ -20,12 +20,14 @@ import { buildCaptionHover } from './effects/caption-hover.js';
 import { buildTrail } from './effects/trail.js';
 import { createFrameGL } from './effects/frame-gl.js';
 import { SCROLL, CARDS, FRAME_WARP } from './timeline.js';
+import { installScrollGain } from './util/scroll-gain.js';
 
 gsap.registerPlugin(ScrollTrigger);
 
 // Lenis drives the scroll; GSAP's ticker feeds it so pinned sections stay in sync.
 const lenis = new Lenis({ duration: SCROLL.duration, easing: SCROLL.easing }); // Framer "Intensity 30"; tune in timeline.js
 lenis.on('scroll', ScrollTrigger.update);
+const scrollGain = installScrollGain(lenis);
 gsap.ticker.add((time) => lenis.raf(time * 1000));
 gsap.ticker.lagSmoothing(0);
 

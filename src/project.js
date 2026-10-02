@@ -5,6 +5,7 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import data from './data/data.json';
 import { SCROLL } from './timeline.js';
+import { installScrollGain } from './util/scroll-gain.js';
 import { initNav } from './effects/nav.js';
 import { buildFooter } from './sections/footer.js';
 import { buildProjectPage } from './sections/project-page.js';
@@ -20,6 +21,7 @@ if (project?.page) {
   gsap.ticker.add((time) => lenis.raf(time * 1000));
   gsap.ticker.lagSmoothing(0);
   lenis.on('scroll', ScrollTrigger.update);
+  installScrollGain(lenis);
 
   const nav = document.createElement('nav');
   nav.className = 'nav';
