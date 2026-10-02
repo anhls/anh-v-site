@@ -213,7 +213,7 @@ export const LAYOUT = { seed: 92708, scatter: 225, centreShare: 0.3, centreBand:
 // point for LAYOUT.
 const urlParams = new URLSearchParams(location.search);
 const urlSeed = urlParams.get('seed');
-export const POOL = { seed: urlSeed !== null && urlSeed !== '' ? Number(urlSeed) : 1, count: 35 };
+export const POOL = { seed: urlSeed !== null && urlSeed !== '' ? Number(urlSeed) : 4, count: 35 };
 export const CARD_SIZE = {
   tiers: [{ w: 200, h: 170 }, { w: 290, h: 250 }, { w: 384, h: 324 }],
   weights: [0.5, 0.35, 0.15], maxRatio: 2.2, minShort: 120,
