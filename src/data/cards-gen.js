@@ -40,10 +40,15 @@ function fit(srcW, srcH, box) {
   return { w: Math.round(w), h: Math.round(h) };
 }
 
-export function generateCards(pool, seed = POOL.seed, count = POOL.count) {
-  // 1. picks: per project, images ranked by their seeded hash; the project's quota is taken from the top
-  const slugs = [...new Set(pool.map((e) => e.slug))].sort();
-  const byProject = slugs.map((s) => pool.filter((e) => e.slug === s).sort((a, b) => mix(a.hash, seed) - mix(b.hash, seed)));
+export function generateCards(allPool, seed = POOL.seed, count = POOL.count) {
+  // R22b: only featured images (src/data/selected.json, marked by tools/work-pool.mjs); none featured = the whole pool
+  let pool = allPool.filter((e) => e.selected);
+  if (!pool.length) { pool = allPool; if (import.meta.env?.DEV) console.warn('selected.json is empty or missing: Selected Work uses the whole pool'); }
+  // 1. picks: per project (a featured image with no project is a group of its own), images ranked by their seeded hash; the
+  // project's share is taken from the top. Shares are as even as possible, so a project with few featured images gives its share away.
+  const grp = (e) => e.slug || e.key;
+  const slugs = [...new Set(pool.map(grp))].sort();
+  const byProject = slugs.map((s) => pool.filter((e) => grp(e) === s).sort((a, b) => mix(a.hash, seed) - mix(b.hash, seed)));
   const q = quotas(byProject.map((l) => l.length), Math.min(count, pool.length));
   const picked = byProject.flatMap((l, i) => l.slice(0, q[i]));
 
@@ -55,7 +60,7 @@ export function generateCards(pool, seed = POOL.seed, count = POOL.count) {
     const { w, h } = fit(e.w, e.h, CARD_SIZE.tiers[tier]);
     const mouse = [[20, 25], [50, 75], [100, 100]][tier][r() < 0.5 ? 0 : 1];
     return {
-      id: 0, slug: e.slug, key: e.key, tier, w, h, mouse, scroll: true,
+      id: 0, slug: e.slug, grp: grp(e), key: e.key, tier, w, h, mouse, scroll: true,
       z: tier === 2 ? 5 : mouse === 20 ? 2 : 3, // small back cards z 2, the rest 3, large front cards 5 (as before)
       dark: e.lum < CARD_SIZE.darkLum,
       src: `/media/${e.key}.webp`,
@@ -64,15 +69,24 @@ export function generateCards(pool, seed = POOL.seed, count = POOL.count) {
     };
   });
 
-  // 3. balance: in top-to-bottom order no two neighbours from the same project (swap the lower one's y with the next card that differs)
+  // 3. balance: the y slots stay as drawn; walking down them, each slot takes the next card (top to bottom) of the group with
+  // the most cards left that is not the previous slot's group, so no two neighbours share a project whenever that is possible
   cards.sort((a, b) => a.y - b.y);
-  for (let i = 1; i < cards.length; i++) {
-    if (cards[i].slug !== cards[i - 1].slug) continue;
-    const j = cards.findIndex((c, k) => k > i && c.slug !== cards[i].slug && (k + 1 >= cards.length || cards[k + 1].slug !== cards[i].slug));
-    if (j < 0) continue;
-    [cards[i].y, cards[j].y] = [cards[j].y, cards[i].y];
-    [cards[i], cards[j]] = [cards[j], cards[i]];
+  const slots = cards.map((c) => c.y);
+  const left = new Map();
+  cards.forEach((c) => { if (!left.has(c.grp)) left.set(c.grp, []); left.get(c.grp).push(c); });
+  const order = [];
+  let prev = null;
+  for (let i = 0; i < slots.length; i++) {
+    let best = null;
+    for (const [g, l] of left) if (l.length && g !== prev && (!best || l.length > left.get(best).length || (l.length === left.get(best).length && l[0].y < left.get(best)[0].y))) best = g;
+    if (best === null) best = [...left.keys()].find((g) => left.get(g).length); // only the previous group is left: unavoidable
+    const c = left.get(best).shift();
+    c.y = slots[i];
+    order.push(c);
+    prev = best;
   }
+  cards.splice(0, cards.length, ...order);
   cards.forEach((c, i) => { c.id = i + 1; });
   return cards;
 }

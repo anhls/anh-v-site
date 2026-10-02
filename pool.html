@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Pool picker (dev only)</title>
+<style>
+  body { margin: 0; background: #0a0a0a; color: #eee; font: 14px/1.4 system-ui, sans-serif; }
+  header { position: sticky; top: 0; z-index: 2; display: flex; gap: 16px; align-items: center; padding: 12px 20px; background: #111; border-bottom: 1px solid #333; }
+  header b { font-size: 16px; } button { padding: 6px 12px; cursor: pointer; }
+  h2 { margin: 24px 20px 8px; font-size: 15px; font-weight: 600; }
+  .grid { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 20px; }
+  label { position: relative; display: block; width: 180px; cursor: pointer; border: 2px solid transparent; border-radius: 4px; overflow: hidden; background: #1a1a1a; }
+  label.on { border-color: #ff6a2b; }
+  label img { display: block; width: 100%; height: 130px; object-fit: contain; background: #222; }
+  label span { display: block; padding: 4px 6px; font-size: 11px; opacity: .75; word-break: break-all; }
+  label input { position: absolute; top: 6px; left: 6px; width: 18px; height: 18px; }
+</style>
+</head>
+<body>
+<header><b>Selected Work: featured images</b><span id="count"></span><button id="copy">Copy selected.json</button><span id="msg"></span></header>
+<main id="main"></main>
+<script type="module">
+// Dev-only picker (not part of the build). Starts from src/data/selected.json; "Copy selected.json" copies the new list.
+import pool from './src/data/work-pool.json';
+import manifest from './src/data/media-manifest.json';
+import selectedList from './src/data/selected.json';
+const on = new Set(selectedList);
+const groups = {};
+for (const e of pool) (groups[e.slug || 'Other (old cards, no project)'] ||= []).push(e);
+const main = document.getElementById('main');
+const count = document.getElementById('count');
+const thumb = (k) => '/media/' + [...manifest[k].files].sort((a, b) => a.width - b.width)[0].file;
+for (const [slug, list] of Object.entries(groups)) {
+  const h = document.createElement('h2');
+  h.textContent = slug;
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+  for (const e of list) {
+    const l = document.createElement('label');
+    l.className = on.has(e.key) ? 'on' : '';
+    l.innerHTML = `<input type="checkbox" ${on.has(e.key) ? 'checked' : ''}><img src="${thumb(e.key)}" loading="lazy" alt=""><span>${e.key} (${e.w}x${e.h})</span>`;
+    l.querySelector('input').addEventListener('change', (ev) => { ev.target.checked ? on.add(e.key) : on.delete(e.key); l.classList.toggle('on', ev.target.checked); update(); });
+    grid.append(l);
+  }
+  main.append(h, grid);
+  h.textContent = `${slug} (${list.length})`;
+}
+const update = () => { count.textContent = `${on.size} featured of ${pool.length}`; };
+update();
+document.getElementById('copy').onclick = async () => {
+  await navigator.clipboard.writeText(JSON.stringify([...on].sort(), null, 1) + '\n');
+  document.getElementById('msg').textContent = 'copied ' + on.size + ' keys';
+};
+</script>
+</body>
+</html>

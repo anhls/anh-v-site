@@ -117,7 +117,7 @@ export function buildSelectedWork(root, cards) {
 
   const live = pointerEnabled;
   // R22: a click on the hovered card opens its project page (the reveal has already played while the pointer was on it).
-  if (live) window.addEventListener('click', () => { if (hov >= 0 && on) window.location.href = `/work/${cards[hov].slug}.html`; });
+  if (live) window.addEventListener('click', () => { if (hov >= 0 && on && cards[hov].slug) window.location.href = `/work/${cards[hov].slug}.html`; });
   let on = false; // the section's range is active (cards can be on screen)
   let ticking = false; // the loop is registered on the ticker
   // Shared mouse spring (every card's spring is the same and linear, so one normalised state serves all of them).

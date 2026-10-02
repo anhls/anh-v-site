@@ -162,7 +162,7 @@ Goal: replace the 35 hand-placed cards with cards generated from the project ima
 8. Seed audition. A small script renders about 20 seeds as screenshots into tools/scratch/r22-shots/ so Anh can pick one.
 Checks (quick mode): npm run compare still 542/542 (cards skipped by design), frame time unchanged at 1920 and 2560, no card above its size limits, texture budget unchanged, first screen still under 1 MB.
 
-## R22b (quick mode): Selected Work restricted to featured images (use Sonnet 5.5)
+## [done] R22b (quick mode): Selected Work restricted to featured images (use Sonnet 5.5)
 Goal: the Selected Work cards come only from images Anh marks as featured, so the section is curated again (R22 drew from all 75 pool stills). Everything else from R22 stays: the generator, size tiers, fixed seed, depth rule, balance rules and click-to-open. Desktop only. Do not touch the homepage centre frame.
 1. Featured list. New file src/data/selected.json holds the featured image keys (same keys as work-pool.json, e.g. bitis09/billboard). tools/work-pool.mjs marks each pool entry selected true/false from it. Adding a key to the file is all it takes to feature an image.
 2. Starting list. Seed selected.json from the old curated 35. Old cards that match a project image (compare source files or perceptual hashes) reuse that image. Old cards with no match stay featured too: add them to the pool as extra entries using their existing selected-work/card-img-* files, with the project slug if known and no click target if not (hover only). List each one in the status log. Anh keeps this list for now and changes it later with the picker.
