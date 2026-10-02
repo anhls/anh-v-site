@@ -240,7 +240,7 @@ export const DEPTH = { slot: 0.5, frontShare: Number.isFinite(urlFront) ? urlFro
 // start, speeding up), morphLanding = share of the time for the short soft landing at the end.
 // dupGap = the least distance (vw in the side mode, vh in the vertical one) between a duplicate and its twin.
 export const WORK = {
-  seed: 3, frameW: 34, frameH: 46, gapSide: 16, gapVert: 26, overlapMax: 0.2, minGap: 24, slack: 0.22, wheel: 0.85,
+  seed: 3, frameW: 42, frameH: 46, gapSide: 16, gapVert: 26, overlapMax: 0.2, minGap: 24, slack: 0.22, wheel: 0.75,
   warpStrength: 1.15, warpRiseSec: 1.5, warpSettleSec: 0.7,
   morphSec: 2, morphStagger: 0.45, morphEase: 3, morphLanding: 0.12, dupGap: 40,
 };
