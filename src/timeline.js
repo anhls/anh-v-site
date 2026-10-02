@@ -240,13 +240,13 @@ export const DEPTH = { slot: 0.5, frontShare: Number.isFinite(urlFront) ? urlFro
 // start, speeding up), morphLanding = share of the time for the short soft landing at the end.
 // dupGap = the least distance (vw in the side mode, vh in the vertical one) between a duplicate and its twin.
 export const WORK = {
-  seed: 3, frameW: 34, frameH: 46, gapSide: 16, gapVert: 26, overlapMax: 0.2, minGap: 24, slack: 0.22, wheel: 1.1,
-  warpStrength: 1.15, warpRiseSec: 0.25, warpSettleSec: 0.7,
-  morphSec: 0.8, morphStagger: 0.25, morphEase: 2.5, morphLanding: 0.12, dupGap: 40,
+  seed: 3, frameW: 34, frameH: 46, gapSide: 16, gapVert: 26, overlapMax: 0.2, minGap: 24, slack: 0.22, wheel: 0.85,
+  warpStrength: 1.15, warpRiseSec: 1.5, warpSettleSec: 0.7,
+  morphSec: 2, morphStagger: 0.45, morphEase: 3, morphLanding: 0.12, dupGap: 40,
 };
 // Cards per project (R23b, the same rules as BAND_LIMITS on the homepage): count and total area (px2 at 1920) of the cards along one
 // project's edges. Over a max: dropped by the seeded hash; under a min: duplicates of the project's own images.
-export const WORK_LIMITS = (() => { try { const u = JSON.parse(urlParams.get('wlimits')); if (u && u.maxN) return u; } catch {} return { minN: 4, maxN: 8, minA: 150000, maxA: 360000 }; })(); // ?wlimits={...} overrides (tune panel)
+export const WORK_LIMITS = (() => { try { const u = JSON.parse(urlParams.get('wlimits')); if (u && u.maxN) return u; } catch {} return { minN: 7, maxN: 12, minA: 150000, maxA: 360000 }; })(); // ?wlimits={...} overrides (tune panel)
 // R22d: cards per band (px2 at 1920, from the old curated layout: tools/band-limits.mjs, min 75% / max 130% of its count and area).
 // Order: Techcombank, swap zone 1, Bitis, swap zone 2, Sulwhasoo (the same five bands as cardBands() in cards-gen.js). Over a max
 // (count or area): extra cards are dropped by the seeded hash. Under a min: topped up with duplicates of the band's own featured
