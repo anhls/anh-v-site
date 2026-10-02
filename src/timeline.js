@@ -245,11 +245,11 @@ export const WORK = {
   seed: 3, frameW: 42, frameH: 46, gapSide: 16, gapVert: 26, overlapMax: 0.2, minGap: 24, slack: 0.22, wheel: 0.75,
   warpStrength: 1.15, warpRiseSec: 1.5, warpSettleSec: 0.7,
   morphSec: 2, morphStagger: 0.45, morphEase: 3, morphLanding: 0.12, dupGap: 40,
-  snapDelay: 0.4, snapWindow: 0.35, snapSec: 0.9, focusScale: 1.12, focusPush: 95, focusNeighbour: 0.12, focusRampSec: 0.35, focusPushRadius: 400, focusPushOthers: 0.6,
+  snapDelay: 1, snapWindow: 0.5, snapSec: 2, focusScale: 1.16, focusPush: 95, focusNeighbour: 0.06, focusRampSec: 0.7, focusPushRadius: 400, focusPushOthers: 0.6,
 };
 // Cards per project (R23b, the same rules as BAND_LIMITS on the homepage): count and total area (px2 at 1920) of the cards along one
 // project's edges. Over a max: dropped by the seeded hash; under a min: duplicates of the project's own images.
-export const WORK_LIMITS = (() => { try { const u = JSON.parse(urlParams.get('wlimits')); if (u && u.maxN) return u; } catch {} return { minN: 7, maxN: 12, minA: 150000, maxA: 360000 }; })(); // ?wlimits={...} overrides (tune panel)
+export const WORK_LIMITS = (() => { try { const u = JSON.parse(urlParams.get('wlimits')); if (u && u.maxN) return u; } catch {} return { minN: 7, maxN: 12, minA: 150000, maxA: 330000 }; })(); // ?wlimits={...} overrides (tune panel)
 // R22d: cards per band (px2 at 1920, from the old curated layout: tools/band-limits.mjs, min 75% / max 130% of its count and area).
 // Order: Techcombank, swap zone 1, Bitis, swap zone 2, Sulwhasoo (the same five bands as cardBands() in cards-gen.js). Over a max
 // (count or area): extra cards are dropped by the seeded hash. Under a min: topped up with duplicates of the band's own featured
