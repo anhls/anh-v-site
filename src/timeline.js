@@ -245,7 +245,7 @@ export const WORK = {
   seed: 3, frameW: 42, frameH: 46, gapSide: 16, gapVert: 26, overlapMax: 0.2, minGap: 24, slack: 0.22, wheel: 0.75,
   warpStrength: 1.15, warpRiseSec: 1.5, warpSettleSec: 0.7,
   morphSec: 2, morphStagger: 0.45, morphEase: 3, morphLanding: 0.12, dupGap: 40,
-  snapDelay: 0.4, snapWindow: 0.35, snapSec: 0.9, focusScale: 1.12, focusPush: 95, focusNeighbour: 0.12, focusRampSec: 0.35,
+  snapDelay: 0.4, snapWindow: 0.35, snapSec: 0.9, focusScale: 1.12, focusPush: 95, focusNeighbour: 0.12, focusRampSec: 0.35, focusPushRadius: 400, focusPushOthers: 0.6,
 };
 // Cards per project (R23b, the same rules as BAND_LIMITS on the homepage): count and total area (px2 at 1920) of the cards along one
 // project's edges. Over a max: dropped by the seeded hash; under a min: duplicates of the project's own images.

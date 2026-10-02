@@ -143,7 +143,8 @@ export function placeCards(projects, M) {
   const pos = generateLayout(flat.map((f) => f.lc), { ...LAYOUT, seed: LAYOUT.seed + WORK.seed + (M.vertical ? 0 : 101), centreShare: 0, scatter: LAYOUT.scatter * room, minGap: WORK.minGap, passes: 160 });
   // what the relaxation could not clear (the strip is narrow in the side scroll): neighbouring-depth cards still overlapping by more than
   // half the minimum gap are pushed apart along the strip, free of the project's length limit, pairs (pinned) moving only their partner
-  const lc = flat.map((f, i) => ({ x: pos[i].x, y: pos[i].y * VH, w: f.lc.w, h: f.lc.h, m: f.lc.mouse, pin: !!f.lc.pinY }));
+  const nP = projects.length, periodPx = nP * pitchVh * VH; // the strip is a loop: the last project's cards border the first project's (R23f)
+  const lc = flat.map((f, i) => ({ x: pos[i].x, y: pos[i].y * VH, w: f.lc.w, h: f.lc.h, m: f.lc.mouse, pin: !!f.lc.pinY, pi: f.pi }));
   const need = WORK.minGap * 0.5;
   for (let pass = 0; pass < 30; pass++) {
     let moved = false;
@@ -151,9 +152,11 @@ export function placeCards(projects, M) {
       for (let j = i + 1; j < lc.length; j++) {
         const a = lc[i], b = lc[j];
         if (Math.abs(a.m - b.m) > 30) continue;
-        const ox = (a.w + b.w) / 2 - Math.abs(b.x - a.x), oy = (a.h + b.h) / 2 - Math.abs(b.y - a.y);
+        // across the loop seam (project nP - 1 and project 0) b sits one period further along
+        const by = a.pi === nP - 1 && b.pi === 0 ? b.y + periodPx : a.pi === 0 && b.pi === nP - 1 ? b.y - periodPx : b.y;
+        const ox = (a.w + b.w) / 2 - Math.abs(b.x - a.x), oy = (a.h + b.h) / 2 - Math.abs(by - a.y);
         if (ox <= need || oy <= need) continue;
-        const dir = b.y >= a.y ? 1 : -1, d = oy - need + 1;
+        const dir = by >= a.y ? 1 : -1, d = oy - need + 1;
         if (a.pin && b.pin) continue;
         if (a.pin) b.y += dir * d; else if (b.pin) a.y -= dir * d; else { a.y -= (dir * d) / 2; b.y += (dir * d) / 2; }
         moved = true;

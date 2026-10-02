@@ -11,6 +11,7 @@ import { initNav } from './effects/nav.js';
 import { createCardsGL } from './effects/cards-gl.js';
 import { imgAttrs } from './util/media.js';
 import { installScrollGain } from './util/scroll-gain.js';
+import { applyFocus } from './work/focus.js';
 import { buildProjectCards, placeCards, balanceDark } from './work/cards.js';
 
 // Work page (R23, R23b). A strip of the projects' main images, endless, driven by Lenis (infinite mode: the page itself never moves, its
@@ -88,6 +89,10 @@ const bx = new Float64Array(n), by = new Float64Array(n), bw = new Float64Array(
 let W = innerWidth, H = innerHeight, scale = 1;
 const LAY = { side: null, vertical: null }; // { M, pitch, period, pos[] (per item: along (from project 0's frame centre), cross) }
 const vis = new Uint8Array(n); // item shown (DOM visibility)
+const px = new Float64Array(n), py = new Float64Array(n); // base centres of this frame (before the focus, the drift and the hover)
+const shownA = new Uint8Array(n);
+const fsArr = new Float64Array(N).fill(1); // the focus' image scale per project
+const FA = { n, N, kind: Uint8Array.from(items, (it) => (it.kind === 'frame' ? 0 : 1)), proj: Int8Array.from(items, (it) => it.proj), mouse: Float64Array.from(items, (it) => it.mouse), X: px, Y: py, W: bw, H: bh, vertical: false, pitch: 1, scale: 1 };
 const nearArr = new Uint8Array(n); // item within 0.8 of a view length of the centre along the strip: its picture is requested at once; the rest follow when idle (below)
 const activate = (it) => { if (it.active) return; it.active = true; const d = it.img.dataset; if (d.srcset) it.img.srcset = d.srcset; it.img.src = d.src; };
 let gl = null; // the card canvas (created below)
@@ -212,7 +217,8 @@ const relIdx = (d) => { const h = Math.floor(N / 2); return ((((d + h) % N) + N)
 const fP = new Float64Array(N);
 let snap = null; // { from, to, t0 }
 let lastWheel = performance.now();
-const cancelSnap = () => { snap = null; lastWheel = performance.now(); };
+let wmScrolled = reduced; // R23f: the wordmark plays big -> small once; true from the first real scroll for the rest of the visit (reduced motion: from the start)
+const cancelSnap = () => { snap = null; lastWheel = performance.now(); wmScrolled = true; };
 addEventListener('wheel', cancelSnap, { capture: true, passive: true });
 addEventListener('touchstart', cancelSnap, { capture: true, passive: true });
 addEventListener('keydown', cancelSnap, { capture: true });
@@ -234,6 +240,7 @@ const tick = (_time, deltaMs) => {
   const dt = Math.min(deltaMs, 50) / 1000;
   const now = performance.now();
   advance();
+  if (!wmScrolled && Math.abs(virt) > 5) wmScrolled = true;
   S = virt * WORK.wheel + off;
   // the warp follows the wheel / Lenis motion only (not the snap drift, not offsets from a toggle or a resize)
   let vel = ((virt - prevVirt) * WORK.wheel) / Math.max(dt, 1e-3);
@@ -258,9 +265,12 @@ const tick = (_time, deltaMs) => {
   {
     const pt = cur().pitch, k = Math.round(S / pt), win = Math.max(WORK.snapWindow, 0.05);
     const c = Math.max(0, 1 - Math.abs(S - k * pt) / (win * pt)), pk = ((k % N) + N) % N;
+    // R23f: the focus builds only at rest: while the soft snap drifts the project in, or once the wheel has been quiet for snapDelay and the
+    // glide is over. Any wheel / key / touch input (cancelSnap) closes the gate at once and the focus unwinds over the ramp.
+    const restOk = !!snap || (now - lastWheel > WORK.snapDelay * 1000 && Math.abs(vel) < 250);
     const rate = dt / Math.max(WORK.focusRampSec, 0.02);
     for (let q = 0; q < N; q++) {
-      const tgt = snapOk && q === pk ? circ(c) : 0;
+      const tgt = snapOk && restOk && q === pk ? circ(c) : 0;
       const nv = fP[q] + Math.max(-rate, Math.min(rate, tgt - fP[q]));
       if (nv !== fP[q]) { fP[q] = nv; focusMoving = true; }
     }
@@ -310,29 +320,22 @@ const tick = (_time, deltaMs) => {
       x = out.x; y = out.y;
       nearArr[i] = out.d < L.M.viewAlong * 0.8 ? 1 : 0;
     }
+    px[i] = x; py[i] = y; shownA[i] = shown ? 1 : 0;
+    if (nearArr[i] && !it.active) activate(it);
+  }
+  // R23f: the focus (the centred project grows, every card is pushed away from the focused image, neighbours move off) is applied to the
+  // base positions of this frame; fsArr = the image scale per project
+  if (focusMoving || anyF) { FA.vertical = L.M.vertical; FA.pitch = L.pitch; FA.scale = scale; applyFocus(FA, fP, WORK, CARDS, fsArr); } else fsArr.fill(1);
+  for (let i = 0; i < n; i++) {
+    const it = items[i];
+    const x = px[i], y = py[i], shown = shownA[i] === 1;
     // mouse drift (cards only; the homepage "away from the pointer" drift, scaled by depth); none while the layouts morph
     let dx = 0, dy = 0;
     if (it.kind === 'card' && fine && !morph) {
       const d = (20 + (it.mouse - 20) * CARDS.depthRange) * CARDS.mouseStrength * scale;
       dx = -mouse.x * d; dy = -mouse.y * d;
     }
-    if (nearArr[i] && !it.active) activate(it);
-    // focus: the centred project's image grows and its cards move out with it (plus the push); its neighbours move away along the strip
-    let fs = 1;
-    if (focusMoving || anyF) {
-      const pj = it.proj;
-      let da = 0, dc = 0;
-      const fo = fP[pj];
-      if (fo > 0) {
-        if (it.kind === 'frame') fs = 1 + (WORK.focusScale - 1) * fo;
-        else {
-          const ra = L.pos[i].along - pj * L.pitch, rc = L.pos[i].cross, r = Math.hypot(ra, rc) || 1, g = (WORK.focusScale - 1) * fo, ps = WORK.focusPush * scale * fo;
-          da += ra * g + (ps * ra) / r; dc += rc * g + (ps * rc) / r;
-        }
-      }
-      for (let q = 0; q < N; q++) if (fP[q] > 0) { const rr = relIdx(pj - q); if (rr === 1 || rr === -1) da += rr * WORK.focusNeighbour * L.pitch * fP[q]; }
-      if (da || dc) { if (L.M.vertical) { x += dc; y += da; } else { x += da; y += dc; } }
-    }
+    const fs = it.kind === 'frame' ? fsArr[it.proj] : 1;
     const sc = (1 + (CARD_HOVER.scale - 1) * hp[i]) * fs;
     bx[i] = x; by[i] = y;
     if (glOn) {
@@ -420,7 +423,8 @@ const relayout = () => {
 addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(relayout, 120); });
 
 commit(vertical ? 'vertical' : 'side');
-initNav(data.hero.wordmark, lenis, { gateFrame: false, position: () => Math.abs(virt) });
+// the endless strip passes through 0 at every wrap, so the distance must not drive the wordmark: it reports "scrolled" once and never rest again
+initNav(data.hero.wordmark, lenis, { gateFrame: false, position: () => (wmScrolled ? 1e9 : 0) });
 document.title = 'Work | Anh V';
 if (import.meta.env.DEV) {
   window.__SCROLL = SCROLL; window.__WORK = WORK;
