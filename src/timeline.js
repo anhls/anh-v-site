@@ -219,6 +219,16 @@ export const CARD_SIZE = {
   weights: [0.5, 0.35, 0.15], maxRatio: 2.2, minShort: 120,
   xMin: 330, xMax: 1070, yTop: 78, yBottom: 363, bandSlack: 6,
 };
+// R23 Work page (/work/). Sizes: frame w / h in vw / vh of the window (the same frame in both modes: along the strip it is w
+// for the side scroll and h for the vertical one); gapSide (vw) / gapVert (vh) = space between two frames, about 2 card widths /
+// heights; cards per gap cardsMin..cardsMax in two bands hugging the frame's two edges, overlapping the frame by overlapMin..Max of
+// the card's height (width in vertical mode). seed = layout of the gaps (each gap has its own, derived from it).
+// Wave (one shared function, src/work/wave.js): amplitude (vh), wavelength (share of the window along the strip), drift (cycles / s),
+// push (px at 1920: how far a crest moves the cards on its side away from the strip edge), pushSmooth (s). wheel = strip px per wheel px.
+export const WORK = {
+  seed: 3, frameW: 34, frameH: 58, gapSide: 26, gapVert: 40, cardsMin: 4, cardsMax: 8, overlapMin: 0.1, overlapMax: 0.2,
+  amplitude: 3.4, wavelength: 0.62, drift: 0.07, push: 70, pushSmooth: 0.25, wheel: 1.1, bendSegments: 64,
+};
 // R22d: cards per band (px2 at 1920, from the old curated layout: tools/band-limits.mjs, min 75% / max 130% of its count and area).
 // Order: Techcombank, swap zone 1, Bitis, swap zone 2, Sulwhasoo (the same five bands as cardBands() in cards-gen.js). Over a max
 // (count or area): extra cards are dropped by the seeded hash. Under a min: topped up with duplicates of the band's own featured

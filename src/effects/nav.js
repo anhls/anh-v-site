@@ -28,7 +28,8 @@ const ROLL = 18; // px; each link label exists twice, stacked 18px apart
 // `lenis` is optional: with it, the switch follows Lenis's target position, so the wordmark reacts the moment
 // the user scrolls toward/away from the top instead of waiting for the smooth-scroll glide to finish.
 // `gateFrame` (home): the footer state also needs the hero mask to be full screen again. Project pages have no mask, so they pass false.
-export function initNav(wordmarkSrc, lenis, { gateFrame = true } = {}) {
+// `position` (Work page): a function giving the distance scrolled (the strip is endless, the page itself never moves).
+export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe } = {}) {
   const img = document.createElement('img');
   img.className = 'wordmark';
   img.src = wordmarkSrc;
@@ -72,6 +73,7 @@ export function initNav(wordmarkSrc, lenis, { gateFrame = true } = {}) {
   // R16h: SMALL follows the scroll TARGET (instant when scrolling down), but BIG at the top only follows the ACTUAL position: with the long
   // Lenis glide the target reaches 0 while the page is still far down, and the big wordmark must not appear over half a cover image.
   const target = () => {
+    if (probe) return probe() >= NAV.thresholdPx ? 1 : 0;
     if (footerIn && frameFull) return 0;
     if (position() >= NAV.thresholdPx) return 1;
     return window.scrollY < NAV.thresholdPx ? 0 : 1;

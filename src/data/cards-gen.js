@@ -11,7 +11,7 @@ import { POOL, CARD_SIZE, INDEX, CARD_LAYOUT, BAND_LIMITS, BAND_RULES, CARD_HOVE
 import { generateLayout } from './layout.js';
 import { scrollPx, dist } from '../scale.js';
 
-function rng(seed) {
+export function rng(seed) {
   let a = seed >>> 0;
   return () => {
     a = (a + 0x6d2b79f5) >>> 0;
@@ -21,7 +21,7 @@ function rng(seed) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-const mix = (h, seed) => (Math.imul(h ^ Math.imul(seed | 0, 0x9e3779b1), 0x85ebca6b) ^ (h >>> 13)) >>> 0;
+export const mix = (h, seed) => (Math.imul(h ^ Math.imul(seed | 0, 0x9e3779b1), 0x85ebca6b) ^ (h >>> 13)) >>> 0;
 
 // Page-scroll position (px) at which a card at y (vh from the section top) crosses the screen centre, and back.
 const scrollToY = (px) => ((px - dist(CARD_LAYOUT.sectionTopCappedVh) + innerHeight / 2) / innerHeight) * 100;
@@ -36,7 +36,7 @@ export function cardBands(rows) {
 }
 
 // Fit the image's own ratio (clamped to maxRatio, the rest is cropped by cover) inside the tier box; short side >= minShort.
-function fit(srcW, srcH, box) {
+export function fit(srcW, srcH, box) {
   let r = srcW / srcH;
   r = Math.min(Math.max(r, 1 / CARD_SIZE.maxRatio), CARD_SIZE.maxRatio);
   let w = Math.min(box.w, box.h * r);
