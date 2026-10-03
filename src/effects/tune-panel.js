@@ -1,4 +1,5 @@
-import { tuneStore, makeCollapse } from './tune-store.js';
+import { tuneStore, makeCollapse, tuneGroups } from './tune-store.js';
+import { tuneDoc } from './tune-docs.js';
 import { BAND_RULES, SCROLL, DEPTH, POOL, BAND_LIMITS, CARDS, TRAIL, LAYOUT, BEND, WARP, FRAME_WARP, CARD_HOVER, CAPTION_HOVER } from '../timeline.js';
 
 // Dev-only tuning panel (Selected Work cards, card layout, hero trail). Opens with ?tune in the URL; main.js imports this
@@ -158,17 +159,20 @@ export function mountTunePanel({ trail, cards } = {}) {
   reg('SCROLL', SCROLL, SCROLL_SLIDERS); reg('DEPTH', DEPTH, DEPTH_SLIDERS); reg('RULES', BAND_RULES, RULE_SLIDERS);
   reg('CAPTION', CAPTION_HOVER, CAPTION_SLIDERS); reg('LAYOUT', LAYOUT, LAYOUT_SLIDERS); reg('TRAIL', TRAIL, TRAIL_SLIDERS);
 
+  const allGroups = [];
+  const docFor = (id) => tuneDoc(id) || DEFS[id]?.[1][5] || '';
   const section = (title, ids, { open = false, note = '', onInput, extra } = {}) => {
     const d = document.createElement('details');
     d.open = open;
     d.style.cssText = 'margin-top:8px;border-top:1px solid rgba(255,255,255,.2);padding-top:8px';
     d.innerHTML = `<summary style="cursor:pointer;font-weight:600">${title}</summary>${note ? `<div style="opacity:.7;margin:4px 0 8px">${note}</div>` : ''}`;
     if (extra) d.insertAdjacentHTML('beforeend', extra);
+    const groups = tuneGroups(d, 'home', store, docFor); // R22h: Active / Settled + the descriptions (one group per section)
+    allGroups.push(groups);
     ids.forEach((id) => {
       const [obj, [key, label, min, max, step, hint]] = DEFS[id];
       const row = document.createElement('label');
       row.style.cssText = 'display:block;margin:6px 0 9px';
-      row.title = hint;
       row.innerHTML = `<span style="display:flex;justify-content:space-between"><span>${label}</span><span data-v></span></span><input type="range" min="${min}" max="${max}" step="${step}" style="width:100%">`;
       const input = row.querySelector('input');
       const v = row.querySelector('[data-v]');
@@ -176,7 +180,7 @@ export function mountTunePanel({ trail, cards } = {}) {
       v.textContent = obj[key];
       input.addEventListener('input', () => { obj[key] = parseFloat(input.value); v.textContent = obj[key]; store.set(id, obj[key]); onInput?.(key); });
       readouts.push({ obj, key, input, v });
-      d.appendChild(row);
+      groups.add(id, row);
     });
     body.appendChild(d);
     return d;
@@ -233,6 +237,7 @@ export function mountTunePanel({ trail, cards } = {}) {
       Object.assign(CAPTION_HOVER, DEFAULTS.CAPTION_HOVER);
       Object.assign(SCROLL, DEFAULTS.SCROLL);
       store.clear();
+      allGroups.forEach((g) => g.reset());
       syncReadouts(); showSeed(); cards?.relayout(); cards?.gl()?.reweigh(); trail?.remeasure(); showPts();
       msg.textContent = 'Reset to the defaults in timeline.js';
     } else if (act === 'copy') {

@@ -1,5 +1,6 @@
 import { SCROLL } from '../timeline.js';
-import { tuneStore, makeCollapse } from './tune-store.js';
+import { tuneStore, makeCollapse, tuneGroups } from './tune-store.js';
+import { tuneDoc } from './tune-docs.js';
 
 // Dev-only panel for the project pages (?tune): the wheel acceleration sliders (SCROLL, shared by every page), with the same collapse button,
 // saved values and "Reset to defaults" as the homepage and Work panels (R23e). Never imported by the production build.
@@ -18,6 +19,8 @@ export function mountScrollTune() {
   head.append(collapseBtn);
   const content = document.createElement('div');
   box.append(head, content);
+  box.setAttribute('data-tune-box', '');
+  const groups = tuneGroups(content, 'project', store, tuneDoc); // R22h: Active / Settled + the descriptions
   const readouts = [];
   for (const [key, label, min, max, step] of SLIDERS) {
     const row = document.createElement('label');
@@ -26,7 +29,7 @@ export function mountScrollTune() {
     const input = row.querySelector('input'), v = row.querySelector('[data-v]');
     input.addEventListener('input', () => { SCROLL[key] = parseFloat(input.value); v.textContent = SCROLL[key]; store.set(`SCROLL.${key}`, SCROLL[key]); });
     readouts.push({ key, input, v });
-    content.append(row);
+    groups.add(`SCROLL.${key}`, row);
   }
   const msg = document.createElement('div');
   msg.style.cssText = 'margin-top:6px;opacity:.7;min-height:1.2em';
@@ -35,7 +38,7 @@ export function mountScrollTune() {
   const btn = (text, fn) => { const b = document.createElement('button'); b.textContent = text; b.style.cssText = 'padding:6px;cursor:pointer;width:100%'; b.onclick = fn; row.append(b); return b; };
   const copy = btn('Copy values', async () => { await navigator.clipboard.writeText(JSON.stringify({ SCROLL: Object.fromEntries(SLIDERS.map(([k]) => [k, SCROLL[k]])) }, null, 2)); copy.textContent = 'Copied'; setTimeout(() => { copy.textContent = 'Copy values'; }, 1200); });
   const sync = () => readouts.forEach((r) => { r.input.value = SCROLL[r.key]; r.v.textContent = SCROLL[r.key]; });
-  btn('Reset to defaults', () => { Object.assign(SCROLL, defaults); store.clear(); sync(); msg.textContent = 'Reset to the defaults in timeline.js'; });
+  btn('Reset to defaults', () => { Object.assign(SCROLL, defaults); store.clear(); groups.reset(); sync(); msg.textContent = 'Reset to the defaults in timeline.js'; });
   content.append(row, msg);
   document.body.append(box);
   makeCollapse(box, [content], collapseBtn);

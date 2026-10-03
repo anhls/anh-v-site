@@ -1,6 +1,7 @@
 import { WORK, WORK_LIMITS, CARD_HOVER, DEPTH, SCROLL, BAND_RULES } from '../timeline.js';
 import { EASES } from '../util/ease.js';
-import { tuneStore, makeCollapse } from '../effects/tune-store.js';
+import { tuneStore, makeCollapse, tuneGroups } from '../effects/tune-store.js';
+import { tuneDoc } from '../effects/tune-docs.js';
 
 // Dev-only sliders for the Work page (?tune). Layout, gap, warp, snap, focus and morph numbers write straight into WORK (relayout() re-places
 // everything). Dark share, front share and the per-project card limits change WHICH cards exist: they apply after "Apply (reload)" (written
@@ -44,6 +45,8 @@ export function mountWorkTune({ relayout }) {
   head.append(collapseBtn);
   const content = document.createElement('div');
   box.append(head, content);
+  box.setAttribute('data-tune-box', '');
+  const groups = tuneGroups(content, 'work', store, tuneDoc); // R22h: Active / Settled + the descriptions
   const readouts = [];
   const add = (group, obj, [key, label, min, max, step], onInput) => {
     const id = `${group}.${key}`;
@@ -53,7 +56,7 @@ export function mountWorkTune({ relayout }) {
     const input = row.querySelector('input'), v = row.querySelector('[data-v]');
     input.addEventListener('input', () => { obj[key] = parseFloat(input.value); v.textContent = obj[key]; store.set(id, obj[key]); onInput?.(); });
     readouts.push({ obj, key, input, v });
-    content.append(row);
+    groups.add(id, row);
     return id;
   };
   const defs = {};
@@ -67,7 +70,7 @@ export function mountWorkTune({ relayout }) {
     sel.value = WORK.easeType;
     sel.addEventListener('change', () => { WORK.easeType = sel.value; store.set('WORK.easeType', sel.value); });
     readouts.push({ obj: WORK, key: 'easeType', input: sel, v: { textContent: '' } });
-    content.append(row);
+    groups.add('WORK.easeType', row);
     defs['WORK.easeType'] = [WORK, 'easeType'];
   }
   SLIDERS.forEach((d) => { defs[add('WORK', WORK, d, relayout)] = [WORK, d[0]]; });
@@ -76,13 +79,13 @@ export function mountWorkTune({ relayout }) {
     const hd = document.createElement('div');
     hd.style.cssText = 'margin-top:10px;font-weight:600';
     hd.textContent = title;
-    content.append(hd);
+    groups.header(hd);
     WARP_SLIDERS.forEach((d) => { defs[add(`WORK.${block}`, WORK[block], d)] = [WORK[block], d[0]]; });
   }
   const h = document.createElement('div');
   h.style.cssText = 'margin-top:10px;font-weight:600';
   h.textContent = 'Which cards (Apply reloads)';
-  content.append(h);
+  groups.header(h);
   add('DEPTH', DEPTH, ['frontShare', 'Cards in front of the image (share)', 0, 1, 0.01]);
   add('HOVER', CARD_HOVER, ['darkShare', 'Dark rest layer: share', 0, 1, 0.01]);
   RELOAD.forEach((d) => add('WORK_LIMITS', WORK_LIMITS, d));
@@ -98,6 +101,7 @@ export function mountWorkTune({ relayout }) {
   btn('Reset to defaults', () => {
     Object.assign(WORK, defaults.WORK); Object.assign(SCROLL, defaults.SCROLL); Object.assign(WORK.cardWarp, defaults.cardWarp); Object.assign(WORK.frameWarp, defaults.frameWarp);
     store.clear();
+    groups.reset();
     readouts.forEach((r) => { r.input.value = r.obj[r.key]; r.v.textContent = r.obj[r.key]; });
     relayout();
     msg.textContent = 'Reset to the defaults in timeline.js';
