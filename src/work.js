@@ -307,14 +307,14 @@ const focusOff = (now) => focusHeld && (!!morph || (typeof WORK.focusAfterMorph 
 const inputRelease = () => { if (focusHeld && !morph && WORK.focusAfterMorph === 'input') focusHeld = false; };
 const cancelSnap = () => { snap = null; snapForce = 0; lastWheel = performance.now(); wmScrolled = true; inputRelease(); };
 // ---- R22e: hold and drag (desktop mouse). The strip follows the pointer 1:1 (the scroll gain does not apply) along the mode's axis; on release
-// it carries the pointer's velocity as an inertia (WORK.dragInertia seconds of travel, ends on an easeOutCubic with the overshoot dragOvershoot)
+// it keeps the pointer's speed and loses it by friction (R22i: speed x exp(-t / WORK.dragFriction), distance = speed x friction time, capped at
+// WORK.dragMaxCoast pitches; no overshoot; it ends when the speed is under 5 px/s)
 // and then the soft snap takes over as usual. A drag past 6 px swallows the click that would open a project; a plain click still works.
 // Everything moves `off` only: Lenis (R23c re-base handling, gain) and the counter are untouched. Wheel / key / touch / a new grab cancel it.
 let drag = null; // { id, last, total, captured, samples: [[t, pos]] }
-let inertia = null; // { from, to, t0, dur }
+let inertia = null; // { from, v0, F, t0 }
 let dragMoved = false;
 let dragAccum = 0; // S change made by the drag / inertia since the last frame (px): the warp follows it like a wheel scroll
-const easeOutCubic = (t) => 1 - (1 - t) ** 3;
 const axisOf = (e) => (vertical ? e.clientY : e.clientX);
 const endDrag = () => {
   if (!drag) return;
@@ -328,7 +328,7 @@ const endDrag = () => {
   const s = d.samples.filter((q) => now - q[0] < 90);
   if (s.length >= 2) {
     const v = -((s[s.length - 1][1] - s[0][1]) / Math.max((s[s.length - 1][0] - s[0][0]) / 1000, 0.008));
-    if (Math.abs(v) > 30) inertia = { from: S, to: S + v * WORK.dragInertia, t0: now, dur: WORK.dragInertia * 3000, force: forceOf(Math.abs(v) / scale, WORK) }; // the release speed is the force
+    if (Math.abs(v) > 30) { const F = Math.min(Math.max(WORK.dragFriction, 0.05), (WORK.dragMaxCoast * cur().pitch) / Math.abs(v)); inertia = { from: S, v0: v, F, t0: now }; } // the release speed is the last drag speed (no step); a hard fling gets a shorter friction time so the distance stays capped
   }
 };
 addEventListener('pointerdown', (e) => {
@@ -391,13 +391,19 @@ const tick = (_time, deltaMs) => {
   // drag / inertia: the soft snap and the focus stay out of the way while the strip is held or coasting
   if (drag) { lastWheel = now; snap = null; }
   if (inertia && !morph) {
-    const t = Math.min(1, (now - inertia.t0) / inertia.dur);
-    const target = inertia.from + (inertia.to - inertia.from) * withOvershoot(easeOutCubic, WORK.dragOvershoot * qForce(inertia.force), WORK.overshootSettle, 'outCubic')(t);
+    const t = (now - inertia.t0) / 1000, e = Math.exp(-t / inertia.F), spd = inertia.v0 * e;
+    const target = inertia.from + inertia.v0 * inertia.F * (1 - e);
     const before = S;
     off += target - S; S = target;
     dragAccum += S - before;
     lastWheel = now; snap = null;
-    if (t >= 1) inertia = null;
+    if (Math.abs(spd) < 5) inertia = null;
+    else if (WORK.dragSnapBlend > 0 && Math.abs(spd) < WORK.dragSnapBlend && glOn && !reduced) {
+      // R22i option: the snap takes over while the coast is still slowing (magnetised to the project the coast is heading for)
+      const pt = cur().pitch, k = Math.round((S + spd * inertia.F) / pt);
+      if (Math.abs(k * pt - S) > 0.5) { snapForce = 0; snap = { from: S, to: k * pt, t0: now, force: 0 }; }
+      inertia = null;
+    }
   } else if (inertia) inertia = null;
   if (dragAccum) { vel += dragAccum / Math.max(dt, 1e-3); dragAccum = 0; }
   const snapOk = glOn && !reduced && !morph;

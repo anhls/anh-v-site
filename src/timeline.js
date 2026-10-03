@@ -256,7 +256,9 @@ export const WORK = {
   // R22e overshoot (src/util/overshoot.js; 0 = the old curve): the end passes the target by this share of the distance / value once, then settles.
   // overshootSettle = the share of a clocked animation (snap, morph, drag release) the settle takes; followerSettleSec = the same in seconds for the
   // focus (its bump plays when a build completes). The R25 transition and the homepage animations do not use it.
-  dragInertia: 0.5,
+  // R22i drag release: the strip keeps its release speed and loses it by friction (speed x exp(-t / dragFriction) s, so a fling carries speed x dragFriction px);
+  // dragMaxCoast = most it may coast, in pitches; dragSnapBlend 0 = off, else the soft snap may start once the coast is slower than this (px/s at 1920).
+  dragFriction: 0.6, dragMaxCoast: 1.5, dragSnapBlend: 0,
   // R22f ease curves (src/util/ease.js) shared by the soft snap, the focus build and the toggle morph: easeType 'sine' | 'quad' | 'cubic' | 'circ'
   // (circ = the old snap / focus curve; for the morph, circ keeps the morphEase power curve), easeSoftness 0..1 = blend with a straight line.
   // The project name has no overshoot (it rises along its plain ease).
@@ -273,7 +275,7 @@ export const WORK = {
   // seconds after the morph ends, 0 = as before (the focus builds right away).
   focusAfterMorph: 'input',
   forceFrom: 450, forceTo: 1500,
-  snapOvershoot: 0.04, focusOvershootScale: 0.025, focusOvershootPush: 0.025, morphOvershoot: 0.05, dragOvershoot: 0.05, overshootSettle: 0.4, followerSettleSec: 0.45,
+  snapOvershoot: 0.04, focusOvershootScale: 0.025, focusOvershootPush: 0.025, morphOvershoot: 0.05, overshootSettle: 0.4, followerSettleSec: 0.45,
 };
 // Cards per project (R23b, the same rules as BAND_LIMITS on the homepage): count and total area (px2 at 1920) of the cards along one
 // project's edges. Over a max: dropped by the seeded hash; under a min: duplicates of the project's own images.

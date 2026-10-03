@@ -38,7 +38,7 @@ export function makeCollapse(box, hideEls, btn) {
 export const TUNE_SETTLED = {
   work: [
     'WORK.seed', 'WORK.frameH', 'WORK.gapSide', 'WORK.gapVert', 'WORK.overlapMax', 'WORK.minGap', 'WORK.cardWarp.strength', 'WORK.cardWarp.riseSec', 'WORK.morphEase', 'WORK.morphLanding', 'WORK.dupGap',
-    'WORK.focusPush', 'WORK.focusPushRadius', 'WORK.focusPushOthers', 'WORK.dragInertia', 'WORK.snapOvershoot', 'WORK.morphOvershoot', 'WORK.dragOvershoot', 'WORK.overshootSettle', 'WORK.followerSettleSec',
+    'WORK.focusPush', 'WORK.focusPushRadius', 'WORK.focusPushOthers', 'WORK.dragFriction', 'WORK.dragMaxCoast', 'WORK.snapOvershoot', 'WORK.morphOvershoot', 'WORK.overshootSettle', 'WORK.followerSettleSec',
     'WORK.forceFrom', 'WORK.forceTo', 'SCROLL.gainCap', 'SCROLL.gainFrom', 'SCROLL.gainTo', 'WORK_LIMITS.minN', 'WORK_LIMITS.maxN', 'WORK_LIMITS.minA', 'HOVER.darkShare', 'DEPTH.frontShare',
   ],
   home: [
