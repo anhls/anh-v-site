@@ -15,6 +15,7 @@ import { applyFocus } from './work/focus.js';
 import { pushTarget, stepPushSpring } from './effects/card-push.js';
 import { withOvershoot, settleBump, settleCurve } from './util/overshoot.js';
 import { workEase, blendSoft, moveForce, forceOf } from './util/ease.js';
+import { ambUnits, ambParams, ambDepthW, ambProgress, ambCardOffset, ambImageOffset } from './work/ambient.js';
 import { buildProjectCards, placeCards, balanceDark, workMetrics, fixWorkLayout } from './work/cards.js';
 
 // Work page (R23, R23b). A strip of the projects' main images, endless, driven by Lenis (infinite mode: the page itself never moves, its
@@ -181,6 +182,41 @@ const pOut = { x: 0, y: 0 };
 const psrcs = new Int32Array(n);
 const PS = { pointerOn: false, px: 0, py: 0, pw: 1, R: 0, pushMax: 0, falloff: 1, hsPush: 0, hRad: 0, hoverScale: 1, nSrc: 0, srcs: psrcs, srcX: new Float64Array(n), srcY: new Float64Array(n), bw, bh, hp: null };
 let hov = -1;
+// ---- R22h: ambient drift (work/ambient.js). av[i] = progress 0..1 of item i's offset; al / cr = its offset along / across the strip (px)
+const AMB = { on: false, t0: 0, tOff: 0, a0: new Float64Array(n), r0: new Float64Array(n), av: new Float64Array(n), al: new Float64Array(n), cr: new Float64Array(n), units: items.map((it) => (it.kind === 'card' ? ambUnits(it.card, it.proj) : null)), moving: false };
+const stepAmb = (now) => {
+  let fmax = 0;
+  for (let q = 0; q < N; q++) if (fP[q] > fmax) fmax = fP[q];
+  const on = glOn && !reduced && !morph && !snap && !drag && !inertia && now - lastWheel > WORK.ambDelay * 1000 && fmax >= 0.98;
+  if (on && !AMB.on) { AMB.on = true; AMB.t0 = now; AMB.a0.set(AMB.av); } // start (or resume from the current offsets: no pop)
+  else if (!on && AMB.on) { AMB.on = false; AMB.tOff = now; AMB.r0.set(AMB.av); }
+  let moving = false, any = false;
+  const ret = Math.max(WORK.ambReturnSec, 0.05), ease = workEase(WORK), tSec = now / 1000;
+  const sc = scale;
+  for (let i = 0; i < n; i++) {
+    const u = AMB.units[i];
+    const prm = u ? ambParams(u) : null;
+    let av = AMB.av[i];
+    if (AMB.on) {
+      const a0 = AMB.a0[i], tau = prm ? prm.tau : WORK.ambTau, del = prm ? prm.delay * (1 - a0) : 0;
+      av = a0 + (1 - a0) * ambProgress((now - AMB.t0) / 1000, tau, del);
+      if (av > 0.999) av = 1; else moving = true;
+    } else if (av > 0) {
+      const t = (now - AMB.tOff) / 1000 / ret;
+      av = t >= 1 ? 0 : AMB.r0[i] * (1 - ease(t));
+      if (av > 0) moving = true;
+    }
+    AMB.av[i] = av;
+    if (av > 0) {
+      any = true;
+      if (u) { ambCardOffset(ambOut, prm, ambDepthW(items[i].mouse), av, tSec, sc); AMB.al[i] = ambOut.along; AMB.cr[i] = ambOut.cross; if (WORK.ambSway > 0 && AMB.on) moving = true; }
+      else { AMB.al[i] = ambImageOffset(av, sc); AMB.cr[i] = 0; }
+    } else { AMB.al[i] = 0; AMB.cr[i] = 0; }
+  }
+  AMB.moving = moving;
+  return moving;
+};
+const ambOut = { along: 0, cross: 0 };
 const NUD = { x: new Float64Array(n), y: new Float64Array(n), dt: 0, tau: 0.09, live: false }; // R22g: the focus nudge, smoothed in time (work/focus.js)
 let driftW = 1; // weight of the mouse drift (1 at rest, 0 during the toggle morph)
 const hp = new Float64Array(n), hv = new Float64Array(n); // hover progress (critically damped spring, as the homepage cards)
@@ -429,6 +465,7 @@ const tick = (_time, deltaMs) => {
   const sB = morph ? morph.SB : S;
   const dur = Math.max(WORK.morphSec - WORK.morphStagger, 0.05);
   let settleMoving = false;
+  if (stepAmb(now)) settleMoving = true;
   // R22g: the mouse drift fades out / in over 0.6 s around the toggle morph (it used to switch off at the first frame and on at the last: a card
   // jumped by its whole drift when the pointer was off-centre)
   driftW += Math.max(-dt / 0.6, Math.min(dt / 0.6, (morph ? 0 : 1) - driftW));
@@ -476,6 +513,7 @@ const tick = (_time, deltaMs) => {
       if (stepPushSpring(Q, V, i, pOut.x, pOut.y, CARDS.pushStiffness, CARDS.pushDamping, ph, pSteps)) pushMoving = true;
       dx += qx[i]; dy += qy[i];
     }
+    if (AMB.al[i] !== 0 || AMB.cr[i] !== 0) { if (L.M.vertical) { dx += AMB.cr[i]; dy += AMB.al[i]; } else { dx += AMB.al[i]; dy += AMB.cr[i]; } }
     const fs = it.kind === 'frame' ? fsArr[it.proj] : 1;
     const sc = (1 + (CARD_HOVER.scale - 1) * hp[i]) * fs;
     bx[i] = x; by[i] = y;
@@ -580,6 +618,6 @@ initNav(data.hero.wordmark, lenis, { gateFrame: false, position: () => (wmScroll
 document.title = 'Work | Anh V';
 if (import.meta.env.DEV) {
   window.__SCROLL = SCROLL; window.__WORK = WORK;
-  window.__work = { setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, q: Q, PS,  get snap() { return snap; }, get drag() { return drag; }, get inertia() { return inertia; }, fP, fSc, fPu, get kCount() { return kCount; }, bx, by, bw, bh, vis, hp };
+  window.__work = { setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, q: Q, PS,  get snap() { return snap; }, AMB, get drag() { return drag; }, get inertia() { return inertia; }, fP, fSc, fPu, get kCount() { return kCount; }, bx, by, bw, bh, vis, hp };
   if (params.has('tune')) import('./work/tune.js').then((m) => m.mountWorkTune({ relayout }));
 }

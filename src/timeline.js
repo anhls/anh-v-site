@@ -263,6 +263,12 @@ export const WORK = {
   easeType: 'sine', easeSoftness: 0.25,
   // R22g: overshoot force = smoothstep of the move's own peak speed (px/s at 1920): none below forceFrom, the full amount from forceTo (0, 0 = always
   // full, the old fixed behaviour).
+  // R22h ambient drift (work/ambient.js): once the strip has rested ambDelay s and the focus has built, everything eases a few px toward the NEXT
+  // project (a visual offset only; the snap, counter, focus and seam never see it). The main images drift together: at most ambFrame px at 1920,
+  // exponential approach with time constant ambTau s. Each card (seeded per card): travel = ambFrame x a multiple drawn from ambCardMulMin..Max x
+  // its depth weight, time constant ambTau +- ambTauVar (share), start delay up to ambStagger s, a cross-axis lean up to ambCross of its travel
+  // (either sign), and an optional sway of ambSway px (0 = off). Any input returns every offset to 0 over ambReturnSec s.
+  ambDelay: 2, ambFrame: 20, ambTau: 15, ambReturnSec: 0.8, ambCardMulMin: 2, ambCardMulMax: 4.5, ambTauVar: 0.3, ambStagger: 1.5, ambCross: 0.25, ambSway: 0,
   forceFrom: 450, forceTo: 1500,
   snapOvershoot: 0.04, focusOvershootScale: 0.025, focusOvershootPush: 0.025, morphOvershoot: 0.05, dragOvershoot: 0.05, overshootSettle: 0.4, followerSettleSec: 0.45,
 };

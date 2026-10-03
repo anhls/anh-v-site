@@ -15,6 +15,9 @@ const SLIDERS = [
   ['dragInertia', 'Drag release: inertia (s of travel)', 0, 2, 0.05], ['dragOvershoot', 'Overshoot: drag release', 0, 0.3, 0.005], ['snapOvershoot', 'Overshoot: soft snap', 0, 0.3, 0.005], ['morphOvershoot', 'Overshoot: toggle morph', 0, 0.3, 0.005],
   ['focusOvershootScale', 'Overshoot: focus image scale', 0, 0.3, 0.005], ['focusOvershootPush', 'Overshoot: focus push', 0, 0.3, 0.005],
   ['overshootSettle', 'Overshoot settle (share of a clocked move)', 0.1, 0.8, 0.01], ['followerSettleSec', 'Focus bump settle (s)', 0.1, 1.5, 0.01],
+  ['ambDelay', 'Ambient drift: starts after rest (s)', 0.5, 10, 0.1], ['ambFrame', 'Ambient drift: image travel (px at 1920)', 0, 80, 1], ['ambTau', 'Ambient drift: time constant (s)', 2, 60, 0.5], ['ambReturnSec', 'Ambient drift: return on input (s)', 0.1, 3, 0.05],
+  ['ambCardMulMin', 'Ambient drift: card travel, min (x image)', 0, 8, 0.1], ['ambCardMulMax', 'Ambient drift: card travel, max (x image)', 0, 8, 0.1], ['ambTauVar', 'Ambient drift: card speed variation', 0, 0.8, 0.01], ['ambStagger', 'Ambient drift: card start spread (s)', 0, 6, 0.1],
+  ['ambCross', 'Ambient drift: card cross lean (share of travel)', 0, 1, 0.01], ['ambSway', 'Ambient drift: card sway (px at 1920)', 0, 20, 0.5],
   ['forceFrom', 'Overshoot force: none below (px/s at 1920)', 0, 3000, 25], ['forceTo', 'Overshoot force: full from (px/s at 1920)', 0, 4000, 25],   ['easeSoftness', 'Ease softness (0 = pure curve, 1 = linear)', 0, 1, 0.01], ['morphSec', 'Toggle morph (s)', 0.2, 4, 0.05], ['morphStagger', 'Toggle stagger (s)', 0, 1.5, 0.01], ['morphEase', 'Toggle ease-in power', 1, 6, 0.1], ['morphLanding', 'Toggle soft landing (share of time)', 0.02, 0.4, 0.01], ['seed', 'Layout seed (reload)', 1, 999, 1],
 ];
 // R22h: the two warps (WORK.cardWarp for the cards, WORK.frameWarp for the main images), same sliders for both

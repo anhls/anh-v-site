@@ -14,6 +14,7 @@ import { fixOverlaps, allViolations } from '../data/overlap.js';
 import { generateLayout } from '../data/layout.js';
 import { cardDepth } from '../data/depth.js';
 import { rng, mix, fit } from '../data/cards-gen.js';
+import { ambUnits, ambParams, ambDepthW, ambProgress } from './ambient.js';
 
 const warn = (...a) => { if (import.meta.env?.DEV) console.warn('[work cards]', ...a); };
 const area = (c) => c.w * c.h;
@@ -232,6 +233,17 @@ export function fixWorkLayout(projects, Ms, { structural = true, check = false }
       const Wv = Float64Array.from(flat, (f) => placed[mode][f.pi][f.k].crossSize);
       const Hv = Float64Array.from(flat, (f) => placed[mode][f.pi][f.k].alongSize);
       const dd = Float64Array.from(flat, (f) => (20 + (f.c.mouse - 20) * CARDS.depthRange) * CARDS.mouseStrength * sc);
+      // R22h: the ambient drift (work/ambient.js): each card has its own maximum travel (toward the next project, a cross-axis lean, the sway), its own
+      // timing: checked at the end of the drift (sway at both extremes), at a few times on the way (the cards arrive at different times, so a pair can be
+      // closest in between), with the mouse drift corners on top, and on top of the focus push (the drift only runs while the focus is built)
+      const aprm = flat.map((f) => ambParams(ambUnits(f.c, f.pi)));
+      const adw = flat.map((f) => ambDepthW(f.c.mouse));
+      const ambAt = (t, sw) => { // [dX across, dY along] per card; sw = sway sign (-1, 0, 1)
+        const dX = new Float64Array(n), dY = new Float64Array(n);
+        flat.forEach((f, i) => { const av = ambProgress(t, aprm[i].tau, aprm[i].delay), al = av * WORK.ambFrame * aprm[i].mul * adw[i] * sc; dY[i] = al; dX[i] = al * aprm[i].lean + sw * WORK.ambSway * sc * av; });
+        return [dX, dY];
+      };
+      const ambScen = WORK.ambFrame > 0 ? [[1e4, 1], ...(WORK.ambSway > 0 ? [[1e4, -1]] : []), [4, 0], [10, 0], [25, 0]] : [];
       for (let k = 0; k < N; k++) {
         const wy = (y) => wrap(y - k * pitch, period) + k * pitch;
         const Yk = Float64Array.from(Y0, wy);
@@ -247,6 +259,14 @@ export function fixWorkLayout(projects, Ms, { structural = true, check = false }
         const fS = new Float64Array(N), fPu = new Float64Array(N); fS[k] = 1 + WORK.focusOvershootScale; fPu[k] = 1 + WORK.focusOvershootPush;
         applyFocus(A, fS, WORK, CARDS, new Float64Array(N), fPu);
         push(A.X.slice(N), A.Y.slice(N));
+        for (const [t, sw] of ambScen) {
+          const [dX, dY] = ambAt(t, sw);
+          push(Float64Array.from(X0, (v, i) => v + dX[i]), Float64Array.from(Yk, (v, i) => v + dY[i])); // the drift alone (at rest)
+          if (t >= 1e4) {
+            for (const [sx, sy] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) push(Float64Array.from(X0, (v, i) => v + dX[i] + sx * dd[i]), Float64Array.from(Yk, (v, i) => v + dY[i] + sy * dd[i])); // + the mouse drift corners
+            push(A.X.slice(N).map((v, i) => v + dX[i]), A.Y.slice(N).map((v, i) => v + dY[i])); // on top of the focus push
+          }
+        }
       }
     }
   };
