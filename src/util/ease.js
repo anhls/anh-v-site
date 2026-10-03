@@ -34,3 +34,37 @@ export const workEase = (W) => {
   }
   return f;
 };
+
+// R22g: overshoot force from the move's own speed. peakSpeed = distance x the ease's steepest slope / duration (px/s at the 1920 reference).
+// force = smoothstep((peakSpeed - forceFrom) / (forceTo - forceFrom)); forceTo <= forceFrom is a hard step at forceFrom (0, 0 = always 1, the old
+// fixed behaviour). The overshoot amount of every Work animation is its base amount x force.
+const slopes = new WeakMap();
+export const maxSlope = (curve) => {
+  let s = slopes.get(curve);
+  if (s === undefined) { s = 0; for (let i = 1; i <= 400; i++) s = Math.max(s, (curve(i / 400) - curve((i - 1) / 400)) * 400); slopes.set(curve, s); }
+  return s;
+};
+export const forceOf = (peakSpeed, W) => {
+  const a = W.forceFrom, b = W.forceTo;
+  if (!(b > a)) return peakSpeed >= a ? 1 : 0;
+  const u = Math.min(Math.max((peakSpeed - a) / (b - a), 0), 1);
+  return u * u * (3 - 2 * u);
+};
+export const moveForce = (distPx, scale, curve, sec, W) => forceOf((Math.abs(distPx) / Math.max(scale, 1e-6) * maxSlope(curve)) / Math.max(sec, 0.05), W);
+
+// The card settle after the toggle: a shove = a velocity added over a short smooth ramp (KICK_RAMP s, so there is no speed step) to a spring (k, c).
+// kickWeight(t) = the share of the shove given by time t; peakPerKick(k, c) = how far a unit shove takes the card (simulated once, cached).
+export const KICK_RAMP = 0.14;
+export const kickWeight = (t) => { const u = Math.min(Math.max(t / KICK_RAMP, 0), 1); return u * u * (3 - 2 * u); };
+const kicks = new Map();
+export const peakPerKick = (k, c) => {
+  const key = `${k}|${c}`;
+  let p = kicks.get(key);
+  if (p === undefined) {
+    // simulated the way work.js steps it: 8 ms frames, the shove added at the frame start, two 4 ms spring sub-steps
+    let x = 0, v = 0, m = 0, w0 = 0;
+    for (let t = 0; t < 8; t += 0.008) { const w = kickWeight(t + 0.008); v += w - w0; w0 = w; for (let q = 0; q < 2; q++) { v += (k * (0 - x) - c * v) * 0.004; x += v * 0.004; if (x > m) m = x; } }
+    kicks.set(key, (p = m));
+  }
+  return p;
+};

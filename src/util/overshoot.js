@@ -23,6 +23,7 @@ export const withOvershoot = (ease, amount, window, key = '') => {
   let hit = cache.get(ease);
   if (!hit) cache.set(ease, (hit = new Map()));
   let A = hit.get(id);
+  if (hit.size > 200) hit.clear();
   if (A === undefined) {
     const peak = (h) => { let m = 0; for (let i = 1; i < 240; i++) { const t = i / 240; m = Math.max(m, ease(t) + h * bump(t, window)); } return m; };
     let lo = 0, hi = Math.max(amount * 4, 0.2);
@@ -38,19 +39,19 @@ export const withOvershoot = (ease, amount, window, key = '') => {
 //    1 from below) a short clock starts and the DRAWN value becomes fP + amount * sin^2(pi t): it passes 1 by exactly `amount` once, then settles on
 //    exactly 1. The bump fades out as fP leaves 1, so an unwind (new input) starts from the plain value with no pop. amount 0 = the value is fP.
 export function settleBump(n) {
-  const x = new Float64Array(n), prev = new Float64Array(n), t0 = new Float64Array(n).fill(-1);
+  const x = new Float64Array(n), prev = new Float64Array(n), t0 = new Float64Array(n).fill(-1), g = new Float64Array(n); // g: the force latched when the build completed
   return {
     x,
-    step(fP, nowMs, amount, settleSec) {
+    step(fP, nowMs, amount, settleSec, force = 1) {
       let moving = false;
       for (let i = 0; i < n; i++) {
         const f = fP[i];
-        if (f >= 0.999 && prev[i] < 0.999) t0[i] = nowMs; // the build just completed
+        if (f >= 0.999 && prev[i] < 0.999) { t0[i] = nowMs; g[i] = force; } // the build just completed: its force is kept for the whole bump
         prev[i] = f;
         let v = f;
-        if (amount > 0 && t0[i] >= 0) {
+        if (amount * g[i] > 0 && t0[i] >= 0) {
           const t = (nowMs - t0[i]) / 1000 / Math.max(settleSec, 0.05);
-          if (t < 1) { v += amount * Math.sin(Math.PI * t) ** 2 * Math.min(1, Math.max(0, (f - 0.9) / 0.1)); moving = true; } else t0[i] = -1;
+          if (t < 1) { v += amount * g[i] * Math.sin(Math.PI * t) ** 2 * Math.min(1, Math.max(0, (f - 0.9) / 0.1)); moving = true; } else t0[i] = -1;
         }
         if (v !== x[i]) moving = true;
         x[i] = v;

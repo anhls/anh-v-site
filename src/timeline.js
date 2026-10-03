@@ -254,6 +254,9 @@ export const WORK = {
   // (circ = the old snap / focus curve; for the morph, circ keeps the morphEase power curve), easeSoftness 0..1 = blend with a straight line.
   // The project name has no overshoot (it rises along its plain ease).
   easeType: 'sine', easeSoftness: 0.25,
+  // R22g: overshoot force = smoothstep of the move's own peak speed (px/s at 1920): none below forceFrom, the full amount from forceTo (0, 0 = always
+  // full, the old fixed behaviour). cardSettleStiffness / Damping: the spring the cards settle on after the toggle (start = the pointer push's).
+  forceFrom: 450, forceTo: 1500, cardSettleStiffness: 50, cardSettleDamping: 30,
   snapOvershoot: 0.04, focusOvershootScale: 0.025, focusOvershootPush: 0.025, morphOvershoot: 0.05, dragOvershoot: 0.05, overshootSettle: 0.4, followerSettleSec: 0.45,
 };
 // Cards per project (R23b, the same rules as BAND_LIMITS on the homepage): count and total area (px2 at 1920) of the cards along one
