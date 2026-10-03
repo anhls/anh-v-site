@@ -60,3 +60,26 @@ export function settleBump(n) {
     },
   };
 }
+
+// 3. settleCurve(base, amount) (R22h): the toggle morph's overshoot, for images AND cards. The old withOvershoot ADDS a bump to an ease that is
+//    already braking, so the speed could rise again before the peak (a second push). This one is two eases: the base ease runs to the PEAK
+//    (1 + amount) and arrives there with zero speed (so the speed only ever falls on the way in), then a sine ease takes it back to exactly 1
+//    (one reversal, speed rises and falls once). The peak time T1 is chosen so the acceleration is the same on both sides of the peak (no step
+//    in acceleration); the peak is exactly 1 + amount, the end exactly 1 with zero speed. amount 0 = the base ease.
+const sine = (t) => (1 - Math.cos(Math.PI * t)) / 2;
+const settles = new WeakMap();
+export const settleCurve = (base, amount) => {
+  if (!(amount > 0)) return (t) => (t <= 0 ? 0 : t >= 1 ? 1 : base(t));
+  let m = settles.get(base);
+  if (!m) settles.set(base, (m = new Map()));
+  let f = m.get(amount);
+  if (!f) {
+    if (m.size > 200) m.clear();
+    const h = 1e-3, b2 = Math.abs((base(1 - 2 * h) - 2 * base(1 - h) + base(1)) / (h * h)) || Math.PI ** 2 / 2;
+    const r = Math.sqrt((amount * (Math.PI ** 2 / 2)) / ((1 + amount) * Math.max(b2, 1e-3)));
+    const T1 = Math.min(0.999, Math.max(0.5, 1 / (1 + r)));
+    f = (t) => (t <= 0 ? 0 : t >= 1 ? 1 : t < T1 ? (1 + amount) * base(t / T1) : 1 + amount - amount * sine((t - T1) / (1 - T1)));
+    m.set(amount, f);
+  }
+  return f;
+};

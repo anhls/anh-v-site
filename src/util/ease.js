@@ -9,17 +9,15 @@ export const EASES = {
   cubic: (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2),
 };
 
-// blendSoft(curve, softness): the same curve, pulled toward a straight line by `softness` except near the end. Returns `curve` itself at 0.
+// blendSoft(curve, softness): the curve pulled toward a "steady" curve by `softness`: constant speed that only brakes over the last SOFT_END of the
+// time (speed 1 until 1 - SOFT_END, then falling to 0 on a smoothstep). Blending the SPEED keeps the result single-peaked (speed rises once, then
+// falls: no dip, R22h) and ending with zero slope, exactly on 1. Returns `curve` itself at 0.
+const T0 = 1 - SOFT_END, KC = 1 / (T0 + SOFT_END / 2);
+const steady = (t) => { if (t <= T0) return KC * t; const u = (t - T0) / SOFT_END; return KC * (T0 + SOFT_END * (u - u * u * u + (u * u * u * u) / 2)); };
 export const blendSoft = (curve, softness) => {
   const s = Math.min(Math.max(softness, 0), 1);
   if (!(s > 0)) return curve;
-  return (t) => {
-    if (t <= 0) return 0;
-    if (t >= 1) return 1;
-    const u = Math.min(Math.max((t - (1 - SOFT_END)) / SOFT_END, 0), 1);
-    const m = s * (1 - u * u * (3 - 2 * u)); // blend weight: s, then smoothly 0 at the end
-    return curve(t) * (1 - m) + t * m;
-  };
+  return (t) => (t <= 0 ? 0 : t >= 1 ? 1 : curve(t) * (1 - s) + steady(t) * s);
 };
 
 // workEase(WORK): the shared curve for the current settings. Cached per type + softness (the overshoot helper caches by function identity).
@@ -51,20 +49,3 @@ export const forceOf = (peakSpeed, W) => {
   return u * u * (3 - 2 * u);
 };
 export const moveForce = (distPx, scale, curve, sec, W) => forceOf((Math.abs(distPx) / Math.max(scale, 1e-6) * maxSlope(curve)) / Math.max(sec, 0.05), W);
-
-// The card settle after the toggle: a shove = a velocity added over a short smooth ramp (KICK_RAMP s, so there is no speed step) to a spring (k, c).
-// kickWeight(t) = the share of the shove given by time t; peakPerKick(k, c) = how far a unit shove takes the card (simulated once, cached).
-export const KICK_RAMP = 0.14;
-export const kickWeight = (t) => { const u = Math.min(Math.max(t / KICK_RAMP, 0), 1); return u * u * (3 - 2 * u); };
-const kicks = new Map();
-export const peakPerKick = (k, c) => {
-  const key = `${k}|${c}`;
-  let p = kicks.get(key);
-  if (p === undefined) {
-    // simulated the way work.js steps it: 8 ms frames, the shove added at the frame start, two 4 ms spring sub-steps
-    let x = 0, v = 0, m = 0, w0 = 0;
-    for (let t = 0; t < 8; t += 0.008) { const w = kickWeight(t + 0.008); v += w - w0; w0 = w; for (let q = 0; q < 2; q++) { v += (k * (0 - x) - c * v) * 0.004; x += v * 0.004; if (x > m) m = x; } }
-    kicks.set(key, (p = m));
-  }
-  return p;
-};
