@@ -1,4 +1,5 @@
 import { WORK, WORK_LIMITS, CARD_HOVER, DEPTH, SCROLL, BAND_RULES } from '../timeline.js';
+import { EASES } from '../util/ease.js';
 import { tuneStore, makeCollapse } from '../effects/tune-store.js';
 
 // Dev-only sliders for the Work page (?tune). Layout, gap, warp, snap, focus and morph numbers write straight into WORK (relayout() re-places
@@ -12,9 +13,9 @@ const SLIDERS = [
   ['frameW', 'Frame width (vw)', 15, 60, 0.5], ['frameH', 'Frame height (vh)', 20, 80, 0.5], ['gapSide', 'Gap, side scroll (vw)', 2, 40, 0.5], ['gapVert', 'Gap, vertical (vh)', 2, 60, 0.5],
   ['overlapMax', 'Most a card may overlap the image (share of its size)', 0, 0.6, 0.01], ['dupGap', 'Duplicate distance (vw / vh)', 10, 60, 1], ['minGap', 'Minimum gap between cards (px at 1920)', 0, 120, 1], ['slack', 'Drift past the project length (x pitch)', 0, 0.8, 0.01],
   ['dragInertia', 'Drag release: inertia (s of travel)', 0, 2, 0.05], ['dragOvershoot', 'Overshoot: drag release', 0, 0.3, 0.005], ['snapOvershoot', 'Overshoot: soft snap', 0, 0.3, 0.005], ['morphOvershoot', 'Overshoot: toggle morph', 0, 0.3, 0.005],
-  ['focusOvershootScale', 'Overshoot: focus image scale', 0, 0.3, 0.005], ['focusOvershootPush', 'Overshoot: focus push', 0, 0.3, 0.005], ['nameOvershoot', 'Overshoot: project name', 0, 0.3, 0.005],
+  ['focusOvershootScale', 'Overshoot: focus image scale', 0, 0.3, 0.005], ['focusOvershootPush', 'Overshoot: focus push', 0, 0.3, 0.005],
   ['overshootSettle', 'Overshoot settle (share of a clocked move)', 0.1, 0.8, 0.01], ['followerSettleSec', 'Focus bump settle (s)', 0.1, 1.5, 0.01],
-  ['morphSec', 'Toggle morph (s)', 0.2, 4, 0.05], ['morphStagger', 'Toggle stagger (s)', 0, 1.5, 0.01], ['morphEase', 'Toggle ease-in power', 1, 6, 0.1], ['morphLanding', 'Toggle soft landing (share of time)', 0.02, 0.4, 0.01], ['seed', 'Layout seed (reload)', 1, 999, 1],
+  ['easeSoftness', 'Ease softness (0 = pure curve, 1 = linear)', 0, 1, 0.01], ['morphSec', 'Toggle morph (s)', 0.2, 4, 0.05], ['morphStagger', 'Toggle stagger (s)', 0, 1.5, 0.01], ['morphEase', 'Toggle ease-in power', 1, 6, 0.1], ['morphLanding', 'Toggle soft landing (share of time)', 0.02, 0.4, 0.01], ['seed', 'Layout seed (reload)', 1, 999, 1],
 ];
 const SCROLLS = [
   ['gainCap', 'Wheel acceleration: cap (1 = off)', 1, 5, 0.05], ['gainFrom', 'Acceleration starts at (px/s of wheel)', 100, 3000, 25], ['gainTo', 'Full acceleration at (px/s of wheel)', 500, 10000, 50], ['gainDecay', 'Speed hold / decay (s)', 0.05, 1.5, 0.01],
@@ -47,6 +48,19 @@ export function mountWorkTune({ relayout }) {
     return id;
   };
   const defs = {};
+  // R22f: the shared ease curve (snap drift, focus build, toggle morph): a selector here, the softness slider is in the list below
+  {
+    const row = document.createElement('label');
+    row.style.cssText = 'display:block;margin:7px 0';
+    row.innerHTML = '<span style="display:block">Ease curve (snap, focus, morph)</span><select style="width:100%"></select>';
+    const sel = row.querySelector('select');
+    Object.keys(EASES).forEach((k) => { const o = document.createElement('option'); o.value = k; o.textContent = k === 'circ' ? 'circ (the old curve)' : k; sel.append(o); });
+    sel.value = WORK.easeType;
+    sel.addEventListener('change', () => { WORK.easeType = sel.value; store.set('WORK.easeType', sel.value); });
+    readouts.push({ obj: WORK, key: 'easeType', input: sel, v: { textContent: '' } });
+    content.append(row);
+    defs['WORK.easeType'] = [WORK, 'easeType'];
+  }
   SLIDERS.forEach((d) => { defs[add('WORK', WORK, d, relayout)] = [WORK, d[0]]; });
   SCROLLS.forEach((d) => { defs[add('SCROLL', SCROLL, d)] = [SCROLL, d[0]]; });
   const h = document.createElement('div');

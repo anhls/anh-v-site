@@ -14,6 +14,7 @@ import { installScrollGain } from './util/scroll-gain.js';
 import { applyFocus } from './work/focus.js';
 import { pushTarget, stepPushSpring } from './effects/card-push.js';
 import { withOvershoot, settleBump } from './util/overshoot.js';
+import { workEase, blendSoft } from './util/ease.js';
 import { buildProjectCards, placeCards, balanceDark, workMetrics, fixWorkLayout } from './work/cards.js';
 
 // Work page (R23, R23b). A strip of the projects' main images, endless, driven by Lenis (infinite mode: the page itself never moves, its
@@ -212,8 +213,17 @@ const ease = (u) => {
   const v = (C * p) / T, s = u - T;
   return C + v * s - (v * s * s) / (2 * L);
 };
+// R22f: the morph's base curve: the chosen easeType (+ softness) for sine / quad / cubic; 'circ' keeps the power curve above (morphEase). Stable
+// function per setting (the overshoot helper caches by identity).
+let morphBase = null, morphBaseKey = '';
+const morphCurve = () => {
+  const key = `${WORK.easeType}|${WORK.easeSoftness}|${WORK.morphEase}|${WORK.morphLanding}`;
+  if (key !== morphBaseKey) { morphBaseKey = key; morphBase = WORK.easeType === 'circ' ? blendSoft(ease, WORK.easeSoftness) : workEase(WORK); }
+  return morphBase;
+};
 // R22e: + the overshoot over the landing window (morphLanding is now the settle time): passes 1 by morphOvershoot once, ends exactly on 1
-const easeO = (u) => withOvershoot(ease, WORK.morphOvershoot, WORK.morphLanding, `${WORK.morphEase},${WORK.morphLanding}`)(u);
+const easeO = (u) => withOvershoot(morphCurve(), WORK.morphOvershoot, WORK.morphLanding, key0())(u);
+const key0 = () => morphBaseKey;
 let morph = null; // { from, to, SA, SB, t0, delay[] }
 let iconAngle = NaN;
 const setAngle = (a) => { if (a !== iconAngle) { iconAngle = a; iconEl.style.setProperty('--a', `${a.toFixed(2)}deg`); } };
@@ -231,10 +241,9 @@ let lastDirty = 0;
 // It follows the position, so it builds while the drift centres the project and unwinds the same way when the user scrolls on; a rate
 // limit (WORK.focusRampSec for the whole range) only guards against pops (toggle, resize). Held off during the toggle morph. WebGL path
 // and no reduced motion only (the DOM fallback has neither the snap nor the focus).
-const circ = (t) => (t < 0.5 ? (1 - Math.sqrt(1 - (2 * t) ** 2)) / 2 : (Math.sqrt(1 - (-2 * t + 2) ** 2) + 1) / 2);
 const relIdx = (d) => { const h = Math.floor(N / 2); return ((((d + h) % N) + N) % N) - h; };
 const fP = new Float64Array(N);
-const fSc = settleBump(N), fPu = settleBump(N), fNm = settleBump(N); // what is DRAWN: fP, plus each animation's own overshoot when a build completes
+const fSc = settleBump(N), fPu = settleBump(N); // what is DRAWN: fP, plus each animation's own overshoot when a build completes (the name has none)
 let snap = null; // { from, to, t0 }
 let lastWheel = performance.now();
 let wmScrolled = reduced; // R23f: the wordmark plays big -> small once; true from the first real scroll for the rest of the visit (reduced motion: from the start)
@@ -301,12 +310,12 @@ const updateNames = () => {
   const travel = navTravel();
   const stag = 0.7;
   titleEls.forEach((t, p) => {
-    const f = fNm.x[p];
+    const f = fP[p];
     if (Math.abs(f - t.f) < 0.0004) return;
     t.f = f;
     t.el.style.visibility = f > 0.001 ? 'visible' : 'hidden';
-    const nC = Math.max(t.chars.length - 1, 1); // above 1 (the overshoot) a character rises past its rest position and settles back
-    t.chars.forEach((c, i) => { const cp = Math.max(0, f * (1 + stag) - (stag * i) / nC); const e = cp >= 1 ? cp : cp * cp * (3 - 2 * cp); c.style.transform = `translate3d(0,${((1 - e) * travel).toFixed(2)}px,0)`; });
+    const nC = Math.max(t.chars.length - 1, 1);
+    t.chars.forEach((c, i) => { const cp = Math.max(0, f * (1 + stag) - (stag * i) / nC); const e = cp >= 1 ? 1 : cp * cp * (3 - 2 * cp); c.style.transform = `translate3d(0,${((1 - e) * travel).toFixed(2)}px,0)`; });
   });
 };
 
@@ -336,7 +345,7 @@ const tick = (_time, deltaMs) => {
   if (snapOk) {
     if (snap) {
       const t = Math.min(1, (now - snap.t0) / 1000 / Math.max(WORK.snapSec, 0.05));
-      const target = snap.from + (snap.to - snap.from) * withOvershoot(circ, WORK.snapOvershoot, WORK.overshootSettle, 'circ')(t);
+      const target = snap.from + (snap.to - snap.from) * withOvershoot(workEase(WORK), WORK.snapOvershoot, WORK.overshootSettle)(t);
       off += target - S; S = target;
       if (t >= 1) snap = null;
     } else if (now - lastWheel > WORK.snapDelay * 1000 && Math.abs(vel) < 250) {
@@ -356,14 +365,13 @@ const tick = (_time, deltaMs) => {
     const restOk = !!snap || (now - lastWheel > WORK.snapDelay * 1000 && Math.abs(vel) < 250);
     const rate = dt / Math.max(WORK.focusRampSec, 0.02);
     for (let q = 0; q < N; q++) {
-      const tgt = snapOk && restOk && q === pk ? circ(c) : 0;
+      const tgt = snapOk && restOk && q === pk ? workEase(WORK)(c) : 0;
       const nv = fP[q] + Math.max(-rate, Math.min(rate, tgt - fP[q]));
       if (nv !== fP[q]) { fP[q] = nv; focusMoving = true; }
     }
     // R22e: the drawn values follow fP with their own overshoot (0 = identical to fP)
     if (fSc.step(fP, now, WORK.focusOvershootScale, WORK.followerSettleSec)) focusMoving = true;
     if (fPu.step(fP, now, WORK.focusOvershootPush, WORK.followerSettleSec)) focusMoving = true;
-    if (fNm.step(fP, now, WORK.nameOvershoot, WORK.followerSettleSec)) focusMoving = true;
     updateNames();
   }
   syncWarp();
@@ -537,6 +545,6 @@ initNav(data.hero.wordmark, lenis, { gateFrame: false, position: () => (wmScroll
 document.title = 'Work | Anh V';
 if (import.meta.env.DEV) {
   window.__SCROLL = SCROLL; window.__WORK = WORK;
-  window.__work = { setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, q: Q, PS,  get snap() { return snap; }, get drag() { return drag; }, get inertia() { return inertia; }, fP, fSc, fPu, fNm, get kCount() { return kCount; }, bx, by, bw, bh, vis, hp };
+  window.__work = { setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, q: Q, PS,  get snap() { return snap; }, get drag() { return drag; }, get inertia() { return inertia; }, fP, fSc, fPu, get kCount() { return kCount; }, bx, by, bw, bh, vis, hp };
   if (params.has('tune')) import('./work/tune.js').then((m) => m.mountWorkTune({ relayout }));
 }

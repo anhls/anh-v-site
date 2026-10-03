@@ -250,7 +250,11 @@ export const WORK = {
   // overshootSettle = the share of a clocked animation (snap, morph, drag release) the settle takes; followerSettleSec = the same in seconds for the
   // focus (its bump plays when a build completes). The R25 transition and the homepage animations do not use it.
   dragInertia: 0.5,
-  snapOvershoot: 0.04, focusOvershootScale: 0.025, focusOvershootPush: 0.025, nameOvershoot: 0, morphOvershoot: 0.05, dragOvershoot: 0.05, overshootSettle: 0.4, followerSettleSec: 0.45,
+  // R22f ease curves (src/util/ease.js) shared by the soft snap, the focus build and the toggle morph: easeType 'sine' | 'quad' | 'cubic' | 'circ'
+  // (circ = the old snap / focus curve; for the morph, circ keeps the morphEase power curve), easeSoftness 0..1 = blend with a straight line.
+  // The project name has no overshoot (it rises along its plain ease).
+  easeType: 'sine', easeSoftness: 0.25,
+  snapOvershoot: 0.04, focusOvershootScale: 0.025, focusOvershootPush: 0.025, morphOvershoot: 0.05, dragOvershoot: 0.05, overshootSettle: 0.4, followerSettleSec: 0.45,
 };
 // Cards per project (R23b, the same rules as BAND_LIMITS on the homepage): count and total area (px2 at 1920) of the cards along one
 // project's edges. Over a max: dropped by the seeded hash; under a min: duplicates of the project's own images.

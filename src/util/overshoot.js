@@ -16,7 +16,7 @@ export const bump = (t, window) => {
 
 // The bump's height is calibrated (once per ease / amount / window, cached) so that the curve's PEAK is exactly 1 + amount: a plain bump of height
 // `amount` would barely clear 1, because the base ease is still short of 1 where the bump is tall. `key` names the ease's own parameters.
-const cache = new Map();
+const cache = new WeakMap();
 export const withOvershoot = (ease, amount, window, key = '') => {
   if (!(amount > 0)) return (t) => (t <= 0 ? 0 : t >= 1 ? 1 : ease(t)); // the old curve, untouched
   const id = `${key}|${amount}|${window}`;
