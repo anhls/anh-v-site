@@ -243,7 +243,14 @@ export const DEPTH = { slot: 0.5, frontShare: Number.isFinite(urlFront) ? urlFro
 // dupGap = the least distance (vw in the side mode, vh in the vertical one) between a duplicate and its twin.
 export const WORK = {
   seed: 3, frameW: 42, frameH: 46, gapSide: 16, gapVert: 26, overlapMax: 0.2, minGap: 24, slack: 0.3, wheel: 0.75,
-  warpStrength: 1.15, warpRiseSec: 1.5, warpSettleSec: 1.4,
+  // R22h: two separate warps, each with its own look and its own timing (all driven by the strip's speed, flat at rest): cardWarp = the cards (the
+  // shared cylinder, today's values), frameWarp = the main images (their own shader, src/work/frame-warp-shader.js; starts from FRAME_WARP's strength
+  // and is wider and slower than the cards': a gentler curl, a farther camera). strength = size of the warp (1.15 = the homepage cards), curl =
+  // angle (radians) the sheet has turned at full strength, camDown / camUp = camera distance in screen heights (smaller = stronger perspective),
+  // bowDown / bowUp = a shallow dome, reach = share of the strip's length that bends (1 - reach stays flat in the middle), sym = weight of the
+  // leading side, riseSec / settleSec = how fast it grows while the strip moves / eases flat after it stops.
+  cardWarp: { strength: 1.15, riseSec: 1.5, settleSec: 1.4, curl: 0.5, camDown: 1.25, camUp: 1.25, bowDown: 0, bowUp: 0.05, reach: 1, sym: 1 },
+  frameWarp: { strength: 1.39, riseSec: 2.2, settleSec: 1.9, curl: 0.4, camDown: 1.6, camUp: 1.6, bowDown: 0, bowUp: 0.03, reach: 1, sym: 1 },
   morphSec: 2, morphStagger: 0.45, morphEase: 3, morphLanding: 0.12, dupGap: 40,
   snapDelay: 1, snapWindow: 0.5, snapSec: 2, focusScale: 1.14, focusPush: 95, focusNeighbour: 0.06, focusRampSec: 1.25, focusPushRadius: 400, focusPushOthers: 0.6,
   // R22e overshoot (src/util/overshoot.js; 0 = the old curve): the end passes the target by this share of the distance / value once, then settles.

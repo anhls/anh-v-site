@@ -2,6 +2,7 @@ import { BEND as BEND_DEF, WARP as WARP_DEF, WARP_DIR, CARD_HOVER } from '../tim
 import { weakDevice } from '../util/device.js';
 import { POST_VERT, POST_FRAG } from './warp-shader.js';
 import { cylinderMargins } from './warp-model.js';
+import { FRAME_POST_FRAG } from '../work/frame-warp-shader.js';
 
 // Selected Work cards on ONE WebGL2 canvas (R16). Plain WebGL, no library (0 KB added): 35 textured planes, one draw call each.
 // Positions come from selected-work.js (the same numbers it used to write into style.transform): this module reads no DOM per
@@ -59,7 +60,12 @@ const param = new URLSearchParams(location.search).get('gl');
 // frequency: used while the warp is growing / while it eases back (default: returnSpeed for both). setAxis(1) turns the warp 90 degrees
 // (a horizontally scrolling strip: the cylinder bends around a vertical axis near the left / right edges). `near(i)` (optional) says
 // whether a card is close enough to be worth a texture (default: within 1.5 screen heights vertically, which suits the page scroll).
-export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, bend: bendOpt, warp: warpOpt, near: nearFn }) {
+// R22h: `layers` (optional, the Work page): { isFrame: Uint8Array (1 = a main image), warp, bend } gives the main images their OWN warp pass (the shader in
+// work/frame-warp-shader.js, the `warp` settings and `bend` speeds given here) while the cards keep the card pass. The scene is then drawn in three
+// layers in paint order: the cards behind the images, the images, the cards in front; each warped layer is composited over the one before it
+// (exact depth order because every image sits at the same depth; a card is behind or in front of ALL images). Without `layers` (the homepage)
+// everything is one pass, exactly as before.
+export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, bend: bendOpt, warp: warpOpt, near: nearFn, layers }) {
   const BEND = bendOpt || BEND_DEF;
   const WARP = warpOpt || WARP_DEF;
   let axis = 0;
@@ -87,6 +93,15 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
   gl.linkProgram(post);
   const postOk = gl.getProgramParameter(post, gl.LINK_STATUS);
   const P = Object.fromEntries(['uScene', 'uRes', 'uAmt', 'uShape', 'uMargin', 'uSym', 'uPinchDown', 'uBow', 'uFrame', 'uGrain', 'uSeed', 'uAxis'].map((k) => [k, gl.getUniformLocation(post, k)]));
+  let postF = null, PF = null; // the main images' warp program (Work page)
+  if (layers) {
+    postF = gl.createProgram();
+    gl.attachShader(postF, compile(gl.VERTEX_SHADER, POST_VERT));
+    gl.attachShader(postF, compile(gl.FRAGMENT_SHADER, FRAME_POST_FRAG));
+    gl.linkProgram(postF);
+    if (!gl.getProgramParameter(postF, gl.LINK_STATUS)) return null;
+    PF = Object.fromEntries(['uScene', 'uRes', 'uAmt', 'uShape', 'uMargin', 'uSym', 'uBow', 'uGrain', 'uSeed', 'uAxis'].map((k) => [k, gl.getUniformLocation(postF, k)]));
+  }
   const emptyVao = gl.createVertexArray();
   // Offscreen buffers (made on first use, rebuilt on resize): a multisampled renderbuffer the cards are drawn into (same edge
   // quality as the canvas), resolved into a texture that the post shader samples.
@@ -96,8 +111,13 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
   const margins = () => {
     // the cylinder model says how far outside the screen the sheet is seen at the screen edge (computed for the largest warp the spring can reach)
     const sMax = Math.max(WARP.strengthUp, WARP.strengthDown) * 1.2;
-    const [fx, fy] = cylinderMargins(sMax, WARP.curl, WARP.camDown, WARP.reach, WARP.sym, WARP.bowDown);
-    const [ux, uy] = cylinderMargins(sMax, WARP.curl, WARP.camUp, WARP.reach, WARP.sym, WARP.bowUp);
+    let [fx, fy] = cylinderMargins(sMax, WARP.curl, WARP.camDown, WARP.reach, WARP.sym, WARP.bowDown);
+    let [ux, uy] = cylinderMargins(sMax, WARP.curl, WARP.camUp, WARP.reach, WARP.sym, WARP.bowUp);
+    if (layers) { // the images' warp may reach farther: the buffer is sized for the larger of the two
+      const IW = layers.warp, sI = Math.max(IW.strengthUp, IW.strengthDown) * 1.2;
+      const [a, b] = cylinderMargins(sI, IW.curl, IW.camDown, IW.reach, IW.sym, IW.bowDown), [c, d] = cylinderMargins(sI, IW.curl, IW.camUp, IW.reach, IW.sym, IW.bowUp);
+      fx = Math.max(fx, a, c); fy = Math.max(fy, b, d); ux = Math.max(ux, a, c); uy = Math.max(uy, b, d);
+    }
     const my = axis ? Math.min(Math.ceil((Math.max(fx, ux) * H + 4) / 8) * 8, Math.round(H * 0.5)) : Math.min(Math.ceil((Math.max(fy, uy) * H + 4) / 8) * 8, Math.round(H * 0.7));
     const mx = axis ? Math.min(Math.ceil((Math.max(fy, uy) * W + 4) / 8) * 8, Math.round(W * 0.7)) : Math.min(Math.ceil((Math.max(fx, ux) * W + 4) / 8) * 8, Math.round(W * 0.5));
     return [mx, my];
@@ -177,6 +197,13 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     bendW[i] = BEND.depthExtreme + (1 - BEND.depthExtreme) * Math.exp(-(((d - 0.5) / band) ** 2));
   });
   computeWeights();
+  // R22h: the three layers in paint order (ids), only with `layers`: cards behind the images, the images, cards in front (a card is in front when
+  // its z is not below the images' z, as the sort above does: the images come first in the item list)
+  let layerIds = null;
+  if (layers) {
+    const fz = Math.min(...cards.map((c, i) => (layers.isFrame[i] ? c.z : 1e9)));
+    layerIds = [order.filter((i) => !layers.isFrame[i] && cards[i].z < fz), order.filter((i) => layers.isFrame[i]), order.filter((i) => !layers.isFrame[i] && cards[i].z >= fz)];
+  }
 
   const makeTexture = (mips) => {
     const t = gl.createTexture();
@@ -275,6 +302,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
 
   // --- bend state: ONE spring for every card (x = signed 0..1 strength), per-card depth weight applied when drawing ---------
   const bend = { x: 0, v: 0, speed: 0 };
+  const bendI = { x: 0, v: 0, amt: 0 }; // the main images' own spring (Work page)
   let lastT = 0;
   let grainStep = -1;
   let grainSpeed = 0;
@@ -291,7 +319,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     computeWeights();
     dirty = true;
     // build the offscreen buffers and compile the warp shader a moment after load / resize, not on the first fast scroll
-    if (postOk) setTimeout(() => { if (lost) return; ensureFb(); gl.bindFramebuffer(gl.FRAMEBUFFER, fb.ms); gl.clear(gl.COLOR_BUFFER_BIT); postPass(0.01, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); dirty = true; }, 400);
+    if (postOk) setTimeout(() => { if (lost) return; ensureFb(); gl.bindFramebuffer(gl.FRAMEBUFFER, fb.ms); gl.clear(gl.COLOR_BUFFER_BIT); postPass(0.01, 0, 0); if (layers) postPass(0.01, 0, 0, true, true); gl.clear(gl.COLOR_BUFFER_BIT); dirty = true; }, 400);
   };
 
   // Warm-up: one tiny draw now (during the loader), so the driver compiles the shaders before the first card is needed.
@@ -316,29 +344,33 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
   };
 
   // Resolves the multisampled buffer into the texture and draws it to the screen through the warp shader.
-  const postPass = (amt, grainAmt, seed) => {
+  // img = the main images' program and settings (layers); over = composite over what the canvas already holds (a later layer)
+  const postPass = (amt, grainAmt, seed, img = false, over = false) => {
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fb.ms);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb.res);
     gl.blitFramebuffer(0, 0, fb.w, fb.h, 0, 0, fb.w, fb.h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.disable(gl.BLEND);
-    gl.useProgram(post);
+    if (!over) gl.disable(gl.BLEND);
+    const WP = img ? layers.warp : WARP, Pu = img ? PF : P;
+    gl.useProgram(img ? postF : post);
     gl.bindVertexArray(emptyVao);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, fb.tex);
-    gl.uniform1i(P.uScene, 0);
-    gl.uniform2f(P.uRes, canvas.width, canvas.height);
-    gl.uniform1f(P.uAmt, Math.max(-1, Math.min(1, amt)));
-    gl.uniform4f(P.uShape, WARP.curl, ...(WARP_DIR > 0 ? [WARP.camDown, WARP.camUp] : [WARP.camUp, WARP.camDown]), WARP.reach); // the shader's first camera / bow slot belongs to its positive (recede) side // R16e: cylinder parameters
-    gl.uniform2f(P.uBow, ...(WARP_DIR > 0 ? [WARP.bowDown, WARP.bowUp] : [WARP.bowUp, WARP.bowDown]));
-    gl.uniform2f(P.uMargin, fb.mx / W, fb.my / H);
-    gl.uniform1f(P.uSym, WARP.sym);
-    gl.uniform1f(P.uPinchDown, WARP_DIR > 0 ? WARP.pinchDown : WARP.pinch);
-    gl.uniform4f(P.uFrame, 0, 0, 0, 0);
-    gl.uniform1f(P.uGrain, grainAmt);
-    gl.uniform1f(P.uSeed, seed);
-    gl.uniform1f(P.uAxis, axis);
+    gl.uniform1i(Pu.uScene, 0);
+    gl.uniform2f(Pu.uRes, canvas.width, canvas.height);
+    gl.uniform1f(Pu.uAmt, Math.max(-1, Math.min(1, amt)));
+    gl.uniform4f(Pu.uShape, WP.curl, ...(WARP_DIR > 0 ? [WP.camDown, WP.camUp] : [WP.camUp, WP.camDown]), WP.reach); // the shader's first camera / bow slot belongs to its positive (recede) side // R16e: cylinder parameters
+    gl.uniform2f(Pu.uBow, ...(WARP_DIR > 0 ? [WP.bowDown, WP.bowUp] : [WP.bowUp, WP.bowDown]));
+    gl.uniform2f(Pu.uMargin, fb.mx / W, fb.my / H);
+    gl.uniform1f(Pu.uSym, WP.sym);
+    if (!img) {
+      gl.uniform1f(P.uPinchDown, WARP_DIR > 0 ? WARP.pinchDown : WARP.pinch);
+      gl.uniform4f(P.uFrame, 0, 0, 0, 0);
+    }
+    gl.uniform1f(Pu.uGrain, grainAmt);
+    gl.uniform1f(Pu.uSeed, seed);
+    gl.uniform1f(Pu.uAxis, axis);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     gl.enable(gl.BLEND);
     gl.useProgram(prog);
@@ -346,15 +378,15 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
   };
 
   // Draws every card (flat geometry, plus the optional per-card bend) into the bound framebuffer.
-  const paintCards = (grainAmt, seed, scale, sy, mx, my) => {
-    gl.clear(gl.COLOR_BUFFER_BIT);
+  const paintCards = (grainAmt, seed, scale, sy, mx, my, ids = order, clear = true) => {
+    if (clear) gl.clear(gl.COLOR_BUFFER_BIT);
     gl.uniform2f(U.uView, W + 2 * mx, H + 2 * my);
     gl.uniform1f(U.uShape, BEND.arcShape);
     gl.uniform1f(U.uGrain, grainAmt);
     gl.uniform1f(U.uSeed, seed);
     const arcMax = BEND.maxArc * BEND.cardBend * scale;
-    for (let k = 0; k < n; k++) {
-      const i = order[k];
+    for (let k = 0; k < ids.length; k++) {
+      const i = ids[k];
       const t = isVideo[i] && vtex[i] ? vtex[i] : tex[i];
       const cx = bx[i] + ox[i];
       const cy = by[i] - sy + oy[i];
@@ -389,16 +421,20 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     const os = Math.min(Math.max(BEND.overshoot, 0.001), 0.95);
     const zeta = -Math.log(os) / Math.sqrt(Math.PI * Math.PI + Math.log(os) ** 2);
     const target = Math.tanh((vel * BEND.sensitivity) / BEND.speedRef);
-    const wn = (Math.abs(target) > Math.abs(bend.x) ? BEND.riseSpeed : BEND.settleSpeed) ?? BEND.returnSpeed;
     const steps = Math.max(1, Math.ceil(dt / 0.004));
     const h = dt / steps;
-    for (let s = 0; s < steps; s++) {
-      bend.v += (wn * wn * (target - bend.x) - 2 * zeta * wn * bend.v) * h;
-      bend.x += bend.v * h;
-    }
-    if (Math.abs(bend.x) < 0.0005 && Math.abs(bend.v) < 0.002 && target === 0) { bend.x = 0; bend.v = 0; }
+    const spring = (st, B) => {
+      const wn = (Math.abs(target) > Math.abs(st.x) ? B.riseSpeed : B.settleSpeed) ?? B.returnSpeed;
+      for (let s = 0; s < steps; s++) {
+        st.v += (wn * wn * (target - st.x) - 2 * zeta * wn * st.v) * h;
+        st.x += st.v * h;
+      }
+      if (Math.abs(st.x) < 0.0005 && Math.abs(st.v) < 0.002 && target === 0) { st.x = 0; st.v = 0; }
+    };
+    spring(bend, BEND);
+    if (layers) spring(bendI, layers.bend);
     grainSpeed += (Math.min(Math.abs(vel) / BEND.speedRef, 1) - grainSpeed) * (1 - Math.exp(-dt / 0.15));
-    const bendNow = bend.x !== 0;
+    const bendNow = bend.x !== 0 || bendI.x !== 0;
 
     // textures: ask for the ones near the screen (1.5 screens), upload one per frame, release the far ones when over budget
     const reach = H * 1.5;
@@ -425,6 +461,30 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     const seed = (grainStep % 997) * 17.31;
     const amt = WARP_DIR * bend.x * (bend.x > 0 ? WARP.strengthDown : WARP.strengthUp); // shader sign: + = recede look, - = toward the viewer; WARP_DIR maps scroll direction onto it
     bend.amt = amt; // the signed value handed to the warp shader (+ = scrolling down); read by tools/scratch checks
+    if (layers) {
+      const amtI = WARP_DIR * bendI.x * (bendI.x > 0 ? layers.warp.strengthDown : layers.warp.strengthUp);
+      bendI.amt = amtI;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      for (let L = 0; L < 3; L++) {
+        const ids = layerIds[L];
+        if (!ids.length) continue;
+        const a = L === 1 ? amtI : amt;
+        if (postOk && Math.abs(a) > 0.0015) {
+          ensureFb();
+          gl.bindFramebuffer(gl.FRAMEBUFFER, fb.ms);
+          gl.viewport(0, 0, fb.w, fb.h);
+          paintCards(0, seed, scale, sy, fb.mx, fb.my, ids, true);
+          postPass(a, grainAmt, seed, L === 1, true);
+        } else {
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+          gl.viewport(0, 0, canvas.width, canvas.height);
+          paintCards(grainAmt, seed, scale, sy, 0, 0, ids, false);
+        }
+      }
+      return bendNow;
+    }
     const usePost = postOk && Math.abs(amt) > 0.0015;
     if (usePost) {
       ensureFb();
@@ -449,6 +509,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     setAxis: (a) => { axis = a ? 1 : 0; dirty = true; },
     reweigh: () => { computeWeights(); dirty = true; }, // after a depth-bell change in the tuning panel
     bend: () => bend,
+    bendImg: () => bendI,
     stats: () => ({ textureMb: used / 1048576, loaded: tex.filter(Boolean).length, bend: bend.x, bendRaw: bend.x }),
     destroy: () => { canvas.remove(); api.active = false; },
   };

@@ -135,19 +135,29 @@ layouts();
 const cur = () => LAY[vertical ? 'vertical' : 'side'];
 
 // ---- WebGL (the homepage card renderer, with the Work page's own warp numbers)
+// R22h: two warps with their own settings: WORK.cardWarp (the cards) and WORK.frameWarp (the main images, own shader). Both are read live.
 const bendP = { ...BEND };
 const warpP = { ...WARP };
+const bendImg = { riseSpeed: 1, settleSpeed: 1 };
+const warpImg = { ...WARP };
+const copyWarp = (dst, src) => {
+  dst.strengthUp = dst.strengthDown = src.strength;
+  dst.curl = src.curl; dst.camDown = src.camDown; dst.camUp = src.camUp; dst.bowDown = src.bowDown; dst.bowUp = src.bowUp; dst.reach = src.reach; dst.sym = src.sym;
+};
 const syncWarp = () => {
-  warpP.strengthUp = warpP.strengthDown = WORK.warpStrength;
-  bendP.riseSpeed = 7 / Math.max(WORK.warpRiseSec, 0.02);
-  bendP.settleSpeed = 7 / Math.max(WORK.warpSettleSec, 0.02);
+  copyWarp(warpP, WORK.cardWarp);
+  bendP.riseSpeed = 7 / Math.max(WORK.cardWarp.riseSec, 0.02);
+  bendP.settleSpeed = 7 / Math.max(WORK.cardWarp.settleSec, 0.02);
+  copyWarp(warpImg, WORK.frameWarp);
+  bendImg.riseSpeed = 7 / Math.max(WORK.frameWarp.riseSec, 0.02);
+  bendImg.settleSpeed = 7 / Math.max(WORK.frameWarp.settleSec, 0.02);
 };
 syncWarp();
 fine = matchMedia('(pointer: fine)').matches && !reduced;
 let glOn = false;
 {
   const fallback = () => { glOn = false; root.classList.remove('work--gl'); gl?.destroy?.(); gl = null; };
-  gl = createCardsGL({ section: root, els: items.map((it) => it.img), cards: items, bx, by, bw, bh, onLost: fallback, bend: bendP, warp: warpP, near: (i) => items[i].active === true });
+  gl = createCardsGL({ section: root, els: items.map((it) => it.img), cards: items, bx, by, bw, bh, onLost: fallback, bend: bendP, warp: warpP, near: (i) => items[i].active === true, layers: { isFrame: Uint8Array.from(items, (it) => (it.kind === 'frame' ? 1 : 0)), warp: warpImg, bend: bendImg } });
   if (gl) {
     glOn = true;
     root.classList.add('work--gl');
@@ -489,7 +499,7 @@ const tick = (_time, deltaMs) => {
   if (idx !== lastIdx) { lastIdx = idx; countEl.textContent = `${String(idx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`; }
 
   if (glOn) {
-    if (morph) { const b = gl.bend(); b.x = 0; b.v = 0; } // the warp is held flat while the layouts morph
+    if (morph) { const b = gl.bend(); b.x = 0; b.v = 0; const c = gl.bendImg(); c.x = 0; c.v = 0; } // both warps are held flat while the layouts morph
     const moving = Math.abs(vel) > 0.5 || hoverMoving || pushMoving || settleMoving || !!morph || focusMoving || !!snap || Math.abs(mouse.tx - mouse.x) > 0.0005 || Math.abs(mouse.ty - mouse.y) > 0.0005;
     if (moving) lastDirty = now;
     if (moving || now - lastDirty < 80) gl.markDirty();

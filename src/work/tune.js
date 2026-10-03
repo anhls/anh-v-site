@@ -7,7 +7,7 @@ import { tuneStore, makeCollapse } from '../effects/tune-store.js';
 // into the URL). R23e: the panel collapses to its header (the page stays clickable, values stay live), the slider values are kept in
 // localStorage (only while ?tune is in the URL) and re-applied on the next load; "Reset to defaults" clears them.
 const SLIDERS = [
-  ['warpStrength', 'Warp strength (homepage 1.15)', 0, 3, 0.05], ['warpRiseSec', 'Warp rise time (s)', 0.05, 3, 0.01], ['warpSettleSec', 'Warp settle time (s)', 0.1, 2.5, 0.01], ['wheel', 'Wheel speed', 0.2, 4, 0.05],
+  ['wheel', 'Wheel speed', 0.2, 4, 0.05],
   ['snapDelay', 'Snap: wheel quiet for (s)', 0.1, 2, 0.05], ['snapWindow', 'Snap: window (share of the pitch)', 0.05, 0.5, 0.01], ['snapSec', 'Snap: drift time (s)', 0.2, 3, 0.05],
   ['focusScale', 'Focus: image growth (x)', 1, 1.5, 0.01], ['focusPush', 'Focus: cards pushed out (px at 1920)', 0, 400, 5], ['focusNeighbour', 'Focus: neighbours move (share of the pitch)', 0, 0.5, 0.01], ['focusPushRadius', 'Focus: push reaches this far from the image (px at 1920)', 50, 1200, 10], ['focusPushOthers', 'Focus: push on other projects cards (share)', 0, 1.5, 0.05], ['focusRampSec', 'Focus: pop guard (s)', 0.05, 2, 0.01],
   ['frameW', 'Frame width (vw)', 15, 60, 0.5], ['frameH', 'Frame height (vh)', 20, 80, 0.5], ['gapSide', 'Gap, side scroll (vw)', 2, 40, 0.5], ['gapVert', 'Gap, vertical (vh)', 2, 60, 0.5],
@@ -17,6 +17,12 @@ const SLIDERS = [
   ['overshootSettle', 'Overshoot settle (share of a clocked move)', 0.1, 0.8, 0.01], ['followerSettleSec', 'Focus bump settle (s)', 0.1, 1.5, 0.01],
   ['forceFrom', 'Overshoot force: none below (px/s at 1920)', 0, 3000, 25], ['forceTo', 'Overshoot force: full from (px/s at 1920)', 0, 4000, 25],   ['easeSoftness', 'Ease softness (0 = pure curve, 1 = linear)', 0, 1, 0.01], ['morphSec', 'Toggle morph (s)', 0.2, 4, 0.05], ['morphStagger', 'Toggle stagger (s)', 0, 1.5, 0.01], ['morphEase', 'Toggle ease-in power', 1, 6, 0.1], ['morphLanding', 'Toggle soft landing (share of time)', 0.02, 0.4, 0.01], ['seed', 'Layout seed (reload)', 1, 999, 1],
 ];
+// R22h: the two warps (WORK.cardWarp for the cards, WORK.frameWarp for the main images), same sliders for both
+const WARP_SLIDERS = [
+  ['strength', 'Strength', 0, 3, 0.05], ['riseSec', 'Rise time (s)', 0.05, 4, 0.01], ['settleSec', 'Settle time (s)', 0.1, 4, 0.01], ['curl', 'Curl (rad at full strength)', 0.1, 1.2, 0.01],
+  ['camDown', 'Camera distance, + side (screen heights)', 0.5, 4, 0.01], ['camUp', 'Camera distance, - side (screen heights)', 0.5, 4, 0.01], ['bowDown', 'Dome, + side', 0, 0.4, 0.005], ['bowUp', 'Dome, - side', 0, 0.4, 0.005],
+  ['reach', 'Reach (share of the length that bends)', 0.2, 1, 0.01], ['sym', 'Leading side weight', 0, 1, 0.05],
+];
 const SCROLLS = [
   ['gainCap', 'Wheel acceleration: cap (1 = off)', 1, 5, 0.05], ['gainFrom', 'Acceleration starts at (px/s of wheel)', 100, 3000, 25], ['gainTo', 'Full acceleration at (px/s of wheel)', 500, 10000, 50], ['gainDecay', 'Speed hold / decay (s)', 0.05, 1.5, 0.01],
 ];
@@ -25,7 +31,7 @@ const RELOAD = [
 ];
 export function mountWorkTune({ relayout }) {
   const store = tuneStore('work', ['WORK_LIMITS', 'DEPTH', 'HOVER', 'WORK.seed', 'BAND_RULES']);
-  const defaults = { WORK: { ...WORK }, SCROLL: { ...SCROLL } };
+  const defaults = { WORK: { ...WORK }, SCROLL: { ...SCROLL }, cardWarp: { ...WORK.cardWarp }, frameWarp: { ...WORK.frameWarp } };
   const box = document.createElement('div');
   box.style.cssText = 'position:fixed;top:12px;right:12px;z-index:99999;width:290px;max-height:calc(100vh - 24px);overflow:auto;padding:12px 14px;background:rgba(20,20,20,.92);color:#fff;font:12px/1.35 system-ui,sans-serif;border-radius:8px';
   const head = document.createElement('div');
@@ -63,6 +69,13 @@ export function mountWorkTune({ relayout }) {
   }
   SLIDERS.forEach((d) => { defs[add('WORK', WORK, d, relayout)] = [WORK, d[0]]; });
   SCROLLS.forEach((d) => { defs[add('SCROLL', SCROLL, d)] = [SCROLL, d[0]]; });
+  for (const [block, title] of [['frameWarp', 'Image warp (the main images)'], ['cardWarp', 'Card warp (the cards)']]) {
+    const hd = document.createElement('div');
+    hd.style.cssText = 'margin-top:10px;font-weight:600';
+    hd.textContent = title;
+    content.append(hd);
+    WARP_SLIDERS.forEach((d) => { defs[add(`WORK.${block}`, WORK[block], d)] = [WORK[block], d[0]]; });
+  }
   const h = document.createElement('div');
   h.style.cssText = 'margin-top:10px;font-weight:600';
   h.textContent = 'Which cards (Apply reloads)';
@@ -80,7 +93,7 @@ export function mountWorkTune({ relayout }) {
   btn('Apply (reload)', () => { const u = new URL(location.href); u.searchParams.set('dark', CARD_HOVER.darkShare); u.searchParams.set('front', DEPTH.frontShare); u.searchParams.set('wlimits', JSON.stringify(WORK_LIMITS)); u.searchParams.set('darkov', BAND_RULES.darkOverlapMax); u.searchParams.set('pairov', BAND_RULES.pairOverlapMax); location.href = u.href; });
   const copy = btn('Copy values', async () => { await navigator.clipboard.writeText(JSON.stringify({ WORK, WORK_LIMITS, SCROLL: { gainCap: SCROLL.gainCap, gainFrom: SCROLL.gainFrom, gainTo: SCROLL.gainTo, gainDecay: SCROLL.gainDecay }, darkShare: CARD_HOVER.darkShare, frontShare: DEPTH.frontShare }, null, 2)); copy.textContent = 'Copied'; setTimeout(() => { copy.textContent = 'Copy values'; }, 1200); });
   btn('Reset to defaults', () => {
-    Object.assign(WORK, defaults.WORK); Object.assign(SCROLL, defaults.SCROLL);
+    Object.assign(WORK, defaults.WORK); Object.assign(SCROLL, defaults.SCROLL); Object.assign(WORK.cardWarp, defaults.cardWarp); Object.assign(WORK.frameWarp, defaults.frameWarp);
     store.clear();
     readouts.forEach((r) => { r.input.value = r.obj[r.key]; r.v.textContent = r.obj[r.key]; });
     relayout();
