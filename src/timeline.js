@@ -269,6 +269,9 @@ export const WORK = {
   // its depth weight, time constant ambTau +- ambTauVar (share), start delay up to ambStagger s, a cross-axis lean up to ambCross of its travel
   // (either sign), and an optional sway of ambSway px (0 = off). Any input returns every offset to 0 over ambReturnSec s.
   ambDelay: 2, ambFrame: 20, ambTau: 15, ambReturnSec: 0.8, ambCardMulMin: 2, ambCardMulMax: 4.5, ambTauVar: 0.3, ambStagger: 1.5, ambCross: 0.25, ambSway: 0,
+  // R22i focusAfterMorph: after a toggle the focus effect and the ambient drift stay off: 'input' = until the next input once the morph is over, a number =
+  // seconds after the morph ends, 0 = as before (the focus builds right away).
+  focusAfterMorph: 'input',
   forceFrom: 450, forceTo: 1500,
   snapOvershoot: 0.04, focusOvershootScale: 0.025, focusOvershootPush: 0.025, morphOvershoot: 0.05, dragOvershoot: 0.05, overshootSettle: 0.4, followerSettleSec: 0.45,
 };

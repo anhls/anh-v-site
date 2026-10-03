@@ -73,6 +73,20 @@ export function mountWorkTune({ relayout }) {
     groups.add('WORK.easeType', row);
     defs['WORK.easeType'] = [WORK, 'easeType'];
   }
+  // R22i: focus after a toggle: until the next input, or seconds after the morph ends (0 = as before)
+  {
+    const row = document.createElement('label');
+    row.style.cssText = 'display:block;margin:7px 0';
+    row.innerHTML = '<span style="display:block">Focus after a toggle</span><select style="width:100%"></select>';
+    const sel = row.querySelector('select');
+    [['input', 'off until the next input'], [0, 'on at once (as before)'], [1, 'on after 1 s'], [2, 'on after 2 s'], [4, 'on after 4 s']].forEach(([v, t]) => { const o = document.createElement('option'); o.value = String(v); o.textContent = t; sel.append(o); });
+    const apply = (v) => { WORK.focusAfterMorph = v === 'input' ? 'input' : Number(v); };
+    sel.value = String(WORK.focusAfterMorph);
+    sel.addEventListener('change', () => { apply(sel.value); store.set('WORK.focusAfterMorph', WORK.focusAfterMorph); });
+    readouts.push({ obj: WORK, key: 'focusAfterMorph', input: sel, v: { textContent: '' } });
+    groups.add('WORK.focusAfterMorph', row);
+    defs['WORK.focusAfterMorph'] = [WORK, 'focusAfterMorph'];
+  }
   SLIDERS.forEach((d) => { defs[add('WORK', WORK, d, relayout)] = [WORK, d[0]]; });
   SCROLLS.forEach((d) => { defs[add('SCROLL', SCROLL, d)] = [SCROLL, d[0]]; });
   for (const [block, title] of [['frameWarp', 'Image warp (the main images)'], ['cardWarp', 'Card warp (the cards)']]) {

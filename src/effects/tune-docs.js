@@ -154,6 +154,7 @@ export const TUNE_DOCS = {
   'WORK.focusRampSec': 'Seconds the focus takes to build or unwind over its whole range (the pop guard); higher = slower, smoother.',
   'WORK.focusScale': 'How much the centred image grows when the focus builds (1.14 = 14% bigger); 1 = no growth.',
   'WORK.followerSettleSec': 'Seconds the focus bump takes to play and settle once the build completes.',
+  'WORK.focusAfterMorph': 'What the focus (image growth, card push, project name) and the ambient drift do after a toggle: stay off until the next input, or start that many seconds after the morph ends.',
   'WORK.forceFrom': 'Move speed (px/s at 1920) below which an animation gets no overshoot; slower moves just glide in and stop.',
   'WORK.forceTo': 'Move speed (px/s at 1920) from which an animation gets its full overshoot; between the two it scales smoothly (0 and 0 = always full).',
   'WORK.frameH': 'Height of each main image as a percent of the window height (vh).',

@@ -187,7 +187,7 @@ const AMB = { on: false, t0: 0, tOff: 0, a0: new Float64Array(n), r0: new Float6
 const stepAmb = (now) => {
   let fmax = 0;
   for (let q = 0; q < N; q++) if (fP[q] > fmax) fmax = fP[q];
-  const on = glOn && !reduced && !morph && !snap && !drag && !inertia && now - lastWheel > WORK.ambDelay * 1000 && fmax >= 0.98;
+  const on = glOn && !reduced && !morph && !snap && !drag && !inertia && !focusOff(now) && now - lastWheel > WORK.ambDelay * 1000 && fmax >= 0.98;
   if (on && !AMB.on) { AMB.on = true; AMB.t0 = now; AMB.a0.set(AMB.av); } // start (or resume from the current offsets: no pop)
   else if (!on && AMB.on) { AMB.on = false; AMB.tOff = now; AMB.r0.set(AMB.av); }
   let moving = false, any = false;
@@ -299,7 +299,13 @@ let snap = null; // { from, to, t0 }
 let lastWheel = performance.now();
 let wmScrolled = reduced; // R23f: the wordmark plays big -> small once; true from the first real scroll for the rest of the visit (reduced motion: from the start)
 let snapForce = 0; // force of the last soft snap (the focus bump that follows it uses it); 0 once any input cancels it
-const cancelSnap = () => { snap = null; snapForce = 0; lastWheel = performance.now(); wmScrolled = true; };
+// R22i: after a toggle the focus (and the ambient drift) stay off: WORK.focusAfterMorph 'input' = until the next input once the morph is over, a number =
+// that many seconds after the morph (and its settle) ends, 0 = as before. While held the focus unwinds over 0.35 s (a pop guard) and does not rebuild.
+let focusHeld = false, focusHoldUntil = 0;
+const holdFocus = () => { focusHeld = WORK.focusAfterMorph !== 0; focusHoldUntil = 0; };
+const focusOff = (now) => focusHeld && (!!morph || (typeof WORK.focusAfterMorph === 'number' ? now < focusHoldUntil : true));
+const inputRelease = () => { if (focusHeld && !morph && WORK.focusAfterMorph === 'input') focusHeld = false; };
+const cancelSnap = () => { snap = null; snapForce = 0; lastWheel = performance.now(); wmScrolled = true; inputRelease(); };
 // ---- R22e: hold and drag (desktop mouse). The strip follows the pointer 1:1 (the scroll gain does not apply) along the mode's axis; on release
 // it carries the pointer's velocity as an inertia (WORK.dragInertia seconds of travel, ends on an easeOutCubic with the overshoot dragOvershoot)
 // and then the soft snap takes over as usual. A drag past 6 px swallows the click that would open a project; a plain click still works.
@@ -330,7 +336,7 @@ addEventListener('pointerdown', (e) => {
   if (e.target.closest?.('.work__toggle, .work__count, [data-tune-panel]') || e.target.closest?.('div[style*="99999"]')) return;
   dragMoved = false;
   drag = { id: e.pointerId, last: axisOf(e), total: 0, captured: false, samples: [[performance.now(), axisOf(e)]] };
-  inertia = null; snap = null; snapForce = 0; lastWheel = performance.now(); wmScrolled = true;
+  inertia = null; snap = null; snapForce = 0; lastWheel = performance.now(); wmScrolled = true; inputRelease();
   e.preventDefault(); // no text selection, no image drag
 }, { capture: true });
 addEventListener('pointermove', (e) => {
@@ -418,9 +424,10 @@ const tick = (_time, deltaMs) => {
     // R23f: the focus builds only at rest: while the soft snap drifts the project in, or once the wheel has been quiet for snapDelay and the
     // glide is over. Any wheel / key / touch input (cancelSnap) closes the gate at once and the focus unwinds over the ramp.
     const restOk = !!snap || (now - lastWheel > WORK.snapDelay * 1000 && Math.abs(vel) < 250);
-    const rate = dt / Math.max(WORK.focusRampSec, 0.02);
+    const hold = focusOff(now);
+    const rate = dt / Math.max(hold ? 0.35 : WORK.focusRampSec, 0.02);
     for (let q = 0; q < N; q++) {
-      const tgt = snapOk && restOk && q === pk ? workEase(WORK)(c) : 0;
+      const tgt = snapOk && restOk && !hold && q === pk ? workEase(WORK)(c) : 0;
       const nv = fP[q] + Math.max(-rate, Math.min(rate, tgt - fP[q]));
       if (nv !== fP[q]) { fP[q] = nv; focusMoving = true; }
     }
@@ -560,6 +567,7 @@ const commit = (mode) => {
 function finishMorph() {
   const m = morph;
   morph = null;
+  if (typeof WORK.focusAfterMorph === 'number') focusHoldUntil = performance.now() + WORK.focusAfterMorph * 1000;
   commit(m.to);
   advance();
   off = m.SB - virt * WORK.wheel;
@@ -571,6 +579,7 @@ let fading = false;
 const setMode = (mode) => {
   if (morph || fading || (mode === 'vertical') === vertical) return;
   snap = null; snapForce = 0; inertia = null; if (drag) endDrag();
+  holdFocus();
   const L0 = cur();
   const kProj = Math.round(S / L0.pitch);
   if (glOn) {
