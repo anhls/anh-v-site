@@ -32,3 +32,14 @@ export const ambCardOffset = (out, prm, depthW, av, tSec, scale) => {
   out.cross = along * prm.lean + (WORK.ambSway > 0 ? WORK.ambSway * scale * av * Math.sin((Math.PI * 2 * tSec) / prm.period + prm.phase) : 0);
 };
 export const ambImageOffset = (av, scale) => av * WORK.ambFrame * scale;
+
+// R22i: the speed lead. While the strip moves, each card runs ahead of it by lead x the strip's speed x LEAD_TIME, up to leadMaxPx; when the strip slows
+// the card eases back to its place on its own spring. lead = leadMin..leadMax (seeded per card) x the depth weight; the spring is seeded too (leadVar).
+export const LEAD_TIME = 0.4; // s: how far ahead (in time) a card with lead 1 runs
+export const leadUnits = (c, pi) => {
+  const r = rng(mix(c.hash, WORK.seed + pi * 131 + 401 + (c.dup ? 977 : 0)));
+  return { k: r(), spd: r() };
+};
+export const leadParams = (u, depthW, W = WORK) => ({ lead: (W.leadMin + u.k * (W.leadMax - W.leadMin)) * depthW, stiff: W.leadStiffness * (1 + W.leadVar * (2 * u.spd - 1)) });
+// the card's lead offset (px, along the strip, signed against the strip's speed `vel`) for a strip speed (px/s at 1920 x scale), capped
+export const leadOffset = (lead, vel, scale) => { const cap = WORK.leadMaxPx * scale, o = -lead * vel * LEAD_TIME; return Math.max(-cap, Math.min(cap, o)); };

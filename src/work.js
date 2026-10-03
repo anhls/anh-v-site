@@ -15,7 +15,7 @@ import { applyFocus } from './work/focus.js';
 import { pushTarget, stepPushSpring } from './effects/card-push.js';
 import { withOvershoot, settleBump, settleCurve } from './util/overshoot.js';
 import { workEase, blendSoft, moveForce, forceOf } from './util/ease.js';
-import { ambUnits, ambParams, ambDepthW, ambProgress, ambCardOffset, ambImageOffset } from './work/ambient.js';
+import { ambUnits, ambParams, ambDepthW, ambProgress, ambCardOffset, ambImageOffset, leadUnits, leadParams, leadOffset } from './work/ambient.js';
 import { buildProjectCards, placeCards, balanceDark, workMetrics, fixWorkLayout } from './work/cards.js';
 
 // Work page (R23, R23b). A strip of the projects' main images, endless, driven by Lenis (infinite mode: the page itself never moves, its
@@ -217,6 +217,26 @@ const stepAmb = (now) => {
   return moving;
 };
 const ambOut = { along: 0, cross: 0 };
+// ---- R22i: the speed lead: per card an offset along the strip (px) on its own spring; target = leadOffset(strip speed), 0 while the snap / morph run
+const LEAD = { x: new Float64Array(n), v: new Float64Array(n), units: items.map((it) => (it.kind === 'card' ? leadUnits(it.card, it.proj) : null)), moving: false };
+const stepLead = (dt, vel, active) => {
+  let moving = false;
+  const steps = Math.max(1, Math.ceil(dt / 0.004)), h = dt / steps;
+  for (let i = 0; i < n; i++) {
+    const u = LEAD.units[i];
+    if (!u) continue;
+    const prm = leadParams(u, ambDepthW(items[i].mouse));
+    const tgt = active ? leadOffset(prm.lead, vel, scale) : 0;
+    const k = prm.stiff, c = WORK.leadDamping * Math.sqrt(k / WORK.leadStiffness);
+    let x = LEAD.x[i], v = LEAD.v[i];
+    if (x === 0 && v === 0 && tgt === 0) continue;
+    for (let q = 0; q < steps; q++) { v += (k * (tgt - x) - c * v) * h; x += v * h; }
+    if (tgt === 0 && Math.abs(x) < 0.02 && Math.abs(v) < 0.1) { x = 0; v = 0; } else moving = true;
+    LEAD.x[i] = x; LEAD.v[i] = v;
+  }
+  LEAD.moving = moving;
+  return moving;
+};
 const NUD = { x: new Float64Array(n), y: new Float64Array(n), dt: 0, tau: 0.09, live: false }; // R22g: the focus nudge, smoothed in time (work/focus.js)
 let driftW = 1; // weight of the mouse drift (1 at rest, 0 during the toggle morph)
 const hp = new Float64Array(n), hv = new Float64Array(n); // hover progress (critically damped spring, as the homepage cards)
@@ -479,6 +499,7 @@ const tick = (_time, deltaMs) => {
   const dur = Math.max(WORK.morphSec - WORK.morphStagger, 0.05);
   let settleMoving = false;
   if (stepAmb(now)) settleMoving = true;
+  if (stepLead(dt, vel, glOn && !reduced && !morph && !snap)) settleMoving = true;
   // R22g: the mouse drift fades out / in over 0.6 s around the toggle morph (it used to switch off at the first frame and on at the last: a card
   // jumped by its whole drift when the pointer was off-centre)
   driftW += Math.max(-dt / 0.6, Math.min(dt / 0.6, (morph ? 0 : 1) - driftW));
@@ -526,6 +547,7 @@ const tick = (_time, deltaMs) => {
       if (stepPushSpring(Q, V, i, pOut.x, pOut.y, CARDS.pushStiffness, CARDS.pushDamping, ph, pSteps)) pushMoving = true;
       dx += qx[i]; dy += qy[i];
     }
+    if (LEAD.x[i] !== 0) { if (L.M.vertical) dy += LEAD.x[i]; else dx += LEAD.x[i]; }
     if (AMB.al[i] !== 0 || AMB.cr[i] !== 0) { if (L.M.vertical) { dx += AMB.cr[i]; dy += AMB.al[i]; } else { dx += AMB.al[i]; dy += AMB.cr[i]; } }
     const fs = it.kind === 'frame' ? fsArr[it.proj] : 1;
     const sc = (1 + (CARD_HOVER.scale - 1) * hp[i]) * fs;
@@ -633,6 +655,6 @@ initNav(data.hero.wordmark, lenis, { gateFrame: false, position: () => (wmScroll
 document.title = 'Work | Anh V';
 if (import.meta.env.DEV) {
   window.__SCROLL = SCROLL; window.__WORK = WORK;
-  window.__work = { setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, q: Q, PS,  get snap() { return snap; }, AMB, get drag() { return drag; }, get inertia() { return inertia; }, fP, fSc, fPu, get kCount() { return kCount; }, bx, by, bw, bh, vis, hp };
+  window.__work = { setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, q: Q, PS,  get snap() { return snap; }, AMB, LEAD, get drag() { return drag; }, get inertia() { return inertia; }, fP, fSc, fPu, get kCount() { return kCount; }, bx, by, bw, bh, vis, hp };
   if (params.has('tune')) import('./work/tune.js').then((m) => m.mountWorkTune({ relayout }));
 }

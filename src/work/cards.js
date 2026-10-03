@@ -14,7 +14,7 @@ import { fixOverlaps, allViolations } from '../data/overlap.js';
 import { generateLayout } from '../data/layout.js';
 import { cardDepth } from '../data/depth.js';
 import { rng, mix, fit } from '../data/cards-gen.js';
-import { ambUnits, ambParams, ambDepthW, ambProgress } from './ambient.js';
+import { ambUnits, ambParams, ambDepthW, ambProgress, leadUnits, leadParams, leadOffset } from './ambient.js';
 
 const warn = (...a) => { if (import.meta.env?.DEV) console.warn('[work cards]', ...a); };
 const area = (c) => c.w * c.h;
@@ -243,6 +243,10 @@ export function fixWorkLayout(projects, Ms, { structural = true, check = false }
         flat.forEach((f, i) => { const av = ambProgress(t, aprm[i].tau, aprm[i].delay), al = av * WORK.ambFrame * aprm[i].mul * adw[i] * sc; dY[i] = al; dX[i] = al * aprm[i].lean + sw * WORK.ambSway * sc * av; });
         return [dX, dY];
       };
+      // R22i: the speed lead at a few strip speeds in both directions (cards with different leads separate / close in), alone and, at a medium speed, with the
+      // mouse drift corners, the focus push and the ambient drift on top
+      const lprm = flat.map((f, i) => leadParams(leadUnits(f.c, f.pi), adw[i]));
+      const leadAt = (speed, dir) => Float64Array.from(flat, (f, i) => leadOffset(lprm[i].lead, dir * speed * sc, sc));
       const ambScen = WORK.ambFrame > 0 ? [[1e4, 1], ...(WORK.ambSway > 0 ? [[1e4, -1]] : []), [4, 0], [10, 0], [25, 0]] : [];
       for (let k = 0; k < N; k++) {
         const wy = (y) => wrap(y - k * pitch, period) + k * pitch;
@@ -259,6 +263,11 @@ export function fixWorkLayout(projects, Ms, { structural = true, check = false }
         const fS = new Float64Array(N), fPu = new Float64Array(N); fS[k] = 1 + WORK.focusOvershootScale; fPu[k] = 1 + WORK.focusOvershootPush;
         applyFocus(A, fS, WORK, CARDS, new Float64Array(N), fPu);
         push(A.X.slice(N), A.Y.slice(N));
+        const lead = WORK.leadMaxPx > 0 && WORK.leadMax > 0 ? [[1200, 1], [1200, -1]] : [];
+        for (const [spd, dir] of lead) {
+          const dY = leadAt(spd, dir);
+          push(Float64Array.from(X0), Float64Array.from(Yk, (v, i) => v + dY[i]));
+        }
         for (const [t, sw] of ambScen) {
           const [dX, dY] = ambAt(t, sw);
           push(Float64Array.from(X0, (v, i) => v + dX[i]), Float64Array.from(Yk, (v, i) => v + dY[i])); // the drift alone (at rest)
