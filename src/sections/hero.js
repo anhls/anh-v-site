@@ -74,7 +74,11 @@ export function buildHero(root, hero) {
   const vhTop = (n) => () => (window.innerHeight * n) / 100; // page-scroll position in px
 
   // Ticker loops on its own, leftward, at TICKER.speedVwPerSec (one half = perHalf items).
-  gsap.to(track, { xPercent: -50, duration: (TICKER.perHalf * TICKER.itemVw) / TICKER.speedVwPerSec, ease: 'none', repeat: -1 });
+  // R22j: it only runs while it can be seen (it has faded out by 90 vh of scroll): an invisible track written every frame kept the compositor
+  // busy (Layerize + Commit about 60 ms per second on an idle page further down)
+  const tickerTween = gsap.to(track, { xPercent: -50, duration: (TICKER.perHalf * TICKER.itemVw) / TICKER.speedVwPerSec, ease: 'none', repeat: -1 });
+  let tickerOn = true; // (onUpdate, not onToggle: a trigger that starts at scroll 0 is not 'active' at 0, so a jump straight past its end never toggled)
+  ScrollTrigger.create({ start: 0, end: () => window.innerHeight, onUpdate: (self) => { const on = self.progress < 1; if (on !== tickerOn) { tickerOn = on; if (on) tickerTween.resume(); else tickerTween.pause(); } } });
 
   // 1vh of page scroll = 0.01s of timeline, so each scrubbed range maps onto its timeline 1:1.
   const [r0, r1] = HERO.range;
