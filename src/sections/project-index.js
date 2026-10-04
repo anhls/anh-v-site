@@ -28,6 +28,7 @@ export function buildIndex(root, projects) {
     </a>`).join('');
 
   const bands = [...sticky.querySelectorAll('.index__band')];
+  const setReachable = (b, on) => { b.tabIndex = on ? 0 : -1; b.setAttribute('aria-hidden', on ? 'false' : 'true'); }; // R22j: only the showing row is a tab stop / announced
   const rows = bands.map((band) => ({
     band,
     inner: band.querySelector('.index__inner'),
@@ -74,8 +75,9 @@ export function buildIndex(root, projects) {
     onUpdate: (self) => {
       const y = self.scroll();
       const now = swaps.filter(([a, b]) => y >= (scrollPx(a) + scrollPx(b)) / 2).length;
-      if (now !== active) { active = now; bands.forEach((b, i) => b.classList.toggle('is-active', i === now)); }
+      if (now !== active) { active = now; bands.forEach((b, i) => { b.classList.toggle('is-active', i === now); setReachable(b, i === now); }); }
     },
   });
   bands[0].classList.add('is-active');
+  bands.forEach((b, i) => setReachable(b, i === 0));
 }

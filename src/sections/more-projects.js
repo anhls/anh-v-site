@@ -127,7 +127,7 @@ export function buildMoreProjects(root, data) {
     if (!placed) { follow(px, py); curLayer.snap(); placed = true; }
   };
   const rest = () => { rows.forEach((t) => { t.r = 0; t.g = 0; }); cur.o = 0; placed = false; };
-  list.querySelectorAll('li').forEach((li, i) => li.addEventListener('pointerenter', (e) => { follow(e.clientX, e.clientY); hover(i); }));
+  list.querySelectorAll('li').forEach((li, i) => li.addEventListener('pointerenter', (e) => { if (e.pointerType === 'touch') return; follow(e.clientX, e.clientY); hover(i); }));
   list.addEventListener('pointerleave', rest);
 
   // Only listen to the pointer while the section is on screen.

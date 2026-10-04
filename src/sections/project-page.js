@@ -21,7 +21,7 @@ const par = (c, inner) => (c.parallax ? `<div class="pj__par" data-y="${c.parall
 
 const img = (c, sizes, eager = false) => {
   const style = [c.w ? `--w:${c.w}%` : '', c.h ? `--h:${c.h}%` : '', c.hcss ? `--hpx:${c.hcss}` : c.hpx ? `--hpx:${uy(c.hpx)}` : '', c.aspect ? `aspect-ratio:${c.aspect}` : ''].filter(Boolean).join(';');
-  return par(c, `<img class="pj__img pj__img--${c.fit || 'cover'}" ${imgAttrs(c.ref, sizes)} alt="" ${eager ? 'fetchpriority="high"' : 'loading="lazy" decoding="async"'}${style ? ` style="${style}"` : ''}>`);
+  return par(c, `<img class="pj__img pj__img--${c.fit || 'cover'}" ${imgAttrs(c.ref, sizes)} alt="${c.alt || ''}" ${eager ? 'fetchpriority="high"' : 'loading="lazy" decoding="async"'}${style ? ` style="${style}"` : ''}>`);
 };
 
 const loop = (c) => {
@@ -68,7 +68,7 @@ const stageItem = (it) => {
 };
 
 const block = {
-  hero: (b) => `<section class="pj__sec pj__hero">${img({ ref: b.img, fit: 'cover', parallax: b.parallax }, '100vw', true)}</section>`,
+  hero: (b) => `<section class="pj__sec pj__hero">${img({ ref: b.img, fit: 'cover', parallax: b.parallax, alt: document.title.replace(/ \| Anh V$/, '') }, '100vw', true)}</section>`,
   text: (b) => {
     const t = fadeText(b.text);
     const st = [b.hvh ? `height:${b.hvh}vh` : b.hpx ? `height:${uy(b.hpx)}` : '', b.pad ? `--padx:calc(var(--ux) * ${(b.pad / 19.2).toFixed(3)})` : ''].filter(Boolean).join(';');

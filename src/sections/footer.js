@@ -20,7 +20,7 @@ export function lineHover(link) {
     springs: { r: springFromBounce(SPRING.linkRoll.duration, SPRING.linkRoll.bounce) },
     apply: (v) => { line.style.transform = `scaleX(${Math.max(min, v.r)})`; },
   });
-  link.addEventListener('pointerenter', () => { target.r = 1; });
+  link.addEventListener('pointerenter', (e) => { if (e.pointerType !== 'touch') target.r = 1; }); // R22j: a tap is not a hover
   link.addEventListener('pointerleave', () => { target.r = 0; });
   return measure;
 }

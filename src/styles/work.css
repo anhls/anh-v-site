@@ -8,16 +8,17 @@
 .work__item { position: absolute; left: 0; top: 0; display: block; will-change: transform; cursor: pointer; }
 .work__item img { display: block; width: 100%; height: 100%; object-fit: cover; user-select: none; -webkit-user-drag: none; }
 .work__card img { transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
-.work__card:hover img { transform: scale(1.2); } /* the flat DOM fallback; with the canvas the image is hidden and the canvas zooms it */
+@media (hover: hover) { .work__card:hover img { transform: scale(1.2); } } /* the flat DOM fallback; with the canvas the image is hidden and the canvas zooms it */
 .work--gl .work__item img { opacity: 0; } /* the canvas draws the pictures; the <img> stays as the click target, the hover target and the texture source */
-.work--gl .work__card:hover img { transform: none; }
+@media (hover: hover) { .work--gl .work__card:hover img { transform: none; } }
 .work.is-morphing .work__item { pointer-events: none; }
 /* Counter (left) and toggle icon (right): the same row, margins, type size and scale.js sizing as PRJ - 01 (left) and the YEAR (right) of the
    homepage project index (base.css .index__label / .index__year: --index-x from the edge, the row 0.325 index-sizes below the band top). */
 .work-page { --row-y: calc(var(--index-top) + var(--index-size) * 0.325); --tg-glyph: calc(var(--index-label-size) * 1.5); --tg-box: calc(var(--tg-glyph) * 2.4); }
 .work__count { position: fixed; z-index: 12; left: var(--index-x); top: var(--row-y); font-size: var(--index-label-size); line-height: 1; color: #fff; mix-blend-mode: difference; font-variant-numeric: tabular-nums; transition: opacity 0.2s ease; }
 .work__toggle { all: unset; position: fixed; z-index: 12; box-sizing: border-box; width: var(--tg-box); height: var(--tg-box); right: calc(var(--index-x) - (var(--tg-box) - var(--tg-glyph)) / 2); top: calc(var(--row-y) + var(--index-label-size) / 2 - var(--tg-box) / 2); display: grid; place-items: center; cursor: pointer; color: #fff; mix-blend-mode: difference; opacity: 0.72; transition: opacity 0.2s ease; }
-.work__toggle:hover, .work__toggle:focus-visible { opacity: 1; }
+.work__toggle:focus-visible { opacity: 1; }
+@media (hover: hover) { .work__toggle:hover { opacity: 1; } }
 .work__toggle:focus-visible { outline: 1px solid #f04a0e; outline-offset: -4px; }
 .work__toggle svg { width: var(--tg-glyph); height: var(--tg-glyph); overflow: visible; fill: currentColor; }
 .work__icon { transform-origin: 12px 12px; transform: rotate(var(--a, 0deg)); }

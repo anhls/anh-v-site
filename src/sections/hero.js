@@ -32,6 +32,7 @@ export function buildHero(root, hero) {
   // The ticker item is one SVG (dot + "Click Anywhere" baked in), 182px wide at 1920. TICKER.perHalf per half so the loop covers the screen.
   const items = Array.from({ length: TICKER.perHalf }, () => `<img class="ticker__item" src="${hero.ticker}" alt="" />`).join('');
 
+  const lite = !!navigator.connection?.saveData; // R22j: Save-Data: the poster only, the video is not fetched
   root.insertAdjacentHTML('afterbegin', `
     <div class="hero" id="hero">
       <div class="hero__pin">
@@ -45,7 +46,7 @@ export function buildHero(root, hero) {
               <div class="hero__overlay"></div>
             </div>
             <div class="hero__sec hero__s1">
-              <video class="hero__video" src="${hero.video}" poster="/media/hero/poster.webp" autoplay muted loop playsinline preload="auto"></video>
+              <video class="hero__video" src="${hero.video}" poster="/media/hero/poster.webp" ${lite ? '' : 'autoplay '}muted loop playsinline preload="${lite ? 'none' : 'auto'}"></video>
               <div class="ticker" aria-hidden="true"><div class="ticker__clip"><div class="ticker__track">${items}${items}</div></div></div>
             </div>
           </div>

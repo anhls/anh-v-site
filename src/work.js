@@ -11,6 +11,7 @@ import { initNav } from './effects/nav.js';
 import { createCardsGL } from './effects/cards-gl.js';
 import { imgAttrs } from './util/media.js';
 import { installScrollGain } from './util/scroll-gain.js';
+import { watchDpr } from './util/dpr.js';
 import { applyFocus } from './work/focus.js';
 import { pushTarget, stepPushSpring } from './effects/card-push.js';
 import { withOvershoot, settleBump, settleCurve } from './util/overshoot.js';
@@ -44,6 +45,7 @@ let lenisClock = 0, lenisLast = null;
 gsap.ticker.add((time) => { lenisClock += lenisLast === null ? 0 : Math.min(time - lenisLast, 0.1); lenisLast = time; lenis.raf(lenisClock * 1000); });
 gsap.ticker.lagSmoothing(0);
 installScrollGain(lenis);
+watchDpr();
 
 // ---- DOM
 const nav = document.createElement('nav');

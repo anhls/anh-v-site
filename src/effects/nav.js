@@ -39,7 +39,8 @@ export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe,
   img.href = '/';
   img.setAttribute('aria-label', 'Anh V, home');
   img.innerHTML = `<img src="${wordmarkSrc}" alt="" draggable="false">`;
-  document.body.prepend(img); // first in the tab order (the logo link comes before the nav)
+  document.body.prepend(img); // the logo link comes before the nav in the tab order
+  const skip = document.querySelector('.skip'); if (skip) document.body.prepend(skip); // and the skip link before everything
   if (onHome) img.addEventListener('click', (e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); backToTop(lenis); });
   let clickable = false, ringScale = 1;
   const ring = () => { img.style.setProperty('--wm-ring', `${2 / ringScale}px`); img.style.setProperty('--wm-ring-off', `${4 / ringScale}px`); }; // the focus ring stays 2 px under the scale
@@ -119,7 +120,7 @@ export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe,
     const roll = a.querySelector('.roll');
     const t = { y: 0 };
     springLayer({ target: t, springs: { y: rollSpring }, apply: (v) => gsap.set(roll, { y: v.y }) });
-    a.addEventListener('mouseenter', () => { t.y = -ROLL; });
+    a.addEventListener('mouseenter', () => { if (matchMedia('(hover: hover)').matches) t.y = -ROLL; }); // R22j: a tap is not a hover
     a.addEventListener('mouseleave', () => { t.y = 0; });
   });
 }

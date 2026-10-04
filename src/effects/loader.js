@@ -55,7 +55,7 @@ export function runLoader(text, urls, onReady) {
 
   const loadImage = (url) => once((end) => { const img = new Image(); img.onload = img.onerror = end; img.src = url; });
   const loadVideo = () => once((end) => {
-    if (!video || video.readyState >= 2) { end(); return; }
+    if (!video || video.readyState >= 2 || video.preload === 'none') { end(); return; } // (preload none = Save-Data: no frame is coming)
     video.addEventListener('loadeddata', end, { once: true });
     video.addEventListener('error', end, { once: true });
     setTimeout(end, LOADER.videoCapMs); // never block the site on a slow video
