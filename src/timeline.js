@@ -32,8 +32,6 @@ const SWAP_2 = plus(SWAP_1, 84.9);
 // span(start, length) -> [start, end]. `start` is a number (uncapped vh) or a C(...) position; length is uncapped vh.
 const span = (start, length) => (typeof start === 'number' ? [+start.toFixed(2), +(start + length).toFixed(2)] : [start, plus(start, length)]);
 
-export const TOTAL = 730; // page height in vh
-
 // Smooth scroll (Lenis). Framer's "Intensity 30" = duration 3 with Lenis' default easing. Lower duration = snappier
 // (try 2.5). `easing` is t (0..1) -> progress (0..1).
 // R23d: gainCap / gainFrom / gainTo / gainDecay = the wheel acceleration (src/util/scroll-gain.js): the distance per wheel tick is multiplied
@@ -300,9 +298,6 @@ export const BAND_LIMITS = (() => { try { const u = JSON.parse(urlParams.get('li
 // smaller card's area; 0 = none); no point is ever covered by 3 cards (src/data/overlap.js).
 const urlDarkOv = parseFloat(urlParams.get('darkov')), urlPairOv = parseFloat(urlParams.get('pairov')); // ?darkov= / ?pairov= (the tune panels' Apply)
 export const BAND_RULES = { dupMinGapVh: 40, sideSlice: 6, sideSliceMax: 2, maxDarkRun: 2, darkOverlapMax: Number.isFinite(urlDarkOv) ? urlDarkOv : 0.1, pairOverlapMax: Number.isFinite(urlPairOv) ? urlPairOv : 0.3 };
-// Live's constants, fixed (not tunable): parting target = t * (0.01W + 0.19W * (1 - f)) * 1.1 sideways and
-// t * (0.01H + 0.29H * (1 - f)) * 1.1 down (live eases to them at 0.2 per 60 fps frame; we use the CARDS spring); a card is armed once 10% of it has been visible.
-export const PARTING = { xMax: 0.2, xMin: 0.01, yMax: 0.3, yMin: 0.01, z: 1.1, lerp: 0.2, armed: 0.1 };
 // R17 card hover, measured on live (1920x1080, frame-by-frame, tools/scratch/r17-live2.mjs): the card under the pointer scales
 // 1 -> 1.2 on a critically damped spring (stiffness ~250, damping ~31, no overshoot, ~0.6 s). the "dark bg frame" cards (since R22d: a seeded share, CARD_HOVER.darkShare, of the cards flagged `dark` by cards-gen.js) are covered at rest by an opaque rgb(10,10,10) layer 4 px bigger on every side that fades out (opacity = 1 - progress)
 // while it scales 1 -> 1.15 on the same progress. Added here: the hovered card stops (its pointer push fades out, drift drops to

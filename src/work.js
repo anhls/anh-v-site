@@ -38,7 +38,10 @@ const store = { get: () => { try { return localStorage.getItem('work-mode'); } c
 let vertical = store.get() === 'vertical';
 
 const lenis = new Lenis({ infinite: true, gestureOrientation: 'both', lerp: 0.07, wheelMultiplier: 1 });
-gsap.ticker.add((time) => lenis.raf(time * 1000));
+// R22j: Lenis runs on a clock that never advances more than 100 ms per frame: after a hidden tab or a long freeze its glide carries on from where
+// it was (before, the whole glide finished in one frame: the strip jumped thousands of px when the tab came back)
+let lenisClock = 0, lenisLast = null;
+gsap.ticker.add((time) => { lenisClock += lenisLast === null ? 0 : Math.min(time - lenisLast, 0.1); lenisLast = time; lenis.raf(lenisClock * 1000); });
 gsap.ticker.lagSmoothing(0);
 installScrollGain(lenis);
 
@@ -82,6 +85,7 @@ items.forEach((it, i) => {
   a.href = `/work/${it.slug}.html`;
   a.style.zIndex = String(it.z); // the same order as the canvas (R23d): the image sits in the middle of the card depths
   if (it.kind === 'frame') a.setAttribute('aria-label', projects[it.proj].title);
+  else { a.tabIndex = -1; a.setAttribute('aria-hidden', 'true'); } // R22j: a card is a decoration with the same target as its project's image: not a tab stop, not announced (34 unnamed links otherwise)
   // the picture is only requested once the item is near the screen (activate()): the canvas then uploads exactly that file
   a.innerHTML = `<img ${imgAttrs(it.kind === 'frame' ? it.ref : it.src, it.kind === 'frame' ? `${WORK.frameW}vw` : '300px', true)} alt="" decoding="async" draggable="false">`;
   stage.append(a);

@@ -16,6 +16,7 @@ export default defineConfig({
         sulwhasoo: resolve(__dirname, 'work/sulwhasoo.html'),
         'tcb-priority': resolve(__dirname, 'work/tcb-priority.html'),
         work: resolve(__dirname, 'work/index.html'), // placeholder Works page
+        notfound: resolve(__dirname, '404.html'), // R22j: the 404 page (static hosts serve /404.html for unknown paths)
       },
     },
   },
