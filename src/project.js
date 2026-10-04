@@ -21,6 +21,7 @@ if (project?.page) {
   gsap.ticker.add((time) => lenis.raf(time * 1000));
   gsap.ticker.lagSmoothing(0);
   lenis.on('scroll', ScrollTrigger.update);
+  if (import.meta.env.DEV) { window.__lenis = lenis; } // dev only: tools/scratch checks
   installScrollGain(lenis);
 
   const nav = document.createElement('nav');

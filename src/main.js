@@ -16,6 +16,7 @@ import { buildFooter } from './sections/footer.js';
 import { initNav } from './effects/nav.js';
 import { initClickSound } from './effects/clicksound.js';
 import { buildSpawner } from './effects/spawner.js';
+import { springLayers } from './effects/springs.js';
 import { buildCaptionHover } from './effects/caption-hover.js';
 import { buildTrail } from './effects/trail.js';
 import { createFrameGL } from './effects/frame-gl.js';
@@ -34,7 +35,7 @@ gsap.ticker.lagSmoothing(0);
 // Sections are added here one by one.
 const app = document.getElementById('app');
 const hero = buildHero(app, data.hero);
-const frameGL = createFrameGL(hero.frame); // R16c: the centre frame's own canvas (null = DOM frame only)
+const frameGL = createFrameGL(hero.frame, () => lenis.targetScroll <= 0.5 || lenis.targetScroll >= lenis.limit - 0.5); // R22j: no swing past flat while the target is at an end; R16c: the centre frame's own canvas (null = DOM frame only)
 buildAbout(app, data.about);
 buildPlaceholders(app);
 buildIndex(app, data.projects);
@@ -45,7 +46,7 @@ initNav(data.hero.wordmark, lenis, { onHome: true });
 buildSpawner(app, data.spawnerImages);
 buildCaptionHover(app, data.hero.captions);
 const trail = buildTrail(app, data.trailImages);
-if (import.meta.env.DEV) { window.__frame = frameGL; window.__FW = FRAME_WARP; window.__heroState = hero.frame; window.__trail = trail; window.__cards = cardsApi; window.__CARDS = CARDS; } // dev only: the tuning panel and tools/scratch checks
+if (import.meta.env.DEV) { window.__frame = frameGL; window.__FW = FRAME_WARP; window.__heroState = hero.frame; window.__trail = trail; window.__cards = cardsApi; window.__CARDS = CARDS; window.__lenis = lenis; window.__layers = springLayers; } // dev only: the tuning panel and tools/scratch checks
 initClickSound(data.hero.clickSound);
 
 // Loader first: hold scrolling until what is visible on the first screen is ready.

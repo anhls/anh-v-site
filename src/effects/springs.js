@@ -42,6 +42,8 @@ function advance(x0, v0, k, c, m, dt) {
   return [c1 * e1 + c2 * e2, c1 * r1 * e1 + c2 * r2 * e2];
 }
 
+export const springLayers = () => layers; // dev tools (tools/scratch checks read every layer's value / target per frame)
+
 // Jump every layer to its target now (used by back-to-top while the page is covered).
 export function snapAllLayers() {
   layers.forEach((L) => { for (const p in L.springs) { L.value[p] = L.target[p]; L.vel[p] = 0; } L.apply(L.value); });

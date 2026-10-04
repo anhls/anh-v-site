@@ -52,7 +52,10 @@ void main() {
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const param = new URLSearchParams(location.search).get('gl');
 
-export function createFrameGL(handles) {
+// `atEnd` (optional): true while the scroll TARGET is at the top or the bottom of the page. The warp then settles without swinging past flat
+// (R22j B2: the slow Lenis tail drops the speed under the deadzone ~180 px before the end; the deliberate BEND.overshoot swing then showed up as
+// a wobble at the very top). Everywhere else the swing is unchanged.
+export function createFrameGL(handles, atEnd) {
   if (param === '0' || (param !== '1' && (reduced || weakDevice(BEND.weakCores, BEND.weakMemoryGb)))) return null;
   const { pin, float: floatEl, video, track } = handles;
   const canvas = document.createElement('canvas');
@@ -393,7 +396,7 @@ export function createFrameGL(handles) {
       if (forced || speed > FW.threshold) { buildTicker(); takeOver(); started = true; } else return;
     }
     // warp spring (the shared motion settings come from BEND)
-    const os = Math.min(Math.max(BEND.overshoot, 0.001), 0.95);
+    const os = atEnd?.() ? 0.001 : Math.min(Math.max(BEND.overshoot, 0.001), 0.95);
     const zeta = -Math.log(os) / Math.sqrt(Math.PI * Math.PI + Math.log(os) ** 2);
     const wn = BEND.returnSpeed;
     const target = Math.tanh((Math.sign(vel) * Math.max(0, speed - FW.deadzone) * BEND.sensitivity) / BEND.speedRef); // R16f: Lenis' slow glide tail (below deadzone px/s) no longer holds the warp
