@@ -313,6 +313,57 @@ Goal: R22d to R22i added many motion layers (warp passes, ambient drift, lead sp
 ### Report
 In docs/status.md write a ranked findings table: finding, measured numbers, fixed (yes / no), and for the open ones a suggested fix and its cost. Anything that would change the look or feel is listed, not changed. Final run once at the end: seam 0.00 px both modes, counter order (4 patterns), compare 542 / 542 at 1920 and 2560, `?gl=0` and reduced-motion smoke, frame time at 4x throttle all combos.
 
+## R27 (type motion): paragraph line reveal + label smear reveal, one shared system (use Sonnet 5.5, no time budget, Anh runs it at home)
+
+Reference: two screen recordings Anh made of another site (not ours; the iOS "Lens / pause / heart" overlays in them are not part of the effect). Anh places them in the repo as docs/reference/text-fx-paragraph.mov (3.5 s, 60 fps, a bio paragraph) and docs/reference/text-fx-label.mov (2.7 s, 60 fps, a name + index label). If they are missing, use the numbers below (read by Cowork from 10 fps / 60 fps frames, good to about +-0.1 s). Do NOT copy the other site's font: in the paragraph recording the typeface visibly swaps at about 0.6 s (a web font loading late); ours must wait for fonts before measuring and splitting.
+
+Goal: a small type motion system with three tiers, all in one `TEXT_FX` block in `src/timeline.js`, driven by a `data-fx` attribute: `lines` (paragraphs), `smear` (display labels and names), `fade` (small meta text, nav; keep what exists if it already fades). No change to any existing default value, easing or timing outside this system.
+
+### Part A: shared infrastructure
+1. `src/effects/text-fx/` (own folder): a splitter (lines, then words) that waits for `document.fonts.ready`, measures lines, wraps each line in a clip box (`overflow: hidden`), keeps the original text as `aria-label` on the element and marks the split spans `aria-hidden`; re-splits on resize (debounced) WITHOUT replaying the animation (finished stays finished, in-flight continues from its progress); restores the original DOM if the effect is removed.
+2. Registry: elements opt in with `data-fx="lines|smear|fade"` and optional per-element overrides (`data-fx-delay`, `data-fx-once`). One entry point `initTextFx(root)` called per page; `?fx=0` turns every effect off (text just visible, for tests and `compare`); `?fx=1` forces on.
+3. Fallback rules, the same as the cards: reduced motion = plain 0.2 s opacity fade for every tier, no split; `?gl=0` or weak device (shared `util/device.js`) = `smear` uses the CSS path (Part C option C); no JS = text visible.
+4. `?tune` group "Text motion" (Active / Settled as the other panels) with descriptions in `tune-docs.js`; every number below is a tunable in `TEXT_FX`.
+5. Idle cost zero: no rAF and no GL work when nothing is animating.
+
+### Part B: `lines` (paragraph reveal, video 1)
+Measured from the recording (7 lines, ~70 words): each line sits in its own clipped box and the text rises into it from below (the first frame shows only thin slivers of the letter tops, then the full line); lines start one after another; then the words fade from light grey to black in reading order, a few words at a time, one wave per line, offset by one line; everything is black by about 2.3 s.
+- Line rise: `TEXT_FX.lines.riseSec` start 0.6 s, ease out (expo / quart, start with the site's expo), `lineStagger` start 0.08 s, from `yPercent: 100`.
+- Word fade: `wordFromOpacity` start 0.3 (light grey on white; on a dark background use the same opacity on the light text), `wordSec` start 0.35 s, `wordStagger` start 0.05 s per word in reading order across the block, wave starts `waveDelay` 0.1 s after its line starts to rise; total for a 7-line, 70-word block about 2.3 s.
+- Trigger: once on entering the viewport (ScrollTrigger, `once: true`, start about 85 %). Where a block already has a scroll-scrubbed animation, KEEP its scroll behaviour and report: first read how the About section text animates today and state it in the status note before changing anything; apply `lines` there only as the enter animation if the scroll timing is unchanged, otherwise leave About alone and list it as a decision for Anh.
+- Apply to: project page intro text and body text blocks (project pages), the About text (see above). List every other paragraph-size text the builder finds and PROPOSE, do not apply.
+
+### Part C: `smear` (label reveal, video 2)
+Measured (60 fps, zoomed): the label starts as a thin horizontal streak (about 5 % of its height, about 50 % of its width, faint), anchored at the LEFT BASELINE, grows to full size with an ease-out (about 40 % of the way at 0.4 s, about 85 % at 0.6 s, done at about 1.1 s). While it grows the glyphs are cut into horizontal slices that are shifted sideways (noise displacement) and the text is slanted (about 15 degrees, italic look); the slice offsets shrink and are gone by about 1.0 s, the slant is gone by about 1.1 s. The index ("01") starts about 0.15 s after the name with the same slant and distortion.
+- Implementation, in order of preference:
+  A (default when GL is available): WebGL text overlay. Render the label into an offscreen canvas texture at the device pixel ratio from its computed style (font, size, letter-spacing, colour, line height), draw it as a quad in a small shared overlay canvas (`pointer-events: none`, `aria-hidden`, created on first use, hidden when idle) with a shader: uniforms `uP` (progress), `uSkew`, `uScaleX0`, `uScaleY0`, `uSliceAmp`, `uSliceBand`, `uSliceNoise`, `uSeed`; premultiplied alpha; anchor left baseline. The DOM text is hidden (`visibility`, not `display`, so layout does not move) while the overlay plays and shown again at the end; the swap must not pop: pixel-diff the last overlay frame against the DOM text (max difference 8 levels on under 0.5 % of the pixels, at 1920 and 2560, DPR 1 and 2) and fix the mismatch (same font load state, same subpixel offset) before accepting.
+  C (fallback and `?gl=0`): CSS only: `transform: scaleY() scaleX() skewX()` from the baseline plus opacity, no slices.
+  B (SVG feDisplacementMap) is NOT to be used (slow on weak devices and in Safari / Firefox).
+- Tunables start values: `smear.sec` 1.1, `smear.ease` out expo, `startScaleY` 0.05, `startScaleX` 0.5, `startOpacity` 0.3, `skewDeg` 15, `sliceAmp` (as a fraction of the text height) 0.5, `sliceBand` (fraction of the height per slice) 0.06, `sliceNoise` speed 1, `indexDelay` 0.15, `stagger` (several labels at once) 0.1. These are starting guesses: match them to the reference by a contact sheet at t = 0.10, 0.20, 0.27, 0.33, 0.40, 0.47, 0.53, 0.60, 0.70, 0.80, 0.90, 1.00, 1.10 s (our render next to the reference frames, saved in tools/scratch/textfx-shots/) and tune until they read the same; report the final numbers.
+- Out animation: when the active text changes (the project changes), the old one fades out over `outSec` 0.2 s (opacity only) and the new one plays the in animation. If the project changes again while one is playing: cancel the one in flight and start the new one from p = 0 (no stacking, no flash of the old text).
+- Apply to: the Selected Work caption (name + index) on the homepage, the project name on the Work page (this REPLACES the current name reveal; keep R22f: no overshoot on the name; keep the name's trigger = focus at rest as built in R23f), the project page title on entering. List every other display-size text the builder finds (section headings, footer, about heading) and PROPOSE, do not apply.
+- `fade` tier: PRJ / YEAR and nav keep what they do now.
+
+### Part D: checks (full, not fast mode; the 200-seed sweeps stay banned)
+1. Contact sheets: `lines` (frames every 0.1 s over 2.5 s) and `smear` (the 13 times above), at 1920 and 2560, saved for Anh.
+2. Layout identical before and after: bounding boxes of every text element with the effect off (`?fx=0`) and after the effect finished must match to 0.1 px (no shift from the wrappers); the text is selectable and copyable after the effect; screen-reader text is the original sentence.
+3. Fonts: the effect never starts before the fonts are loaded (simulate a slow font); no line-break change after load.
+4. Resize during an animation and after: re-split without replay, no jump, no stuck hidden text.
+5. Tab hidden during an animation: on return the animation finishes or jumps to its end state cleanly (no stuck distortion).
+6. Reduced motion, `?gl=0`, weak-device path, WebGL context loss mid-animation (DOM text must appear, the overlay must disappear), no JS: each shows the text and logs 0 errors.
+7. Rapid project changes on the Selected Work caption and on the Work page (20 changes in 3 s): no stacked animations, no leftover overlay, the final text correct.
+8. Performance: frame time during the animations at 4x CPU throttle (1920 and 2560), idle cost 0 (no rAF, no GL calls when idle), texture memory returned after each animation, no listener or node growth after 200 plays.
+9. Existing gates unchanged: seam 0.00 px and counter order on the Work page, compare 542 / 542 at 1920 and 2560 with `?fx=0` (and one run with the effects on, waiting for the end of every animation), `?gl=0` smoke, homepage unchanged except the listed texts.
+
+### Decisions for Anh (the builder reports the current state and applies the default if Anh has not answered)
+1. About text: keep the scroll-scrubbed behaviour (default) or switch to once-on-enter with `lines`?
+2. Which other texts get `smear` / `lines` (the builder proposes a list after scanning).
+3. Out animation: 0.2 s fade (default) or a short reverse smear.
+4. Hero captions: untouched (default) or `smear`.
+
+### Report
+`docs/status.md`: what was applied where, the final tuned numbers vs the starting guesses, the pixel-diff numbers at the swap, frame times, anything not matching the reference and why. Commit after each Part.
+
 ## R24 (queued): phone and tablet
 Phone: full-screen hero only (video fills the screen, tap to spawn images, AV wordmark bottom-left at the desktop width, burger menu with About / Works / Contact, loader kept); everything else lives on the Work page. Work page on phone: side scroll only, no toggle, lighter card layer. Tablet: portrait layouts for the home and project pages. Prototype of the hero: the phone hero artifact from the Cowork session (single HTML). Also: svh/lvh units, ScrollTrigger ignoreMobileResize, project page responsive rules (stack on phone, swipe rows, pinned scroller becomes swipe + snap).
 
