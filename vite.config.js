@@ -6,6 +6,7 @@ export default defineConfig({
   // Fixed port: tools/compare.mjs measures http://localhost:5199/, so an old server elsewhere can't be measured by mistake.
   server: { port: 5199, strictPort: true },
   build: {
+    target: 'es2022', // top-level await in work.js (R22j)
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),

@@ -16,7 +16,7 @@ import { pushTarget, stepPushSpring } from './effects/card-push.js';
 import { withOvershoot, settleBump, settleCurve } from './util/overshoot.js';
 import { workEase, blendSoft, moveForce, forceOf } from './util/ease.js';
 import { ambUnits, ambParams, ambDepthW, ambProgress, ambCardOffset, ambImageOffset, leadUnits, leadParams, leadOffset } from './work/ambient.js';
-import { buildProjectCards, placeCards, balanceDark, workMetrics, fixWorkLayout } from './work/cards.js';
+import { buildProjectCards, placeCards, balanceDark, workMetrics, fixWorkLayout, fixWorkLayoutIdle } from './work/cards.js';
 
 // Work page (R23, R23b). A strip of the projects' main images, endless, driven by Lenis (infinite mode: the page itself never moves, its
 // scroll value is only read). Every project's image owns its cards along its two edges (src/work/cards.js). Everything is drawn by the
@@ -71,7 +71,7 @@ const iconEl = toggleEl.querySelector('.work__icon');
 // ---- items: the N frames first, then every project's cards (the same objects in both layouts)
 const projCards = buildProjectCards(pool, slugs);
 // R22e: the overlap rules (no triple overlap, dark-on-dark and pair caps) are enforced before the items exist: a card may be dropped
-fixWorkLayout(projCards, workMetrics(innerWidth, innerHeight, capW() / 1920));
+await fixWorkLayoutIdle(projCards, workMetrics(innerWidth, innerHeight, capW() / 1920)); // R22j: in 10 ms slices, the first paint and input are never blocked
 const items = [];
 projects.forEach((p, i) => items.push({ kind: 'frame', proj: i, slug: p.slug, z: frameZ(), mouse: 20 + 80 * DEPTH.slot, dark: false, ref: heroRef(p) }));
 projCards.forEach((list, i) => list.forEach((c, j) => items.push({ kind: 'card', proj: i, j, slug: c.slug, z: c.z, mouse: c.mouse, dark: c.dark, src: c.src, card: c })));

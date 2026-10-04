@@ -17,29 +17,39 @@ export function findViolations(x, y, w, h, dark, n, rules, only = -1, dx = null,
   const oset = Array.isArray(only) ? new Set(only) : null;
   const has = (i) => (oset ? oset.has(i) : i === only);
   const all = !oset && only < 0;
-  // positions are x[i] + dx[i], y[i] + dy[i] (the scenario's shifts; null = none): no arrays are built in the hot loop
-  const X = (i) => (dx ? x[i] + dx[i] : x[i]);
-  const Y = (i) => (dy ? y[i] + dy[i] : y[i]);
+  // positions are x[i] + dx[i], y[i] + dy[i] (the scenario's shifts; null = none), added once per call
+  let px = x, py = y;
+  if (dx) { px = new Float64Array(n); for (let i = 0; i < n; i++) px[i] = x[i] + dx[i]; }
+  if (dy) { py = new Float64Array(n); for (let i = 0; i < n; i++) py[i] = y[i] + dy[i]; }
+  const X = (i) => px[i];
+  const Y = (i) => py[i];
   const out = [];
-  const near = [];
-  for (let i = 0; i < n; i++) near.push([]);
-  for (let i = 0; i < n; i++) {
-    for (let j = i + 1; j < n; j++) {
-      if (!all && !has(i) && !has(j)) continue;
-      const ox = (w[i] + w[j]) / 2 - Math.abs(X(i) - X(j));
-      const oy = (h[i] + h[j]) / 2 - Math.abs(Y(i) - Y(j));
-      if (ox <= 0 || oy <= 0) continue;
-      near[i].push(j); near[j].push(i);
-      const frac = (ox * oy) / Math.min(w[i] * h[i], w[j] * h[j]);
-      if (frac > rules.pairOverlapMax + OVERLAP_EPS) out.push({ type: 'pair', cards: [i, j], excess: frac - rules.pairOverlapMax });
-      else if (dark[i] && dark[j] && frac > rules.darkOverlapMax + OVERLAP_EPS) out.push({ type: 'dark', cards: [i, j], excess: frac - rules.darkOverlapMax });
+  const near = new Array(n); // per card, created on its first neighbour (most calls touch only a few)
+  const members = all ? null : (oset ? [...oset] : [only]).sort((a, b) => a - b); // R22j: with `only`, visit just the pairs that involve one of them
+  const pair = (i, j) => {
+    const ox = (w[i] + w[j]) / 2 - Math.abs(px[i] - px[j]);
+    if (ox <= 0) return;
+    const oy = (h[i] + h[j]) / 2 - Math.abs(py[i] - py[j]);
+    if (oy <= 0) return;
+    (near[i] || (near[i] = [])).push(j); (near[j] || (near[j] = [])).push(i);
+    const frac = (ox * oy) / Math.min(w[i] * h[i], w[j] * h[j]);
+    if (frac > rules.pairOverlapMax + OVERLAP_EPS) out.push({ type: 'pair', cards: [i, j], excess: frac - rules.pairOverlapMax });
+    else if (dark[i] && dark[j] && frac > rules.darkOverlapMax + OVERLAP_EPS) out.push({ type: 'dark', cards: [i, j], excess: frac - rules.darkOverlapMax });
+  };
+  if (all) {
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) pair(i, j);
+  } else {
+    for (let i = 0; i < n; i++) {
+      if (has(i)) for (let j = i + 1; j < n; j++) pair(i, j);
+      else for (const m of members) if (m > i && m < n) pair(i, m);
     }
   }
   for (let i = 0; i < n; i++) {
-    if (!all && !has(i) && !near[i].some(has)) continue;
-    for (const j of near[i]) {
+    const ni = near[i];
+    if (!ni || (!all && !has(i) && !ni.some(has))) continue;
+    for (const j of ni) {
       if (j <= i) continue;
-      for (const k of near[i]) {
+      for (const k of ni) {
         if (!all && !has(i) && !has(j) && !has(k)) continue;
         if (k <= j) continue;
         // k must border j as well, and the three rectangles must share a region (not just pairwise corners)
@@ -57,9 +67,10 @@ export function findViolations(x, y, w, h, dark, n, rules, only = -1, dx = null,
 export function allViolations(ctx, rules, only = -1) {
   const map = new Map();
   const base = ctx.base ? ctx.base() : null;
+  const dark = ctx.dark(); // once per call (it does not change between scenarios)
   for (const sc of ctx.scenarios()) {
     // a scenario either shifts the shared base (dx, dy) or carries its own absolute positions (x, y: the Work page, one set per mode / view)
-    const list = sc.x ? findViolations(sc.x, sc.y, sc.w || ctx.w, sc.h || ctx.h, ctx.dark(), sc.x.length, rules, only) : findViolations(base.x, base.y, ctx.w, ctx.h, ctx.dark(), ctx.n, rules, only, sc.dx, sc.dy);
+    const list = sc.x ? findViolations(sc.x, sc.y, sc.w || ctx.w, sc.h || ctx.h, dark, sc.x.length, rules, only) : findViolations(base.x, base.y, ctx.w, ctx.h, dark, ctx.n, rules, only, sc.dx, sc.dy);
     for (const v of list) {
       if (sc.mode !== undefined) v.mode = sc.mode;
       const key = `${sc.mode ?? ''}${v.type}:${v.cards.join(',')}`;
@@ -85,12 +96,17 @@ const score = (list) => list.reduce((a, v) => a + 1 + v.excess, 0);
 //   refresh()               recompute whatever the scenarios depend on (the layout)
 // }
 // returns { fixed, remaining[] (violations left), steps }
-export function fixOverlaps(ctx, rules, { maxSteps = 80, step = 8, range = 36 } = {}) {
+// R22j: written as a generator that yields between steps (and between candidates): fixOverlaps runs it to the end (same result, synchronous);
+// the Work page drives it in time slices (work/cards.js fixWorkLayoutIdle) so the load never has a long task.
+export const drain = (gen) => { let r; while (!(r = gen.next()).done); return r.value; };
+export const fixOverlaps = (ctx, rules, opts) => drain(fixOverlapsGen(ctx, rules, opts));
+export function* fixOverlapsGen(ctx, rules, { maxSteps = 80, step = 8, range = 36 } = {}) {
   let steps = 0;
   let list = allViolations(ctx, rules);
   const stuck = new Set();
   while (list.length && steps < maxSteps) {
     steps++;
+    yield;
     list.sort((a, b) => b.excess - a.excess || (a.cards.join() < b.cards.join() ? -1 : 1));
     const v = list.find((q) => !stuck.has(`${q.mode ?? ''}${q.type}:${q.cards.join(',')}`));
     if (!v) break;
@@ -99,6 +115,7 @@ export function fixOverlaps(ctx, rules, { maxSteps = 80, step = 8, range = 36 } 
     let done = false;
     // (a) nudge along the band: the smallest move that lowers the total
     for (const t of cand) {
+      yield;
       const { lo, hi } = ctx.nudgeRange(t, v.mode);
       const group = ctx.group ? ctx.group(t) : [t]; // the cards that move together (a duplicate pair translates as one)
       const mine = score(allViolations(ctx, rules, group)); // only the violations that involve them change when they move
@@ -169,6 +186,26 @@ export function fixOverlaps(ctx, rules, { maxSteps = 80, step = 8, range = 36 } 
         undo.revert(); ctx.refresh();
       }
       if (done) continue;
+    }
+    // (d) R22j: two cards together. When no single card can move out without running into a third one (a crowded band), move BOTH (a coarse grid:
+    // every 3rd step, within the band) and take the pair of moves that lowers the total of everything that involves either card. Only reached for
+    // violations the steps above could not fix, so layouts that were already clean do not change.
+    if (v.cards.length === 2 && v.type !== 'triple' && ctx.nudgeRange) {
+      const [ta, tb] = cand, grp = [...new Set([...(ctx.group ? ctx.group(ta) : [ta]), ...(ctx.group ? ctx.group(tb) : [tb])])];
+      const ra = ctx.nudgeRange(ta, v.mode), rb = ctx.nudgeRange(tb, v.mode), g = step * 3, lim = range * step;
+      let bestS = score(allViolations(ctx, rules, grp)) - 1e-9, bestA = null, bestB = null;
+      for (let da = Math.max(ra.lo, -lim); da <= Math.min(ra.hi, lim); da += g) {
+        yield;
+        const ap = ctx.nudge(ta, da, v.mode);
+        for (let db = Math.max(rb.lo, -lim); db <= Math.min(rb.hi, lim); db += g) {
+          const bp = ctx.nudge(tb, db, v.mode);
+          const sc = score(allViolations(ctx, rules, grp));
+          ctx.nudge(tb, -bp, v.mode);
+          if (sc < bestS - 1e-9) { bestS = sc; bestA = da; bestB = db; }
+        }
+        ctx.nudge(ta, -ap, v.mode);
+      }
+      if (bestA !== null) { ctx.nudge(ta, bestA, v.mode); ctx.nudge(tb, bestB, v.mode); list = allViolations(ctx, rules); continue; }
     }
     stuck.add(`${v.mode ?? ''}${v.type}:${v.cards.join(',')}`);
     list = list; // this one cannot be fixed; carry on with the others

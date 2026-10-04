@@ -10,7 +10,7 @@
 // same card in both modes, which is what lets the toggle morph every card from its place in one layout to its place in the other.
 import { WORK, WORK_LIMITS, CARD_SIZE, BAND_RULES, CARD_HOVER, LAYOUT, CARDS } from '../timeline.js';
 import { applyFocus } from './focus.js';
-import { fixOverlaps, allViolations } from '../data/overlap.js';
+import { fixOverlapsGen, allViolations, drain } from '../data/overlap.js';
 import { generateLayout } from '../data/layout.js';
 import { cardDepth } from '../data/depth.js';
 import { rng, mix, fit } from '../data/cards-gen.js';
@@ -213,7 +213,16 @@ export function workMetrics(W, H, scale) {
 // push at full progress of each project (applyFocus), every time in the view centred on each project (so the loop seam is covered).
 // Fixes: nudge along the strip (per mode, stored in card.nudge[mode], px at 1920), then undark / swap depth, then drop. structural = false
 // (a resize): nudges only. Returns { fixed, remaining, steps }.
-export function fixWorkLayout(projects, Ms, { structural = true, check = false } = {}) {
+export const fixWorkLayout = (projects, Ms, opts) => drain(fixWorkLayoutGen(projects, Ms, opts));
+// R22j: the same pass in time slices: runs the generator for about sliceMs, then gives the main thread back (paint, input) and goes on. Result identical.
+export async function fixWorkLayoutIdle(projects, Ms, opts, sliceMs = 10) {
+  const gen = fixWorkLayoutGen(projects, Ms, opts);
+  const pause = () => (globalThis.scheduler?.yield ? scheduler.yield() : new Promise((r) => setTimeout(r)));
+  let t0 = performance.now(), r;
+  while (!(r = gen.next()).done) if (performance.now() - t0 > sliceMs) { await pause(); t0 = performance.now(); }
+  return r.value;
+}
+export function* fixWorkLayoutGen(projects, Ms, { structural = true, check = false } = {}) {
   const N = projects.length;
   let placed = null, flat = [], scen = [];
   const modes = ['side', 'vertical'];
@@ -279,6 +288,7 @@ export function fixWorkLayout(projects, Ms, { structural = true, check = false }
       }
     }
   };
+  let belowMin = false; // the very last resort (see the end): a band may go under its minimum card count
   const idxOf = (c) => flat.findIndex((f) => f.c === c);
   const bound = (mode) => { const M = Ms[mode], pitchVh = (M.alongF + M.gap) / M.scale / 10.8; return M.alongF / 2 + M.gap / 2 + Math.max(CARD_SIZE.bandSlack, WORK.slack * pitchVh) * 10.8 * M.scale; };
   const ctx = {
@@ -333,7 +343,7 @@ export function fixWorkLayout(projects, Ms, { structural = true, check = false }
       },
       drop: (i) => {
         const f = flat[i], c = f.c, list = projects[f.pi];
-        if (c.dup || c.hasDup || list.length <= WORK_LIMITS.minN) return null;
+        if (c.dup || c.hasDup || (list.length <= WORK_LIMITS.minN && !belowMin)) return null;
         const top = list.filter((o) => o.edge < 0).length - (c.edge < 0 ? 1 : 0);
         if (Math.abs(list.length - 1 - 2 * top) > 1) return null; // the edges stay even
         const at = list.indexOf(c);
@@ -344,15 +354,24 @@ export function fixWorkLayout(projects, Ms, { structural = true, check = false }
   };
   build();
   if (check) { const l = allViolations(ctx, BAND_RULES); return { fixed: l.length === 0, remaining: l, steps: 0 }; } // report only
-  let res = fixOverlaps(ctx, BAND_RULES);
+  let res = yield* fixOverlapsGen(ctx, BAND_RULES);
   // the nudges moved the cards along the strip: the dark runs along it are re-checked, then the rules once more (focus scenarios recomputed exactly)
   for (let round = 0; round < 3; round++) {
+    yield;
     balanceDark(projects, [placed.side, placed.vertical]);
     build();
     const left = allViolations(ctx, BAND_RULES);
     if (!left.length) { res = { fixed: true, remaining: [], steps: res.steps }; break; }
-    res = fixOverlaps(ctx, BAND_RULES);
+    res = yield* fixOverlapsGen(ctx, BAND_RULES);
     if (res.fixed) { balanceDark(projects, [placed.side, placed.vertical]); build(); const l2 = allViolations(ctx, BAND_RULES); res = { fixed: l2.length === 0, remaining: l2, steps: res.steps }; if (!l2.length) break; }
+  }
+  // R22j: a band so crowded that nothing above could clear its last violation (seed 13): the rules win over the minimum card count, as for the
+  // projects that already run short when the images run out. Only reached when violations are left, so every layout that was clean is unchanged.
+  if (!res.fixed && structural) {
+    belowMin = true;
+    res = yield* fixOverlapsGen(ctx, BAND_RULES);
+    balanceDark(projects, [placed.side, placed.vertical]); build();
+    const l3 = allViolations(ctx, BAND_RULES); res = { fixed: l3.length === 0, remaining: l3, steps: res.steps };
   }
   res.builds = builds;
   return res;
