@@ -4,6 +4,7 @@ import { NAV, SPRING } from '../timeline.js';
 import { springLayer, springFromBounce } from './springs.js';
 import { capW, capH } from '../scale.js';
 import { frameState } from '../sections/hero.js';
+import { backToTop } from './back-to-top.js';
 
 // Nav + AV wordmark. Measured on the live site at 1920x1080 (see docs/HANDOFF.md, docs/framer-extract/motion-spec.md).
 // Two states: BIG (wordmark bottom-left, links spread out) and SMALL (wordmark top-left, links grouped right).
@@ -29,12 +30,20 @@ const ROLL = 18; // px; each link label exists twice, stacked 18px apart
 // the user scrolls toward/away from the top instead of waiting for the smooth-scroll glide to finish.
 // `gateFrame` (home): the footer state also needs the hero mask to be full screen again. Project pages have no mask, so they pass false.
 // `position` (Work page): a function giving the distance scrolled (the strip is endless, the page itself never moves).
-export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe } = {}) {
-  const img = document.createElement('img');
+export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe, onHome = false } = {}) {
+  // R22j: the wordmark is a link to the homepage (the fixed, transformed box is the <a>; the picture fills it). It takes clicks only in the SMALL
+  // state: the big one covers 82vw x 32vh of the hero (captions, cards, the spawner's click area), so it stays click-through; the keyboard
+  // reaches it in both. Home: click = the back-to-top transition when scrolled, nothing at the top. Other pages: plain navigation to '/'.
+  const img = document.createElement('a');
   img.className = 'wordmark';
-  img.src = wordmarkSrc;
-  img.alt = 'Anh V';
-  document.body.append(img);
+  img.href = '/';
+  img.setAttribute('aria-label', 'Anh V, home');
+  img.innerHTML = `<img src="${wordmarkSrc}" alt="" draggable="false">`;
+  document.body.prepend(img); // first in the tab order (the logo link comes before the nav)
+  if (onHome) img.addEventListener('click', (e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); backToTop(lenis); });
+  let clickable = false, ringScale = 1;
+  const ring = () => { img.style.setProperty('--wm-ring', `${2 / ringScale}px`); img.style.setProperty('--wm-ring-off', `${4 / ringScale}px`); }; // the focus ring stays 2 px under the scale
+  img.addEventListener('focus', ring);
 
   const links = [...document.querySelectorAll('.nav a')];
 
@@ -51,12 +60,15 @@ export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe 
   const apply = (v) => {
     const p = v.p;
     const bigY = H - vw(BASE_W) / ASPECT; // flush with the bottom
+    ringScale = 1 + (cw(WORDMARK.small.width) / vw(BASE_W) - 1) * p;
     gsap.set(img, {
       x: vw(WORDMARK.big.x) + (cw(WORDMARK.small.x) - vw(WORDMARK.big.x)) * p,
       y: bigY + (ch(WORDMARK.small.y) - bigY) * p,
-      scale: 1 + (cw(WORDMARK.small.width) / vw(BASE_W) - 1) * p, // ONE uniform scale: the logo never squashes or stretches
+      scale: ringScale, // ONE uniform scale: the logo never squashes or stretches
       transformOrigin: '0 0',
     });
+    if ((p > 0.5) !== clickable) { clickable = p > 0.5; img.classList.toggle('is-link', clickable); }
+    if (document.activeElement === img) ring();
     links.forEach((a) => {
       const [big, small] = LINKS[a.dataset.link];
       gsap.set(a, { x: vw(big) + (vw(small) - vw(big)) * p });

@@ -41,7 +41,7 @@ buildIndex(app, data.projects);
 const cardsApi = buildSelectedWork(app, generateCards(workPool, data.projects.filter((p) => p.index).map((p) => p.slug)));
 buildMoreProjects(app, data.moreProjects);
 buildFooter(app, data.footer, lenis);
-initNav(data.hero.wordmark, lenis);
+initNav(data.hero.wordmark, lenis, { onHome: true });
 buildSpawner(app, data.spawnerImages);
 buildCaptionHover(app, data.hero.captions);
 const trail = buildTrail(app, data.trailImages);

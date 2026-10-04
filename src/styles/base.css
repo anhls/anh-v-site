@@ -110,7 +110,14 @@ html.lenis, html.lenis body { height: auto; }
 }
 
 /* Page: 730vh in total. #app is the content layer (normal flow); the hero is a background layer under it.
-   z-index: hero 3, about 4 (its sticky block 3), selected work 4, more projects 4, index sticky 6, captions 5. */
+   z-index: hero 3, about 4 (its sticky block 3), selected work 4, more projects 4, index sticky 6, captions 5.
+
+   R22j CLICK STACK (the one place that lists who may take the pointer; every other layer is pointer-events: none):
+     links / buttons that take clicks, top to bottom: Work counter + toggle 12, nav links 10, wordmark link 9 (small state only; the big state is click-through, see nav.js), hero captions 5 (their <a>), footer link 5 (its <a>),
+     index band 6 (only .is-active), more-projects items 4 (.more-projects__sticky 4), Work items (z set per item, front card on top).
+     Click-through always: hero (3) and its masks / overlays / canvases, spawner 3, trail 4, caption-hover image 8, cursor layers 8,
+     loader 100 (gone after load), btt-overlay (takes clicks only while it covers the page). The spawner click is a document listener
+     that ignores a / button targets, so it never competes with a link. */
 #app { position: relative; }
 .hero {
   position: absolute;
@@ -182,6 +189,9 @@ html.lenis, html.lenis body { height: auto; }
   will-change: transform;
   pointer-events: none;
 }
+.wordmark img { display: block; width: 100%; height: 100%; object-fit: fill; pointer-events: none; }
+.wordmark.is-link { pointer-events: auto; cursor: pointer; } /* R22j: small state only (nav.js) */
+.wordmark:focus-visible { outline: var(--wm-ring, 2px) solid #f04a0e; outline-offset: var(--wm-ring-off, 4px); } /* 2 px / 4 px on screen whatever the scale */
 
 /* .ticker moves/fades with the scroll (GSAP: opacity 1 to 0, y 0 to -500px); .ticker__clip holds its own 0.5 opacity. */
 .ticker {
@@ -222,6 +232,7 @@ html.lenis, html.lenis body { height: auto; }
   pointer-events: none;
 }
 .hero__captions li { display: flex; flex-direction: column; }
+.hero__captions a { display: flex; flex-direction: column; color: inherit; text-decoration: none; pointer-events: auto; } /* R22j: a caption is a link to its project (live: all three lines); the list stays click-through around it */
 .hero__captions li + li { margin-left: 8%; }
 .hero__captions li:last-child { margin-left: auto; }
 .hero__captions li span:nth-child(n + 2) { opacity: 0.6; }

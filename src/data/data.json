@@ -33,24 +33,28 @@
     "captions": [
       {
         "title": "Techcombank Priority",
+        "slug": "tcb-priority",
         "image": "https://framerusercontent.com/images/bLvFvrBSqevtM84melr3ffFML0.jpg",
         "client": "Techcombank",
         "role": "Art Direction"
       },
       {
         "title": "Di De Tro Ve 09",
+        "slug": "bitis09",
         "image": "https://framerusercontent.com/images/Ed5U3pkCuLOnCpsHlIcXi1CgPqo.jpg",
         "client": "Bitis",
         "role": "Art Direction"
       },
       {
         "title": "Sulwhasoo Product Launch",
+        "slug": "sulwhasoo",
         "image": "https://framerusercontent.com/images/0VSrNQmftCfZjxH2F8hiAYfxxA.jpg",
         "client": "Sulwhasoo",
         "role": "Art Direction"
       },
       {
         "title": "Similac Virgo",
+        "slug": "similac",
         "image": "https://framerusercontent.com/images/YWTonqftN7SBxLUONPaxNkRdIJE.jpg",
         "client": "Similac",
         "role": "Art Direction"

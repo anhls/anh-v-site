@@ -27,7 +27,7 @@ const unitPx = (s, full, vw, vh) => { const v = parseFloat(s); return s.endsWith
 
 export function buildHero(root, hero) {
   const captions = hero.captions
-    .map((c) => `<li><span>${c.title}</span><span>${c.client}</span><span>${c.role}</span></li>`)
+    .map((c) => `<li><a href="/work/${c.slug}.html"><span>${c.title}</span><span>${c.client}</span><span>${c.role}</span></a></li>`)
     .join('');
   // The ticker item is one SVG (dot + "Click Anywhere" baked in), 182px wide at 1920. TICKER.perHalf per half so the loop covers the screen.
   const items = Array.from({ length: TICKER.perHalf }, () => `<img class="ticker__item" src="${hero.ticker}" alt="" />`).join('');
