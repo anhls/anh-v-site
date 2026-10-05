@@ -511,6 +511,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     reweigh: () => { computeWeights(); dirty = true; }, // after a depth-bell change in the tuning panel
     bend: () => bend,
     bendImg: () => bendI,
+    has: (i) => !!tex[i],
     stats: () => ({ textureMb: used / 1048576, loaded: tex.filter(Boolean).length, bend: bend.x, bendRaw: bend.x }),
     destroy: () => { canvas.remove(); api.active = false; },
   };

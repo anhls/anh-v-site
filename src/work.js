@@ -125,6 +125,7 @@ const px = new Float64Array(n), py = new Float64Array(n); // base centres of thi
 const shownA = new Uint8Array(n);
 const fsArr = new Float64Array(N).fill(1); // the focus' image scale per project
 const FA = { n, N, kind: Uint8Array.from(items, (it) => (it.kind === 'frame' ? 0 : 1)), proj: Int8Array.from(items, (it) => it.proj), mouse: Float64Array.from(items, (it) => it.mouse), X: px, Y: py, W: bw, H: bh, vertical: false, pitch: 1, scale: 1 };
+let loadGate = false; // R31: on the way back only the pictures that show at rest are requested until the transition is over (then the tick and idleLoad take over)
 const nearArr = new Uint8Array(n); // item within 0.8 of a view length of the centre along the strip: its picture is requested at once; the rest follow when idle (below)
 const activate = (it) => { if (it.active) return; it.active = true; const d = it.img.dataset; if (d.srcset) it.img.srcset = d.srcset; it.img.src = d.src; };
 let gl = null; // the card canvas (created below)
@@ -601,7 +602,7 @@ const tick = (_time, deltaMs) => {
       nearArr[i] = out.d < L.M.viewAlong * 0.8 ? 1 : 0;
     }
     px[i] = x; py[i] = y; shownA[i] = shown ? 1 : 0;
-    if (nearArr[i] && !it.active) activate(it);
+    if (nearArr[i] && !it.active && !loadGate) activate(it);
   }
   // R23f: the focus (the centred project grows, every card is pushed away from the focused image, neighbours move off) is applied to the
   // base positions of this frame; fsArr = the image scale per project
@@ -661,7 +662,22 @@ const tick = (_time, deltaMs) => {
 };
 gsap.ticker.add(tick);
 // the pictures that are not near yet are requested a moment after load (one at a time, so a scroll never waits for a first upload)
-setTimeout(() => items.forEach((it, i) => setTimeout(() => activate(it), i * 15)), 800);
+if (!back) setTimeout(() => items.forEach((it, i) => setTimeout(() => activate(it), i * 15)), 800);
+// R31: the way back loads the rest after the transition: one picture per slice while the page is idle, the one nearest to the view centre along the strip first
+const idleLoad = () => {
+  pm('back:idle-load-start');
+  const step = () => {
+    const left = items.filter((it) => !it.active);
+    if (!left.length) { pm('back:idle-load-end'); return; }
+    if (TC.on || TP.q >= 0 || performance.now() - lastWheel < 150) { setTimeout(step, 60); return; }
+    const c = vertical ? H / 2 : W / 2, a = vertical ? py : px;
+    let best = left[0], bd = Infinity;
+    for (const it of left) { const d = Math.abs(a[it.idx] - c); if (d < bd) { bd = d; best = it; } }
+    activate(best);
+    (window.requestIdleCallback || ((f) => setTimeout(f, 50)))(() => setTimeout(step, 50), { timeout: 250 });
+  };
+  step();
+};
 
 // ---- mode switch
 const commit = (mode) => {
@@ -740,17 +756,20 @@ if (back) {
   const fadeEls = [countEl, toggleEl, nameEl], shrink = !!document.querySelector('#pxb .px__box');
   TP.q = back.projectIndex; TP.p = shrink && !clearMode() ? TRANSITION.pushScale : 0;
   gsap.set(fadeEls, { opacity: 0 });
-  items.forEach((it) => activate(it)); // R30: every picture is requested at once (not 15 ms apart from 0.8 s) so the uploads are done before the shrink plays
+  loadGate = true;
   (async () => {
     const hi = new Image(); hi.src = back.src;
+    await new Promise((r) => requestAnimationFrame(r)); // one tick: px / py / bw / bh are laid out
+    const m = TRANSITION.clearMargin * scale, show = items.filter((it) => { const i = it.idx, hw = bw[i] * 0.58, hh = bh[i] * 0.58; return !(px[i] + hw < -m || px[i] - hw > W + m || py[i] + hh < -m || py[i] - hh > H + m); }); // R31: the pictures that show at rest (the rule prepareClear uses to pick the cards that move)
+    show.forEach(activate);
     const until = (fn, ms) => new Promise((res) => { const t0 = performance.now(); const f = () => (fn() || performance.now() - t0 > ms ? res() : requestAnimationFrame(f)); f(); });
-    await Promise.all([Promise.race([hi.decode().catch(() => {}), until(() => false, 1200)]), until(() => !gl || gl.stats().loaded >= n, 1200)]);
+    await Promise.all([Promise.race([hi.decode().catch(() => {}), until(() => false, 1200)]), until(() => !gl || show.every((it) => gl.has(it.idx)), 1200)]);
     pm('back:textures');
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     const fi = items.findIndex((it) => it.kind === 'frame' && it.proj === back.projectIndex);
     if (shrink && clearMode()) { TC.u = 0; prepareClear(back.projectIndex); TC.u = 1; } // everything starts off screen
     pm('back:shrink-start');
-    playBack({ rec: back, target: { x: px[fi] - bw[fi] / 2, y: py[fi] - bh[fi] / 2, w: bw[fi], h: bh[fi] }, fade: fadeEls, onPush: (p, u) => { if (TC.on) TC.u = u; else TP.p = p * TRANSITION.pushScale; }, done: () => { TP.q = -1; TP.p = 0; TC.on = false; TC.u = 0; gsap.set(fadeEls, { clearProps: 'opacity' }); } });
+    playBack({ rec: back, target: { x: px[fi] - bw[fi] / 2, y: py[fi] - bh[fi] / 2, w: bw[fi], h: bh[fi] }, fade: fadeEls, onPush: (p, u) => { if (TC.on) TC.u = u; else TP.p = p * TRANSITION.pushScale; }, done: () => { TP.q = -1; TP.p = 0; TC.on = false; TC.u = 0; gsap.set(fadeEls, { clearProps: 'opacity' }); loadGate = false; idleLoad(); } });
   })();
 }
 document.title = 'Work | Anh V';
