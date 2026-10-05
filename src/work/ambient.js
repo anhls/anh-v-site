@@ -42,4 +42,5 @@ export const leadUnits = (c, pi) => {
 };
 export const leadParams = (u, depthW, W = WORK) => ({ lead: (W.leadMin + u.k * (W.leadMax - W.leadMin)) * depthW, stiff: W.leadStiffness * (1 + W.leadVar * (2 * u.spd - 1)) });
 // the card's lead offset (px, along the strip, signed against the strip's speed `vel`) for a strip speed (px/s at 1920 x scale), capped
-export const leadOffset = (lead, vel, scale) => { const cap = WORK.leadMaxPx * scale, o = -lead * vel * LEAD_TIME; return Math.max(-cap, Math.min(cap, o)); };
+// R25 0a: leadCapPerCard 1 = the cap scales with the card's own lead (leadMaxPx x lead / leadMax), so a hard flick keeps the spread between cards; 0 = one cap for all
+export const leadOffset = (lead, vel, scale) => { const cap = WORK.leadMaxPx * scale * (WORK.leadCapPerCard && WORK.leadMax > 0 ? Math.min(1, lead / WORK.leadMax) : 1), o = -lead * vel * LEAD_TIME; return Math.max(-cap, Math.min(cap, o)); };

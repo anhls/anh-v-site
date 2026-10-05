@@ -158,6 +158,7 @@ export const TUNE_DOCS = {
   'WORK.focusAfterMorph': 'What the focus (image growth, card push, project name) and the ambient drift do after a toggle: stay off until the next input, or start that many seconds after the morph ends.',
   'WORK.leadMin': 'Smallest speed lead a card may get while the strip moves: it runs this multiple of 0.4 s of the strip speed ahead (each card draws its own, times its depth).',
   'WORK.leadMax': 'Largest speed lead a card may get (cards nearer the viewer lead further); 0 and 0 = no lead, cards move rigidly with the strip.',
+  'WORK.leadCapPerCard': '1 = each card has its own furthest-ahead limit in proportion to its lead (a hard flick keeps the spread between cards), 0 = one limit for every card (they all line up at a hard flick).',
   'WORK.leadMaxPx': 'Furthest (px at 1920) any card may run ahead of the strip, however hard the scroll.',
   'WORK.leadStiffness': 'Stiffness of the spring that brings a card back to its place when the strip slows; higher = a quicker return.',
   'WORK.leadDamping': 'Damping of that return spring; lower = a little more overshoot, higher = a slower, dead return.',

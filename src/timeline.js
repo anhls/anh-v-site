@@ -275,7 +275,7 @@ export const WORK = {
   // R22i speed lead (work/ambient.js): while the strip moves each card runs ahead of it by lead x speed x 0.4 s (lead = leadMin..leadMax, seeded per card,
   // x the depth weight), at most leadMaxPx (px at 1920), and eases back on its own spring (leadStiffness / leadDamping, leadVar = seeded spread of the
   // stiffness) when the strip slows. Driven by wheel / glide / drag / coast only (not the snap, the toggle, the ambient drift or the focus).
-  leadMin: 0.1, leadMax: 0.5, leadMaxPx: 160, leadStiffness: 40, leadDamping: 11, leadVar: 0.2,
+  leadMin: 0.1, leadMax: 0.5, leadMaxPx: 160, leadCapPerCard: 1, leadStiffness: 40, leadDamping: 11, leadVar: 0.2,
   forceFrom: 450, forceTo: 1500,
   snapOvershoot: 0.04, focusOvershootScale: 0.025, focusOvershootPush: 0.025, morphOvershoot: 0.05, overshootSettle: 0.4, followerSettleSec: 0.45,
 };
