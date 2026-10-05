@@ -22,6 +22,8 @@ export function installScrollGain(lenis) {
     // delta in px (a "line" wheel reports 3 lines; Lenis scales those too, so keep the estimate in the same unit as Lenis' multiplier input)
     const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? innerHeight : 1;
     const d = Math.max(Math.abs(e.deltaY), Math.abs(e.deltaX)) * unit;
+    // R25 0b: a trackpad sends its own momentum as many small deltas: no gain on top of it (a mouse notch is about 100 px). 0 = off
+    if (d < SCROLL.gainMinDelta) { vs.wheelMultiplier = 1; return; }
     speed *= Math.exp(-Math.max(0, dtRaw - 0.05) / Math.max(SCROLL.gainDecay, 0.01)); // the held speed decays while the wheel is quiet
     const inst = d / Math.min(Math.max(dtRaw, 0.016), 0.25);
     speed += (inst - speed) * (inst > speed ? 0.5 : 0.25); // rises fast, falls slower

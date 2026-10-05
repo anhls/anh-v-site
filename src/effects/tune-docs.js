@@ -98,6 +98,7 @@ export const TUNE_DOCS = {
   'RULES.pairOverlapMax': 'No card may be more than this share hidden by another. Applies after Apply (reload).',
   'SCROLL.gainCap': 'How many times further a wheel tick scrolls at full wheel speed (1 = linear, as without acceleration).',
   'SCROLL.gainDecay': 'Seconds the wheel-speed estimate is held after the wheel slows down; higher = a flick keeps its boost longer.',
+  'SCROLL.gainMinDelta': 'Wheel events with a smaller delta than this (px) get no acceleration: a trackpad already sends its own momentum as many small deltas. A mouse notch is about 100. 0 = every event can accelerate.',
   'SCROLL.gainFrom': 'Wheel speed (px/s) below which scrolling is 1:1 (slow notches stay precise).',
   'SCROLL.gainTo': 'Wheel speed (px/s) at which the full acceleration (the cap) is reached.',
   'TRAIL.fadeAtScreen': 'The fade begins when the Selected Work top reaches this share of the screen height (0 = top, 1 = bottom).',

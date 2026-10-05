@@ -5,7 +5,7 @@ import { tuneDoc } from './tune-docs.js';
 // Dev-only panel for the project pages (?tune): the wheel acceleration sliders (SCROLL, shared by every page), with the same collapse button,
 // saved values and "Reset to defaults" as the homepage and Work panels (R23e). Never imported by the production build.
 const SLIDERS = [
-  ['gainCap', 'Wheel acceleration: cap (1 = off)', 1, 5, 0.05], ['gainFrom', 'Acceleration starts at (px/s of wheel)', 100, 3000, 25], ['gainTo', 'Full acceleration at (px/s of wheel)', 500, 10000, 50], ['gainDecay', 'Speed hold / decay (s)', 0.05, 1.5, 0.01],
+  ['gainCap', 'Wheel acceleration: cap (1 = off)', 1, 5, 0.05], ['gainMinDelta', 'No acceleration under this wheel delta (px; 0 = off)', 0, 200, 5], ['gainFrom', 'Acceleration starts at (px/s of wheel)', 100, 3000, 25], ['gainTo', 'Full acceleration at (px/s of wheel)', 500, 10000, 50], ['gainDecay', 'Speed hold / decay (s)', 0.05, 1.5, 0.01],
 ];
 export function mountScrollTune() {
   const store = tuneStore('project');
