@@ -70,6 +70,8 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
   const BEND = bendOpt || BEND_DEF;
   const WARP = warpOpt || WARP_DEF;
   let axis = 0;
+  const liteBuf = lite && !(import.meta.env.DEV && new URLSearchParams(location.search).has('oldbuf')); // (dev: ?oldbuf = the R24g buffer, for the A / B pixel test)
+  let holdAmt = null; // dev only (api.holdWarp)
   let warpScale = 1; // R24d: the warp pass's offscreen buffer resolution (the frame-time guard steps it down while the warp is on; the flat draw is never affected)
   if (param === '0' || (param !== '1' && !warpForced && (reduced || (lite ? navigator.connection?.saveData === true : weakDevice(BEND.weakCores, BEND.weakMemoryGb))))) return null; // R24g: the lite Work page does not use the core / memory test (the frame-time guard decides)
   const canvas = document.createElement('canvas');
@@ -114,11 +116,13 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
   // holds the screen plus an overscan margin on every side, sized from the warp settings (px, rounded up to 8).
   const margins = () => {
     // the cylinder model says how far outside the screen the sheet is seen at the screen edge (computed for the largest warp the spring can reach)
-    const sMax = Math.max(WARP.strengthUp, WARP.strengthDown) * 1.2;
+    // R24h (lite): the shader clamps the amount at +-1, so the buffer only needs the overscan of an amount of 1 (the strength x 1.2 head-room of the desktop warp made it 3x taller than the canvas)
+    const capS = liteBuf ? 1 : Infinity;
+    const sMax = Math.min(Math.max(WARP.strengthUp, WARP.strengthDown) * 1.2, capS);
     let [fx, fy] = cylinderMargins(sMax, WARP.curl, WARP.camDown, WARP.reach, WARP.sym, WARP.bowDown);
     let [ux, uy] = cylinderMargins(sMax, WARP.curl, WARP.camUp, WARP.reach, WARP.sym, WARP.bowUp);
     if (layers) { // the images' warp may reach farther: the buffer is sized for the larger of the two
-      const IW = layers.warp, sI = Math.max(IW.strengthUp, IW.strengthDown) * 1.2;
+      const IW = layers.warp, sI = Math.min(Math.max(IW.strengthUp, IW.strengthDown) * 1.2, capS);
       const [a, b] = cylinderMargins(sI, IW.curl, IW.camDown, IW.reach, IW.sym, IW.bowDown), [c, d] = cylinderMargins(sI, IW.curl, IW.camUp, IW.reach, IW.sym, IW.bowUp);
       fx = Math.max(fx, a, c); fy = Math.max(fy, b, d); ux = Math.max(ux, a, c); uy = Math.max(uy, b, d);
     }
@@ -134,7 +138,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     const h = Math.round((H + 2 * my) * dprNow);
     // multisampling costs memory (samples x 4 bytes per pixel): 4 samples up to ~6 M pixels, 2 up to ~14 M, none beyond
     const px = w * h;
-    let samples = Math.min(px > 14e6 ? 0 : px > 6e6 ? 2 : 4, gl.getParameter(gl.MAX_SAMPLES));
+    let samples = Math.min(px > 14e6 ? 0 : liteBuf || px > 6e6 ? 2 : 4, gl.getParameter(gl.MAX_SAMPLES)); // (R24h: 2 samples on the lite pages)
     // R24f: the buffer is plain RGBA8 (no float / half-float target, which iOS lacks without an extension). If the multisampled renderbuffer cannot be made or the framebuffer is not
     // complete, fall back to fewer samples, then to none (the warp keeps running, a little less smooth at the edges); the path that ran is in api.diag() and the console (dev / ?perf)
     let rb = null, ms = null;
@@ -481,7 +485,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     const amt = WARP_DIR * bend.x * (bend.x > 0 ? WARP.strengthDown : WARP.strengthUp); // shader sign: + = recede look, - = toward the viewer; WARP_DIR maps scroll direction onto it
     bend.amt = amt; // the signed value handed to the warp shader (+ = scrolling down); read by tools/scratch checks
     if (layers) {
-      const amtI = WARP_DIR * bendI.x * (bendI.x > 0 ? layers.warp.strengthDown : layers.warp.strengthUp);
+      const amtI = import.meta.env.DEV && holdAmt !== null ? holdAmt : WARP_DIR * bendI.x * (bendI.x > 0 ? layers.warp.strengthDown : layers.warp.strengthUp); // (dev: api.holdWarp pins the image warp amount for the pixel comparison tests)
       bendI.amt = amtI;
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.viewport(0, 0, canvas.width, canvas.height);
@@ -525,6 +529,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     draw,
     show: (on) => { canvas.style.visibility = on ? 'visible' : 'hidden'; if (on) dirty = true; },
     markDirty: () => { dirty = true; },
+    holdWarp: (a) => { holdAmt = a; dirty = true; }, // dev only
     diag: () => ({ postOk, ...fbInfo, warpScale, passCount, lastPass }), // R24f: what the ?perf diagnosis line shows
     setWarpScale: (k) => { warpScale = Math.max(0.25, Math.min(1, k)); dirty = true; },
     setAxis: (a) => { axis = a ? 1 : 0; dirty = true; },

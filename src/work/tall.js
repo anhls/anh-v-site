@@ -55,3 +55,24 @@ export function pickTall(layouts, W, H) {
   const best = list.reduce((a, b) => (d(b) < d(a) ? b : a));
   return { key: sizeKey(best[0], best[1]), exact: best[0] === W && best[1] === H, ratio: tallFrame(W) / tallFrame(best[0]) };
 }
+
+// R24h: the PLANNED LANDING of a flick. At the lift the glide is planned to END on an image: v0 = the release speed (px/s, signed) x flingGain x the curve; the glide covers
+// D = target - from in time T along x(t) = from + D x (1 - (1 - t / T)^GLIDE_P): the speed starts at v0 (no jump from the finger) and falls smoothly to exactly 0 on the image
+// (no velocity step at the end, no hand-over to the soft snap). The natural end is from + v0 x F (F = TALL.dragFriction); when that is over the cap (TALL.dragMaxCoast pitches)
+// F is KEPT and v0 is soft-limited so the distance stays at the cap (the old way shortened F, which stopped the hardest flicks abruptly). The target = the nearest image to the
+// natural end, never behind the direction of travel, at least one image on (a deliberate flick moves on); then the glide time F' = D / v0 is kept inside [0.75 F, 1.25 F]
+// (outside it the speed is scaled instead), T = GLIDE_P x F'.
+export const GLIDE_P = 3.5;
+export function flingPlan({ raw, len, pitch, from }, P = TALL) {
+  const dir = Math.sign(raw) || 1, shape = Math.pow(Math.max(Math.abs(raw) / len / P.flingRef, 0.05), P.flingPow - 1);
+  const F = Math.max(P.dragFriction, 0.05), cap = P.dragMaxCoast * pitch;
+  let v = Math.abs(raw) * P.flingGain * shape;
+  if (v * F > cap) v = cap / F; // soft limit: keep F, shorten the speed
+  const E = from + dir * v * F, k0 = Math.round(from / pitch);
+  let k = Math.round(E / pitch);
+  if (dir > 0) k = Math.max(k, k0); else k = Math.min(k, k0);
+  if (k === k0) k += dir;
+  const D = k * pitch - from, Dabs = Math.abs(D);
+  const Fe = Math.min(1.25 * F, Math.max(0.75 * F, Dabs / v)), v0 = Dabs / Fe;
+  return { v0: dir * v0, D, T: GLIDE_P * Fe, F: Fe, p: GLIDE_P, k, pitches: Dabs / pitch };
+}

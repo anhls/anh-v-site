@@ -228,6 +228,7 @@ Object.assign(TUNE_DOCS, {
   'TALL.dragMaxCoast': 'Phone / tablet flick: the most images a glide may travel after the finger lifts (a hard flick is shortened to this).',
   'TALL.snapAfterSpeed': 'Phone / tablet: the soft snap to the centred image takes over once the glide is slower than this (screen lengths per second); it never cuts a fast glide.',
   'TALL.snapDelay': 'Phone / tablet: with no glide the soft snap starts this long after the finger stopped (seconds).',
+  'TALL.focusDelay': 'Phone / tablet: how long after the strip has completely stopped (glide and landing over) the project name and the focus build wait; never during a glide.',
   'TALL.warpFall': 'Phone / tablet warp: how slowly the bend falls back to flat once the speed drops (seconds); longer = the bend lingers. The rise time is the image warp Rise time above.',
   'TALL.guardMs': 'Frame-time guard (phone / tablet): if the median frame time while the strip moves is over this, the warp steps down one stage (the warp buffer at 0.75, then 0.5, then the warp off). It never steps back up in a visit.',
   'TALL.guardP95': 'Frame-time guard: the same step-down if the slowest 5 % of the frames while the strip moves are over this.',

@@ -107,6 +107,9 @@ const toggleEl = app.querySelector('.work__toggle') || document.createElement('b
 const nameEl = app.querySelector('.work__name');
 const titleEls = [...nameEl.querySelectorAll('.work__title')].map((el) => ({ el, chars: [...el.querySelectorAll('.work__char')], f: -1 }));
 const iconEl = toggleEl.querySelector('.work__icon') || document.createElement('span');
+// R24h: the tall wordmark (the largest image on that page = the LCP element) is made right here, before the strip / GL / layout setup below, so it paints at the first frame
+if (tall) initNav(data.hero.wordmark, lenis, { gateFrame: false, position: () => 1e9, startSmall: true, small: { x: 5, y: 3.4, width: 28 } });
+if (tall) await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0))); // (and one paint before the heavy setup: the wordmark is the LCP element; the strip showed a texture-upload burst first)
 
 // ---- items: the N frames first, then every project's cards (the same objects in both layouts)
 const projCards = lite ? TLm.liteCards(buildProjectCards, pool, slugs, WORK.seed, cardsMaxNow) : buildProjectCards(pool, slugs);
@@ -154,6 +157,7 @@ const px = new Float64Array(n), py = new Float64Array(n); // base centres of thi
 const shownA = new Uint8Array(n);
 const fsArr = new Float64Array(N).fill(1); // the focus' image scale per project
 const FA = { n, N, kind: Uint8Array.from(items, (it) => (it.kind === 'frame' ? 0 : 1)), proj: Int8Array.from(items, (it) => it.proj), mouse: Float64Array.from(items, (it) => it.mouse), X: px, Y: py, W: bw, H: bh, vertical: false, pitch: 1, scale: 1 };
+let liteMotionAt = 0; // R24h: the last time the strip moved (focus delay, landing measure)
 let loadGate = false; // R31: on the way back only the pictures that show at rest are requested until the transition is over (then the tick and idleLoad take over)
 const nearArr = new Uint8Array(n); // item within 0.8 of a view length of the centre along the strip: its picture is requested at once; the rest follow when idle (below)
 const activate = (it) => { if (it.active) return; it.active = true; const d = it.img.dataset; if (d.srcset) it.img.srcset = d.srcset; it.img.src = d.src; };
@@ -246,7 +250,7 @@ let glOn = false;
 if (perfOn) window.__tallDiag = () => {
   const d = gl?.diag?.() || {};
   const why = gl ? '' : params.get('gl') === '0' ? '?gl=0' : reduced ? 'reduced motion (the iOS "Reduce Motion" setting): add ?warp=1' : lite ? (navigator.connection?.saveData === true ? 'saveData' : 'noWebGL2') : (weakReason(BEND.weakCores, BEND.weakMemoryGb) || 'noWebGL2'); // (R24g: names the test that fired: saveData / cores / memory / noWebGL2)
-  return { lite, kind: lite ? liteKind : 'desktop', strip: vertical ? 'vertical' : 'side', glOn: !!gl, glOffReason: why, warpForced: warpForce, warpOn: TALL.warp && guard.state.warp, warpPassActive: d.lastPass ? performance.now() - d.lastPass < 300 : false, warpPasses: d.passCount ?? 0, warpAmountNow: +diag.now.toFixed(3), warpAmountPeak: +diag.peakAll.toFixed(3), warpAmountPeakLast: +diag.peakLast.toFixed(3), cores: navigator.hardwareConcurrency, appleGpu: appleGpu(), touch: touchLog.slice(), values: { flingGain: TALL.flingGain, flingMin: TALL.flingMin, dragFriction: TALL.dragFriction, dragMaxCoast: TALL.dragMaxCoast, snapAfterSpeed: TALL.snapAfterSpeed, snapDelay: TALL.snapDelay, warpGain: TALL.warpGain, warpPow: TALL.warpPow, warpStrength: TALL.warpStrength, warpRise: TALL.frameWarp.riseSec, warpFall: TALL.warpFall, frame: TALL.frame, overrides }, guardStep: guard.state.step, dpr: devicePixelRatio, canvasDpr: gl ? +(gl.canvas.width / innerWidth).toFixed(2) : 0, passScale: d.warpScale ?? 1, bufferPath: d.fbPath ?? 'n/a', warpProgram: d.postOk ?? 'n/a', bufferPx: d.bufferPx ?? 'n/a' };
+  return { lite, kind: lite ? liteKind : 'desktop', strip: vertical ? 'vertical' : 'side', glOn: !!gl, glOffReason: why, warpForced: warpForce, warpOn: TALL.warp && guard.state.warp, warpPassActive: d.lastPass ? performance.now() - d.lastPass < 300 : false, warpPasses: d.passCount ?? 0, warpAmountNow: +diag.now.toFixed(3), warpAmountPeak: +diag.peakAll.toFixed(3), warpAmountPeakLast: +diag.peakLast.toFixed(3), cores: navigator.hardwareConcurrency, appleGpu: appleGpu(), touch: touchLog.slice(), pointerEvents: pEvents.slice(), values: { flingGain: TALL.flingGain, flingMin: TALL.flingMin, dragFriction: TALL.dragFriction, dragMaxCoast: TALL.dragMaxCoast, snapAfterSpeed: TALL.snapAfterSpeed, snapDelay: TALL.snapDelay, focusDelay: TALL.focusDelay, warpGain: TALL.warpGain, warpPow: TALL.warpPow, warpStrength: TALL.warpStrength, warpRise: TALL.frameWarp.riseSec, warpFall: TALL.warpFall, frame: TALL.frame, overrides }, guardStep: guard.state.step, dpr: devicePixelRatio, canvasDpr: gl ? +(gl.canvas.width / innerWidth).toFixed(2) : 0, passScale: d.warpScale ?? 1, bufferPath: d.fbPath ?? 'n/a', warpProgram: d.postOk ?? 'n/a', bufferPx: d.bufferPx ?? 'n/a' };
 };
 // ---- pointer: parallax (the homepage mouse drift), hover (zoom, the dark layer fades), click opens the project page (the anchors)
 const mouse = { tx: 0, ty: 0, x: 0, y: 0, px: -1e5, py: -1e5, known: false }; // px, py: the raw pointer (the push), tx, ty: normalised (the drift)
@@ -456,28 +460,29 @@ const axisOf = (e) => (vertical ? e.clientY : e.clientX);
 // R24g: the release of a drag in the lite modes: the speed from the last 100 ms of the finger (displacement / elapsed; none when it stopped more than 80 ms before the lift),
 // x TALL.flingGain; under TALL.flingMin screen lengths / s no coast; friction TALL.dragFriction, at most TALL.dragMaxCoast pitches. Every swipe is logged for the ?perf touch block.
 const touchLog = []; let curSwipe = null, swipePeak = 0;
-const liteRelease = (d, now) => {
+const liteRelease = (d, now, by = 'other') => {
   const len = Math.max(cur().M.viewAlong, 1), pitch = cur().pitch;
   const s = d.samples.filter((q) => now - q[0] <= 100), last = d.samples[d.samples.length - 1];
-  const entry = { releaseLenPerS: 0, fling: false, coastPitches: 0, peak: swipePeak, at: Math.round(now) };
-  if (s.length >= 2 && now - last[0] <= 80) {
+  const entry = { releaseLenPerS: 0, fling: false, coastPitches: 0, peak: swipePeak, at: Math.round(now), endedBy: by, landedPx: null, snapCorrectionPx: 0, gapFromPrevMs: touchLog.length ? Math.round(now - touchLog[touchLog.length - 1].at) : null };
+  entry.durationMs = Math.round(now - d.samples[0][0]);
+  if (s.length >= 2 && now - last[0] <= 80 && entry.durationMs >= 60) { // (R24h: a touch that lasted under 60 ms is a tap-like stray, never a fling)
     const raw = -((s[s.length - 1][1] - s[0][1]) / Math.max((s[s.length - 1][0] - s[0][0]) / 1000, 0.008)), v0 = raw * TALL.flingGain * Math.pow(Math.max(Math.abs(raw) / len / TALL.flingRef, 0.05), TALL.flingPow - 1); // (the curve: a light swipe glides less than linear, a firm flick more)
     entry.releaseLenPerS = +(raw / len).toFixed(2);
     if (Math.abs(raw) / len >= TALL.flingMin) {
-      const F = Math.min(Math.max(TALL.dragFriction, 0.05), (TALL.dragMaxCoast * pitch) / Math.abs(v0));
-      inertia = { from: S, v0, F, t0: now, k0: Math.round(S / pitch) }; entry.fling = true; entry.coastPitches = +((Math.abs(v0) * F) / pitch).toFixed(2);
+      const pl = TLm.flingPlan({ raw, len, pitch, from: S }); // R24h: the glide is planned to end exactly on an image
+      inertia = { from: S, D: pl.D, T: pl.T, p: pl.p, v0: pl.v0, t0: now }; entry.fling = true; entry.coastPitches = +pl.pitches.toFixed(2); entry.landsOn = pl.k;
     }
   }
   touchLog.push(entry); if (touchLog.length > 10) touchLog.shift(); curSwipe = entry;
 };
-const endDrag = () => {
+const endDrag = (by = 'other') => {
   if (!drag) return;
   const d = drag;
   drag = null;
   root.classList.remove('is-dragging');
   try { if (d.captured) document.documentElement.releasePointerCapture(d.id); } catch { /* already released */ }
   if (!d.total || d.total <= d.thr) return;
-  if (lite) { liteRelease(d, performance.now()); return; }
+  if (lite) { liteRelease(d, performance.now(), by); return; }
   // the pointer's speed over the last 90 ms, as strip speed (the strip moves against the pointer's coordinate)
   const now = performance.now();
   const s = d.samples.filter((q) => now - q[0] < 90);
@@ -496,7 +501,7 @@ addEventListener('pointerdown', (e) => {
 }, { capture: true });
 addEventListener('pointermove', (e) => {
   if (!drag || e.pointerId !== drag.id) return;
-  if (e.buttons === 0) { endDrag(); return; } // released outside the window (or the up event was lost): never stuck
+  if (e.pointerType === 'mouse' && e.buttons === 0) { endDrag('move-buttons-0'); return; } // released outside the window (or the up event was lost): never stuck (R24h: a mouse only: a touch ends with its own up / cancel, some browsers report buttons 0 for a finger)
   const pos = axisOf(e), dpos = pos - drag.last;
   drag.last = pos;
   drag.total += Math.abs(dpos);
@@ -510,7 +515,10 @@ addEventListener('pointermove', (e) => {
   drag.samples.push([performance.now(), pos]);
   if (drag.samples.length > (lite ? 30 : 12)) drag.samples.shift();
 }, { capture: true, passive: true });
-for (const type of ['pointerup', 'pointercancel']) addEventListener(type, (e) => { if (drag && e.pointerId === drag.id) endDrag(); }, { capture: true });
+for (const type of ['pointerup', 'pointercancel']) addEventListener(type, (e) => { if (drag && e.pointerId === drag.id) endDrag(type === 'pointerup' ? 'up' : 'cancel'); }, { capture: true });
+// R24h: with ?perf the last pointer events are kept for the report (to find out where a double release comes from)
+const pEvents = [];
+if (perfOn) for (const type of ['pointerdown', 'pointerup', 'pointercancel', 'lostpointercapture']) addEventListener(type, (e) => { pEvents.push({ t: Math.round(performance.now()), type, id: e.pointerId, kind: e.pointerType, buttons: e.buttons, drag: !!drag }); if (pEvents.length > 24) pEvents.shift(); }, { capture: true });
 addEventListener('blur', endDrag);
 document.documentElement.addEventListener('lostpointercapture', (e) => { if (drag && drag.mouse && e.pointerId === drag.id) endDrag(); }); // R22h: a drag can never stay 'held' after the browser took the pointer back
 document.addEventListener('visibilitychange', () => { if (document.hidden) endDrag(); });
@@ -557,7 +565,11 @@ const tick = (_time, deltaMs) => {
   // drag / inertia: the soft snap and the focus stay out of the way while the strip is held or coasting
   if (drag) { lastWheel = now; snap = null; }
   const L0 = cur(); // (the strip of this frame)
-  if (inertia && !morph) {
+  if (inertia && !morph && lite) { // R24h: the planned landing: x(t) = from + D x (1 - (1 - u)^p), the speed falls to exactly 0 on the image
+    const u = Math.min(1, (now - inertia.t0) / 1000 / inertia.T), target = inertia.from + inertia.D * (1 - Math.pow(1 - u, inertia.p)), before = S;
+    off += target - S; S = target; dragAccum += S - before; lastWheel = now; snap = null;
+    if (u >= 1) inertia = null;
+  } else if (inertia && !morph) {
     const t = (now - inertia.t0) / 1000, e = Math.exp(-t / inertia.F), spd = inertia.v0 * e;
     const target = inertia.from + inertia.v0 * inertia.F * (1 - e);
     const before = S;
@@ -565,15 +577,7 @@ const tick = (_time, deltaMs) => {
     dragAccum += S - before;
     lastWheel = now; snap = null;
     if (Math.abs(spd) < 5) inertia = null;
-    else if (lite) { // R24g: the glide is never cut: the soft snap takes over only once the speed is under TALL.snapAfterSpeed screen lengths / s, heading for the project the glide is going to
-      if (Math.abs(spd) < TALL.snapAfterSpeed * L0.M.viewAlong && glOn && !reduced) {
-        const pt = cur().pitch;
-        let k = Math.round((S + spd * inertia.F) / pt);
-        if (k === inertia.k0) k += Math.sign(inertia.v0); // a deliberate flick always moves on by at least one image (a light swipe lands on the next one)
-        if (Math.abs(k * pt - S) > 0.5) { snapForce = 0; snap = { from: S, to: k * pt, t0: now, force: 0 }; }
-        inertia = null;
-      }
-    } else if (WORK.dragSnapBlend > 0 && Math.abs(spd) < WORK.dragSnapBlend && glOn && !reduced) {
+    else if (WORK.dragSnapBlend > 0 && Math.abs(spd) < WORK.dragSnapBlend && glOn && !reduced) {
       // R22i option: the snap takes over while the coast is still slowing (magnetised to the project the coast is heading for)
       const pt = cur().pitch, k = Math.round((S + spd * inertia.F) / pt);
       if (Math.abs(k * pt - S) > 0.5) { snapForce = 0; snap = { from: S, to: k * pt, t0: now, force: 0 }; }
@@ -588,7 +592,7 @@ const tick = (_time, deltaMs) => {
       const target = snap.from + (snap.to - snap.from) * withOvershoot(workEase(WORK), WORK.snapOvershoot * qForce(snap.force), WORK.overshootSettle)(t);
       const sPrev = S;
       off += target - S; S = target;
-      if (lite) vel += (S - sPrev) / Math.max(dt, 1e-3); // R24d: the soft snap drives the warp too (tall / tablet only)
+      if (lite) { vel += (S - sPrev) / Math.max(dt, 1e-3); if (curSwipe && curSwipe.landedPx === null) curSwipe.snapCorrectionPx = +(curSwipe.snapCorrectionPx + Math.abs(S - sPrev)).toFixed(1); } // R24d: the soft snap drives the warp too (tall / tablet only); R24h: how far it moved after the glide (about 0 now)
       if (t >= 1) snap = null;
     } else if (now - lastWheel > sdMs && (Math.abs(vel) < 250 || now - lastWheel > sdMs + 600)) {
       // R22h: the snap must always take over. A speed above 250 px/s can no longer hold it off for more than 0.6 s after the quiet time, and a stale
@@ -606,7 +610,10 @@ const tick = (_time, deltaMs) => {
     const c = Math.max(0, 1 - Math.abs(S - k * pt) / (win * pt)), pk = ((k % N) + N) % N;
     // R23f: the focus builds only at rest: while the soft snap drifts the project in, or once the wheel has been quiet for snapDelay and the
     // glide is over. Any wheel / key / touch input (cancelSnap) closes the gate at once and the focus unwinds over the ramp.
-    const restOk = !!snap || (now - lastWheel > WORK.snapDelay * 1000 && Math.abs(vel) < 250);
+    // R24h (lite): (also the strip must be centred on an image: a soft snap that has not started yet is not a rest) the focus builds only after the glide AND the landing have fully stopped and TALL.focusDelay s have passed (never during them)
+    if (lite && (Math.abs(vel) > 5 || drag || inertia || snap)) liteMotionAt = now;
+    const restOk = lite ? (!snap && !inertia && !drag && Math.abs(S - Math.round(S / pt) * pt) < 0.5 && now - liteMotionAt > TALL.focusDelay * 1000) : (!!snap || (now - lastWheel > WORK.snapDelay * 1000 && Math.abs(vel) < 250));
+    if (lite && curSwipe && curSwipe.landedPx === null && restOk && now - liteMotionAt > 400) { const pt0 = cur().pitch; curSwipe.landedPx = +(S - Math.round(S / pt0) * pt0).toFixed(2); }
     const hold = focusOff(now);
     const rate = dt / Math.max(hold ? 0.35 : WORK.focusRampSec, 0.02);
     for (let q = 0; q < N; q++) {
@@ -836,7 +843,7 @@ addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(relayout, 1
 
 commit(vertical ? 'vertical' : 'side');
 // the endless strip passes through 0 at every wrap, so the distance must not drive the wordmark: it reports "scrolled" once and never rest again
-initNav(data.hero.wordmark, lenis, tall ? { gateFrame: false, position: () => 1e9, startSmall: true, small: { x: 5, y: 3.4, width: 28 } } : { gateFrame: false, position: () => (wmScrolled ? 1e9 : 0), startBig: !!back && !back.leave.wm }); // (tall: the small wordmark from the start, wider than desktop's 169 px)
+if (!tall) initNav(data.hero.wordmark, lenis, { gateFrame: false, position: () => (wmScrolled ? 1e9 : 0), startBig: !!back && !back.leave.wm }); // (the tall wordmark is created early, next to the DOM: R24h)
 // R28: the way back. The overlay (#pxb, painted by the inline script in work/index.html) covers the page with the project's header at the scroll it was
 // left at; the strip is built in that mode with the project centred and at rest, its cards and neighbours pushed; when the header file is decoded
 // and the textures are up, the enlarge plays in reverse (project-transition.js playBack). Input finishes it at once.
@@ -864,7 +871,7 @@ if (back) {
 }
 document.title = 'Work | Anh V';
 if (import.meta.env.DEV) {
-  window.__SCROLL = SCROLL; window.__WORK = WORK; window.__TRANSITION = TRANSITION; window.__TALL = TALL; window.__guard = guard;
+  window.__SCROLL = SCROLL; window.__WORK = WORK; window.__TRANSITION = TRANSITION; window.__TALL = TALL; window.__guard = guard; window.__bendP = bendP;
   window.__work = { setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, q: Q, PS,  get snap() { return snap; }, AMB, LEAD, get drag() { return drag; }, get inertia() { return inertia; }, fP, fSc, fPu, get kCount() { return kCount; }, bx, by, bw, bh, vis, hp };
   if (params.has('tune')) import('./work/tune.js').then((m) => m.mountWorkTune({ relayout }));
   if (params.has('overlap')) import('./effects/overlap-debug.js').then((m) => m.mountOverlapDebug('.work__card', () => `focus ${Math.max(...fSc.x).toFixed(2)}${AMB.on ? ', ambient drift on' : ''}${LEAD.moving ? ', lead moving' : ''}${morph ? ', toggle morph' : ''}${TC.on ? ', transition' : ''}${drag ? ', drag' : ''}`));
