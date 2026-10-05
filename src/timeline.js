@@ -260,7 +260,7 @@ export const WORK = {
   // bowDown / bowUp = a shallow dome, reach = share of the strip's length that bends (1 - reach stays flat in the middle), sym = weight of the
   // leading side, riseSec / settleSec = how fast it grows while the strip moves / eases flat after it stops.
   cardWarp: { strength: 1.15, riseSec: 1.5, settleSec: 1.4, curl: 0.5, camDown: 1.25, camUp: 1.25, bowDown: 0, bowUp: 0.05, reach: 1, sym: 1 },
-  frameWarp: { strength: 1.39, riseSec: 2.2, settleSec: 1.9, curl: 0.5, camDown: 1.25, camUp: 1.25, bowDown: 0, bowUp: 0.06, reach: 1, sym: 1, speedRef: 5, speedPow: 1.4, speedKnee: 2, lean: 0.4, leanSign: 1, leanMax: 0.45, leanBuf: 0.3 }, // R24i: lean = how far (screen lengths along the strip, at warp amount 1) the cylinder axis moves toward where the images travel on screen; leanSign -1 flips it; leanMax caps the shift; lean 0 = the centred axis of before
+  frameWarp: { strength: 1.39, riseSec: 2.2, settleSec: 1.9, curl: 0.5, camDown: 1.25, camUp: 1.25, bowDown: 0, bowUp: 0.06, reach: 1, sym: 1, speedRef: 5, speedPow: 1.4, speedKnee: 2, lean: 0.4, leanSign: 1, leanSignDown: -1, leanSignUp: 1, leanMax: 0.45, leanBuf: 0.3 }, // R33: leanSignDown / leanSignUp = the lean's sign per scroll direction (down = wheel down: -1 leans AGAINST the motion; up +1 = toward it, as before); R24i: lean = how far (screen lengths along the strip, at warp amount 1) the cylinder axis moves toward where the images travel on screen; leanSign -1 flips it; leanMax caps the shift; lean 0 = the centred axis of before
   morphSec: 2, morphStagger: 0.45, morphEase: 3, morphLanding: 0.12, dupGap: 40,
   snapDelay: 1, snapWindow: 0.5, snapSec: 2, focusScale: 1.14, focusPush: 95, focusNeighbour: 0.06, focusRampSec: 1.25, focusPushRadius: 400, focusPushOthers: 0.6,
   // R22e overshoot (src/util/overshoot.js; 0 = the old curve): the end passes the target by this share of the distance / value once, then settles.
@@ -300,7 +300,8 @@ export const WORK = {
 //   frameW (vw) / frameH (vh): the image is frameW of the window width, its height from frameW x frameH's ratio, and never taller than frameH of the window height
 //   (so a window wider than 16:9 shrinks the image instead of running it into the info block above it). gapSide (vw) / gapVert (vh) = the space between two images.
 //   focusScale 1 = the centred image keeps its size at rest (the reference); focusNeighbour 0 = the neighbours stay at the measured gap (R22 pushed them 6 % of a pitch away).
-export const WORK_V2 = { frameW: 1055 / 19.2, frameH: 556 / 10.8, gapSide: 57 / 19.2, gapVert: 75 / 10.8, focusScale: 1, focusNeighbour: 0 };
+export const WORK_V2 = { frameW: 1055 / 19.2, frameH: 556 / 10.8, gapSide: 57 / 19.2, gapVert: 75 / 10.8, focusScale: 1, focusNeighbour: 0, hoverOn: 1, hoverScale: 1.04, hoverSec: 0.6, hoverClickSec: 0.15 };
+// R33: hoverScale = how much the CENTRE image grows under a fine pointer (the neighbours are pushed out by exactly the growth, so the gaps stay), hoverSec = the soft ease, hoverClickSec = ease back to 1 when a click starts the project transition.
 // R32 UI numbers (px at 1920x1080 unless said; they scale with the capped --ux like the rest of the type: 1 px at 1920 = --ux / 19.2).
 //   title: specimen "Clash Display" is `specimenFrac` of the image width wide (977 / 1055); a title first shrinks down to minScale of that size, then loses trailing words until it
 //   fits `fitFrac` of the image width; baseline `baseDy` below the image centre (px at the 556 px high image, scales with the image height). fade: full inside `fadeIn` pitches
@@ -312,8 +313,18 @@ export const WORK_INFO = {
   side: { tagsDx: -1.5, rowTop: -156, yearRight: -281, descLeft: -218, descW: 200 }, // above the image: block top = image top + rowTop; year's right edge = image right + yearRight; description from image right + descLeft
   vertical: { tagsRight: -211, yearLeft: 62, descLeft: 162, descW: 200 }, // beside the image: tags' left = image left + tagsRight; year / description from the image's right edge
 };
-export const WORK_RULER = { pitch: 21, extra: 5.5, dot: 3, bar: 34, barW: 2, dotAlpha: 0.45, side: { x: 962, bottom: 42 }, vertical: { x: 55, y: 531 } };
-export const WORK_COUNTER = { sec: 0.3 };
+export const WORK_RULER = { pitch: 21, extra: 5.5, dot: 3, bar: 34, barW: 2, rulerDimOpacity: 0.45, rulerShrinkSec: 0.25, rulerGrowSec: 0.4, side: { x: 962, bottom: 42 }, vertical: { x: 55, y: 531 } };
+// R33 text field: the title / info / counter sit at their reference place (they do not follow the strip). While the strip moves the text blurs out (textBlurPx, to opacity 0 over
+// textOutSec); its content swaps while hidden; when the next image is in focus (the strip rests and is centred for textDelay s) it refocuses in place over textInSec (the title also
+// rises titleRise px at 1920). Counter: an odometer; it rolls with the strip at most counterMaxSteps numbers per second, settles over counterSettleSec (counterOvershoot = most it passes
+// the target, in digit heights, 0 = none) and blurs vertically by up to counterBlurPx while rolling.
+export const WORK_TEXT = { textBlurPx: 12, textOutSec: 0.25, textInSec: 0.5, textDelay: 0.25, titleRise: 36 };
+// R33 item 6: the pointer smear + distortion trail on the CENTRE image (work/pointer-fx.js). res = field cells across; strength = the lookup displacement, smear = the smear length, rgb = the
+// colour split (all as a share of the picture at full field value); brush = radius (share of the image height); startSpeed / fullSpeed = pointer speed (image heights / s) where it starts
+// and reaches full push; gain = push per frame at full speed; stiffness / damping = the spring that brings the field back to exactly 0; clickSec = how fast it eases out on a click / drag /
+// when the strip moves; warpCap = how strongly the scroll warp fades it (1 = gone at warp amount 1). on false = off (also off for touch, ?gl=0, reduced motion, weak devices).
+export const WORK_PTR = { on: 1, res: 96, strength: 0.03, smear: 0.07, rgb: 0.012, brush: 0.2, startSpeed: 0.25, fullSpeed: 2.5, gain: 0.45, stiffness: 55, damping: 10, clickSec: 0.15, warpCap: 1 };
+export const WORK_COUNTER = { counterSettleSec: 0.35, counterBlurPx: 6, counterMaxSteps: 12, counterOvershoot: 0.04 };
 // R32 copy and links (Anh rewrites the text here). hideNav: the nav links are not drawn on the Work page desktop (the logo stays).
 export const WORK_UI = { copy: { side: 'Feeling vertical? Flip it', vertical: 'Feeling sideways? Flip it' }, label: 'Selected Work', reachLabel: 'Reach out', reachEmail: 'anhlsls1@gmail.com', hideNav: true };
 // Cards per project (R23b, the same rules as BAND_LIMITS on the homepage): count and total area (px2 at 1920) of the cards along one
@@ -458,7 +469,7 @@ export const TALL = {
   guard: true, guardMs: 20, guardP95: 30, guardFrames: 30,
 };
 // the tall image warp: the wide image warp with the strength scaled (read live: ?tune)
-TALL.frameWarp = { ...WORK.frameWarp, strength: WORK.frameWarp.strength * TALL.warpStrength, riseSec: 0.5, leanBuf: 0.15 }; // (R24i: leanBuf = extra offscreen overscan along the strip for the axis lean, in screen lengths; the lean is capped by what it holds)
+TALL.frameWarp = { ...WORK.frameWarp, strength: WORK.frameWarp.strength * TALL.warpStrength, riseSec: 0.5, leanBuf: 0.15, leanSignDown: 1 }; // (R33: the phone / tablet pages keep the lean toward the motion in both directions) // (R24i: leanBuf = extra offscreen overscan along the strip for the axis lean, in screen lengths; the lean is capped by what it holds)
 // R24e: tablet LANDSCAPE (R24b's test: layout-store.js isTabletAspect): the wide-style strip, no cards (cards: 0), the image `frameH` of the viewport height (width from the desktop ratio, at most 90 % of the width)
 export const TABLET = { cards: 0, frameH: 0.62 };
 // R24a: the menu's Contact item stays hidden until this is set (a mailto: link); Anh has no address yet.

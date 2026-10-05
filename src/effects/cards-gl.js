@@ -25,16 +25,23 @@ uniform float uBend;             // signed px; + = the middle sags downward
 uniform float uShape;            // arc shape: 1 = round arc (sin, keeps curving into the corners), higher = flatter corners
 uniform vec4 uCover;             // object-fit: cover as (scaleU, scaleV, offU, offV)
 out vec2 vUv;
+out vec2 vA;                      // R33: the position on the card itself (0..1), for the pointer field
 void main() {
   float arc = pow(sin(3.14159265 * a.x), uShape);
   vec2 p = uCenter + (a - 0.5) * uSize + vec2(0.0, uBend * arc);
   gl_Position = vec4(p.x / uView.x * 2.0 - 1.0, 1.0 - p.y / uView.y * 2.0, 0.0, 1.0);
   vUv = a * uCover.xy + uCover.zw;
+  vA = a;
 }`;
 const FRAG = `#version 300 es
 precision mediump float;
 in vec2 vUv;
+in vec2 vA;
 uniform sampler2D uTex;
+uniform sampler2D uField;        // R33: the pointer field of the centre image (RG = a vector, 0.5 = none), only read when uFx > 0
+uniform float uFx;
+uniform vec4 uFxP;               // x displacement, y smear length, z rgb shift (all in picture units), w unused
+uniform vec2 uFxS;               // the picture's cover scale (so the effect is in the image's own space)
 uniform float uGrain;
 uniform float uSeed;
 uniform float uFlat;             // >= 0: draw the flat dark layer at this opacity instead of the texture
@@ -42,7 +49,14 @@ out vec4 o;
 float h(vec2 p) { vec3 q = fract(vec3(p.xyx) * 0.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
 void main() {
   if (uFlat >= 0.0) { o = vec4(vec3(10.0 / 255.0) * uFlat, uFlat); return; }
-  vec4 c = texture(uTex, vUv);
+  vec4 c;
+  if (uFx > 0.0) { // R33: the pointer smear + distortion trail (one vector field in the image's own space; the lookup is displaced, smeared along the vector, and split by colour)
+    vec2 v = (texture(uField, vA).rg - 0.5) * 2.0 * uFx;
+    vec2 uv = vUv - v * uFxP.x * uFxS, sm = v * uFxP.y * uFxS, sh = v * uFxP.z * uFxS;
+    vec3 acc = vec3(0.0);
+    for (int i = 0; i < 6; i++) { vec2 o = sm * (float(i) / 5.0 - 0.5); acc += vec3(texture(uTex, uv + o + sh).r, texture(uTex, uv + o).g, texture(uTex, uv + o - sh).b); }
+    c = vec4(acc / 6.0, texture(uTex, uv).a);
+  } else c = texture(uTex, vUv);
   float n = h(gl_FragCoord.xy + uSeed) - 0.5;
   c.rgb = clamp(c.rgb + n * uGrain * c.a, 0.0, 1.0);
   o = c;
@@ -90,8 +104,12 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
   gl.linkProgram(prog);
   if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return null;
   gl.useProgram(prog);
-  const U = Object.fromEntries(['uView', 'uCenter', 'uSize', 'uBend', 'uShape', 'uCover', 'uTex', 'uGrain', 'uSeed', 'uFlat'].map((k) => [k, gl.getUniformLocation(prog, k)]));
+  const U = Object.fromEntries(['uView', 'uCenter', 'uSize', 'uBend', 'uShape', 'uCover', 'uTex', 'uGrain', 'uSeed', 'uFlat', 'uField', 'uFx', 'uFxP', 'uFxS'].map((k) => [k, gl.getUniformLocation(prog, k)]));
   gl.uniform1i(U.uTex, 0);
+  gl.uniform1i(U.uField, 1);
+  gl.uniform1f(U.uFx, 0);
+  // R33: the pointer field texture (unit 1), made on first use (setField)
+  let fieldTex = null, fieldW = 0, fieldH = 0, fxIdx = -1, fxAmt = 0, fxP = [0, 0, 0, 0];
   const post = gl.createProgram();
   gl.attachShader(post, compile(gl.VERTEX_SHADER, POST_VERT));
   gl.attachShader(post, compile(gl.FRAGMENT_SHADER, POST_FRAG));
@@ -407,7 +425,8 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     gl.uniform1f(Pu.uSeed, seed);
     gl.uniform1f(Pu.uAxis, axis);
     if (img) { // R24i: the cylinder axis leans toward where the images travel on screen: forward scroll = items move toward the negative screen side; amt = WARP_DIR x (signed spring) x strength, so the shift follows the same spring (0 at rest, no pop)
-      const sh = (WP.lean || 0) * (WP.leanSign || 1) * -WARP_DIR * Math.max(-1, Math.min(1, bendI.amt || 0)), lm = WP.leanMax ?? 0.45;
+      const dirSign = (bendI.amt || 0) * WARP_DIR > 0 ? (WP.leanSignDown ?? WP.leanSign ?? 1) : (WP.leanSignUp ?? WP.leanSign ?? 1), sh = (WP.lean || 0) * (dirSign || 1) * -WARP_DIR * // R33: the lean's sign per direction (down = the wheel-down direction = amount * WARP_DIR > 0)
+         Math.max(-1, Math.min(1, bendI.amt || 0)), lm = WP.leanMax ?? 0.45;
       const am = Math.max(-1, Math.min(1, bendI.amt || 0)), mAl = axis ? fb.mx / W : fb.my / H, mCr = axis ? fb.my / H : fb.mx / W;
       shift = limitLean(am, Math.max(-lm, Math.min(lm, sh)), { curl: WP.curl * (WP.shapeK ?? 1), camA: WARP_DIR > 0 ? WP.camDown : WP.camUp, camB: WARP_DIR > 0 ? WP.camUp : WP.camDown, reach: WP.reach, bowA: WARP_DIR > 0 ? WP.bowDown : WP.bowUp, bowB: WARP_DIR > 0 ? WP.bowUp : WP.bowDown, sym: WP.sym }, mAl, mCr); // never past what the buffer holds (no blank edge, no fold)
       gl.uniform1f(Pu.uShift, shift);
@@ -439,6 +458,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
       if (t && !(darkCard[i] && hd[i] >= 0.999)) {
         gl.bindTexture(gl.TEXTURE_2D, t);
         gl.uniform1f(U.uFlat, -1);
+        if (fxIdx >= 0) { const on = i === fxIdx && fxAmt > 0; gl.uniform1f(U.uFx, on ? fxAmt : 0); if (on) { gl.uniform4f(U.uFxP, fxP[0], fxP[1], fxP[2], 0); gl.uniform2f(U.uFxS, cover[i * 4], cover[i * 4 + 1]); } }
         gl.uniform2f(U.uSize, bw[i] * hs[i], bh[i] * hs[i]);
         gl.uniform4fv(U.uCover, cover.subarray(i * 4, i * 4 + 4));
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, (COLS + 1) * 2);
@@ -551,6 +571,24 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     holdWarp: (a) => { holdAmt = a; dirty = true; }, // dev only
     diag: () => ({ postOk, shift, ...fbInfo, warpScale, passCount, lastPass }), // R24f: what the ?perf diagnosis line shows
     setWarpScale: (k) => { warpScale = Math.max(0.25, Math.min(1, k)); dirty = true; },
+    // R33: the pointer field (RGBA8 bytes, w x h) of picture `idx`; amount 0 = off (the shader branch is not taken: the picture is exactly as before)
+    setField: (idx, amount, params, bytes, w, h) => {
+      fxIdx = amount > 0 || bytes ? idx : -1; fxAmt = amount; fxP = params || fxP;
+      if (bytes) {
+        gl.useProgram(prog);
+        gl.activeTexture(gl.TEXTURE1);
+        if (!fieldTex || w !== fieldW || h !== fieldH) {
+          if (fieldTex) gl.deleteTexture(fieldTex);
+          fieldTex = gl.createTexture(); fieldW = w; fieldH = h;
+          gl.bindTexture(gl.TEXTURE_2D, fieldTex);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, bytes);
+        } else { gl.bindTexture(gl.TEXTURE_2D, fieldTex); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, bytes); }
+        gl.activeTexture(gl.TEXTURE0);
+      }
+      dirty = true;
+    },
     setAxis: (a) => { axis = a ? 1 : 0; dirty = true; },
     reweigh: () => { computeWeights(); dirty = true; }, // after a depth-bell change in the tuning panel
     bend: () => bend,

@@ -4,8 +4,9 @@ import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import data from './data/data.json';
 import pool from './data/work-pool.json';
-import { WORK, WORK_V2, WORK_UI, BEND, WARP, CARDS, CARD_HOVER, DEPTH, SCROLL, INDEX, TRANSITION, TALL, TABLET } from './timeline.js';
+import { WORK, WORK_V2, WORK_UI, WORK_TEXT, WORK_PTR, BEND, WARP, CARDS, CARD_HOVER, DEPTH, SCROLL, INDEX, TRANSITION, TALL, TABLET } from './timeline.js';
 import { createV2 } from './work/v2-ui.js';
+import { createPointerFx } from './work/pointer-fx.js';
 import { isTall, isLiteLandscape } from './util/layout-mode.js';
 import { frameZ } from './data/depth.js';
 import { capW, dist } from './scale.js';
@@ -228,7 +229,7 @@ const warpImg = { ...WARP };
 const copyWarp = (dst, src) => {
   dst.strengthUp = dst.strengthDown = src.strength;
   dst.curl = src.curl; dst.camDown = src.camDown; dst.camUp = src.camUp; dst.bowDown = src.bowDown; dst.bowUp = src.bowUp; dst.reach = src.reach; dst.sym = src.sym;
-  dst.shapeK = src.strength / FRAME_STRENGTH_REF; dst.speedRef = src.speedRef; dst.speedPow = src.speedPow; dst.speedKnee = src.speedKnee; dst.lean = src.lean; dst.leanSign = src.leanSign; dst.leanMax = src.leanMax; dst.leanBuf = src.leanBuf; // (R24i: only the image warp has them)
+  dst.shapeK = src.strength / FRAME_STRENGTH_REF; dst.speedRef = src.speedRef; dst.speedPow = src.speedPow; dst.speedKnee = src.speedKnee; dst.lean = src.lean; dst.leanSign = src.leanSign; dst.leanSignDown = src.leanSignDown; dst.leanSignUp = src.leanSignUp; dst.leanMax = src.leanMax; dst.leanBuf = src.leanBuf; // (R24i: only the image warp has them)
 };
 const syncWarp = () => {
   copyWarp(warpP, WORK.cardWarp);
@@ -546,7 +547,7 @@ items.forEach((it) => { if (it.kind === 'frame') it.el.addEventListener('pointer
 stage.addEventListener('click', (e) => {
   const a = e.target.closest('a.work__frame');
   if (!a || !glOn || morph || !transitionOK() || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-  const it = items.find((q) => q.el === a), i = it.idx, sc = gl.hs[i] || 1;
+  const it = items.find((q) => q.el === a), i = it.idx, sc = ui ? 1 : gl.hs[i] || 1; // (R33: v2 reads the UNSCALED frame; the hover growth eases back to 1 as the transition starts)
   e.preventDefault();
   const w = bw[i] * sc, h = bh[i] * sc;
   runProjectTransition({ slug: it.slug, ref: it.ref, rect: { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, startSrc: it.img.currentSrc || it.img.src, fade: fadeEls, fromWork: { mode: vertical ? 'vertical' : 'side', projectIndex: it.proj }, onPush: (p, u) => { if (clearMode()) TC.u = u; else if (TRANSITION.pushScale > 0) TP.p = TP.p0 + (TRANSITION.pushScale - TP.p0) * p; }, onStart: () => { pm('fwd:click'); lenis.stop(); nameEl.style.zIndex = '9'; TP.q = it.proj; TP.p0 = fPu.x[it.proj]; TP.p = TP.p0; TP.hold = TRANSITION.pushScale > 0 || clearMode(); if (clearMode()) { TC.u = 0; prepareClear(it.proj); } } }); // (the project name stays above the growing picture and fades with the rest)
@@ -569,7 +570,8 @@ const updateNames = () => {
   });
 };
 
-const v2x = new Float64Array(N), v2y = new Float64Array(N), v2s = { pos: 0, idx: 0, vertical: false, morph: false, speed: 0, dt: 0.016, px: v2x, py: v2y };
+let ptrFx = null, v2MotionAt = 0, hz = 0; // R33: the last time the strip moved / the hover growth (0..1)
+const v2s = { pos: 0, idx: 0, kTarget: 0, vertical: false, morph: false, focused: false, rest: false, dt: 0.016 };
 const tick = (_time, deltaMs) => {
   if (import.meta.env.DEV && window.__guardBusy) { const t0 = performance.now(); while (performance.now() - t0 < window.__guardBusy); } // dev only: a test hook that makes every frame slow (the frame-time guard test)
   const dt = Math.min(deltaMs, 50) / 1000;
@@ -713,6 +715,19 @@ const tick = (_time, deltaMs) => {
   // base positions of this frame; fsArr = the image scale per project
   const pushing = TP.q >= 0 && (TP.p > 0 || TP.hold);
   if (!tall && (focusMoving || anyF || NUD.live || pushing)) { FA.vertical = L.M.vertical; FA.pitch = L.pitch; FA.scale = scale; NUD.dt = dt; let pa = fPu.x; if (pushing) { pushArr.set(fPu.x); pushArr[TP.q] = TP.p; pa = pushArr; } applyFocus(FA, fSc.x, pushing ? PT : FOC, CARDS, fsArr, pa, NUD); if (NUD.live) settleMoving = true; } else fsArr.fill(1);
+  if (ui && WORK_V2.hoverOn) { // R33: hover enlarge of the centre image; the others are pushed out by exactly the growth (the gaps stay)
+    const inside = fine && mouse.known && Math.abs(mouse.px - W / 2) < bw[0] / 2 && Math.abs(mouse.py - H / 2) < bh[0] / 2;
+    const tgt = inside && !morph && !drag && !inertia && !snap && Math.abs(vel) <= 5 && TP.q < 0 && !TC.on ? 1 : 0;
+    const sec = TP.q >= 0 || TC.on ? WORK_V2.hoverClickSec : WORK_V2.hoverSec;
+    hz = morph ? 0 : hz + (tgt - hz) * (1 - Math.exp((-dt * 4.5) / Math.max(sec, 0.02)));
+    if (Math.abs(hz - tgt) < 0.0005) hz = tgt;
+    if (hz > 0) {
+      const Lh = cur(), hs = WORK_V2.hoverScale - 1, A = Lh.M.alongF, per = Lh.period;
+      const rel = new Float64Array(N), c = new Float64Array(N);
+      for (let q = 0; q < N; q++) { const r = wrap(q * Lh.pitch - S, per) / Lh.pitch; rel[q] = r; c[q] = hs * hz * Math.max(0, 1 - Math.abs(r)); fsArr[q] *= 1 + c[q]; }
+      for (let p = 0; p < N; p++) { let off = 0; for (let q = 0; q < N; q++) if (q !== p && c[q] > 0) off += (rel[q] < rel[p] ? 1 : -1) * c[q] * A * 0.5; if (off) { if (Lh.M.vertical) py[p] += off; else px[p] += off; } }
+    }
+  }
   if (TC.on) applyClear();
   for (let k = 0; k < nSrc; k++) { const sI = psrcs[k]; PS.srcX[sI] = px[sI]; PS.srcY[sI] = py[sI]; }
   for (let i = 0; i < n; i++) {
@@ -756,10 +771,19 @@ const tick = (_time, deltaMs) => {
   const idx = ((kCount % N) + N) % N;
   if (idx !== lastIdx) { lastIdx = idx; clearTimeout(preT); preT = setTimeout(() => preloadHeader(projects[idx].slug, heroRef(projects[idx])), 700); /* R25: the centred project's header image is fetched once it rests */ if (!ui) countEl.textContent = `${String(idx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`; }
 
-  if (ui) { // R32: the title / info / ruler / counter layer (frame centres px / py are the base positions of this frame, before the push)
-    for (let p = 0; p < N; p++) { v2x[p] = bx[p] + (glOn ? gl.ox[p] : 0); v2y[p] = by[p] + (glOn ? gl.oy[p] : 0); }
-    v2s.pos = pos; v2s.idx = idx; v2s.vertical = morph ? morph.to === 'vertical' : vertical; v2s.morph = !!morph; v2s.speed = Math.abs(vel) / Math.max(L.M.viewAlong, 1); v2s.dt = dt;
+  if (ui) { // R32 / R33: the text field, counter and ruler. focused = the strip rests (centred on an image when the snap exists) for textDelay s
+    const ptn = L.pitch, moving = !!morph || !!drag || !!inertia || !!snap || Math.abs(vel) > 5 || (snapOk && Math.abs(S - Math.round(S / ptn) * ptn) > 0.5);
+    if (moving) v2MotionAt = now;
+    v2s.pos = pos; v2s.idx = idx; v2s.kTarget = kCount; v2s.vertical = morph ? morph.to === 'vertical' : vertical; v2s.morph = !!morph; v2s.dt = dt;
+    v2s.focused = !moving && TP.q < 0 && !TC.on && now - v2MotionAt > WORK_TEXT.textDelay * 1000;
+    v2s.rest = !moving;
     ui.frame(v2s);
+  }
+  if (ui && glOn) { // R33 item 6: the pointer smear on the centre image (only with a fine pointer; cards-gl is null on reduced motion / weak devices / ?gl=0)
+    ptrFx ||= createPointerFx(gl);
+    const hq = ((kCount % N) + N) % N, wImg = bw[hq] * gl.hs[hq], hImg = bh[hq] * gl.hs[hq];
+    const calm = !morph && !drag && !inertia && !snap && Math.abs(vel) <= 5 && TP.q < 0 && !TC.on;
+    ptrFx.update({ dt, idx: hq, px: fine && mouse.known ? mouse.px : NaN, py: mouse.py, rect: { x: bx[hq] + gl.ox[hq] - wImg / 2, y: by[hq] + gl.oy[hq] - hImg / 2, w: wImg, h: hImg }, allowed: fine && calm && mouse.known, warp: Math.abs(gl.bendImg().amt || 0) });
   }
   if (lite && glOn) guard.frame(deltaMs, Math.abs(vel) > 5 || !!drag || !!inertia || !!snap);
   if (glOn) {
@@ -897,7 +921,7 @@ if (back) {
 document.title = 'Work | Anh V';
 if (import.meta.env.DEV) {
   window.__SCROLL = SCROLL; window.__WORK = WORK; window.__TRANSITION = TRANSITION; window.__TALL = TALL; window.__guard = guard; window.__bendP = bendP;
-  window.__work = { ui, setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, q: Q, PS,  get snap() { return snap; }, AMB, LEAD, get drag() { return drag; }, get inertia() { return inertia; }, fP, fSc, fPu, get kCount() { return kCount; }, bx, by, bw, bh, vis, hp };
+  window.__work = { ui, get ptr() { return ptrFx; }, get hz() { return hz; }, setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, q: Q, PS,  get snap() { return snap; }, AMB, LEAD, get drag() { return drag; }, get inertia() { return inertia; }, fP, fSc, fPu, get kCount() { return kCount; }, bx, by, bw, bh, vis, hp };
   if (params.has('tune')) import('./work/tune.js').then((m) => m.mountWorkTune({ relayout }));
   if (params.has('overlap')) import('./effects/overlap-debug.js').then((m) => m.mountOverlapDebug('.work__card', () => `focus ${Math.max(...fSc.x).toFixed(2)}${AMB.on ? ', ambient drift on' : ''}${LEAD.moving ? ', lead moving' : ''}${morph ? ', toggle morph' : ''}${TC.on ? ', transition' : ''}${drag ? ', drag' : ''}`));
 }

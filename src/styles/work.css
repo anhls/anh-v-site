@@ -48,8 +48,8 @@ html[data-layout='tall'], html[data-layout='tall'] body { overscroll-behavior: n
 .w2 { --p: calc(var(--ux) / 19.2); position: fixed; inset: 0; z-index: 12; pointer-events: none; font-family: var(--font-body); font-size: max(10px, calc(14 * var(--p))); line-height: max(18px, calc(25 * var(--p))); color: #fff; }
 .w2__hit { pointer-events: auto; }
 .w2__titles, .w2__infos { position: absolute; inset: 0; }
-.w2__title { position: absolute; left: 0; top: 0; display: block; text-align: center; white-space: nowrap; font-weight: 600; line-height: 1; letter-spacing: 0; color: #e9e7e2; opacity: 0; will-change: transform, opacity; }
-.w2__info { position: absolute; left: 0; top: 0; width: 0; height: 0; opacity: 0; will-change: transform, opacity; }
+.w2__title { position: absolute; left: 0; top: 0; display: block; text-align: center; white-space: nowrap; font-weight: 600; line-height: 1; letter-spacing: 0; color: #e9e7e2; opacity: 0; will-change: transform, filter, opacity; }
+.w2__info { position: absolute; left: var(--cx, 50%); top: var(--cy, 50%); width: 0; height: 0; opacity: 0; will-change: filter, opacity; }
 .w2__tags, .w2__year, .w2__desc { position: absolute; white-space: nowrap; }
 .w2__desc { white-space: normal; width: calc(200 * var(--p)); color: #787878; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 [data-mode='side'] .w2__tags, .w2:not([data-mode]) .w2__tags { left: calc(var(--hw) * -1 + var(--is-tagsDx) * var(--p)); top: calc(var(--hh) * -1 + var(--is-rowTop) * var(--p)); }
@@ -68,9 +68,11 @@ html[data-layout='tall'], html[data-layout='tall'] body { overscroll-behavior: n
 /* counter, bottom left: label, the large thin numeral (a cross-fade), the /N superscript */
 .w2__counter { position: absolute; left: calc(45 * var(--p)); bottom: calc(31 * var(--p)); display: flex; align-items: baseline; color: #fff; }
 .w2__label { color: #787878; margin-right: calc(34.5 * var(--p)); }
-.w2__num { position: relative; display: block; font-size: calc(105 * var(--p)); font-weight: 200; line-height: 0.74; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; min-width: calc(130 * var(--p)); height: 0.74em; }
-.w2__num span { position: absolute; left: 0; bottom: 0; opacity: 0; transition: opacity var(--cnt-sec, 0.3s) ease; }
-.w2__num span.is-on { opacity: 1; }
+.w2__num { position: relative; display: flex; font-size: calc(105 * var(--p)); font-weight: 200; line-height: 0.74; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; height: 0.74em; min-width: calc(130 * var(--p)); }
+.w2__slot { position: relative; display: block; width: 0.64em; height: 0.74em; overflow: hidden; } /* R33: one digit tall, masked; the column of two numbers rolls inside */
+.w2__col { position: absolute; left: 0; top: 0; width: 100%; will-change: transform; }
+.w2__col span { display: block; height: 0.74em; }
+.w2__defs { position: absolute; width: 0; height: 0; }
 .w2__total { position: absolute; left: calc(327 * var(--p) - 45 * var(--p)); bottom: calc(60 * var(--p)); color: #787878; }
 .w2__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 /* mode switch, bottom right */

@@ -242,10 +242,39 @@ Object.assign(TUNE_DOCS, {
   'WORK.frameWarp.speedPow': 'R24j: shape of the speed curve; above 1 a slow scroll bends clearly less than a quick one (a softer start), 1 = nearly straight.',
   'WORK.frameWarp.speedKnee': 'R24j: how sharply the speed curve flattens toward full warp; higher = it gets close to the top earlier.',
   'WORK.frameWarp.leanBuf': 'How much bigger the offscreen warp buffer is along the strip so the leaned axis has picture to look at (screen lengths; takes effect after a window resize or reload). The lean actually shown is always capped by what this buffer holds, so a bigger value allows a bigger lean but costs more memory and time per frame.',
+  'WORK.frameWarp.leanSignDown': 'R33: lean direction while scrolling DOWN (wheel down): -1 = the axis leans against the motion (start), +1 = toward it. Used instead of the plain direction.',
+  'WORK.frameWarp.leanSignUp': 'R33: lean direction while scrolling UP: +1 = toward the motion (as before), -1 = against it.',
   'WORK.frameWarp.leanSign': 'Direction of the axis lean: +1 = toward where the images are going (the rule), -1 = flipped (the other way).',
 });
-// R32 Work page v2 (desktop)
+// R32 / R33 Work page v2 (desktop)
 Object.assign(TUNE_DOCS, {
+  'WORK_V2.hoverOn': 'Turns the hover enlarge of the centre image on (1) or off (0).',
+  'WORK_V2.hoverScale': 'How much the centre image grows when the mouse is over it. The neighbours are pushed out by exactly that growth, so the gaps stay the same.',
+  'WORK_V2.hoverSec': 'How slowly the hover growth eases in and out (s); higher = softer.',
+  'WORK_V2.hoverClickSec': 'How fast the image eases back to its normal size when you click it (s).',
+  'WORK_TEXT.textBlurPx': 'How blurred the title and info text get while they fade away when the strip moves (px).',
+  'WORK_TEXT.textOutSec': 'How long the text takes to blur and fade out when the strip starts moving (s).',
+  'WORK_TEXT.textInSec': 'How long the new text takes to come back into focus once the next image rests (s).',
+  'WORK_TEXT.textDelay': 'How long the strip must rest, centred on an image, before the text, the ruler bar and the counter settle (s).',
+  'WORK_TEXT.titleRise': 'How far the title rises while it comes back into focus (px at 1920).',
+  'WORK_COUNTER.counterSettleSec': 'How long the counter digits take to ease onto the final number (s).',
+  'WORK_COUNTER.counterBlurPx': 'Vertical blur on the counter digits while they roll (px); 0 when they have landed.',
+  'WORK_COUNTER.counterMaxSteps': 'Most numbers the counter rolls past per second, so a hard flick stays readable.',
+  'WORK_COUNTER.counterOvershoot': 'How far the digits may pass the final number before settling back (in digit heights; 0 = none).',
+  'WORK_PTR.on': 'Turns the mouse smear on the centre image on (1) or off (0).',
+  'WORK_PTR.res': 'Size of the invisible grid the mouse pushes around (cells across). More = finer trail, more work while the mouse moves.',
+  'WORK_PTR.strength': 'How far the mouse bends the picture (share of the picture at full push).',
+  'WORK_PTR.smear': 'How long the smear streak along the mouse direction is.',
+  'WORK_PTR.rgb': 'How much the colours split apart where the picture is pushed.',
+  'WORK_PTR.brush': 'Size of the area the mouse pushes (share of the image height).',
+  'WORK_PTR.startSpeed': 'The mouse must move faster than this (image heights per second) before anything happens.',
+  'WORK_PTR.fullSpeed': 'Mouse speed (image heights per second) that gives the full push.',
+  'WORK_PTR.gain': 'How much one frame of mouse movement adds to the push.',
+  'WORK_PTR.stiffness': 'How hard the picture springs back to normal; higher = faster.',
+  'WORK_PTR.damping': 'How much the spring back is damped; lower = a small wobble before it settles.',
+  'WORK_PTR.clickSec': 'How fast the effect eases out when you press the mouse, drag, or the strip starts to move (s).',
+  'WORK_PTR.warpCap': 'How much the scroll warp weakens the mouse effect (1 = the effect is gone when the warp is at full amount), so the two never pile up.',
+
   'WORK_V2.frameW': 'Width of each main image as a percent of the window width (vw). The height follows from the 1055 x 556 ratio, so the shape stays the same on every window.',
   'WORK_V2.frameH': 'Tallest an image may be, as a percent of the window height (vh): on a window wider than 16:9 the image shrinks to this so it never runs into the info block above it.',
   'WORK_V2.gapSide': 'Gap between neighbouring images in Side mode (vw).',
@@ -276,10 +305,12 @@ Object.assign(TUNE_DOCS, {
   'WORK_RULER.dot': 'Ruler: size of a dot (px).',
   'WORK_RULER.bar': 'Ruler: length of the current-project bar (px).',
   'WORK_RULER.barW': 'Ruler: thickness of the current-project bar (px).',
-  'WORK_RULER.dotAlpha': 'Ruler: brightness of the dots (1 = as bright as the bar).',
+  'WORK_RULER.rulerDimOpacity': 'Ruler: brightness of a dot while it is not the current project (1 = as bright as the bar).',
+  'WORK_RULER.rulerShrinkSec': 'Ruler: how fast the tall bar shrinks to a dot and dims when the strip starts to move (s).',
+  'WORK_RULER.rulerGrowSec': 'Ruler: how long the next dot takes to light up and grow into the bar once its project is in focus (s).',
   'WORK_UI.copy.side': 'Text of the bottom-right switch while the strip is sideways. Type to preview it; the final text lives in WORK_UI.copy in timeline.js.',
   'WORK_UI.copy.vertical': 'Text of the bottom-right switch while the strip is vertical. Type to preview it; the final text lives in WORK_UI.copy in timeline.js.',
 });
-const WARP_DOC_KEYS = ['strength', 'riseSec', 'settleSec', 'curl', 'camDown', 'camUp', 'bowDown', 'bowUp', 'reach', 'sym', 'lean', 'leanMax', 'leanSign', 'leanBuf', 'speedRef', 'speedPow', 'speedKnee'];
+const WARP_DOC_KEYS = ['strength', 'riseSec', 'settleSec', 'curl', 'camDown', 'camUp', 'bowDown', 'bowUp', 'reach', 'sym', 'lean', 'leanMax', 'leanSign', 'leanSignDown', 'leanSignUp', 'leanBuf', 'speedRef', 'speedPow', 'speedKnee'];
 WARP_DOC_KEYS.forEach((k) => { const w = TUNE_DOCS[`WORK.frameWarp.${k}`]; if (w) TUNE_DOCS[`TALL.frameWarp.${k}`] = `Phone / tablet image warp: ${w.charAt(0).toLowerCase()}${w.slice(1)}`; });
 export const tuneDoc = (id) => TUNE_DOCS[id] || '';
