@@ -300,25 +300,27 @@ docs/status.md: the density table (Part B item 8), the before / after load time,
 
 ## R30 [done] (archived in docs/archive/requests-R30.md)
 
-## R27 (type motion): paragraph line reveal + label smear reveal, one shared system (use Sonnet 5.5, no time budget, Anh runs it at home)
+## R27 (type motion TOOLKIT): paragraph line reveal + label smear reveal, one shared system, built but applied NOWHERE yet (use Sonnet 5.5, no time budget, Anh runs it at home)
 
 Reference: two screen recordings Anh made of another site (not ours; the iOS "Lens / pause / heart" overlays in them are not part of the effect). Anh places them in the repo as docs/reference/text-fx-paragraph.mov (3.5 s, 60 fps, a bio paragraph) and docs/reference/text-fx-label.mov (2.7 s, 60 fps, a name + index label). If they are missing, use the numbers below (read by Cowork from 10 fps / 60 fps frames, good to about +-0.1 s). Do NOT copy the other site's font: in the paragraph recording the typeface visibly swaps at about 0.6 s (a web font loading late); ours must wait for fonts before measuring and splitting.
 
+SCOPE (Anh, 2026-10-06): build the effects as a TOOLKIT he may use later; do NOT apply them to any existing page element. The homepage design is parked (he will revisit it later) and the Work page / project pages stay exactly as they are. Concretely: no `data-fx` attribute on any existing element; `initTextFx` is NOT called from main.js, work.js or project.js; the Work page's current project-name reveal, the Selected Work caption, the About text, the project page titles and text blocks all stay untouched; the code is loaded with a dynamic import so the production bundles do not change until a page uses it; a dev-only demo page shows the effects. Applying an effect later = add `data-fx="smear"` (or lines / fade) to an element and one `initTextFx(root)` line in that page's entry.
 Goal: a small type motion system with three tiers, all in one `TEXT_FX` block in `src/timeline.js`, driven by a `data-fx` attribute: `lines` (paragraphs), `smear` (display labels and names), `fade` (small meta text, nav; keep what exists if it already fades). No change to any existing default value, easing or timing outside this system.
 
 ### Part A: shared infrastructure
 1. `src/effects/text-fx/` (own folder): a splitter (lines, then words) that waits for `document.fonts.ready`, measures lines, wraps each line in a clip box (`overflow: hidden`), keeps the original text as `aria-label` on the element and marks the split spans `aria-hidden`; re-splits on resize (debounced) WITHOUT replaying the animation (finished stays finished, in-flight continues from its progress); restores the original DOM if the effect is removed.
-2. Registry: elements opt in with `data-fx="lines|smear|fade"` and optional per-element overrides (`data-fx-delay`, `data-fx-once`). One entry point `initTextFx(root)` called per page; `?fx=0` turns every effect off (text just visible, for tests and `compare`); `?fx=1` forces on.
+2. Registry: elements opt in with `data-fx="lines|smear|fade"` and optional per-element overrides (`data-fx-delay`, `data-fx-once`). One entry point `initTextFx(root)` (a dynamic `import()` target so it is a separate chunk, never in the main / work / project bundles) that today only the demo page calls; `?fx=0` turns every effect off (text just visible, for tests and `compare`); `?fx=1` forces on.
 3. Fallback rules, the same as the cards: reduced motion = plain 0.2 s opacity fade for every tier, no split; `?gl=0` or weak device (shared `util/device.js`) = `smear` uses the CSS path (Part C option C); no JS = text visible.
 4. `?tune` group "Text motion" (Active / Settled as the other panels) with descriptions in `tune-docs.js`; every number below is a tunable in `TEXT_FX`.
 5. Idle cost zero: no rAF and no GL work when nothing is animating.
+6. Dev-only demo page `tools/fx-demo.html` (+ its small script), served by `npm run dev` at /tools/fx-demo.html, NOT listed in vite.config.js `rollupOptions.input` (so it is not in the production build; verify dist/ has no trace of it): sample paragraph (7 lines, about 70 words, light and dark background), sample label + index ("01"), a replay button per tier, controls for the `TEXT_FX` numbers (or the shared ?tune panel), a switch for each fallback (reduced motion, `?gl=0`) and a "simulate slow font" switch. The contact sheets and checks run on this page.
 
 ### Part B: `lines` (paragraph reveal, video 1)
 Measured from the recording (7 lines, ~70 words): each line sits in its own clipped box and the text rises into it from below (the first frame shows only thin slivers of the letter tops, then the full line); lines start one after another; then the words fade from light grey to black in reading order, a few words at a time, one wave per line, offset by one line; everything is black by about 2.3 s.
 - Line rise: `TEXT_FX.lines.riseSec` start 0.6 s, ease out (expo / quart, start with the site's expo), `lineStagger` start 0.08 s, from `yPercent: 100`.
 - Word fade: `wordFromOpacity` start 0.3 (light grey on white; on a dark background use the same opacity on the light text), `wordSec` start 0.35 s, `wordStagger` start 0.05 s per word in reading order across the block, wave starts `waveDelay` 0.1 s after its line starts to rise; total for a 7-line, 70-word block about 2.3 s.
-- Trigger: once on entering the viewport (ScrollTrigger, `once: true`, start about 85 %). Where a block already has a scroll-scrubbed animation, KEEP its scroll behaviour and report: first read how the About section text animates today and state it in the status note before changing anything; apply `lines` there only as the enter animation if the scroll timing is unchanged, otherwise leave About alone and list it as a decision for Anh.
-- Apply to: project page intro text and body text blocks (project pages), the About text (see above). List every other paragraph-size text the builder finds and PROPOSE, do not apply.
+- Trigger: once on entering the viewport (ScrollTrigger, `once: true`, start about 85 %), through the same registry; the demo page shows it. NOT applied to the About text or any real page (see SCOPE). In the status note, only DESCRIBE how the About section text animates today (scroll-scrubbed or not) so Anh can decide later whether `lines` can replace it as an enter animation; change nothing there.
+- Apply to: nothing yet (SCOPE). List in the status note every paragraph-size text the builder finds on the site and PROPOSE which ones `lines` would suit, do not apply.
 
 ### Part C: `smear` (label reveal, video 2)
 Measured (60 fps, zoomed): the label starts as a thin horizontal streak (about 5 % of its height, about 50 % of its width, faint), anchored at the LEFT BASELINE, grows to full size with an ease-out (about 40 % of the way at 0.4 s, about 85 % at 0.6 s, done at about 1.1 s). While it grows the glyphs are cut into horizontal slices that are shifted sideways (noise displacement) and the text is slanted (about 15 degrees, italic look); the slice offsets shrink and are gone by about 1.0 s, the slant is gone by about 1.1 s. The index ("01") starts about 0.15 s after the name with the same slant and distortion.
@@ -328,28 +330,28 @@ Measured (60 fps, zoomed): the label starts as a thin horizontal streak (about 5
   B (SVG feDisplacementMap) is NOT to be used (slow on weak devices and in Safari / Firefox).
 - Tunables start values: `smear.sec` 1.1, `smear.ease` out expo, `startScaleY` 0.05, `startScaleX` 0.5, `startOpacity` 0.3, `skewDeg` 15, `sliceAmp` (as a fraction of the text height) 0.5, `sliceBand` (fraction of the height per slice) 0.06, `sliceNoise` speed 1, `indexDelay` 0.15, `stagger` (several labels at once) 0.1. These are starting guesses: match them to the reference by a contact sheet at t = 0.10, 0.20, 0.27, 0.33, 0.40, 0.47, 0.53, 0.60, 0.70, 0.80, 0.90, 1.00, 1.10 s (our render next to the reference frames, saved in tools/scratch/textfx-shots/) and tune until they read the same; report the final numbers.
 - Out animation: when the active text changes (the project changes), the old one fades out over `outSec` 0.2 s (opacity only) and the new one plays the in animation. If the project changes again while one is playing: cancel the one in flight and start the new one from p = 0 (no stacking, no flash of the old text).
-- Apply to: the Selected Work caption (name + index) on the homepage, the project name on the Work page (this REPLACES the current name reveal; keep R22f: no overshoot on the name; keep the name's trigger = focus at rest as built in R23f), the project page title on entering. List every other display-size text the builder finds (section headings, footer, about heading) and PROPOSE, do not apply.
-- `fade` tier: PRJ / YEAR and nav keep what they do now.
+- Apply to: nothing yet (SCOPE; this includes the Work page name reveal, which stays as built, R22f / R23f). Port the OUT animation and the cancel-and-restart behaviour into the toolkit so a later use gets them. List every display-size text the builder finds (section headings, project names, footer, about heading) and PROPOSE, do not apply.
+- `fade` tier: a plain opacity fade with the same registry options (what PRJ / YEAR and the nav do today is left as it is, not replaced).
 
 ### Part D: checks (full, not fast mode; the 200-seed sweeps stay banned)
 1. Contact sheets: `lines` (frames every 0.1 s over 2.5 s) and `smear` (the 13 times above), at 1920 and 2560, saved for Anh.
-2. Layout identical before and after: bounding boxes of every text element with the effect off (`?fx=0`) and after the effect finished must match to 0.1 px (no shift from the wrappers); the text is selectable and copyable after the effect; screen-reader text is the original sentence.
+2. Layout identical before and after (on the demo page): bounding boxes of every demo text element with the effect off (`?fx=0`) and after the effect finished match to 0.1 px (no shift from the wrappers); the text is selectable and copyable after the effect; screen-reader text is the original sentence.
 3. Fonts: the effect never starts before the fonts are loaded (simulate a slow font); no line-break change after load.
 4. Resize during an animation and after: re-split without replay, no jump, no stuck hidden text.
 5. Tab hidden during an animation: on return the animation finishes or jumps to its end state cleanly (no stuck distortion).
 6. Reduced motion, `?gl=0`, weak-device path, WebGL context loss mid-animation (DOM text must appear, the overlay must disappear), no JS: each shows the text and logs 0 errors.
-7. Rapid project changes on the Selected Work caption and on the Work page (20 changes in 3 s): no stacked animations, no leftover overlay, the final text correct.
+7. Rapid text changes on the demo label (20 changes in 3 s): no stacked animations, no leftover overlay, the final text correct.
 8. Performance: frame time during the animations at 4x CPU throttle (1920 and 2560), idle cost 0 (no rAF, no GL calls when idle), texture memory returned after each animation, no listener or node growth after 200 plays.
-9. Existing gates unchanged: seam 0.00 px and counter order on the Work page, compare 542 / 542 at 1920 and 2560 with `?fx=0` (and one run with the effects on, waiting for the end of every animation), `?gl=0` smoke, homepage unchanged except the listed texts.
+9. Existing pages untouched (the toolkit changes nothing live): npm run build output for main / work / project entries is byte-identical in size to before (report gzip sizes before / after; the text-fx chunk exists but is not referenced by those entries), seam 0.00 px and counter order on the Work page, compare 542/542 at 1920 and 2560 (no `?fx` needed), the Work name reveal and the homepage unchanged, `?gl=0` smoke, 0 console errors. `git diff --stat` of src/work.js, src/main.js, src/project.js, index.html, work/*.html must be empty apart from nothing (these files are not modified).
 
-### Decisions for Anh (the builder reports the current state and applies the default if Anh has not answered)
-1. About text: keep the scroll-scrubbed behaviour (default) or switch to once-on-enter with `lines`?
-2. Which other texts get `smear` / `lines` (the builder proposes a list after scanning).
+### Decisions for Anh (later, when he applies the effects; not part of this run)
+1. Which elements get `smear` / `lines` / `fade`, and on which pages (the builder's proposal list is in the status note).
+2. About text: keep the scroll-scrubbed behaviour or switch to once-on-enter with `lines`.
 3. Out animation: 0.2 s fade (default) or a short reverse smear.
-4. Hero captions: untouched (default) or `smear`.
+4. Hero captions: untouched or `smear`.
 
 ### Report
-`docs/status.md`: what was applied where, the final tuned numbers vs the starting guesses, the pixel-diff numbers at the swap, frame times, anything not matching the reference and why. Commit after each Part.
+`docs/status.md`: that nothing was applied to a live page (the diff proof of check 9), the final tuned numbers vs the starting guesses, the pixel-diff numbers at the swap, frame times, anything not matching the reference and why. Commit after each Part.
 
 ## R24 (queued): phone and tablet
 Phone: full-screen hero only (video fills the screen, tap to spawn images, AV wordmark bottom-left at the desktop width, burger menu with About / Works / Contact, loader kept); everything else lives on the Work page. Work page on phone: side scroll only, no toggle, lighter card layer. Tablet: portrait layouts for the home and project pages. Prototype of the hero: the phone hero artifact from the Cowork session (single HTML). Also: svh/lvh units, ScrollTrigger ignoreMobileResize, project page responsive rules (stack on phone, swipe rows, pinned scroller becomes swipe + snap).
