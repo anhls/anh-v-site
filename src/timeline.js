@@ -261,9 +261,9 @@ export const WORK = {
   // leading side, riseSec / settleSec = how fast it grows while the strip moves / eases flat after it stops.
   cardWarp: { strength: 1.15, riseSec: 1.5, settleSec: 1.4, curl: 0.5, camDown: 1.25, camUp: 1.25, bowDown: 0, bowUp: 0.05, reach: 1, sym: 1 },
   // R33b: Anh's tuned image warp (grid twin: 0 folds, 0 samples outside the buffer at strength 1.6); the phone / tablet pages keep the R24j look below (TALL.frameWarp)
-  frameWarp: { strength: 1.6, riseSec: 2.2, settleSec: 1.9, curl: 0.56, camDown: 2.24, camUp: 2.13, bowDown: 0.085, bowUp: 0.095, reach: 0.8, sym: 1, speedRef: 5, speedPow: 1.4, speedKnee: 2, lean: 0.4, leanSign: 1, leanSignDown: -1, leanSignUp: 1, leanMax: 0.45, leanBuf: 0.3 }, // R33: leanSignDown / leanSignUp = the lean's sign per scroll direction (down = wheel down: -1 leans AGAINST the motion; up +1 = toward it, as before); R24i: lean = how far (screen lengths along the strip, at warp amount 1) the cylinder axis moves toward where the images travel on screen; leanSign -1 flips it; leanMax caps the shift; lean 0 = the centred axis of before
+  frameWarp: { strength: 1.6, riseSec: 2.2, settleSec: 1.9, curl: 0.79, camDown: 2.24, camUp: 3.37, bowDown: 0.085, bowUp: 0.315, reach: 0.7, sym: 1, speedRef: 5, speedPow: 1.4, speedKnee: 2, lean: 0.4, leanSign: 1, leanSignDown: -1, leanSignUp: 1, leanMax: 0.45, leanBuf: 0.3 }, // R33: leanSignDown / leanSignUp = the lean's sign per scroll direction (down = wheel down: -1 leans AGAINST the motion; up +1 = toward it, as before); R24i: lean = how far (screen lengths along the strip, at warp amount 1) the cylinder axis moves toward where the images travel on screen; leanSign -1 flips it; leanMax caps the shift; lean 0 = the centred axis of before
   morphSec: 2, morphStagger: 0.45, morphEase: 3, morphLanding: 0.12, dupGap: 40,
-  snapDelay: 1, snapWindow: 0.5, snapSec: 2, focusScale: 1.14, focusPush: 95, focusNeighbour: 0.06, focusRampSec: 1.25, focusPushRadius: 400, focusPushOthers: 0.6,
+  snapDelay: 1, snapWindow: 0.5, snapSec: 1, focusScale: 1.14, focusPush: 95, focusNeighbour: 0.06, focusRampSec: 1.25, focusPushRadius: 400, focusPushOthers: 0.6,
   // R22e overshoot (src/util/overshoot.js; 0 = the old curve): the end passes the target by this share of the distance / value once, then settles.
   // overshootSettle = the share of a clocked animation (snap, morph, drag release) the settle takes; followerSettleSec = the same in seconds for the
   // focus (its bump plays when a build completes). The R25 transition and the homepage animations do not use it.
@@ -314,12 +314,17 @@ export const WORK_INFO = {
   side: { tagsDx: -1.5, rowTop: -156, yearRight: -281, descLeft: -218, descW: 200 }, // above the image: block top = image top + rowTop; year's right edge = image right + yearRight; description from image right + descLeft
   vertical: { tagsRight: -211, yearLeft: 62, descLeft: 162, descW: 200 }, // beside the image: tags' left = image left + tagsRight; year / description from the image's right edge
 };
-export const WORK_RULER = { pitch: 21, extra: 5.5, dot: 3, bar: 34, barW: 2, rulerDimOpacity: 0.45, rulerShrinkSec: 0.25, rulerGrowSec: 0.4, side: { x: 962, bottom: 42 }, vertical: { x: 55, y: 531 } };
+export const WORK_RULER = { pitch: 21, extra: 5.5, dot: 3, bar: 34, barW: 2, rulerDimOpacity: 0.45, rulerCentreMin: 0.9, rulerShrinkSec: 0.25, rulerGrowSec: 0.4, side: { x: 962, bottom: 42 }, vertical: { x: 55, y: 531 } };
 // R33 text field: the title / info / counter sit at their reference place (they do not follow the strip). While the strip moves the text blurs out (textBlurPx, to opacity 0 over
 // textOutSec); its content swaps while hidden; when the next image is in focus (the strip rests and is centred for textDelay s) it refocuses in place over textInSec (the title also
 // rises titleRise px at 1920). Counter: an odometer; it rolls with the strip at most counterMaxSteps numbers per second, settles over counterSettleSec (counterOvershoot = most it passes
 // the target, in digit heights, 0 = none) and blurs vertically by up to counterBlurPx while rolling.
-export const WORK_TEXT = { textBlurPx: 8, textBlurInSec: 0.2, textBlurOutSec: 1.3, textDelay: 0.25 };
+export const WORK_TEXT = { textBlurPx: 8, textBlurInSec: 0.2, textBlurOutSec: 1.3, swapHoldMs: 60, scrollStopSec: 0.15, scrollStopSpeed: 0.05, titleOutSec: 0.2 };
+// R33c: the title is NOT blurred: it fades out while the strip moves (titleOutSec) and plays the R27 `smear` reveal (src/effects/text-fx/smear.js) at scroll stop. scrollStopSec = no input for this long
+// (scrollStopSpeed = a coasting drag / flick counts as moving until it is slower than this, in screen lengths / s). Smear numbers, fitted to docs/reference/text-fx-label.mov (R33c): smearSec = the whole effect; the growth is an ease out (power growPow) over growSec; skewHold / skewSec and sliceHold / sliceSec = how long the slant / the slices keep full size and then fade out; startScaleX / Y
+// (the streak it grows from, anchored at the left baseline), startOpacity, skewDeg (gone after skewSec), the slices (sliceAmp = most a slice moves, as a share of the text height, gone after sliceSec;
+// sliceBand = slice height as a share of the text box; sliceNoise = how fast the offsets change); for the big title the slice shift is also capped to what the image rectangle + spill allows.
+export const WORK_SMEAR = { smearSec: 0.9, growSec: 0.42, growPow: 1.6, startScaleX: 0.5, startScaleY: 0.05, startOpacity: 0.3, skewDeg: 22, skewHold: 0.25, skewSec: 0.6, sliceHold: 0.2, sliceSec: 0.55, sliceAmp: 0.5, sliceBand: 0.045, sliceSmooth: 0.85, sliceNoise: 1 };
 // R33b: the pixel smear (Codrops pixel-distortion grid, work/pointer-fx.js) on every picture of the strip. on 0 = off (also off for touch, ?gl=0, reduced motion, weak devices).
 // pixelGrid = columns of the screen-space grid (rows follow the aspect); pixelBrush = brush radius (share of the image height); pixelStrength = picture units moved per grid unit;
 // pixelRelax = what is left of a cell after 1/60 s; pixelVelMax = most a cell can hold (a fast flick cannot tear the picture); pixelRgb = colour split; pixelSideMul = share of the

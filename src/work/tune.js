@@ -1,6 +1,6 @@
-import { WORK, WORK_V2, WORK_TEXT, WORK_PTR, WORK_TITLE, WORK_INFO, WORK_RULER, WORK_COUNTER, WORK_UI, WORK_LIMITS, CARD_HOVER, DEPTH, SCROLL, BAND_RULES, TRANSITION, TALL, TABLET } from '../timeline.js';
+import { WORK, WORK_V2, WORK_TEXT, WORK_SMEAR, WORK_PTR, WORK_TITLE, WORK_INFO, WORK_RULER, WORK_COUNTER, WORK_UI, WORK_LIMITS, CARD_HOVER, DEPTH, SCROLL, BAND_RULES, TRANSITION, TALL, TABLET } from '../timeline.js';
 import { EASES } from '../util/ease.js';
-import { tuneStore, makeCollapse, tuneGroups } from '../effects/tune-store.js';
+import { tuneStore, makeCollapse, tuneGroups, legacySwitch } from '../effects/tune-store.js';
 import { tuneDoc } from '../effects/tune-docs.js';
 
 // Dev-only sliders for the Work page (?tune). Layout, gap, warp, snap, focus and morph numbers write straight into WORK (relayout() re-places
@@ -39,14 +39,15 @@ const TRANS = [['sec', 'Open project: the move (s)', 0.2, 2.5, 0.05], ['fadeSec'
 // R32 Work page v2 (desktop): image size and gaps, the title, the info blocks, the ruler, the counter, the switch copy. All redraw through relayout().
 const V2_SLIDERS = [
   [WORK_V2, 'WORK_V2', [['frameW', 'Image width (vw)', 30, 75, 0.1], ['frameH', 'Image height limit (vh)', 25, 75, 0.1], ['gapSide', 'Gap, side (vw)', 0.5, 12, 0.05], ['gapVert', 'Gap, vertical (vh)', 0.5, 20, 0.05], ['focusScale', 'Centre image growth (x)', 0.9, 1.3, 0.005], ['focusNeighbour', 'Neighbours move away (share of the pitch)', 0, 0.2, 0.005], ['hoverOn', 'Hover enlarge on (1) / off (0)', 0, 1, 1], ['hoverScale', 'Hover enlarge: centre image growth (x)', 1, 1.15, 0.005], ['hoverSec', 'Hover enlarge: ease time (s)', 0.1, 2, 0.05], ['hoverClickSec', 'Hover enlarge: ease back on a click (s)', 0.02, 0.6, 0.01]]],
-  [WORK_TEXT, 'WORK_TEXT', [['textBlurPx', 'Text: blur while the strip moves (px)', 0, 30, 0.5], ['textBlurInSec', 'Text: blur-in time (s)', 0.02, 1, 0.01], ['textBlurOutSec', 'Text: blur-out time at rest (s)', 0.1, 3, 0.05], ['textDelay', 'Text: starts to sharpen this long after the strip rests (s)', 0, 1, 0.01]]],
+  [WORK_TEXT, 'WORK_TEXT', [['textBlurPx', 'Info text: blur while the strip moves (px)', 0, 30, 0.5], ['textBlurInSec', 'Info text: blur-in time (s)', 0.02, 1, 0.01], ['textBlurOutSec', 'Info text: blur-out time after the stop (s)', 0.1, 3, 0.05], ['swapHoldMs', 'Info text: hold at full blur before the swap (ms)', 0, 400, 5], ['scrollStopSec', 'Scroll stop: no input for (s)', 0.02, 1, 0.01], ['scrollStopSpeed', 'Scroll stop: a coast slower than this counts as stopped (screen lengths / s)', 0.005, 0.5, 0.005], ['titleOutSec', 'Title: fade-out time when the strip moves (s)', 0.02, 1, 0.01]]],
+  [WORK_SMEAR, 'WORK_SMEAR', [['smearSec', 'Title smear: whole effect (s)', 0.3, 2.5, 0.05], ['growSec', 'Title smear: growth time (s)', 0.1, 1.5, 0.01], ['growPow', 'Title smear: growth curve (higher = faster start)', 1, 4, 0.05], ['startScaleX', 'Title smear: start width (share)', 0.1, 1, 0.01], ['startScaleY', 'Title smear: start height (share)', 0.01, 1, 0.01], ['startOpacity', 'Title smear: start opacity', 0, 1, 0.01], ['skewDeg', 'Title smear: slant (degrees)', 0, 45, 0.5], ['skewHold', 'Title smear: slant keeps full size for (s)', 0, 1, 0.01], ['skewSec', 'Title smear: slant fades out over (s)', 0.05, 1.5, 0.01], ['sliceAmp', 'Title smear: slice shift (share of the text height)', 0, 1.5, 0.01], ['sliceBand', 'Title smear: slice height (share of the text box)', 0.01, 0.2, 0.005], ['sliceSmooth', 'Title smear: slices smooth (1) or stepped (0)', 0, 1, 0.05], ['sliceNoise', 'Title smear: how fast the slices change', 0, 4, 0.1], ['sliceHold', 'Title smear: slices keep full size for (s)', 0, 1, 0.01], ['sliceSec', 'Title smear: slices fade out over (s)', 0.05, 1.5, 0.01]]],
   [WORK_COUNTER, 'WORK_COUNTER', [['counterSettleSec', 'Counter: settle time (s)', 0.1, 1, 0.01], ['counterBlurPx', 'Counter: rolling blur (px)', 0, 20, 0.5], ['counterMaxSteps', 'Counter: fastest roll (numbers / s)', 2, 40, 1], ['counterOvershoot', 'Counter: overshoot (digit heights)', 0, 0.3, 0.005]]],
   [WORK_PTR, 'WORK_PTR', [['on', 'Pixel smear on (1) / off (0)', 0, 1, 1], ['pixelGrid', 'Pixel smear: grid columns (blockiness)', 8, 96, 1], ['pixelBrush', 'Pixel smear: brush radius (share of the image height)', 0.03, 0.6, 0.01], ['pixelStrength', 'Pixel smear: strength', 0, 0.2, 0.002], ['pixelRelax', 'Pixel smear: relax per 1/60 s (higher = longer trail)', 0.5, 0.99, 0.005], ['pixelVelMax', 'Pixel smear: fastest pointer taken in', 0.2, 8, 0.1], ['pixelRgb', 'Pixel smear: colour split', 0, 0.06, 0.001], ['pixelSideMul', 'Pixel smear: share on the side pictures (0 = centre only)', 0, 2, 0.05], ['pixelSpill', 'Pixel smear: spill past the picture edge (px at 1920)', 0, 120, 1], ['clickSec', 'Pixel smear: eases out on a click / drag (s)', 0.02, 0.6, 0.01], ['warpCap', 'Pixel smear: fades with the scroll warp (1 = gone at full warp)', 0, 2, 0.05]]],
   [WORK_TITLE, 'WORK_TITLE', [['specimenFrac', 'Title: size (specimen width / image width)', 0.4, 1.1, 0.005], ['fitFrac', 'Title: widest allowed (share of the image width)', 0.4, 1.1, 0.005], ['minScale', 'Title: smallest shrink before words are cut', 0.4, 1, 0.01], ['baseDy', 'Title: baseline below the image centre (px at 1920)', -100, 200, 1], ['dx', 'Title: shift sideways (px at 1920; the letters sit 3 px left of the image centre in the reference)', -30, 30, 0.5], ['fadeIn', 'Title: fully visible within (pitches from the centre)', 0, 0.5, 0.01], ['fadeOut', 'Title: gone beyond (pitches)', 0.1, 1, 0.01], ['fastFrom', 'Title / info: fade out from this strip speed (screen lengths / s)', 0.2, 8, 0.1], ['fastTo', 'Title / info: gone at this speed (screen lengths / s)', 0.5, 12, 0.1], ['fastSec', 'Title / info: back after a flick in (s)', 0.01, 1.5, 0.01]]],
   [WORK_INFO, 'WORK_INFO', [['fadeIn', 'Info block: fully visible within (pitches)', 0, 0.5, 0.01], ['fadeOut', 'Info block: gone beyond (pitches)', 0.1, 1, 0.01]]],
   [WORK_INFO.side, 'WORK_INFO.side', [['tagsDx', 'Info, side: tags x from the image edge (px at 1920)', -100, 100, 0.5], ['rowTop', 'Info, side: block top above the image (px at 1920)', -400, 0, 1], ['yearRight', 'Info, side: year right edge from the image right (px)', -600, 0, 1], ['descLeft', 'Info, side: description left from the image right (px)', -600, 0, 1]]],
   [WORK_INFO.vertical, 'WORK_INFO.vertical', [['tagsRight', 'Info, vertical: tags left from the image left (px)', -500, 0, 1], ['yearLeft', 'Info, vertical: year from the image right (px)', 0, 300, 1], ['descLeft', 'Info, vertical: description from the image right (px)', 0, 400, 1]]],
-  [WORK_RULER, 'WORK_RULER', [['pitch', 'Ruler: spacing between dots (px at 1920)', 8, 50, 0.5], ['extra', 'Ruler: extra room around the bar (px)', 0, 20, 0.5], ['dot', 'Ruler: dot size (px)', 1, 8, 0.5], ['bar', 'Ruler: bar length (px)', 10, 80, 1], ['barW', 'Ruler: bar thickness (px)', 1, 6, 0.5], ['rulerDimOpacity', 'Ruler: dot brightness (dim opacity)', 0.1, 1, 0.01], ['rulerShrinkSec', 'Ruler: bar shrinks to a dot in (s)', 0.05, 1.5, 0.01], ['rulerGrowSec', 'Ruler: next dot lights and grows in (s)', 0.05, 2, 0.01]]],
+  [WORK_RULER, 'WORK_RULER', [['pitch', 'Ruler: spacing between dots (px at 1920)', 8, 50, 0.5], ['extra', 'Ruler: extra room around the bar (px)', 0, 20, 0.5], ['dot', 'Ruler: dot size (px)', 1, 8, 0.5], ['bar', 'Ruler: bar length (px)', 10, 80, 1], ['barW', 'Ruler: bar thickness (px)', 1, 6, 0.5], ['rulerDimOpacity', 'Ruler: dot brightness (dim opacity)', 0.1, 1, 0.01], ['rulerShrinkSec', 'Ruler: bar shrinks to a dot in (s)', 0.05, 1.5, 0.01], ['rulerGrowSec', 'Ruler: next dot lights and grows in (s)', 0.05, 2, 0.01], ['rulerCentreMin', 'Ruler: the dot nearest the centre never dims below', 0.3, 1, 0.01]]],
 ];
 const RELOAD = [
   ['minN', 'Cards per project, min', 0, 12, 1], ['maxN', 'Cards per project, max', 1, 16, 1], ['minA', 'Area min (px2 at 1920)', 0, 800000, 10000], ['maxA', 'Area max (px2 at 1920)', 50000, 1200000, 10000],
@@ -64,7 +65,8 @@ export function mountWorkTune({ relayout }) {
   const content = document.createElement('div');
   box.append(head, content);
   box.setAttribute('data-tune-box', '');
-  const groups = tuneGroups(content, 'work', store, tuneDoc); // R22h: Active / Settled + the descriptions
+  const groups = tuneGroups(content, 'work', store, tuneDoc); // R22h: Active / Settled + the descriptions; R33c: + Legacy (hidden)
+  legacySwitch(content, 'work', store);
   const readouts = [];
   const add = (group, obj, [key, label, min, max, step], onInput) => {
     const id = `${group}.${key}`;
@@ -112,7 +114,7 @@ export function mountWorkTune({ relayout }) {
     const hd = document.createElement('div');
     hd.style.cssText = 'margin-top:10px;font-weight:600';
     hd.textContent = title;
-    groups.header(hd);
+    groups.header(hd, { legacy: block === 'cardWarp' });
     WARP_SLIDERS.concat(block === 'frameWarp' ? LEAN_SLIDERS : []).forEach((d) => { defs[add(`WORK.${block}`, WORK[block], d)] = [WORK[block], d[0]]; });
   }
   { // R32
@@ -149,7 +151,7 @@ export function mountWorkTune({ relayout }) {
   const h = document.createElement('div');
   h.style.cssText = 'margin-top:10px;font-weight:600';
   h.textContent = 'Which cards (Apply reloads)';
-  groups.header(h);
+  groups.header(h, { legacy: true });
   add('DEPTH', DEPTH, ['frontShare', 'Cards in front of the image (share)', 0, 1, 0.01]);
   add('HOVER', CARD_HOVER, ['darkShare', 'Dark rest layer: share', 0, 1, 0.01]);
   RELOAD.forEach((d) => add('WORK_LIMITS', WORK_LIMITS, d));

@@ -52,6 +52,32 @@ export const TUNE_SETTLED = {
   project: ['SCROLL.gainCap', 'SCROLL.gainFrom', 'SCROLL.gainTo'],
 };
 
+// R33c: LEGACY controls. The default ?tune view shows only what was touched in the recent rounds (R24 onward); everything else sits in ONE collapsed "Legacy (hidden)" group at the bottom
+// that stays hidden until the "Show legacy" switch at the top of the panel is on (the switch is remembered in the panel's own store as '@legacy'). Nothing is deleted: the rows, their
+// descriptions, stored values and the exported JSON are unchanged, a hidden row is only display:none. A row is legacy when its id matches TUNE_LEGACY[panel] (a function of the id).
+//   work: the card layout / solver (frame, gap, overlap, minGap, slack, dup, seed), the card warp, the old focus, the morph, the ambient drift, the speed lead, the overshoot / force numbers,
+//   the wheel acceleration, the card limits (Which cards), the old toggle morph and the old focus-after-morph; kept: Work v2 (WORK_*), the image warp + lean, wheel, drag / glide / snap, ease,
+//   the project transition, the phone / tablet group.   home: every homepage group (the homepage design is parked, not touched since R22j / R29).
+const WORK_KEEP = /^(WORK_(V2|TEXT|COUNTER|RULER|PTR|TITLE|INFO|SMEAR|UI)\b|WORK\.frameWarp\.|TALL\.|TABLET\.|TRANSITION\.|WORK\.(wheel|dragFriction|dragMaxCoast|dragCoastKnee|dragSnapBlend|snapDelay|snapWindow|snapSec|snapOvershoot|easeType|easeSoftness)$)/;
+export const TUNE_LEGACY = {
+  work: (id) => !WORK_KEEP.test(id),
+  home: () => true,
+};
+const legacyBoxes = {}; // panel -> [{ box, count }]
+const legacyOn = (panel, store) => !!store.values()['@legacy'];
+export function legacySwitch(parent, panel, store, onChange) {
+  const row = document.createElement('label');
+  row.style.cssText = 'display:flex;gap:8px;align-items:center;margin:8px 0 4px;cursor:pointer';
+  const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = legacyOn(panel, store);
+  const t = document.createElement('span'); t.textContent = 'Show legacy';
+  row.append(cb, t);
+  const apply = () => { (legacyBoxes[panel] || []).forEach((b) => { b.box.style.display = cb.checked && b.n() ? '' : 'none'; }); };
+  cb.addEventListener('change', () => { store.set('@legacy', cb.checked ? 1 : 0); apply(); onChange?.(cb.checked); });
+  parent.prepend(row);
+  setTimeout(apply, 0);
+  return { apply, get on() { return cb.checked; } };
+}
+
 // One shared floating description: shown while the pointer is over a control or the control has keyboard focus, to the left of the panel.
 let tipEl = null;
 const tip = () => {
@@ -89,11 +115,25 @@ export function attachTip(row, text) {
 // per section): the open state is shared.
 export function tuneGroups(parent, panel, store, getDoc = () => '') {
   const settledIds = new Set(TUNE_SETTLED[panel] || []);
+  const isLegacy = TUNE_LEGACY[panel] || (() => false);
   const kept = store.values();
   const promoted = new Set(Object.keys(kept).filter((k) => k.startsWith('@active:')).map((k) => k.slice(8)));
   const active = document.createElement('div');
   parent.append(active);
-  let settled = null, count = null;
+  let settled = null, count = null, legacy = null;
+  const ensureLegacy = () => { // the Legacy (hidden) group: a collapsed <details>, shown only while the panel's "Show legacy" switch is on
+    if (legacy) return legacy;
+    legacy = document.createElement('details');
+    legacy.setAttribute('data-legacy', '');
+    legacy.style.cssText = 'margin-top:10px;border-top:1px solid rgba(255,255,255,.2);padding-top:6px;display:' + (legacyOn(panel, store) ? '' : 'none');
+    const sum = document.createElement('summary');
+    sum.style.cssText = 'cursor:pointer;font-weight:600;opacity:.85';
+    sum.append('Legacy (hidden) ');
+    legacy.append(sum);
+    parent.append(legacy);
+    (legacyBoxes[panel] ||= []).push({ box: legacy, n: () => legacy.querySelectorAll('input,select').length });
+    return legacy;
+  };
   const OPEN = `tune-settled-open:${panel}`;
   const isOpen = () => { try { return sessionStorage.getItem(OPEN) === '1'; } catch { return false; } };
   const rows = [];
@@ -118,11 +158,12 @@ export function tuneGroups(parent, panel, store, getDoc = () => '') {
     if (settled) settled.style.display = n ? '' : 'none';
   };
   return {
-    header: (el) => active.append(el),
+    header: (el, opts) => (opts && opts.legacy ? ensureLegacy() : active).append(el),
     add(id, row) {
-      const r = { id, row, inSettled: settledIds.has(id) && !promoted.has(id) };
+      const leg = isLegacy(id);
+      const r = { id, row, inSettled: !leg && settledIds.has(id) && !promoted.has(id) };
       rows.push(r);
-      (r.inSettled ? ensureSettled() : active).append(row);
+      (leg ? ensureLegacy() : r.inSettled ? ensureSettled() : active).append(row);
       attachTip(row, getDoc(id));
       row.addEventListener('input', () => {
         if (!r.inSettled) return;

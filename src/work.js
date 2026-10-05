@@ -463,12 +463,14 @@ let focusHeld = false, focusHoldUntil = 0;
 const holdFocus = () => { focusHeld = WORK.focusAfterMorph !== 0; focusHoldUntil = 0; };
 const focusOff = (now) => focusHeld && (!!morph || (typeof WORK.focusAfterMorph === 'number' ? now < focusHoldUntil : true));
 const inputRelease = () => { if (focusHeld && !morph && WORK.focusAfterMorph === 'input') focusHeld = false; };
-const cancelSnap = () => { snap = null; snapForce = 0; lastWheel = performance.now(); wmScrolled = true; arrivalHold = false; inputRelease(); };
+const cancelSnap = () => { snap = null; snapForce = 0; lastWheel = performance.now(); inputAt = lastWheel; wmScrolled = true; arrivalHold = false; inputRelease(); };
 // ---- R22e: hold and drag (desktop mouse). The strip follows the pointer 1:1 (the scroll gain does not apply) along the mode's axis; on release
 // it keeps the pointer's speed and loses it by friction (R22i: speed x exp(-t / WORK.dragFriction), distance = speed x friction time, capped at
 // WORK.dragMaxCoast pitches; no overshoot; it ends when the speed is under 5 px/s)
 // and then the soft snap takes over as usual. A drag past 6 px swallows the click that would open a project; a plain click still works.
 // Everything moves `off` only: Lenis (R23c re-base handling, gain) and the counter are untouched. Wheel / key / touch / a new grab cancel it.
+const snapSecNow = () => (lite ? 2 : WORK.snapSec); // (R33c: WORK.snapSec 1 is for the desktop page; the phone / tablet snap keeps its 2 s)
+let inputAt = 0; // R33c: the last wheel / key / touch / press / drag movement (the scroll-stop clock)
 let drag = null; // { id, last, total, captured, samples: [[t, pos]] }
 let inertia = null; // { from, v0, F, t0 }
 let dragMoved = false;
@@ -515,7 +517,7 @@ addEventListener('pointerdown', (e) => {
   if (e.target.closest?.('.work__toggle, .work__count, .w2__hit, .tmenu__btn, .tmenu, [data-tune-panel]') || e.target.closest?.('div[style*="99999"]')) return;
   dragMoved = false; swipePeak = 0; curSwipe = null;
   drag = { id: e.pointerId, mouse: e.pointerType === 'mouse', thr: e.pointerType === 'mouse' ? 6 : 10, last: axisOf(e), total: 0, captured: false, samples: [[performance.now(), axisOf(e)]] };
-  inertia = null; snap = null; snapForce = 0; lastWheel = performance.now(); wmScrolled = true; inputRelease();
+  inertia = null; snap = null; snapForce = 0; lastWheel = performance.now(); inputAt = lastWheel; wmScrolled = true; inputRelease();
   e.preventDefault(); // no text selection, no image drag
 }, { capture: true });
 addEventListener('pointermove', (e) => {
@@ -570,8 +572,8 @@ const updateNames = () => {
   });
 };
 
-let ptrFx = null, v2MotionAt = 0; const hzA = new Float64Array(N); // R33: the last time the strip moved / the hover growth (0..1)
-const v2s = { pos: 0, idx: 0, kTarget: 0, vertical: false, morph: false, focused: false, rest: false, dt: 0.016 };
+let ptrFx = null, v2StopAt = 0; const hzA = new Float64Array(N); // R33: the last time the strip moved / the hover growth (0..1)
+const v2s = { pos: 0, idx: 0, kHead: 0, idxHead: 0, kNum: 1, vertical: false, morph: false, stopped: false, dt: 0.016 };
 const tick = (_time, deltaMs) => {
   if (import.meta.env.DEV && window.__guardBusy) { const t0 = performance.now(); while (performance.now() - t0 < window.__guardBusy); } // dev only: a test hook that makes every frame slow (the frame-time guard test)
   const dt = Math.min(deltaMs, 50) / 1000;
@@ -609,7 +611,7 @@ const tick = (_time, deltaMs) => {
   const snapOk = glOn && !reduced && !morph, sdMs = (lite ? TALL.snapDelay : WORK.snapDelay) * 1000; // R24g: the lite snap waits 0.35 s after the last movement, not 1 s
   if (snapOk) {
     if (snap) {
-      const t = Math.min(1, (now - snap.t0) / 1000 / Math.max(WORK.snapSec, 0.05));
+      const t = Math.min(1, (now - snap.t0) / 1000 / Math.max(snapSecNow(), 0.05));
       const target = snap.from + (snap.to - snap.from) * withOvershoot(workEase(WORK), WORK.snapOvershoot * qForce(snap.force), WORK.overshootSettle)(t);
       const sPrev = S;
       off += target - S; S = target;
@@ -620,7 +622,7 @@ const tick = (_time, deltaMs) => {
       // Lenis glide is not trusted that long either (see `late`)
       // the wheel has been quiet and Lenis' glide is nearly over: where the glide will end (S + what is left of it) picks the project
       const pt = cur().pitch, late = now - lastWheel > sdMs + 600, pred = late ? S : S + (lenis.targetScroll - lenis.animatedScroll) * WORK.wheel, k = Math.round(pred / pt), d = k * pt - pred;
-      if (Math.abs(d) <= WORK.snapWindow * pt && Math.abs(k * pt - S) > 0.5) { snapForce = moveForce(k * pt - S, scale, workEase(WORK), WORK.snapSec, WORK); snap = { from: S, to: k * pt, t0: now, force: snapForce }; }
+      if (Math.abs(d) <= WORK.snapWindow * pt && Math.abs(k * pt - S) > 0.5) { snapForce = moveForce(k * pt - S, scale, workEase(WORK), snapSecNow(), WORK); snap = { from: S, to: k * pt, t0: now, force: snapForce }; }
     }
   } else snap = null;
   prevS = S;
@@ -776,12 +778,19 @@ const tick = (_time, deltaMs) => {
   const idx = ((kCount % N) + N) % N;
   if (idx !== lastIdx) { lastIdx = idx; clearTimeout(preT); preT = setTimeout(() => preloadHeader(projects[idx].slug, heroRef(projects[idx])), 700); /* R25: the centred project's header image is fetched once it rests */ if (!ui) countEl.textContent = `${String(idx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`; }
 
-  if (ui) { // R32 / R33: the text field, counter and ruler. focused = the strip rests (centred on an image when the snap exists) for textDelay s
-    const ptn = L.pitch, moving = !!morph || !!drag || !!inertia || !!snap || Math.abs(vel) > 5 || (snapOk && Math.abs(S - Math.round(S / ptn) * ptn) > 0.5);
-    if (moving) v2MotionAt = now;
-    v2s.pos = pos; v2s.idx = idx; v2s.idxNum = idx + 1; v2s.vertical = morph ? morph.to === 'vertical' : vertical; v2s.morph = !!morph; v2s.dt = dt;
-    v2s.focused = !moving && TP.q < 0 && !TC.on && now - v2MotionAt > WORK_TEXT.textDelay * 1000;
-    v2s.rest = !moving;
+  if (ui) { // R32 / R33c: the text field, counter and ruler. SCROLL STOP = no input for scrollStopSec (a coasting drag counts as moving until it is slower than scrollStopSpeed), the strip may still
+    // be gliding / snapping to its image: the project it is HEADING to is then the active one.
+    const ptn = L.pitch;
+    if (drag) inputAt = now;
+    const inSpeed = inertia ? Math.abs(inertia.v0) * Math.exp(-((now - inertia.t0) / 1000) / Math.max(inertia.F || 0.6, 0.05)) : 0;
+    const stopped = !morph && !drag && TP.q < 0 && !TC.on && now - inputAt > WORK_TEXT.scrollStopSec * 1000 && (!inertia || inSpeed < WORK_TEXT.scrollStopSpeed * L.M.viewAlong);
+    let kHead;
+    if (snap) kHead = Math.round(snap.to / ptn);
+    else if (inertia) kHead = Math.round((inertia.from + (inertia.D !== undefined ? inertia.D : inertia.v0 * inertia.F)) / ptn);
+    else kHead = Math.round((S + (lenis.targetScroll - lenis.animatedScroll) * WORK.wheel) / ptn);
+    v2s.pos = pos; v2s.idx = idx; v2s.kHead = kHead; v2s.idxHead = ((kHead % N) + N) % N; v2s.kNum = (stopped ? kHead : kCount) + 1;
+    v2s.vertical = morph ? morph.to === 'vertical' : vertical; v2s.morph = !!morph; v2s.dt = dt; v2s.stopped = stopped;
+    if (!stopped) v2StopAt = 0; else if (!v2StopAt) { v2StopAt = now; if (window.__stopLog) window.__stopLog.push({ at: now, since: now - inputAt }); }
     ui.frame(v2s);
   }
   if (ui && glOn) { // R33b: the pixel smear on every picture (only with a fine pointer; cards-gl is null on reduced motion / weak devices / ?gl=0)

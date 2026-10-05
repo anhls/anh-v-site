@@ -1,4 +1,4 @@
-import { tuneStore, makeCollapse, tuneGroups } from './tune-store.js';
+import { tuneStore, makeCollapse, tuneGroups, legacySwitch } from './tune-store.js';
 import { tuneDoc } from './tune-docs.js';
 import { BAND_RULES, SCROLL, DEPTH, POOL, BAND_LIMITS, CARDS, TRAIL, LAYOUT, BEND, WARP, FRAME_WARP, CARD_HOVER, CAPTION_HOVER } from '../timeline.js';
 
@@ -210,6 +210,12 @@ export function mountTunePanel({ trail, cards } = {}) {
     pts.textContent = `start ${Math.round(st.start)} px (${(st.start / H * 100).toFixed(0)} vh), fade ${Math.round(st.fadeStart)} to ${Math.round(st.fadeEnd)} px (${(st.fadeStart / H * 100).toFixed(0)} to ${(st.fadeEnd / H * 100).toFixed(0)} vh)`;
   };
   showPts();
+
+  // R33c: every homepage group is legacy (parked design): hidden until "Show legacy" is on; a section with no visible control is hidden with them
+  let legacySw = null;
+  const refreshSections = () => body.querySelectorAll(':scope > details').forEach((d) => { d.style.display = legacySw?.on || [...d.querySelectorAll('input,select')].some((i) => !i.closest('[data-legacy]')) ? '' : 'none'; });
+  legacySw = legacySwitch(body, 'home', store, refreshSections);
+  refreshSections();
 
   box.addEventListener('click', async (e) => {
     const act = e.target.closest('[data-act]')?.dataset.act;
