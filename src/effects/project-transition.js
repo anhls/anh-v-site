@@ -66,16 +66,17 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
       box.style.width = `${rect.w + (W - rect.w) * e}px`; box.style.height = `${rect.h + (H - rect.h) * e}px`;
       const L = `${rel.x * (1 - e)}px`, Tp = `${rel.y * (1 - e)}px`, Wd = `${rel.w + (W - rel.w) * e}px`, Ht = `${rel.h + (H - rel.h) * e}px`;
       for (const im of [a, b]) { im.style.left = L; im.style.top = Tp; im.style.width = Wd; im.style.height = Ht; }
-      if (onPush) onPush(ease(Math.min(1, (prog.p * T.sec) / Math.max(T.pushSec, 0.01))));
+      if (onPush) { const u = Math.min(1, (prog.p * T.sec) / Math.max(T.pushSec, 0.01)); onPush(ease(u), u); }
       if (crossfade) { const q = Math.min(1, Math.max(0, (prog.p - T.crossFrom) / Math.max(T.crossTo - T.crossFrom, 0.01))); const s = q * q * (3 - 2 * q); b.style.opacity = s; a.style.opacity = 1 - s * (b.complete ? 1 : 0); }
     },
   }, 0);
-  tl.to(bg, { opacity: 1, duration: T.fadeSec, ease: 'sine.inOut' }, 0);
+  const bgMax = fromWork ? T.blackMax : 1; // R30: on the Work page path the clearing push does the job, the black layer only goes as far as blackMax
+  if (bgMax > 0) tl.to(bg, { opacity: bgMax, duration: T.fadeSec, ease: 'sine.inOut' }, 0);
   if (fade.length) tl.to(fade, { opacity: 0, duration: Math.min(T.fadeSec, 0.3), ease: 'none' }, 0);
   if (import.meta.env.DEV) { window.__pxTl = tl; if (window.__pxFreeze) tl.pause(); } // dev checks: freeze at the first frame
   const finish = () => {
     try { sessionStorage.setItem('pxt', JSON.stringify({ slug, src: headerFile(), t: Date.now(), wm: document.querySelector('a.wordmark')?.classList.contains('is-link') ? 1 : 0 })); } catch { /* private window: the page just loads */ }
-    if (fromWork) { try { sessionStorage.setItem('pxb', JSON.stringify({ slug, src: headerFile(), origin: 'work', mode: fromWork.mode, projectIndex: fromWork.projectIndex, t: Date.now() })); } catch { /* plain load on the way back */ } } else { try { sessionStorage.removeItem('pxb'); } catch { /* */ } }
+    if (fromWork) { try { sessionStorage.setItem('pxb', JSON.stringify({ slug, src: headerFile(), origin: 'work', blackMax: T.blackMax, mode: fromWork.mode, projectIndex: fromWork.projectIndex, t: Date.now() })); } catch { /* plain load on the way back */ } } else { try { sessionStorage.removeItem('pxb'); } catch { /* */ } }
     if (import.meta.env.DEV && window.__pxHold) { window.__pxGo = () => { location.href = `/work/${slug}.html`; }; return; } // dev checks: hold the last overlay frame
     location.href = `/work/${slug}.html`;
   };
@@ -134,7 +135,7 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
   }
   const box = root.querySelector('.px__box'), im = root.querySelector('img'), bg = root.querySelector('.px__bg');
   const B = { x: L.sec[0], y: L.sec[1], w: L.sec[2], h: L.sec[3] }, BI = { x: L.img[0], y: L.img[1], w: L.img[2], h: L.img[3] };
-  const A = target, ease = EASES.circ;
+  const A = target, ease = EASES.circ, bgMax = rec.blackMax ?? 1;
   const lerp = (a, b, e) => a + (b - a) * e;
   const prog = { t: 0 };
   const place = (e) => {
@@ -143,14 +144,14 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
     const ix = lerp(A.x - A.x, BI.x - B.x, e), iy = lerp(0, BI.y - B.y, e);
     im.style.left = `${ix}px`; im.style.top = `${iy}px`; im.style.width = `${lerp(A.w, BI.w, e)}px`; im.style.height = `${lerp(A.h, BI.h, e)}px`;
   };
-  const tl = gsap.timeline({ onComplete: () => { onPush?.(0); tailEnd(); } });
+  const tl = gsap.timeline({ onComplete: () => { onPush?.(0, 0); tailEnd(); } });
   tl.to(prog, {
     t: 1, duration: T.sec, ease: 'none',
     onUpdate: () => {
       const u = 1 - prog.t; // forward progress
       place(ease(u));
-      onPush?.(ease(Math.min(1, (u * T.sec) / Math.max(T.pushSec, 0.01))));
-      bg.style.opacity = sineIO(Math.min(1, (u * T.sec) / Math.max(T.fadeSec, 0.01))); // the forward black layer, time-reversed
+      { const up = Math.min(1, (u * T.sec) / Math.max(T.pushSec, 0.01)); onPush?.(ease(up), up); }
+      bg.style.opacity = bgMax * sineIO(Math.min(1, (u * T.sec) / Math.max(T.fadeSec, 0.01))); // the forward black layer, time-reversed
     },
   }, 0);
   if (fade.length) { gsap.set(fade, { opacity: 0 }); tl.to(fade, { opacity: 1, duration: Math.min(T.fadeSec, 0.3), ease: 'none' }, T.sec - Math.min(T.fadeSec, 0.3)); }

@@ -30,7 +30,7 @@
           var r = JSON.parse(sessionStorage.getItem('pxb') || 'null');
           if (!r || r.origin !== 'work' || !r.leave || Date.now() - r.t > 60000 || /[?&]gl=0/.test(location.search) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
           var L = r.leave, ok = L.mode === 'shrink' && L.W === innerWidth && L.H === innerHeight, s = L.sec, i = L.img;
-          var h = '<div id="pxb" aria-hidden="true" style="position:fixed;inset:0;z-index:8;overflow:hidden"><div class="px__bg" style="position:absolute;inset:0;background:#000"></div>';
+          var h = '<div id="pxb" aria-hidden="true" style="position:fixed;inset:0;z-index:8;overflow:hidden"><div class="px__bg" style="position:absolute;inset:0;background:#000;opacity:' + (ok && typeof r.blackMax === 'number' ? r.blackMax : 1) + '"></div>';
           if (ok) h += '<div class="px__box" style="position:absolute;overflow:hidden;left:' + s[0] + 'px;top:' + s[1] + 'px;width:' + s[2] + 'px;height:' + s[3] + 'px"><img alt="" decoding="sync" src="' + r.src + '" style="position:absolute;left:' + (i[0] - s[0]) + 'px;top:' + (i[1] - s[1]) + 'px;width:' + i[2] + 'px;height:' + i[3] + 'px;object-fit:cover;display:block"></div>';
           document.body.insertAdjacentHTML('afterbegin', h + '</div>');
         } catch (e) {}

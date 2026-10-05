@@ -16,7 +16,7 @@ import { preloadHeader, runProjectTransition, transitionOK, readBack, playBack }
 import { applyFocus } from './work/focus.js';
 import { pushTarget, stepPushSpring } from './effects/card-push.js';
 import { withOvershoot, settleBump, settleCurve } from './util/overshoot.js';
-import { workEase, blendSoft, moveForce, forceOf } from './util/ease.js';
+import { workEase, blendSoft, moveForce, forceOf, EASES } from './util/ease.js';
 import { ambUnits, ambParams, ambDepthW, ambProgress, ambCardOffset, ambImageOffset, leadUnits, leadParams, leadOffset } from './work/ambient.js';
 import { buildProjectCards, placeCards, balanceDark, workMetrics, fixWorkLayout, fixWorkLayoutIdle } from './work/cards.js';
 
@@ -250,6 +250,38 @@ const stepLead = (dt, vel, active) => {
 const TP = { q: -1, p: 0, p0: 0, hold: false };
 const pushArr = new Float64Array(N);
 const PT = new Proxy(WORK, { get: (t, k) => (k === 'focusPushOthers' ? TRANSITION.pushFar : t[k]) });
+// R30: the clearing push. Per item (all but the clicked image): the direction away from that image's centre and how far to travel to be fully off screen
+// (+ clearMargin); the item's own progress is staggered by its distance (near first). TC.u = the linear push time 0..1.
+const TC = { on: false, dx: new Float64Array(n), dy: new Float64Array(n), T: new Float64Array(n), rank: new Float64Array(n), u: 0, q: -1 };
+const clearMode = () => TRANSITION.pushClear > 0;
+const prepareClear = (q) => {
+  const fi = items.findIndex((it) => it.kind === 'frame' && it.proj === q), cx = px[fi], cy = py[fi], m = TRANSITION.clearMargin * scale;
+  let maxD = 1;
+  for (let i = 0; i < n; i++) {
+    TC.T[i] = 0; if (i === fi) continue;
+    const rx = px[i] - cx, ry = py[i] - cy, len = Math.hypot(rx, ry);
+    const ux = len > 1 ? rx / len : 0, uy = len > 1 ? ry / len : -1; // exactly on the centre: straight up
+    const hw = bw[i] * 0.58, hh = bh[i] * 0.58; // half size + the growth the focus may have given it
+    const out = px[i] + hw < -m || px[i] - hw > W + m || py[i] + hh < -m || py[i] - hh > H + m;
+    TC.dx[i] = ux; TC.dy[i] = uy;
+    if (out) continue;
+    let t = Infinity;
+    if (ux > 1e-6) t = Math.min(t, (W + m + hw - px[i]) / ux); else if (ux < -1e-6) t = Math.min(t, (-m - hw - px[i]) / ux);
+    if (uy > 1e-6) t = Math.min(t, (H + m + hh - py[i]) / uy); else if (uy < -1e-6) t = Math.min(t, (-m - hh - py[i]) / uy);
+    TC.T[i] = Number.isFinite(t) ? Math.max(0, t) + 2 : 0; // +2 px: strictly outside
+    TC.rank[i] = len; if (len > maxD) maxD = len;
+  }
+  for (let i = 0; i < n; i++) TC.rank[i] = Math.min(1, TC.rank[i] / maxD);
+  TC.q = q; TC.on = true;
+};
+const applyClear = () => {
+  const s = Math.min(0.9, Math.max(0, TRANSITION.clearStagger)), u = TC.u, e = EASES.cubic; // (cubic, not circ: circ has a vertical tangent at its middle, a 1500 px travel would show a speed spike)
+  for (let i = 0; i < n; i++) {
+    const T = TC.T[i]; if (T === 0) continue;
+    const e1 = e(Math.min(1, Math.max(0, (u - s * TC.rank[i]) / (1 - s))));
+    px[i] += TC.dx[i] * T * e1; py[i] += TC.dy[i] * T * e1;
+  }
+};
 let arrivalHold = false; // after arriving from a project: no mouse drift until the first input
 const NUD = { x: new Float64Array(n), y: new Float64Array(n), dt: 0, tau: 0.09, live: false }; // R22g: the focus nudge, smoothed in time (work/focus.js)
 let driftW = 1; // weight of the mouse drift (1 at rest, 0 during the toggle morph)
@@ -403,7 +435,7 @@ stage.addEventListener('click', (e) => {
   const it = items.find((q) => q.el === a), i = it.idx, sc = gl.hs[i] || 1;
   e.preventDefault();
   const w = bw[i] * sc, h = bh[i] * sc;
-  runProjectTransition({ slug: it.slug, ref: it.ref, rect: { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, startSrc: it.img.currentSrc || it.img.src, fade: [countEl, toggleEl, nameEl], fromWork: { mode: vertical ? 'vertical' : 'side', projectIndex: it.proj }, onPush: (p) => { if (TRANSITION.pushScale > 0) TP.p = TP.p0 + (TRANSITION.pushScale - TP.p0) * p; }, onStart: () => { lenis.stop(); nameEl.style.zIndex = '9'; TP.q = it.proj; TP.p0 = fPu.x[it.proj]; TP.p = TP.p0; TP.hold = TRANSITION.pushScale > 0; } }); // (the project name stays above the growing picture and fades with the rest)
+  runProjectTransition({ slug: it.slug, ref: it.ref, rect: { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, startSrc: it.img.currentSrc || it.img.src, fade: [countEl, toggleEl, nameEl], fromWork: { mode: vertical ? 'vertical' : 'side', projectIndex: it.proj }, onPush: (p, u) => { if (clearMode()) TC.u = u; else if (TRANSITION.pushScale > 0) TP.p = TP.p0 + (TRANSITION.pushScale - TP.p0) * p; }, onStart: () => { lenis.stop(); nameEl.style.zIndex = '9'; TP.q = it.proj; TP.p0 = fPu.x[it.proj]; TP.p = TP.p0; TP.hold = TRANSITION.pushScale > 0 || clearMode(); if (clearMode()) { TC.u = 0; prepareClear(it.proj); } } }); // (the project name stays above the growing picture and fades with the rest)
 });
 addEventListener('wheel', () => { inertia = null; }, { capture: true, passive: true });
 addEventListener('wheel', cancelSnap, { capture: true, passive: true });
@@ -555,6 +587,7 @@ const tick = (_time, deltaMs) => {
   // base positions of this frame; fsArr = the image scale per project
   const pushing = TP.q >= 0 && (TP.p > 0 || TP.hold);
   if (focusMoving || anyF || NUD.live || pushing) { FA.vertical = L.M.vertical; FA.pitch = L.pitch; FA.scale = scale; NUD.dt = dt; let pa = fPu.x; if (pushing) { pushArr.set(fPu.x); pushArr[TP.q] = TP.p; pa = pushArr; } applyFocus(FA, fSc.x, pushing ? PT : WORK, CARDS, fsArr, pa, NUD); if (NUD.live) settleMoving = true; } else fsArr.fill(1);
+  if (TC.on) applyClear();
   for (let k = 0; k < nSrc; k++) { const sI = psrcs[k]; PS.srcX[sI] = px[sI]; PS.srcY[sI] = py[sI]; }
   for (let i = 0; i < n; i++) {
     const it = items[i];
@@ -685,20 +718,22 @@ if (back) {
   off = back.projectIndex * cur().pitch; // S = off while the wheel has not moved
   wmScrolled = true; holdFocus(); arrivalHold = true;
   const fadeEls = [countEl, toggleEl, nameEl], shrink = !!document.querySelector('#pxb .px__box');
-  TP.q = back.projectIndex; TP.p = shrink ? TRANSITION.pushScale : 0;
+  TP.q = back.projectIndex; TP.p = shrink && !clearMode() ? TRANSITION.pushScale : 0;
   gsap.set(fadeEls, { opacity: 0 });
+  items.forEach((it) => activate(it)); // R30: every picture is requested at once (not 15 ms apart from 0.8 s) so the uploads are done before the shrink plays
   (async () => {
     const hi = new Image(); hi.src = back.src;
     const until = (fn, ms) => new Promise((res) => { const t0 = performance.now(); const f = () => (fn() || performance.now() - t0 > ms ? res() : requestAnimationFrame(f)); f(); });
-    await Promise.all([Promise.race([hi.decode().catch(() => {}), until(() => false, 1200)]), until(() => !gl || gl.stats().loaded >= Math.min(n, 12), 1200)]);
+    await Promise.all([Promise.race([hi.decode().catch(() => {}), until(() => false, 1200)]), until(() => !gl || gl.stats().loaded >= n, 1200)]);
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     const fi = items.findIndex((it) => it.kind === 'frame' && it.proj === back.projectIndex);
-    playBack({ rec: back, target: { x: px[fi] - bw[fi] / 2, y: py[fi] - bh[fi] / 2, w: bw[fi], h: bh[fi] }, fade: fadeEls, onPush: (p) => { TP.p = p * TRANSITION.pushScale; }, done: () => { TP.q = -1; TP.p = 0; gsap.set(fadeEls, { clearProps: 'opacity' }); } });
+    if (shrink && clearMode()) { TC.u = 0; prepareClear(back.projectIndex); TC.u = 1; } // everything starts off screen
+    playBack({ rec: back, target: { x: px[fi] - bw[fi] / 2, y: py[fi] - bh[fi] / 2, w: bw[fi], h: bh[fi] }, fade: fadeEls, onPush: (p, u) => { if (TC.on) TC.u = u; else TP.p = p * TRANSITION.pushScale; }, done: () => { TP.q = -1; TP.p = 0; TC.on = false; TC.u = 0; gsap.set(fadeEls, { clearProps: 'opacity' }); } });
   })();
 }
 document.title = 'Work | Anh V';
 if (import.meta.env.DEV) {
-  window.__SCROLL = SCROLL; window.__WORK = WORK;
+  window.__SCROLL = SCROLL; window.__WORK = WORK; window.__TRANSITION = TRANSITION;
   window.__work = { setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, q: Q, PS,  get snap() { return snap; }, AMB, LEAD, get drag() { return drag; }, get inertia() { return inertia; }, fP, fSc, fPu, get kCount() { return kCount; }, bx, by, bw, bh, vis, hp };
   if (params.has('tune')) import('./work/tune.js').then((m) => m.mountWorkTune({ relayout }));
 }
