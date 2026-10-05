@@ -129,11 +129,12 @@ export function createSmear({ host, cfg, reduced }) {
   const makeTexture = (o) => {
     const d = dpr(), c = document.createElement('canvas'), x = c.getContext('2d');
     x.font = `${o.weight} ${o.size * d}px ${o.family}`;
+    const track = (o.tracking || 0) * o.size * d; if ('letterSpacing' in x) x.letterSpacing = `${track}px`;
     const adv = x.measureText(o.text), asc = adv.fontBoundingBoxAscent ?? o.size * 0.9, desc = adv.fontBoundingBoxDescent ?? o.size * 0.25;
     const padX = Math.ceil(o.size * 0.06 * d), padY = Math.ceil(o.size * 0.08 * d);
     const w = Math.ceil(adv.width + 2 * padX + 1), h = Math.ceil(asc + desc + 2 * padY);
     c.width = w; c.height = h;
-    x.font = `${o.weight} ${o.size * d}px ${o.family}`; x.fillStyle = o.color; x.textBaseline = 'alphabetic'; x.fontKerning = 'normal';
+    x.font = `${o.weight} ${o.size * d}px ${o.family}`; if ('letterSpacing' in x) x.letterSpacing = `${track}px`; x.fillStyle = o.color; x.textBaseline = 'alphabetic'; x.fontKerning = 'normal';
     x.fillText(o.text, padX + o.fracX, padY + asc); // (the text starts at the browser's fractional device pixel, so the overlay is a 1:1 copy at p = 1: no resampling blur)
     if (tex) gl.deleteTexture(tex);
     tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -207,6 +208,8 @@ export function createSmear({ host, cfg, reduced }) {
       const now = performance.now(), u = run.u;
       run.mode = 'leave'; run.t0 = now; run.u0 = u < 0.5 ? 1 - u : u; // (the other half of the triangle at the same p)
       run.leaveSec = Math.max(cfg.leaveSec * ((1 - run.u0) / 0.5), 0.05);
+      // R33e ghost guard: the leave is advanced by requestAnimationFrame only; if frames stop (a hidden tab, a long stall) the last drawn frame would stay on the canvas. A timer ends it anyway.
+      const mine = run; setTimeout(() => { if (run === mine && run.mode === 'leave') finish(true, true); }, (run.leaveSec + 0.3) * 1000);
       return true;
     },
     // dev / tests: draw the effect frozen at progress u (0..1), nothing animates
@@ -217,6 +220,8 @@ export function createSmear({ host, cfg, reduced }) {
       cancelAnimationFrame(raf); raf = 0;
       if (glOk) { run.tx = makeTexture(run); canvas.style.visibility = 'visible'; o.el.style.visibility = 'hidden'; drawGl(u, time); } else drawCss(u);
     },
+    // R33e: called every tick by the page: nothing is playing, so the overlay must be empty and hidden (a frame left behind by any path is removed at once)
+    sweep() { if (!run && canvas && canvas.style.visibility === 'visible') { canvas.style.visibility = 'hidden'; if (gl && !lost) { gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); } return true; } return false; },
     release() { finish(); },
     cancel() { finish(true); },
     destroy() { finish(true); canvas?.remove(); },

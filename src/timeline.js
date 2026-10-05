@@ -310,13 +310,17 @@ export const WORK_V2 = { frameW: 1055 / 19.2, frameH: 556 / 10.8, gapSide: 57 / 
 //   fits `fitFrac` of the image width; baseline `baseDy` below the image centre (px at the 556 px high image, scales with the image height). fade: full inside `fadeIn` pitches
 //   from the centre, 0 beyond `fadeOut`; fast: the strip speed (screen lengths / s) where the fade starts / is complete (so a flick shows no flicker), `fastSec` = how long it
 //   takes to come back. info: the block's fade (own range), the offsets (px at 1920) from the image edge. ruler: dot spacing, the extra room the bar takes, dot / bar sizes.
-export const WORK_TITLE = { weight: 600, specimen: 'Clash Display', specimenFrac: 977 / 1055, fitFrac: 977 / 1055, minScale: 0.7, baseDy: 42, dx: -3, color: '#e9e7e2', fadeIn: 0.12, fadeOut: 0.4, fastFrom: 1.2, fastTo: 3, fastSec: 0.25 };
+// R33e type scale (the design file, FHD, pt = px at 1920x1080; everything scales with the window width: 1 px at 1920 = 100vw / 1920, no min() clamps): the title is ONE size (WORK_TITLE.size 150,
+// Clash Display Semibold) for every project; a title that does not fit inside fitFrac of the image width is replaced by its placeholder in TITLE_SHORT below. tracking 0.05 em = the design's 50.
+export const WORK_TITLE = { weight: 600, size: 150, tracking: 0.05, fitFrac: 975 / 1055, baseDy: 42, dx: -3 };
+// PLACEHOLDER TITLES (Anh: rewrite these later). Used instead of the project title when the full title does not fit at WORK_TITLE.size; a project's own `titleShort` in data.json wins.
+export const TITLE_SHORT = { 'tcb-priority': 'Techcom', bitis09: 'Bitis DDTV', sulwhasoo: 'Sulwhasoo', similac: 'Similac', forbes: 'Forbes' };
 export const WORK_INFO = {
   fadeIn: 0.12, fadeOut: 0.4, descChars: 90,
   side: { tagsDx: -1.5, rowTop: -156, yearRight: -281, descLeft: -218, descW: 200 }, // above the image: block top = image top + rowTop; year's right edge = image right + yearRight; description from image right + descLeft
   vertical: { tagsRight: -211, yearLeft: 62, descLeft: 162, descW: 200 }, // beside the image: tags' left = image left + tagsRight; year / description from the image's right edge
 };
-export const WORK_RULER = { pitch: 21, extra: 5.5, dot: 3, bar: 34, barW: 2, rulerDimOpacity: 0.45, rulerCentreMin: 0.9, rulerShrinkSec: 0.25, rulerGrowSec: 0.4, side: { x: 962, bottom: 42 }, vertical: { x: 55, y: 531 } };
+export const WORK_RULER = { pitch: 21, extra: 5.5, dot: 3, bar: 34, barW: 2, rulerDimOpacity: 0.1, rulerCentreMin: 0.9, rulerShrinkSec: 0.25, rulerGrowSec: 0.4, side: { x: 962, bottom: 42 }, vertical: { x: 55, y: 531 } };
 // R33 text field: the title / info / counter sit at their reference place (they do not follow the strip). While the strip moves the text blurs out (textBlurPx, to opacity 0 over
 // textOutSec); its content swaps while hidden; when the next image is in focus (the strip rests and is centred for textDelay s) it refocuses in place over textInSec (the title also
 // rises titleRise px at 1920). Counter: an odometer; it rolls with the strip at most counterMaxSteps numbers per second, settles over counterSettleSec (counterOvershoot = most it passes
@@ -337,9 +341,9 @@ export const WORK_LINE = { scrollLineOn: 1, scrollLineOpacity: 0.12, scrollLineF
 // effect on the side pictures (0 = centre only); pixelSpill = px (at 1920) the displaced picture may draw past its edge; clickSec = ease-out on a press / drag / strip move;
 // warpCap = how strongly the scroll warp fades it (1 = gone at full warp).
 export const WORK_PTR = { on: 1, pixelGrid: 32, pixelBrush: 0.12, pixelStrength: 0.04, pixelRelax: 0.9, pixelVelMax: 2.5, pixelRgb: 0.01, pixelSideMul: 1, pixelSpill: 40, clickSec: 0.15, warpCap: 1 };
-export const WORK_COUNTER = { counterSettleSec: 0.35, counterBlurPx: 10, counterMaxSteps: 12, counterOvershoot: 0 };
+export const WORK_COUNTER = { size: 100, counterSettleSec: 0.35, counterBlurPx: 10, counterMaxSteps: 12, counterOvershoot: 0 };
 // R32 copy and links (Anh rewrites the text here). hideNav: the nav links are not drawn on the Work page desktop (the logo stays).
-export const WORK_UI = { copy: { side: 'Feeling vertical? Flip it', vertical: 'Feeling sideways? Flip it' }, label: 'Selected Work', reachLabel: 'Reach out', reachEmail: 'anhlsls1@gmail.com', hideNav: true };
+export const WORK_UI = { color: '#eae8e5', dimOpacity: 0.1, descOpacity: 0.5, smallSize: 14, tracking: 0.05, copy: { side: 'Feeling vertical? Flip it', vertical: 'Feeling sideways? Flip it' }, label: 'Selected Work', reachLabel: 'Reach out', reachEmail: 'anhlsls1@gmail.com', hideNav: true };
 // Cards per project (R23b, the same rules as BAND_LIMITS on the homepage): count and total area (px2 at 1920) of the cards along one
 // project's edges. Over a max: dropped by the seeded hash; under a min: duplicates of the project's own images.
 export const WORK_LIMITS = (() => { try { const u = JSON.parse(urlParams.get('wlimits')); if (u && u.maxN) return u; } catch {} return { minN: 7, maxN: 12, minA: 150000, maxA: 330000 }; })(); // ?wlimits={...} overrides (tune panel)

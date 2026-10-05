@@ -2,7 +2,7 @@
 // One DOM layer (.w2, pointer-events none except the switch and the link) above the canvas. work.js calls layout() when the sizes change and frame() once per tick with
 // numbers it already has (no layout reads here per frame: every size is cached by layout(), every write is a transform / opacity and only when it changed).
 import { springLayer, springFromBounce } from '../effects/springs.js';
-import { WORK_V2, WORK_UI, WORK_TITLE, WORK_INFO, WORK_RULER, WORK_COUNTER, WORK_TEXT, WORK_SMEAR, WORK_PTR, WORK_LINE } from '../timeline.js';
+import { WORK_V2, WORK_UI, TITLE_SHORT, WORK_TITLE, WORK_INFO, WORK_RULER, WORK_COUNTER, WORK_TEXT, WORK_SMEAR, WORK_PTR, WORK_LINE } from '../timeline.js';
 import { createSmear } from '../effects/text-fx/smear.js';
 
 const fxOff = new URLSearchParams(location.search).get('fx') === '0'; // ?fx=0: the title only fades
@@ -69,27 +69,29 @@ export function createV2({ app, projects, reduced }) {
   let mode = 'side';
   slots[1].slot.style.filter = 'url(#w2-vblur)'; // R33c: the units' filter is attached for the whole visit (never toggled): no layer is made or dropped while it blurs. The tens has none while it stands still.
 
-  // ---- titles: size calibrated so the specimen is specimenFrac of the image width, then shrink / trim to fit
+  // ---- titles: ONE size (WORK_TITLE.size x the window scale) for every project; a title that is wider than fitFrac of the image is replaced by its placeholder (TITLE_SHORT in timeline.js)
   const cv = document.createElement('canvas').getContext('2d');
-  const widthAt100 = (text) => { cv.font = `${WORK_TITLE.weight} 100px "Clash Display"`; const m = cv.measureText(text); return m.actualBoundingBoxRight + m.actualBoundingBoxLeft; }; // the INK width (the reference measures the letters, not the advance)
-  const T = { size: new Float64Array(N), text: projects.map((p) => p.titleShort || p.title), shown: projects.map((p) => p.titleShort || p.title), s0: 0, iw: 0, ih: 0, asc: 0.9, W: 0, H: 0 };
+  const inkWidth = (text, size) => { cv.font = `${WORK_TITLE.weight} ${size}px "Clash Display"`; const m = cv.measureText(text); return m.actualBoundingBoxRight + m.actualBoundingBoxLeft + Math.max(0, text.length - 1) * WORK_TITLE.tracking * size; };
+  const T = { size: new Float64Array(N), text: projects.map((p) => p.titleShort || TITLE_SHORT[p.slug] || p.title), full: projects.map((p) => p.title), shown: projects.map((p) => p.titleShort || TITLE_SHORT[p.slug] || p.title), fullInk: new Float64Array(N), ink: new Float64Array(N), limit: 0, s0: 0, iw: 0, ih: 0, asc: 0.9, W: 0, H: 0 };
   const fitTitles = (iw) => {
-    const w100 = widthAt100(WORK_TITLE.specimen);
-    const s0 = (WORK_TITLE.specimenFrac * iw * 100) / w100, fit = WORK_TITLE.fitFrac * iw;
-    T.s0 = s0;
+    const sc = innerWidth / 1920, size = WORK_TITLE.size * sc, fit = WORK_TITLE.fitFrac * iw;
+    T.s0 = size; T.limit = fit;
     cv.font = `${WORK_TITLE.weight} 100px "Clash Display"`;
     const m = cv.measureText('Hx');
     const asc = m.fontBoundingBoxAscent ?? 90, desc = m.fontBoundingBoxDescent ?? 25; // line-height 1: the baseline sits (1 - (asc + desc) / em) / 2 + asc below the top of the line box
     T.asc = ((100 - (asc + desc)) / 2 + asc) / 100;
     projects.forEach((p, i) => {
-      let text = T.text[i], size = s0, w = (widthAt100(text) * size) / 100;
-      if (w > fit) { size = Math.max(WORK_TITLE.minScale * s0, (s0 * fit) / w); w = (widthAt100(text) * size) / 100; }
-      if (w > fit + 0.5) { const words = text.split(' '); while (words.length > 1 && (widthAt100(words.join(' ')) * size) / 100 > fit + 0.5) words.pop(); text = words.join(' '); }
-      T.size[i] = size; T.shown[i] = text;
+      T.fullInk[i] = inkWidth(T.full[i], size);
+      const text = T.fullInk[i] <= fit + 0.5 && !p.titleShort ? T.full[i] : T.text[i]; // the full title when it fits at 150, else the placeholder
+      T.size[i] = size; T.shown[i] = text; T.ink[i] = inkWidth(text, size);
+      if (import.meta.env.DEV && T.ink[i] > fit + 0.5) console.warn(`[work] title placeholder "${text}" is ${T.ink[i].toFixed(0)} px wide at ${size.toFixed(0)} px, the limit is ${fit.toFixed(0)}`);
     });
   };
   let lastIw = 0, lastIh = 0;
   const applyVars = () => { // the numbers of WORK_INFO / WORK_RULER as CSS custom properties (re-applied on every layout so ?tune takes effect)
+    root.style.setProperty('--w2-c', WORK_UI.color); root.style.setProperty('--w2-dim', String(WORK_UI.dimOpacity)); root.style.setProperty('--w2-desc', String(WORK_UI.descOpacity));
+    root.style.setProperty('--w2-small', String(WORK_UI.smallSize)); root.style.setProperty('--w2-track', `${WORK_UI.tracking}em`); root.style.setProperty('--w2-num', String(WORK_COUNTER.size));
+    lineEl.style.setProperty('--w2-c', WORK_UI.color);
     const set = (n, o) => Object.entries(o).forEach(([k, v]) => root.style.setProperty(`--${n}-${k}`, String(v)));
     set('is', WORK_INFO.side); set('iv', WORK_INFO.vertical);
     root.style.setProperty('--rd-dot', String(WORK_RULER.dot)); root.style.setProperty('--rd-bar', String(WORK_RULER.bar));
@@ -135,7 +137,7 @@ export function createV2({ app, projects, reduced }) {
     placeTitle();
     setMode(mode); // (the copy may have been edited in ?tune)
     measureCounter();
-    lineSize = [innerWidth, innerHeight]; lineW = Math.max(1 / (window.devicePixelRatio || 1), (Math.min(innerWidth, 1920) / 1920) * WORK_LINE.scrollLineWidth);
+    lineSize = [innerWidth, innerHeight]; lineW = Math.max(1 / (window.devicePixelRatio || 1), (innerWidth / 1920) * WORK_LINE.scrollLineWidth);
     lineLast = [NaN, NaN];
   };
   // the sizes depend on the font: load the weights first (document.fonts.ready can resolve before a font that no text has used yet starts loading), then measure again
@@ -155,7 +157,7 @@ export function createV2({ app, projects, reduced }) {
     cv.font = `${WORK_TITLE.weight} ${size}px "Clash Display"`;
     const g = domGeometry();
     titleBusy = true;
-    smear.play({ el: titleEl, text, size, weight: WORK_TITLE.weight, family: '"Clash Display", system-ui, sans-serif', color: WORK_TITLE.color, x: g.x, baseline: g.baseline,
+    smear.play({ el: titleEl, text, size, weight: WORK_TITLE.weight, family: '"Clash Display", system-ui, sans-serif', color: WORK_UI.color, tracking: WORK_TITLE.tracking, x: g.x, baseline: g.baseline,
       done: () => { titleOp = 1; titleBusy = false; }, aborted: () => { titleOp = 0; titleBusy = false; } });
   };
 
@@ -194,7 +196,7 @@ export function createV2({ app, projects, reduced }) {
     const ascS = c3.measureText('05').actualBoundingBoxAscent / 10;
     const lh = parseFloat(cst.lineHeight) || fsS; // (line box height; the glyph box sits centred in it)
     M.totalTop = M.baseBig - M.ascBig + ascS - ((lh - (fas + fds)) / 2 + fas); // so that the TOP of the "/N" digits meets the top of the numeral digits
-    M.gap = 17 * (fs / 105);
+    M.gap = 17 * (fs / 100);
     lastTotalX = NaN;
   };
   let lastTotalX = NaN;
@@ -248,7 +250,7 @@ export function createV2({ app, projects, reduced }) {
     mv = reduced ? mt : mv + (mt - mv) * Math.min(1, dt / 0.18);
     if (roll) { // the info blocks roll out, swap their layout, roll in (reduced motion / no GL: a 0.2 s cross-fade)
       roll.t += dt;
-      const R = WORK_V2.modeRollPx;
+      const R = WORK_V2.modeRollPx * (T.W / 1920);
       blocks.forEach((bk, i) => {
         const outAt = i * WORK_V2.modeRollStagger, inAt = roll.inAt + i * WORK_V2.modeRollStagger;
         if (!roll.out[i] && roll.t >= outAt) { roll.out[i] = true; if (roll.fade) { bk.inner.style.transition = 'opacity 0.2s'; bk.inner.style.opacity = '0'; } else { bk.springs.y.splice(0, 3, ...springFromBounce(WORK_V2.modeRollSec, WORK_V2.modeRollBounce)); bk.t.y = -R; } }
@@ -272,6 +274,7 @@ export function createV2({ app, projects, reduced }) {
       if (reduced) infoEl.style.opacity = String(1 - q / 20); else infoEl.style.filter = `blur(${q.toFixed(1)}px)`;
     }
     // ---- title (R27 smear): fades out while the strip moves, plays the smear at scroll stop
+    smear.sweep();
     const smearOn = smear.gl || (!reduced && !smear.lost);
     if (window.__titleScrub) { /* dev: the contact sheet drives the title by hand */ } else if (!stopped) {
       if (smear.playing) smear.abort();
@@ -316,7 +319,7 @@ export function createV2({ app, projects, reduced }) {
       const a = Math.min(1, Math.max(0, (half - ad) / 0.5)) * mv;
       const grow = (j === headDot ? 1 : 0) * ge;
       const lit = 1 - smooth(0.5, 1, ad); // 1 for the dot nearest the centre, fading by distance
-      const off = Math.sign(d) * (R_.pitch * ad + R_.extra * smooth(0, 1, ad) * (0.5 + 0.5 * ge));
+      const off = Math.sign(d) * (R_.pitch * ad + R_.extra * smooth(0, 1, ad) * (0.5 + 0.5 * ge)) * (T.W / 1920);
       const sLong = (R_.dot + (R_.bar - R_.dot) * grow) / R_.bar, sShort = (R_.dot + (R_.barW - R_.dot) * grow) / R_.dot;
       let o = a * (dim + (1 - dim) * Math.max(lit, grow));
       if (ad < 0.5) o = Math.max(o, a * R_.rulerCentreMin); // the dot nearest the centre never dims while the strip moves
@@ -331,5 +334,5 @@ export function createV2({ app, projects, reduced }) {
     const fade = reduced || !!window.__w2NoRoll;
     roll = { to, t: 0, inAt: fade ? 0.2 : Math.max(0.3, morphSec * WORK_V2.modeRollInAt), out: [false, false, false], swapped: [false, false, false], fade };
   };
-  return { root, lineEl, get lineState() { return { x: lineX, vert: lineVert, step: lineStep, last: [...lineLast] }; }, switchEl, layout, frame, setMode, rollMode, settleRoll, el: root, titles: T, infos, smear, scrubTitle(idx, t) { setTitle(idx); const size = T.size[idx], text = T.shown[idx]; const g = domGeometry(); const u = t < 0 ? 1 + t : 0.5 * (1 - Math.pow(1 - Math.min(1, t / WORK_SMEAR.enterSec), WORK_SMEAR.enterPow)); smear.scrub({ el: titleEl, text, size, weight: WORK_TITLE.weight, family: '"Clash Display", system-ui, sans-serif', color: WORK_TITLE.color, x: g.x, baseline: g.baseline }, u); }, get roll() { return { R: D, V: DV }; }, get counterMetrics() { return { ...M, adv: [...M.adv], inkR: [...M.inkR] }; }, get state() { return { bp, g, titleOp, titleShown, shown, titleBusy }; } };
+  return { root, lineEl, get lineState() { return { x: lineX, vert: lineVert, step: lineStep, last: [...lineLast] }; }, switchEl, layout, frame, setMode, rollMode, settleRoll, el: root, titles: T, infos, smear, scrubTitle(idx, t) { setTitle(idx); const size = T.size[idx], text = T.shown[idx]; const g = domGeometry(); const u = t < 0 ? 1 + t : 0.5 * (1 - Math.pow(1 - Math.min(1, t / WORK_SMEAR.enterSec), WORK_SMEAR.enterPow)); smear.scrub({ el: titleEl, text, size, weight: WORK_TITLE.weight, family: '"Clash Display", system-ui, sans-serif', color: WORK_UI.color, tracking: WORK_TITLE.tracking, x: g.x, baseline: g.baseline }, u); }, get roll() { return { R: D, V: DV }; }, get counterMetrics() { return { ...M, adv: [...M.adv], inkR: [...M.inkR] }; }, get state() { return { bp, g, titleOp, titleShown, shown, titleBusy }; } };
 }
