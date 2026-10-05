@@ -19,6 +19,9 @@ import { withOvershoot, settleBump, settleCurve } from './util/overshoot.js';
 import { workEase, blendSoft, moveForce, forceOf, EASES } from './util/ease.js';
 import { ambUnits, ambParams, ambDepthW, ambProgress, ambCardOffset, ambImageOffset, leadUnits, leadParams, leadOffset } from './work/ambient.js';
 import { buildProjectCards, placeCards, balanceDark, workMetrics, fixWorkLayout, fixWorkLayoutIdle } from './work/cards.js';
+import { slugSeed } from './work/states.js';
+import layoutsData from './data/layouts.json';
+import { pickSize, placeStored, applyStoredDark, ruleSignature, projectHash } from './work/layout-store.js';
 
 // Work page (R23, R23b). A strip of the projects' main images, endless, driven by Lenis (infinite mode: the page itself never moves, its
 // scroll value is only read). Every project's image owns its cards along its two edges (src/work/cards.js). Everything is drawn by the
@@ -78,8 +81,18 @@ const iconEl = toggleEl.querySelector('.work__icon');
 
 // ---- items: the N frames first, then every project's cards (the same objects in both layouts)
 const projCards = buildProjectCards(pool, slugs);
-// R22e: the overlap rules (no triple overlap, dark-on-dark and pair caps) are enforced before the items exist: a card may be dropped
-await fixWorkLayoutIdle(projCards, workMetrics(innerWidth, innerHeight, capW() / 1920)); // R22j: in 10 ms slices, the first paint and input are never blocked
+// R29: the card positions and dark flags come from src/data/layouts.json (tools/layout-solve.mjs, verified by the build gate): no layout work at load. A project
+// without a stored layout (or rule numbers changed in ?tune) goes through the old fix pass, with a warning.
+const storedFlags = applyStoredDark(layoutsData, projCards) && layoutsData.signature === ruleSignature();
+let storedOK = storedFlags && !!pickSize(layoutsData, innerWidth, innerHeight);
+if (storedOK && import.meta.env.DEV) { // dev: the stored layout must still describe these cards (the gate checks this for every build)
+  const pk = pickSize(layoutsData, innerWidth, innerHeight), Mx = workMetrics(innerWidth, innerHeight, capW() / 1920);
+  if (pk.exact) for (const mode of ['side', 'vertical']) projCards.forEach((l) => { if (layoutsData.work[pk.key][mode][l[0].slug]?.hash !== projectHash(l, Mx[mode])) storedOK = false; });
+}
+if (!storedOK) {
+  if (import.meta.env.DEV) console.warn('[layouts] no usable stored layout for this window / these cards / these rules: running the load-time fix pass (npm run layout)');
+  await fixWorkLayoutIdle(projCards, workMetrics(innerWidth, innerHeight, capW() / 1920)); // the old time-sliced pass (R22j)
+}
 const items = [];
 projects.forEach((p, i) => items.push({ kind: 'frame', proj: i, slug: p.slug, z: frameZ(), mouse: 20 + 80 * DEPTH.slot, dark: false, ref: heroRef(p) }));
 projCards.forEach((list, i) => list.forEach((c, j) => items.push({ kind: 'card', proj: i, j, slug: c.slug, z: c.z, mouse: c.mouse, dark: c.dark, src: c.src, card: c })));
@@ -88,6 +101,7 @@ items.forEach((it, i) => {
   const a = document.createElement('a');
   a.className = `work__item work__${it.kind}`;
   a.href = `/work/${it.slug}.html`;
+  a.style.visibility = 'hidden'; // (shown by the tick once the item is near the screen: an item that was never placed sat invisible at the top-left corner and took clicks there)
   a.style.zIndex = String(it.z); // the same order as the canvas (R23d): the image sits in the middle of the card depths
   if (it.kind === 'frame') a.setAttribute('aria-label', projects[it.proj].title);
   else { a.tabIndex = -1; a.setAttribute('aria-hidden', 'true'); } // R22j: a card is a decoration with the same target as its project's image: not a tab stop, not announced (34 unnamed links otherwise)
@@ -116,14 +130,16 @@ let laidOnce = false;
 const layouts = () => {
   W = innerWidth; H = innerHeight; scale = capW() / 1920;
   const fw = (WORK.frameW * W) / 100, fh = (WORK.frameH * H) / 100;
-  if (laidOnce) fixWorkLayout(projCards, workMetrics(W, H, scale), { structural: false }); // a resize: nudges only (the card set stays)
+  if (laidOnce && !storedOK) fixWorkLayout(projCards, workMetrics(W, H, scale), { structural: false }); // fallback only, a resize: nudges only (the card set stays)
   laidOnce = true;
   const placedAll = {};
   for (const mode of ['side', 'vertical']) {
     const v = mode === 'vertical';
     const M = { vertical: v, alongF: v ? fh : fw, crossF: v ? fw : fh, scale, gap: v ? (WORK.gapVert * H) / 100 : (WORK.gapSide * W) / 100, gapPx: (WORK.dupGap * (v ? H : W)) / 100, viewAlong: v ? H : W, viewCross: v ? W : H };
     const pitch = M.alongF + M.gap;
-    const placed = placeCards(projCards, M);
+    const pk = storedOK ? pickSize(layoutsData, W, H) : null;
+    let placed = pk ? placeStored(layoutsData, projCards, M, mode, pk) : null;
+    if (!placed) { storedOK = false; placed = placeCards(projCards, M); } // (a size without a stored layout: the card set is the same, the positions come from the generator)
     placedAll[mode] = placed;
     const pos = items.map((it) => {
       if (it.kind === 'frame') return { along: it.proj * pitch, cross: 0, alongSize: M.alongF, crossSize: M.crossF };
@@ -132,9 +148,9 @@ const layouts = () => {
     });
     LAY[mode] = { M, pitch, period: N * pitch, pos };
   }
-  balanceDark(projCards, [placedAll.side, placedAll.vertical]); // dark runs <= 2 along the strip in both modes
+  if (!storedOK) balanceDark(projCards, [placedAll.side, placedAll.vertical]); // dark runs <= 2 along the strip in both modes (the stored flags already hold it)
   items.forEach((it, i) => {
-    if (it.kind === 'card') { it.dark = it.card.dark; if (gl) { gl.darkCard[i] = it.dark; gl.hd[i] = it.dark && fine ? CARD_HOVER.darkRest : 0; } }
+    if (it.kind === 'card') { it.dark = it.card.dark; it.el.dataset.dark = it.dark ? '1' : '0'; if (gl) { gl.darkCard[i] = it.dark; gl.hd[i] = it.dark && fine ? CARD_HOVER.darkRest : 0; } }
     const w = it.kind === 'frame' ? fw : it.card.w * scale;
     const h = it.kind === 'frame' ? fh : it.card.h * scale;
     bw[i] = w; bh[i] = h;
@@ -192,7 +208,7 @@ const psrcs = new Int32Array(n);
 const PS = { pointerOn: false, px: 0, py: 0, pw: 1, R: 0, pushMax: 0, falloff: 1, hsPush: 0, hRad: 0, hoverScale: 1, nSrc: 0, srcs: psrcs, srcX: new Float64Array(n), srcY: new Float64Array(n), bw, bh, hp: null };
 let hov = -1;
 // ---- R22h: ambient drift (work/ambient.js). av[i] = progress 0..1 of item i's offset; al / cr = its offset along / across the strip (px)
-const AMB = { on: false, t0: 0, tOff: 0, a0: new Float64Array(n), r0: new Float64Array(n), av: new Float64Array(n), al: new Float64Array(n), cr: new Float64Array(n), units: items.map((it) => (it.kind === 'card' ? ambUnits(it.card, it.proj) : null)), moving: false };
+const AMB = { on: false, t0: 0, tOff: 0, a0: new Float64Array(n), r0: new Float64Array(n), av: new Float64Array(n), al: new Float64Array(n), cr: new Float64Array(n), units: items.map((it) => (it.kind === 'card' ? ambUnits(it.card, slugSeed(it.card.slug)) : null)), moving: false };
 const stepAmb = (now) => {
   let fmax = 0;
   for (let q = 0; q < N; q++) if (fP[q] > fmax) fmax = fP[q];
@@ -227,7 +243,7 @@ const stepAmb = (now) => {
 };
 const ambOut = { along: 0, cross: 0 };
 // ---- R22i: the speed lead: per card an offset along the strip (px) on its own spring; target = leadOffset(strip speed), 0 while the snap / morph run
-const LEAD = { x: new Float64Array(n), v: new Float64Array(n), units: items.map((it) => (it.kind === 'card' ? leadUnits(it.card, it.proj) : null)), moving: false };
+const LEAD = { x: new Float64Array(n), v: new Float64Array(n), units: items.map((it) => (it.kind === 'card' ? leadUnits(it.card, slugSeed(it.card.slug)) : null)), moving: false };
 const stepLead = (dt, vel, active) => {
   let moving = false;
   const steps = Math.max(1, Math.ceil(dt / 0.004)), h = dt / steps;
@@ -736,4 +752,5 @@ if (import.meta.env.DEV) {
   window.__SCROLL = SCROLL; window.__WORK = WORK; window.__TRANSITION = TRANSITION;
   window.__work = { setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, q: Q, PS,  get snap() { return snap; }, AMB, LEAD, get drag() { return drag; }, get inertia() { return inertia; }, fP, fSc, fPu, get kCount() { return kCount; }, bx, by, bw, bh, vis, hp };
   if (params.has('tune')) import('./work/tune.js').then((m) => m.mountWorkTune({ relayout }));
+  if (params.has('overlap')) import('./effects/overlap-debug.js').then((m) => m.mountOverlapDebug('.work__card', () => `focus ${Math.max(...fSc.x).toFixed(2)}${AMB.on ? ', ambient drift on' : ''}${LEAD.moving ? ', lead moving' : ''}${morph ? ', toggle morph' : ''}${TC.on ? ', transition' : ''}${drag ? ', drag' : ''}`));
 }

@@ -306,10 +306,17 @@ export const BAND_LIMITS = (() => { try { const u = JSON.parse(urlParams.get('li
   { minN: 3, maxN: 5, minA: 270000, maxA: 470000 },
   { minN: 7, maxN: 12, minA: 590000, maxA: 1020000 },
 ]; })();
-// R22e: darkOverlapMax = most two dark-layer cards may overlap, pairOverlapMax = most any two cards may overlap (both as a share of the
-// smaller card's area; 0 = none); no point is ever covered by 3 cards (src/data/overlap.js).
-const urlDarkOv = parseFloat(urlParams.get('darkov')), urlPairOv = parseFloat(urlParams.get('pairov')); // ?darkov= / ?pairov= (the tune panels' Apply)
-export const BAND_RULES = { dupMinGapVh: 40, sideSlice: 6, sideSliceMax: 2, maxDarkRun: 2, darkOverlapMax: Number.isFinite(urlDarkOv) ? urlDarkOv : 0.1, pairOverlapMax: Number.isFinite(urlPairOv) ? urlPairOv : 0.3 };
+// R22e / R29: pairOverlapMax = most any two cards may overlap (a share of the smaller card's area; 0 = none). R29 (Anh, 2026-10-06) retired 'no point under 3
+// cards' and the dark-on-dark cap: a CLUSTER (cards linked by an overlap of at least clusterLink of the smaller card, in any checked state) holds at most
+// maxDarkPerCluster dark-layer cards, and at least minLightShare of the cards of a project (Work, per mode) / the homepage are light (src/data/overlap.js).
+const urlPairOv = parseFloat(urlParams.get('pairov')); // ?pairov= (the tune panels' Apply)
+export const BAND_RULES = { dupMinGapVh: 40, sideSlice: 6, sideSliceMax: 2, maxDarkRun: 2, pairOverlapMax: Number.isFinite(urlPairOv) ? urlPairOv : 0.3, clusterLink: 0.05, maxDarkPerCluster: 2, minLightShare: 0.6 };
+// R29: the states the card rules are checked in (the ones mostly seen). Everything else (the corners of the mouse drift, the aura at full strength, the
+// overshoot peaks, the speed lead, the ambient drift on the way, the project transitions, any two of these together) is accepted as a brief overlap.
+//   Work page, per mode, in the view centred on every project (so the loop seam is covered): rest; the mouse drift at `drift` of its maximum in the four
+//   diagonal directions (typical, not the corners); the focus push at full progress without the overshoot bump; the ambient drift at its END position.
+//   Homepage Selected Work: rest; the drift at `drift`; the aura at `aura` of its strength (a card hovered next to the frame), not the maximum.
+export const LAYOUT_STATES = { rest: true, drift: 0.5, focus: true, ambientEnd: true, aura: 0.5 };
 // R17 card hover, measured on live (1920x1080, frame-by-frame, tools/scratch/r17-live2.mjs): the card under the pointer scales
 // 1 -> 1.2 on a critically damped spring (stiffness ~250, damping ~31, no overshoot, ~0.6 s). the "dark bg frame" cards (since R22d: a seeded share, CARD_HOVER.darkShare, of the cards flagged `dark` by cards-gen.js) are covered at rest by an opaque rgb(10,10,10) layer 4 px bigger on every side that fades out (opacity = 1 - progress)
 // while it scales 1 -> 1.15 on the same progress. Added here: the hovered card stops (its pointer push fades out, drift drops to

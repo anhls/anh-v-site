@@ -8,13 +8,13 @@
 // Two steps: buildProjectCards() decides WHICH cards a project has (mode independent: images, tiers, edges, dark flags, the
 // along-the-strip fraction of the originals); placeCards() turns that into pixel positions for one mode (side or vertical). A card is the
 // same card in both modes, which is what lets the toggle morph every card from its place in one layout to its place in the other.
-import { WORK, WORK_LIMITS, CARD_SIZE, BAND_RULES, CARD_HOVER, LAYOUT, CARDS } from '../timeline.js';
+import { WORK, WORK_LIMITS, CARD_SIZE, BAND_RULES, CARD_HOVER, LAYOUT, CARDS, LAYOUT_STATES } from '../timeline.js';
 import { applyFocus } from './focus.js';
-import { fixOverlapsGen, allViolations, drain } from '../data/overlap.js';
+import { fixOverlapsGen, allViolations, drain, enforceDark } from '../data/overlap.js';
+import { stateData, workScenarios, slugSeed } from './states.js';
 import { generateLayout } from '../data/layout.js';
 import { cardDepth } from '../data/depth.js';
 import { rng, mix, fit } from '../data/cards-gen.js';
-import { ambUnits, ambParams, ambDepthW, ambProgress, leadUnits, leadParams, leadOffset } from './ambient.js';
 
 const warn = (...a) => { if (import.meta.env?.DEV) console.warn('[work cards]', ...a); };
 const area = (c) => c.w * c.h;
@@ -35,7 +35,8 @@ function setTier(c, tier) {
 }
 
 export function buildProjectCards(pool, slugs, seed = WORK.seed, lim = WORK_LIMITS) {
-  return slugs.map((slug, pi) => {
+  return slugs.map((slug) => {
+    const pi = slugSeed(slug); // R29: a project's seed comes from its slug, so adding or removing a project never changes another project's cards
     const rank = (e, salt) => mix(e.hash, seed + pi * 131 + salt);
     let list = pool.filter((e) => e.slug === slug).sort((a, b) => rank(a, 31) - rank(b, 31)).map((e) => make(e, pi, seed));
     // over a max (count or area): drop by the seeded hash
@@ -106,6 +107,8 @@ export function buildProjectCards(pool, slugs, seed = WORK.seed, lim = WORK_LIMI
 // strip, px), scale, gapPx (the least distance between a duplicate and its twin, px) }. Returns per project an array aligned with its
 // cards: { along (px from the frame centre), cross (px from the strip's centre line), w, h (px), alongSize, crossSize }.
 export function placeCards(projects, M) {
+  // R29: ONE project at a time (a project's seed comes from its slug, nothing about the other projects enters): adding a project never moves another one's
+  // cards. What neighbouring projects do to each other (the gap between two frames, the loop seam) is decided by the offline solver (tools/layout-solve.mjs).
   const VH = 10.8; // px per vh at the 1080 reference (layout.js)
   const sc = M.scale;
   const fhRef = M.crossF / 2 / sc; // half the image's width across the strip, px at 1920
@@ -114,68 +117,60 @@ export function placeCards(projects, M) {
   const pitchVh = (M.alongF + M.gap) / sc / VH;
   const gapVh = M.gapPx / sc / VH;
   const slack = Math.max(CARD_SIZE.bandSlack, WORK.slack * pitchVh); // a card may drift this far past its project's length (the relaxation needs room)
-  const flat = [];
-  projects.forEach((list, pi) => {
-    const base = pi * pitchVh;
+  const room = Math.max(0.15, Math.min(1.3, (vhRef - fhRef) / (960 - 330)));
+  return projects.map((list) => {
+    const ps = slugSeed(list[0]?.slug || '');
     const mk = (c) => {
       const wl = M.vertical ? c.w : c.h; // across the strip
       const hl = M.vertical ? c.h : c.w; // along the strip
       const xLo = fhRef - WORK.overlapMax * wl + wl / 2;
       const xHi = Math.max(xLo + 1, vhRef - wl / 2 - 6);
-      const t = rng(mix(c.hash, WORK.seed + pi + 71))();
-      return { c, pi, base, lc: { x: c.edge * (xLo + t * (xHi - xLo)), y: 0, w: wl, h: hl, mouse: c.mouse, yMin: base - hb - slack, yMax: base + hb + slack, xLo, xHi } };
+      const t = rng(mix(c.hash, WORK.seed + ps + 71))();
+      return { c, lc: { x: c.edge * (xLo + t * (xHi - xLo)), y: 0, w: wl, h: hl, mouse: c.mouse, yMin: -hb - slack, yMax: hb + slack, xLo, xHi } };
     };
     const items = list.map(mk);
-    items.forEach((it) => { if (!it.c.dup) it.lc.y = base + it.c.f * hb; });
+    items.forEach((it) => { if (!it.c.dup) it.lc.y = it.c.f * hb; });
     items.forEach((it) => {
       if (!it.c.dup) return;
       const twin = items[list.indexOf(it.c.twin)];
-      const ta = twin.lc.y - base;
-      const u = rng(mix(it.c.hash, WORK.seed + pi + 63))();
+      const ta = twin.lc.y;
+      const u = rng(mix(it.c.hash, WORK.seed + ps + 63))();
       let dir = ta >= 0 ? -1 : 1;
-      const room = (d) => hb - gapVh - d * ta; // how far the farthest allowed point lies beyond the least distance
-      if (room(dir) < 0 && room(-dir) >= 0) dir = -dir;
-      it.lc.y = base + (room(dir) >= 0 ? ta + dir * (gapVh + u * room(dir)) : dir * hb);
+      const rm = (d) => hb - gapVh - d * ta; // how far the farthest allowed point lies beyond the least distance
+      if (rm(dir) < 0 && rm(-dir) >= 0) dir = -dir;
+      it.lc.y = rm(dir) >= 0 ? ta + dir * (gapVh + u * rm(dir)) : dir * hb;
       it.lc.pinY = twin.lc.pinY = true;
       it.lc.keepSide = twin.lc.keepSide = true;
     });
-    flat.push(...items);
-  });
-  // centre pull off (the strip's image stays clear); the scatter shrinks with the room across the strip (the homepage values at 1920 wide)
-  const room = Math.max(0.15, Math.min(1.3, (vhRef - fhRef) / (960 - 330)));
-  const pos = generateLayout(flat.map((f) => f.lc), { ...LAYOUT, seed: LAYOUT.seed + WORK.seed + (M.vertical ? 0 : 101), centreShare: 0, scatter: LAYOUT.scatter * room, minGap: WORK.minGap, passes: 160 });
-  // what the relaxation could not clear (the strip is narrow in the side scroll): neighbouring-depth cards still overlapping by more than
-  // half the minimum gap are pushed apart along the strip, free of the project's length limit, pairs (pinned) moving only their partner
-  const nP = projects.length, periodPx = nP * pitchVh * VH; // the strip is a loop: the last project's cards border the first project's (R23f)
-  const lc = flat.map((f, i) => ({ x: pos[i].x, y: pos[i].y * VH, w: f.lc.w, h: f.lc.h, m: f.lc.mouse, pin: !!f.lc.pinY, pi: f.pi }));
-  const need = WORK.minGap * 0.5;
-  for (let pass = 0; pass < 30; pass++) {
-    let moved = false;
-    for (let i = 0; i < lc.length; i++) {
-      for (let j = i + 1; j < lc.length; j++) {
-        const a = lc[i], b = lc[j];
-        if (Math.abs(a.m - b.m) > 30) continue;
-        // across the loop seam (project nP - 1 and project 0) b sits one period further along
-        const by = a.pi === nP - 1 && b.pi === 0 ? b.y + periodPx : a.pi === 0 && b.pi === nP - 1 ? b.y - periodPx : b.y;
-        const ox = (a.w + b.w) / 2 - Math.abs(b.x - a.x), oy = (a.h + b.h) / 2 - Math.abs(by - a.y);
-        if (ox <= need || oy <= need) continue;
-        const dir = by >= a.y ? 1 : -1, d = oy - need + 1;
-        if (a.pin && b.pin) continue;
-        if (a.pin) b.y += dir * d; else if (b.pin) a.y -= dir * d; else { a.y -= (dir * d) / 2; b.y += (dir * d) / 2; }
-        moved = true;
+    // centre pull off (the strip's image stays clear); the scatter shrinks with the room across the strip (the homepage values at 1920 wide)
+    const pos = generateLayout(items.map((f) => f.lc), { ...LAYOUT, seed: LAYOUT.seed + WORK.seed + (ps % 100003) + (M.vertical ? 0 : 101), centreShare: 0, scatter: LAYOUT.scatter * room, minGap: WORK.minGap, passes: 160 });
+    // what the relaxation could not clear: neighbouring-depth cards still overlapping by more than half the minimum gap are pushed apart along the strip,
+    // free of the project's length limit, pairs (pinned) moving only their partner
+    const lc = items.map((f, i) => ({ x: pos[i].x, y: pos[i].y * VH, w: f.lc.w, h: f.lc.h, m: f.lc.mouse, pin: !!f.lc.pinY }));
+    const need = WORK.minGap * 0.5;
+    for (let pass = 0; pass < 30; pass++) {
+      let moved = false;
+      for (let i = 0; i < lc.length; i++) {
+        for (let j = i + 1; j < lc.length; j++) {
+          const a = lc[i], b = lc[j];
+          if (Math.abs(a.m - b.m) > 30) continue;
+          const ox = (a.w + b.w) / 2 - Math.abs(b.x - a.x), oy = (a.h + b.h) / 2 - Math.abs(b.y - a.y);
+          if (ox <= need || oy <= need) continue;
+          const dir = b.y >= a.y ? 1 : -1, d = oy - need + 1;
+          if (a.pin && b.pin) continue;
+          if (a.pin) b.y += dir * d; else if (b.pin) a.y -= dir * d; else { a.y -= (dir * d) / 2; b.y += (dir * d) / 2; }
+          moved = true;
+        }
       }
+      if (!moved) break;
     }
-    if (!moved) break;
-  }
-  lc.forEach((c, i) => { pos[i].y = c.y / VH; });
-  const out = projects.map((list) => new Array(list.length));
-  flat.forEach((f, i) => {
-    const k = projects[f.pi].indexOf(f.c);
-    const w = f.c.w * sc, h = f.c.h * sc;
-    // R22e: f.c.nudge[mode] (px at 1920) = the overlap pass's final move along the strip
-    out[f.pi][k] = { along: (pos[i].y - f.base) * VH * sc + (f.c.nudge?.[M.vertical ? 'vertical' : 'side'] || 0) * sc, cross: pos[i].x * sc + (f.c.nudgeX?.[M.vertical ? 'vertical' : 'side'] || 0) * sc, w, h, alongSize: M.vertical ? h : w, crossSize: M.vertical ? w : h };
+    lc.forEach((c, i) => { pos[i].y = c.y / VH; });
+    return items.map((f, i) => {
+      const w = f.c.w * sc, h = f.c.h * sc;
+      // R22e: f.c.nudge[mode] (px at 1920) = a layout move along the strip (the load-time fallback pass)
+      return { along: pos[i].y * VH * sc + (f.c.nudge?.[M.vertical ? 'vertical' : 'side'] || 0) * sc, cross: pos[i].x * sc + (f.c.nudgeX?.[M.vertical ? 'vertical' : 'side'] || 0) * sc, w, h, alongSize: M.vertical ? h : w, crossSize: M.vertical ? w : h };
+    });
   });
-  return out;
 }
 
 // R23c: the dark flags were drawn along each project's nominal order; the scatter reorders the cards along the strip and differently in the
@@ -183,11 +178,12 @@ export function placeCards(projects, M) {
 // exempt) are broken in BOTH orders: the card that makes the run too long goes light and the best-ranked light card that makes no new
 // run goes dark instead (the share ends a little lower when none fits). placedModes = [placeCards(...) for each mode].
 export function balanceDark(projects, placedModes) {
-  projects.forEach((list, pi) => {
+  projects.forEach((list, pj) => {
+    const pi = slugSeed(list[0]?.slug || ''), pi2 = pj;
     const orig = list.map((c, k) => k).filter((k) => !list[k].dup);
     const rk = (k) => mix(list[k].hash, WORK.seed + pi + 53);
     const byRank = orig.slice().sort((a, b) => rk(a) - rk(b));
-    const orders = placedModes.map((pl) => orig.slice().sort((a, b) => pl[pi][a].along - pl[pi][b].along));
+    const orders = placedModes.map((pl) => orig.slice().sort((a, b) => pl[pi2][a].along - pl[pi2][b].along));
     const bad = () => {
       for (const ord of orders) { let run = 0; for (const k of ord) { run = list[k].dark ? run + 1 : 0; if (run > BAND_RULES.maxDarkRun) return k; } }
       return -1;
@@ -209,12 +205,12 @@ export function workMetrics(W, H, scale) {
   return { side: mk(false), vertical: mk(true) };
 }
 
-// The rules of overlap.js on the laid-out Work cards, in BOTH modes, at rest, with the mouse drift at its corners and with the focus
-// push at full progress of each project (applyFocus), every time in the view centred on each project (so the loop seam is covered).
-// Fixes: nudge along the strip (per mode, stored in card.nudge[mode], px at 1920), then undark / swap depth, then drop. structural = false
-// (a resize): nudges only. Returns { fixed, remaining, steps }.
+// R29: the LOAD-TIME FALLBACK pass, only for a project that has no stored layout (src/data/layouts.json, tools/layout-solve.mjs) or when the rule numbers
+// were changed in ?tune: the rules of overlap.js in the states of LAYOUT_STATES (work/states.js), both modes, the view centred on each project (the loop seam
+// is covered). Fixes: nudge along the strip (per mode, stored in card.nudge[mode], px at 1920), across it (nudgeX), swap depth, drop; then undark for the
+// cluster rule and the light-share floor. structural = false (a resize): nudges only. Returns { fixed, remaining, steps, dark }.
 export const fixWorkLayout = (projects, Ms, opts) => drain(fixWorkLayoutGen(projects, Ms, opts));
-// R22j: the same pass in time slices: runs the generator for about sliceMs, then gives the main thread back (paint, input) and goes on. Result identical.
+// the same pass in time slices: runs the generator for about sliceMs, then gives the main thread back (paint, input) and goes on. Result identical.
 export async function fixWorkLayoutIdle(projects, Ms, opts, sliceMs = 10) {
   const gen = fixWorkLayoutGen(projects, Ms, opts);
   const pause = () => (globalThis.scheduler?.yield ? scheduler.yield() : new Promise((r) => setTimeout(r)));
@@ -223,78 +219,29 @@ export async function fixWorkLayoutIdle(projects, Ms, opts, sliceMs = 10) {
   return r.value;
 }
 export function* fixWorkLayoutGen(projects, Ms, { structural = true, check = false } = {}) {
-  const N = projects.length;
-  let placed = null, flat = [], scen = [];
+  let placed = null, flat = [], scen = [], darkArr = [];
   const modes = ['side', 'vertical'];
-  const wrap = (v, P) => ((((v + P / 2) % P) + P) % P) - P / 2;
   let builds = 0;
   const build = () => {
     builds++;
     placed = { side: placeCards(projects, Ms.side), vertical: placeCards(projects, Ms.vertical) };
     flat = [];
     projects.forEach((list, pi) => list.forEach((c, k) => flat.push({ c, pi, k })));
+    darkArr = flat.map((f) => !!f.c.dark);
     scen = [];
-    for (const mode of modes) {
-      const M = Ms[mode], pitch = M.alongF + M.gap, period = N * pitch, sc = M.scale;
-      const n = flat.length;
-      const X0 = Float64Array.from(flat, (f) => placed[mode][f.pi][f.k].cross);
-      const Y0 = Float64Array.from(flat, (f) => f.pi * pitch + placed[mode][f.pi][f.k].along);
-      const Wv = Float64Array.from(flat, (f) => placed[mode][f.pi][f.k].crossSize);
-      const Hv = Float64Array.from(flat, (f) => placed[mode][f.pi][f.k].alongSize);
-      const dd = Float64Array.from(flat, (f) => (20 + (f.c.mouse - 20) * CARDS.depthRange) * CARDS.mouseStrength * sc);
-      // R22h: the ambient drift (work/ambient.js): each card has its own maximum travel (toward the next project, a cross-axis lean, the sway), its own
-      // timing: checked at the end of the drift (sway at both extremes), at a few times on the way (the cards arrive at different times, so a pair can be
-      // closest in between), with the mouse drift corners on top, and on top of the focus push (the drift only runs while the focus is built)
-      const aprm = flat.map((f) => ambParams(ambUnits(f.c, f.pi)));
-      const adw = flat.map((f) => ambDepthW(f.c.mouse));
-      const ambAt = (t, sw) => { // [dX across, dY along] per card; sw = sway sign (-1, 0, 1)
-        const dX = new Float64Array(n), dY = new Float64Array(n);
-        flat.forEach((f, i) => { const av = ambProgress(t, aprm[i].tau, aprm[i].delay), al = av * WORK.ambFrame * aprm[i].mul * adw[i] * sc; dY[i] = al; dX[i] = al * aprm[i].lean + sw * WORK.ambSway * sc * av; });
-        return [dX, dY];
-      };
-      // R22i: the speed lead at a few strip speeds in both directions (cards with different leads separate / close in), alone and, at a medium speed, with the
-      // mouse drift corners, the focus push and the ambient drift on top
-      const lprm = flat.map((f, i) => leadParams(leadUnits(f.c, f.pi), adw[i]));
-      const leadAt = (speed, dir) => Float64Array.from(flat, (f, i) => leadOffset(lprm[i].lead, dir * speed * sc, sc));
-      const ambScen = WORK.ambFrame > 0 ? [[1e4, 1], ...(WORK.ambSway > 0 ? [[1e4, -1]] : []), [4, 0], [10, 0], [25, 0]] : [];
-      for (let k = 0; k < N; k++) {
-        const wy = (y) => wrap(y - k * pitch, period) + k * pitch;
-        const Yk = Float64Array.from(Y0, wy);
-        const push = (x, y) => scen.push({ mode, x, y, w: Wv, h: Hv, view: k });
-        push(Float64Array.from(X0), Float64Array.from(Yk)); // at rest, the view centred on project k
-        for (const [sx, sy] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) push(Float64Array.from(X0, (v, i) => v + sx * dd[i]), Float64Array.from(Yk, (v, i) => v + sy * dd[i]));
-        // the focus push of project k at full progress (x across the strip, y along it)
-        const nI = N + n;
-        const A = { n: nI, N, kind: new Uint8Array(nI).fill(1), proj: new Int8Array(nI), mouse: new Float64Array(nI), X: new Float64Array(nI), Y: new Float64Array(nI), W: new Float64Array(nI), H: new Float64Array(nI), vertical: true, pitch, scale: sc };
-        for (let q = 0; q < N; q++) { A.kind[q] = 0; A.proj[q] = q; A.mouse[q] = 60; A.X[q] = 0; A.Y[q] = wy(q * pitch); A.W[q] = M.crossF; A.H[q] = M.alongF; }
-        flat.forEach((f, i) => { A.proj[N + i] = f.pi; A.mouse[N + i] = f.c.mouse; A.X[N + i] = X0[i]; A.Y[N + i] = Yk[i]; A.W[N + i] = Wv[i]; A.H[N + i] = Hv[i]; });
-        // full progress INCLUDING the overshoot of the build (the drawn values pass 1 by focusOvershootScale / focusOvershootPush once)
-        const fS = new Float64Array(N), fPu = new Float64Array(N); fS[k] = 1 + WORK.focusOvershootScale; fPu[k] = 1 + WORK.focusOvershootPush;
-        applyFocus(A, fS, WORK, CARDS, new Float64Array(N), fPu);
-        push(A.X.slice(N), A.Y.slice(N));
-        const lead = WORK.leadMaxPx > 0 && WORK.leadMax > 0 ? [[1200, 1], [1200, -1]] : [];
-        for (const [spd, dir] of lead) {
-          const dY = leadAt(spd, dir);
-          push(Float64Array.from(X0), Float64Array.from(Yk, (v, i) => v + dY[i]));
-        }
-        for (const [t, sw] of ambScen) {
-          const [dX, dY] = ambAt(t, sw);
-          push(Float64Array.from(X0, (v, i) => v + dX[i]), Float64Array.from(Yk, (v, i) => v + dY[i])); // the drift alone (at rest)
-          if (t >= 1e4) {
-            for (const [sx, sy] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) push(Float64Array.from(X0, (v, i) => v + dX[i] + sx * dd[i]), Float64Array.from(Yk, (v, i) => v + dY[i] + sy * dd[i])); // + the mouse drift corners
-            push(A.X.slice(N).map((v, i) => v + dX[i]), A.Y.slice(N).map((v, i) => v + dY[i])); // on top of the focus push
-          }
-        }
-      }
-    }
+    for (const mode of modes) scen.push(...workScenarios(stateData(projects, Ms[mode], placed[mode]), mode, true));
   };
-  let belowMin = false; // the very last resort (see the end): a band may go under its minimum card count
   const idxOf = (c) => flat.findIndex((f) => f.c === c);
   const bound = (mode) => { const M = Ms[mode], pitchVh = (M.alongF + M.gap) / M.scale / 10.8; return M.alongF / 2 + M.gap / 2 + Math.max(CARD_SIZE.bandSlack, WORK.slack * pitchVh) * 10.8 * M.scale; };
+  const rankOf = (i) => mix(flat[i].c.hash, WORK.seed + 53);
+  let belowMin = false; // the very last resort (see the end): a band may go under its minimum card count
   const ctx = {
-    dark: () => flat.map((f) => !!f.c.dark),
+    get n() { return flat.length; },
+    dark: () => darkArr,
+    setDark: (i, v) => { flat[i].c.dark = v; darkArr[i] = v; },
+    groups: () => projects.map((list, pi) => flat.map((f, i) => (f.pi === pi ? i : -1)).filter((i) => i >= 0)),
     scenarios: () => scen,
-    rank: (i) => mix(flat[i].c.hash, WORK.seed + 53),
+    rank: rankOf,
     locked: (i) => !!(flat[i].c.dup || flat[i].c.hasDup),
     isDup: (i) => !!flat[i].c.dup,
     // a duplicate pair translates as one along the strip (its distance is kept), inside both cards' bands
@@ -331,7 +278,6 @@ export function* fixWorkLayoutGen(projects, Ms, { structural = true, check = fal
     group: (i) => { const c = flat[i].c, t = c.dup ? c.twin : c.hasDup ? flat.find((g) => g.c.dup && g.c.twin === c)?.c : null; const ti = t ? idxOf(t) : -1; return ti >= 0 ? [i, ti] : [i]; },
     refresh: () => build(),
     structural: structural ? {
-      undark: (i) => { const c = flat[i].c, prev = c.dark; if (!prev) return null; c.dark = false; return { layout: false, revert: () => { c.dark = prev; } }; }, // only the flag changes: no re-layout
       swapDepth: (i, attempt) => {
         const f = flat[i], c = f.c;
         const others = projects[f.pi].filter((o) => o !== c && !o.dup && !o.hasDup && Math.abs(o.mouse - c.mouse) >= 10).sort((p, q) => Math.abs(q.mouse - c.mouse) - Math.abs(p.mouse - c.mouse) || mix(p.hash, WORK.seed + 53) - mix(q.hash, WORK.seed + 53));
@@ -353,9 +299,8 @@ export function* fixWorkLayoutGen(projects, Ms, { structural = true, check = fal
     } : null,
   };
   build();
-  if (check) { const l = allViolations(ctx, BAND_RULES); return { fixed: l.length === 0, remaining: l, steps: 0 }; } // report only
+  if (check) { const l = allViolations(ctx, BAND_RULES); const copy = darkArr.slice(), d = enforceDark({ ...ctx, n: flat.length, setDark: (i, v) => { copy[i] = v; }, dark: () => copy }, BAND_RULES); /* on a copy: report only */ return { fixed: l.length === 0, remaining: l, steps: 0, dark: d }; } // report only
   let res = yield* fixOverlapsGen(ctx, BAND_RULES);
-  // the nudges moved the cards along the strip: the dark runs along it are re-checked, then the rules once more (focus scenarios recomputed exactly)
   for (let round = 0; round < 3; round++) {
     yield;
     balanceDark(projects, [placed.side, placed.vertical]);
@@ -365,14 +310,15 @@ export function* fixWorkLayoutGen(projects, Ms, { structural = true, check = fal
     res = yield* fixOverlapsGen(ctx, BAND_RULES);
     if (res.fixed) { balanceDark(projects, [placed.side, placed.vertical]); build(); const l2 = allViolations(ctx, BAND_RULES); res = { fixed: l2.length === 0, remaining: l2, steps: res.steps }; if (!l2.length) break; }
   }
-  // R22j: a band so crowded that nothing above could clear its last violation (seed 13): the rules win over the minimum card count, as for the
-  // projects that already run short when the images run out. Only reached when violations are left, so every layout that was clean is unchanged.
+  // a band so crowded that nothing above could clear its last violation: the rules win over the minimum card count (only reached when violations are left)
   if (!res.fixed && structural) {
     belowMin = true;
     res = yield* fixOverlapsGen(ctx, BAND_RULES);
     balanceDark(projects, [placed.side, placed.vertical]); build();
     const l3 = allViolations(ctx, BAND_RULES); res = { fixed: l3.length === 0, remaining: l3, steps: res.steps };
   }
+  // R29 rules 2 and 3: undark (cards never move for them)
+  res.dark = enforceDark(ctx, BAND_RULES);
   res.builds = builds;
   return res;
 }

@@ -18,6 +18,8 @@ import { initClickSound } from './effects/clicksound.js';
 import { buildSpawner } from './effects/spawner.js';
 import { springLayers } from './effects/springs.js';
 import { watchDpr } from './util/dpr.js';
+import layoutsData from './data/layouts.json';
+import { pickHome } from './work/layout-store.js';
 import { initFrameOpen } from './effects/project-transition.js';
 import { buildCaptionHover } from './effects/caption-hover.js';
 import { buildTrail } from './effects/trail.js';
@@ -41,7 +43,13 @@ const frameGL = createFrameGL(hero.frame, () => lenis.targetScroll <= 0.5 || len
 buildAbout(app, data.about);
 buildPlaceholders(app);
 buildIndex(app, data.projects);
-const cardsApi = buildSelectedWork(app, generateCards(workPool, data.projects.filter((p) => p.index).map((p) => p.slug)));
+// R29: the Selected Work cards: positions nudges + dark flags from src/data/layouts.json (no fix pass at load); the old pass is the fallback (a stale file, other rules)
+const homeRows = data.projects.filter((p) => p.index).map((p) => p.slug);
+let homeCards = null;
+const homeStored = pickHome(layoutsData, innerWidth, innerHeight);
+if (homeStored) { try { homeCards = generateCards(workPool, homeRows, undefined, undefined, { stored: homeStored }); } catch (e) { if (import.meta.env.DEV) console.warn('[layouts] stored home layout unusable:', e.message); } }
+if (!homeCards) homeCards = generateCards(workPool, homeRows);
+const cardsApi = buildSelectedWork(app, homeCards);
 buildMoreProjects(app, data.moreProjects);
 buildFooter(app, data.footer, lenis);
 initNav(data.hero.wordmark, lenis, { onHome: true });
@@ -67,4 +75,5 @@ runLoader(data.loader.text, firstScreen, hero.loadDeferred).then(() => {
 });
 
 // Dev only: ?tune opens the Selected Work tuning panel. The condition is a build-time constant, so none of this ships.
+if (import.meta.env.DEV && new URLSearchParams(location.search).has('overlap')) import('./effects/overlap-debug.js').then((m) => m.mountOverlapDebug('.sw__card', () => `scroll ${Math.round(scrollY)} px`));
 if (import.meta.env.DEV && new URLSearchParams(location.search).has('tune')) import('./effects/tune-panel.js').then((m) => m.mountTunePanel({ trail, cards: cardsApi }));

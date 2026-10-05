@@ -108,14 +108,15 @@ export function mountWorkTune({ relayout }) {
   add('DEPTH', DEPTH, ['frontShare', 'Cards in front of the image (share)', 0, 1, 0.01]);
   add('HOVER', CARD_HOVER, ['darkShare', 'Dark rest layer: share', 0, 1, 0.01]);
   RELOAD.forEach((d) => add('WORK_LIMITS', WORK_LIMITS, d));
-  add('BAND_RULES', BAND_RULES, ['darkOverlapMax', 'Dark-on-dark overlap, most (share of the smaller card)', 0, 0.6, 0.01]);
+  add('BAND_RULES', BAND_RULES, ['maxDarkPerCluster', 'Dark cards per cluster, most', 1, 6, 1]);
+  add('BAND_RULES', BAND_RULES, ['minLightShare', 'Light cards per project, at least (share)', 0, 1, 0.05]);
   add('BAND_RULES', BAND_RULES, ['pairOverlapMax', 'Any pair overlap, most (share of the smaller card)', 0, 1, 0.01]);
   const msg = document.createElement('div');
   msg.style.cssText = 'margin-top:6px;opacity:.7;min-height:1.2em';
   const row = document.createElement('div');
   row.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-top:8px';
   const btn = (text, fn) => { const b = document.createElement('button'); b.textContent = text; b.style.cssText = 'padding:6px;cursor:pointer;width:100%'; b.onclick = fn; row.append(b); return b; };
-  btn('Apply (reload)', () => { const u = new URL(location.href); u.searchParams.set('dark', CARD_HOVER.darkShare); u.searchParams.set('front', DEPTH.frontShare); u.searchParams.set('wlimits', JSON.stringify(WORK_LIMITS)); u.searchParams.set('darkov', BAND_RULES.darkOverlapMax); u.searchParams.set('pairov', BAND_RULES.pairOverlapMax); location.href = u.href; });
+  btn('Apply (reload)', () => { const u = new URL(location.href); u.searchParams.set('dark', CARD_HOVER.darkShare); u.searchParams.set('front', DEPTH.frontShare); u.searchParams.set('wlimits', JSON.stringify(WORK_LIMITS)); u.searchParams.set('pairov', BAND_RULES.pairOverlapMax); location.href = u.href; });
   const copy = btn('Copy values', async () => { await navigator.clipboard.writeText(JSON.stringify({ WORK, WORK_LIMITS, SCROLL: { gainCap: SCROLL.gainCap, gainFrom: SCROLL.gainFrom, gainTo: SCROLL.gainTo, gainDecay: SCROLL.gainDecay }, darkShare: CARD_HOVER.darkShare, frontShare: DEPTH.frontShare }, null, 2)); copy.textContent = 'Copied'; setTimeout(() => { copy.textContent = 'Copy values'; }, 1200); });
   btn('Reset to defaults', () => {
     Object.assign(WORK, defaults.WORK); Object.assign(SCROLL, defaults.SCROLL); Object.assign(TRANSITION, defaults.TRANSITION); Object.assign(WORK.cardWarp, defaults.cardWarp); Object.assign(WORK.frameWarp, defaults.frameWarp);

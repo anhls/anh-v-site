@@ -1,17 +1,16 @@
-// R22e: ONE overlap rule set + ONE deterministic fix pass for the Selected Work cards (homepage, cards-gen.js) and the Work page cards
-// (work/cards.js). Rules (BAND_RULES in timeline.js, all tunable):
-//   1. no point is covered by 3 or more cards (any pair may overlap);
-//   2. two cards that both carry the dark rest layer overlap by at most darkOverlapMax of the smaller card's area (they merge into one
-//      black blob otherwise: the near-black layers are identical);
-//   3. any pair overlaps by at most pairOverlapMax of the smaller card's area (a card never mostly hides another).
-// They are checked on the laid-out positions at rest AND in every "scenario" the caller supplies (the cards move by depth: mouse drift at
-// its extremes, the aura / parting, the Work page's focus push, the other mode ...): a pair that looks safe can stack once cards shift.
-// The fix pass nudges the violating card along its band (the smallest move that lowers the violations, inside the band), then undarks it
-// (never a duplicate) or swaps its depth with another card, and as a last resort drops it (only if its band stays at its minimum).
+// R22e / R29: ONE overlap rule set for the Selected Work cards (homepage, cards-gen.js) and the Work page cards (work/cards.js). Rules (BAND_RULES in
+// timeline.js, all tunable), checked in the states of LAYOUT_STATES (the ones Anh mostly sees: rest, the drift at half, the focus push, the ambient drift at
+// its end; NOT the extremes):
+//   1. any pair overlaps by at most pairOverlapMax of the smaller card's area (a card never mostly hides another);
+//   2. a CLUSTER (cards linked by an overlap of at least clusterLink of the smaller card, in any checked state) holds at most maxDarkPerCluster cards with
+//      the dark rest layer (the black-blob problem only comes from dark cards merging; light cards may overlap freely up to rule 1);
+//   3. at least minLightShare of the cards of a project (Work, per mode) / of the homepage are light.
+// R29: rules 2 and 3 are met by UNDARKING only (cards never move for them). The fix pass below (nudge along the band, swap depth, drop) is the FALLBACK for
+// a project without a stored layout; the offline solver (tools/layout-solve.mjs) writes src/data/layouts.json and the runtime just loads it.
 // Everything is deterministic: same cards in, same layout out.
 export const OVERLAP_EPS = 1e-6;
 
-// x, y = centres, w, h = sizes (same unit), dark[] flags; returns a list of { type: 'pair' | 'dark' | 'triple', cards: [i, j(, k)], excess }
+// x, y = centres, w, h = sizes (same unit), dark[] flags (unused now); returns a list of { type: 'pair', cards: [i, j], excess }
 export function findViolations(x, y, w, h, dark, n, rules, only = -1, dx = null, dy = null) {
   // `only`: -1 = all, an index, or an array of indices: only the violations that involve one of them (what a move of those cards can change)
   const oset = Array.isArray(only) ? new Set(only) : null;
@@ -21,20 +20,15 @@ export function findViolations(x, y, w, h, dark, n, rules, only = -1, dx = null,
   let px = x, py = y;
   if (dx) { px = new Float64Array(n); for (let i = 0; i < n; i++) px[i] = x[i] + dx[i]; }
   if (dy) { py = new Float64Array(n); for (let i = 0; i < n; i++) py[i] = y[i] + dy[i]; }
-  const X = (i) => px[i];
-  const Y = (i) => py[i];
   const out = [];
-  const near = new Array(n); // per card, created on its first neighbour (most calls touch only a few)
-  const members = all ? null : (oset ? [...oset] : [only]).sort((a, b) => a - b); // R22j: with `only`, visit just the pairs that involve one of them
+  const members = all ? null : (oset ? [...oset] : [only]).sort((a, b) => a - b); // with `only`, visit just the pairs that involve one of them
   const pair = (i, j) => {
     const ox = (w[i] + w[j]) / 2 - Math.abs(px[i] - px[j]);
     if (ox <= 0) return;
     const oy = (h[i] + h[j]) / 2 - Math.abs(py[i] - py[j]);
     if (oy <= 0) return;
-    (near[i] || (near[i] = [])).push(j); (near[j] || (near[j] = [])).push(i);
     const frac = (ox * oy) / Math.min(w[i] * h[i], w[j] * h[j]);
     if (frac > rules.pairOverlapMax + OVERLAP_EPS) out.push({ type: 'pair', cards: [i, j], excess: frac - rules.pairOverlapMax });
-    else if (dark[i] && dark[j] && frac > rules.darkOverlapMax + OVERLAP_EPS) out.push({ type: 'dark', cards: [i, j], excess: frac - rules.darkOverlapMax });
   };
   if (all) {
     for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) pair(i, j);
@@ -42,22 +36,6 @@ export function findViolations(x, y, w, h, dark, n, rules, only = -1, dx = null,
     for (let i = 0; i < n; i++) {
       if (has(i)) for (let j = i + 1; j < n; j++) pair(i, j);
       else for (const m of members) if (m > i && m < n) pair(i, m);
-    }
-  }
-  for (let i = 0; i < n; i++) {
-    const ni = near[i];
-    if (!ni || (!all && !has(i) && !ni.some(has))) continue;
-    for (const j of ni) {
-      if (j <= i) continue;
-      for (const k of ni) {
-        if (!all && !has(i) && !has(j) && !has(k)) continue;
-        if (k <= j) continue;
-        // k must border j as well, and the three rectangles must share a region (not just pairwise corners)
-        const xi = X(i), xj = X(j), xk = X(k), yi = Y(i), yj = Y(j), yk = Y(k);
-        const ix = Math.min(xi + w[i] / 2, xj + w[j] / 2, xk + w[k] / 2) - Math.max(xi - w[i] / 2, xj - w[j] / 2, xk - w[k] / 2);
-        const iy = Math.min(yi + h[i] / 2, yj + h[j] / 2, yk + h[k] / 2) - Math.max(yi - h[i] / 2, yj - h[j] / 2, yk - h[k] / 2);
-        if (ix > 0.5 && iy > 0.5) out.push({ type: 'triple', cards: [i, j, k], excess: Math.min(ix, iy) / 100 });
-      }
     }
   }
   return out;
@@ -79,6 +57,60 @@ export function allViolations(ctx, rules, only = -1) {
     }
   }
   return [...map.values()];
+}
+// R29: the pairs linked (overlap >= rules.clusterLink of the smaller card) in ANY scenario, as [i, j] pairs (i < j)
+export function linkedPairs(ctx, rules) {
+  const base = ctx.base ? ctx.base() : null, set = new Set(), out = [];
+  for (const sc of ctx.scenarios()) {
+    const x = sc.x || base.x, y = sc.y || base.y, w = sc.w || ctx.w, h = sc.h || ctx.h, n = x.length, dx = sc.x ? null : sc.dx, dy = sc.x ? null : sc.dy;
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+      const ox = (w[i] + w[j]) / 2 - Math.abs(x[i] + (dx ? dx[i] : 0) - x[j] - (dx ? dx[j] : 0));
+      if (ox <= 0) continue;
+      const oy = (h[i] + h[j]) / 2 - Math.abs(y[i] + (dy ? dy[i] : 0) - y[j] - (dy ? dy[j] : 0));
+      if (oy <= 0) continue;
+      if ((ox * oy) / Math.min(w[i] * h[i], w[j] * h[j]) >= rules.clusterLink) { const k = i * 4096 + j; if (!set.has(k)) { set.add(k); out.push([i, j]); } }
+    }
+  }
+  return out;
+}
+// clusters (arrays of card indices, size >= 2) from the linked pairs
+export function clustersOf(n, pairs) {
+  const par = Int32Array.from({ length: n }, (_, i) => i);
+  const find = (a) => { while (par[a] !== a) { par[a] = par[par[a]]; a = par[a]; } return a; };
+  for (const [i, j] of pairs) par[find(i)] = find(j);
+  const m = new Map();
+  for (let i = 0; i < n; i++) { const r = find(i); if (!m.has(r)) m.set(r, []); m.get(r).push(i); }
+  return [...m.values()].filter((c) => c.length > 1);
+}
+// R29 rules 2 and 3 by undarking only. ctx.dark() = flags (edited through ctx.setDark(i, false)), ctx.rank(i) (higher = gives way first), ctx.isDup(i) (forced
+// dark: never touched), ctx.groups() = arrays of card indices for the light-share floor (a project in one mode / the homepage), ctx.n = card count.
+// Returns { clusters: [clusters still over the limit], floor: [groups still under the floor], undarked }.
+export function enforceDark(ctx, rules) {
+  const n = ctx.n, dark = ctx.dark(); let undarked = 0;
+  const pairs = linkedPairs(ctx, rules), clusters = clustersOf(n, pairs);
+  const rankOf = (a, b) => ctx.rank(b) - ctx.rank(a);
+  const stuckClusters = [];
+  for (const cl of clusters) {
+    for (;;) {
+      const d = cl.filter((i) => dark[i]);
+      if (d.length <= rules.maxDarkPerCluster) break;
+      const cand = d.filter((i) => !ctx.isDup(i)).sort(rankOf)[0];
+      if (cand === undefined) { stuckClusters.push({ cards: d, dups: d.length }); break; } // an all-duplicate cluster: the caller nudges the pair apart
+      ctx.setDark(cand, false); undarked++;
+    }
+  }
+  const floor = [];
+  for (const g of ctx.groups()) {
+    const need = Math.ceil(rules.minLightShare * g.length - 1e-9);
+    for (;;) {
+      const light = g.filter((i) => !dark[i]).length;
+      if (light >= need) break;
+      const cand = g.filter((i) => dark[i] && !ctx.isDup(i)).sort(rankOf)[0];
+      if (cand === undefined) { floor.push({ group: g, light, need }); break; } // the duplicates alone break the floor: reported
+      ctx.setDark(cand, false); undarked++;
+    }
+  }
+  return { clusters: stuckClusters, floor, undarked };
 }
 const score = (list) => list.reduce((a, v) => a + 1 + v.excess, 0);
 

@@ -54,7 +54,7 @@ const SCROLL_SLIDERS = [
   ['gainDecay', 'Speed hold / decay (s)', 0.05, 1.5, 0.01, 'R23d. How long the wheel-speed estimate is held after the wheel slows down.'],
 ];
 const RULE_SLIDERS = [
-  ['darkOverlapMax', 'Dark-on-dark overlap, most (share of the smaller card)', 0, 0.6, 0.01, 'R22e. Two cards with the dark rest layer may overlap by at most this share of the smaller one (they merge into one black blob). Applies after Apply (reload).'],
+  ['maxDarkPerCluster', 'Dark cards per cluster of overlapping cards, most', 1, 6, 1, 'R29. A group of overlapping cards holds at most this many cards with the dark rest layer (they merge into one black blob otherwise). Applies after Apply (reload).'],
   ['pairOverlapMax', 'Any pair overlap, most (share of the smaller card)', 0, 1, 0.01, 'R22e. No card may be more than this share hidden by another. Applies after Apply (reload).'],
 ];
 const DEPTH_SLIDERS = [['frontShare', 'Cards in front of the centre frame (share)', 0, 1, 0.01, 'R23d. Share of the cards drawn in front of the frame (the rest behind). Applies after Apply (reload).']];
@@ -200,7 +200,7 @@ export function mountTunePanel({ trail, cards } = {}) {
   showSeed();
   layout.querySelector('[data-pool-seed]').value = POOL.seed;
   section('Scroll (wheel acceleration)', ['SCROLL.gainCap', 'SCROLL.gainFrom', 'SCROLL.gainTo', 'SCROLL.gainDecay'], { note: 'Applies to every page: the distance per wheel tick rises with the wheel speed. Cap 1 = linear.' });
-  section('Card bands + dark share (Apply reloads)', ['DEPTH.frontShare', 'RULES.darkOverlapMax', 'RULES.pairOverlapMax', 'HOVER.darkShare', ...BAND_LIMITS.flatMap((_, i) => BAND_SLIDERS.map((d) => `BAND${i}.${d[0]}`))], { note: 'Cards per band of the Selected Work (limits from the old layout). Move the sliders, then press Apply: the cards are generated again on reload.', extra: '<button data-act="poolseed" style="padding:5px 10px;cursor:pointer;margin-bottom:8px">Apply (reload)</button>' });
+  section('Card bands + dark share (Apply reloads)', ['DEPTH.frontShare', 'RULES.maxDarkPerCluster', 'RULES.pairOverlapMax', 'HOVER.darkShare', ...BAND_LIMITS.flatMap((_, i) => BAND_SLIDERS.map((d) => `BAND${i}.${d[0]}`))], { note: 'Cards per band of the Selected Work (limits from the old layout). Move the sliders, then press Apply: the cards are generated again on reload.', extra: '<button data-act="poolseed" style="padding:5px 10px;cursor:pointer;margin-bottom:8px">Apply (reload)</button>' });
   section('Captions (hero)', ['CAPTION.revealSec', 'CAPTION.hideSec', 'CAPTION.fromScale', 'CAPTION.lineInSec', 'CAPTION.textOutSec'], { note: 'Scroll to the top of the page and hover a caption.' });
   const trailSec = section('Hero image trail', ['TRAIL.frequency', 'TRAIL.visibleFor', 'TRAIL.startMaskShare', 'TRAIL.fadeAtScreen', 'TRAIL.fadeLenVh', 'TRAIL.fadeCurve', 'TRAIL.minScale'], { onInput: () => { trail?.remeasure(); showPts(); }, extra: '<div data-trail-pts style="opacity:.7;margin:2px 0 8px"></div>' });
   const pts = trailSec.querySelector('[data-trail-pts]');
@@ -218,7 +218,6 @@ export function mountTunePanel({ trail, cards } = {}) {
       u.searchParams.set('seed', box.querySelector('[data-pool-seed]').value || POOL.seed);
       u.searchParams.set('dark', CARD_HOVER.darkShare);
       u.searchParams.set('front', DEPTH.frontShare);
-      u.searchParams.set('darkov', BAND_RULES.darkOverlapMax);
       u.searchParams.set('pairov', BAND_RULES.pairOverlapMax);
       u.searchParams.set('limits', JSON.stringify(BAND_LIMITS));
       location.href = u.href;

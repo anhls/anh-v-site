@@ -40,7 +40,7 @@ export function buildSelectedWork(root, cards) {
       const dark = pointerEnabled && c.dark ? `<div class="sw__dark" aria-hidden="true" style="${style}"></div>` : '';
       // Animated cards: muted looping video (WebM with alpha first, MP4 as fallback), played only while near the screen.
       if (vid) return `<video class="sw__card" muted loop playsinline preload="none" poster="${vid.poster}" draggable="false" style="${style}">${vid.webm ? `<source src="${vid.webm}" type="video/webm">` : ''}<source src="${vid.mp4}" type="video/mp4"></video>${dark}`;
-      return `<img class="sw__card" ${imgAttrs(c.src, `${(c.w / 19.2).toFixed(1)}vw`)} alt="" loading="lazy" decoding="async" draggable="false" style="${style}">${dark}`;
+      return `<img class="sw__card" data-dark="${c.dark ? 1 : 0}" ${imgAttrs(c.src, `${(c.w / 19.2).toFixed(1)}vw`)} alt="" loading="lazy" decoding="async" draggable="false" style="${style}">${dark}`;
     })
     .join('');
   const els = [...section.querySelectorAll('.sw__card')];

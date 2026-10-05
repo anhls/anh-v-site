@@ -7,11 +7,13 @@
 // (INDEX.swap), so each indexed project gets a band of start y (vh from the section top) where its title is the one showing at the
 // centre; projects without a title in the index (and extras with no project) go in the two swap zones, where one title slides out
 // and the next in.
-import { POOL, CARD_SIZE, INDEX, CARD_LAYOUT, BAND_LIMITS, BAND_RULES, CARD_HOVER, CARDS, LAYOUT } from '../timeline.js';
+import { POOL, CARD_SIZE, INDEX, CARD_LAYOUT, BAND_LIMITS, BAND_RULES, CARD_HOVER, CARDS, LAYOUT, LAYOUT_STATES } from '../timeline.js';
 import { generateLayout } from './layout.js';
 import { cardDepth } from './depth.js';
 import { scrollPx, dist } from '../scale.js';
-import { fixOverlaps, allViolations } from './overlap.js';
+import { fixOverlaps, allViolations, enforceDark } from './overlap.js';
+
+export const homeCardId = (c) => `${c.key}${c.dup ? '#d' : ''}`;
 
 export function rng(seed) {
   let a = seed >>> 0;
@@ -87,7 +89,9 @@ function makeCard(e, band, seed, salt = 0) {
 
 const warn = (...a) => { if (import.meta.env?.DEV) console.warn('[cards]', ...a); };
 
-export function generateCards(allPool, rows = [], seed = POOL.seed, count = POOL.count) {
+// R29: opts.stored = { cards: { id: [ax px, ay vh] }, dark: { id: bool } } (src/data/layouts.json 'home', tools/layout-solve.mjs): applied as is, no fix pass.
+// opts.fix = false: return the generated cards untouched (what the offline solver starts from); default: the fallback fix pass.
+export function generateCards(allPool, rows = [], seed = POOL.seed, count = POOL.count, opts = {}) {
   // R22b: only featured images (src/data/selected.json, marked by tools/work-pool.mjs); none featured = the whole pool
   let pool = allPool.filter((e) => e.selected);
   if (!pool.length) { pool = allPool; warn('selected.json is empty or missing: Selected Work uses the whole pool'); }
@@ -205,14 +209,25 @@ export function generateCards(allPool, rows = [], seed = POOL.seed, count = POOL
   };
   enforceRuns();
 
-  // 6. R22e overlaps: no point under 3 cards, dark-on-dark and any pair capped (overlap.js), at rest and with the mouse drift and the aura at
-  // their extremes (the cards move by depth, so a pair that looks safe can stack). Nudge along the band, then undark / swap depth, then drop.
+  if (opts.stored) { // R29: the solved layout: the nudges and the dark flags from the file
+    cards.forEach((c) => { const p = opts.stored.cards[homeCardId(c)], d = opts.stored.dark[homeCardId(c)]; if (!p) throw new Error('stored home layout misses ' + homeCardId(c)); c.ax = p[0]; c.ay = p[1]; c.dark = !!d; });
+    const fp = layout();
+    cards.forEach((c, i) => { c.py = fp[i].y; });
+    cards.forEach((c, i) => { c.id = i + 1; });
+    cards.overlapReport = { fixed: true, remaining: [], steps: 0, stored: true };
+    return cards;
+  }
+  if (opts.fix === false) return cards;
+  // 6. R22e / R29 overlaps (the FALLBACK pass; the solved layouts come from layouts.json): any pair capped (overlap.js) in the checked states (LAYOUT_STATES: rest, the
+  // drift at half, the aura at half). Nudge along the band, then swap depth, then drop; then undark for the cluster rule and the light-share floor.
   const VH = 10.8;
   let pos = layout();
   let ay0 = cards.map((c) => c.ay || 0);
   const ctx = {
     n: 0, w: null, h: null, _dark: null,
     dark: () => ctx._dark,
+    setDark: (i, v) => { cards[i].dark = v; ctx._dark[i] = v; },
+    groups: () => [cards.map((c, i) => i)],
     base: () => ({ x: ctx._bx, y: ctx._by }),
     scenarios: () => ctx._sc,
     rank: (i) => rank(cards[i], 91),
@@ -236,12 +251,16 @@ export function generateCards(allPool, rows = [], seed = POOL.seed, count = POOL
     refresh: () => {
       pos = layout(); ay0 = cards.map((c) => c.ay || 0); ctx.n = cards.length;
       ctx._bx = Float64Array.from(cards, (c, i) => pos[i].x); ctx._by = Float64Array.from(cards, (c, i) => pos[i].y * VH);
-      // the scenarios: rest + the four corners of the pointer range (the largest relative shift of two cards is at a corner), with and without the aura
+      // the scenarios (R29, LAYOUT_STATES): rest, the mouse drift at half in the four diagonal directions, the aura at half (a card hovered next to the frame)
       const wDen = 20 + 80 * CARDS.depthRange;
       const dd = Float64Array.from(cards, (c) => (20 + (c.mouse - 20) * CARDS.depthRange) * CARDS.mouseStrength);
       const au = Float64Array.from(cards, (c, i) => (Math.abs(ctx._bx[i]) < 900 ? Math.sign(ctx._bx[i] || 1) * CARDS.auraStrength * ((20 + (c.mouse - 20) * CARDS.depthRange) / wDen) : 0));
       ctx._sc = [];
-      for (const aura of [0, 1]) for (const [mx, my] of [[0, 0], [-1, -1], [-1, 1], [1, -1], [1, 1]]) ctx._sc.push({ dx: Float64Array.from(dd, (d, i) => -mx * d + aura * au[i]), dy: Float64Array.from(dd, (d) => -my * d) }); ctx.w = Float64Array.from(cards, (c) => c.w); ctx.h = Float64Array.from(cards, (c) => c.h); ctx._dark = cards.map((c) => !!c.dark); },
+      const z = () => new Float64Array(cards.length), fd = LAYOUT_STATES.drift;
+      if (LAYOUT_STATES.rest) ctx._sc.push({ dx: z(), dy: z() });
+      if (fd > 0) for (const [mx, my] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) ctx._sc.push({ dx: Float64Array.from(dd, (d) => -mx * d * fd), dy: Float64Array.from(dd, (d) => -my * d * fd) });
+      if (LAYOUT_STATES.aura > 0) ctx._sc.push({ dx: Float64Array.from(au, (v) => v * LAYOUT_STATES.aura), dy: z() });
+      ctx.w = Float64Array.from(cards, (c) => c.w); ctx.h = Float64Array.from(cards, (c) => c.h); ctx._dark = cards.map((c) => !!c.dark); },
     structural: {
       undark: (i) => { const c = cards[i], prev = c.dark; if (!prev) return null; c.dark = false; return { revert: () => { c.dark = prev; } }; },
       swapDepth: (i, attempt) => {
@@ -268,6 +287,7 @@ export function generateCards(allPool, rows = [], seed = POOL.seed, count = POOL
   ctx.refresh();
   const res = globalThis.__noOverlapFix ? { fixed: true, remaining: [], steps: 0 } : fixOverlaps(ctx, BAND_RULES);
   if (!res.fixed) warn(`overlaps left after the fix pass: ${res.remaining.length}`);
+  res.dark = globalThis.__noOverlapFix ? null : enforceDark(ctx, BAND_RULES); // R29: rules 2 and 3 by undarking only
   const fp = layout();
   cards.forEach((c, i) => { c.py = fp[i].y; });
   enforceRuns();

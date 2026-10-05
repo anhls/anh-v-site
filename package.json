@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node tools/layout-check.mjs && vite build",
+    "layout": "node tools/layout-solve.mjs",
+    "layout:check": "node tools/layout-check.mjs",
     "preview": "vite preview",
     "compare": "node tools/compare.mjs",
     "media": "node tools/media.mjs"
