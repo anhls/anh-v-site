@@ -13,7 +13,7 @@ const pool = JSON.parse(fs.readFileSync('src/data/work-pool.json', 'utf8')), dat
 if (L.signature !== TL.tallSignature()) fail.push(`tall rule signature changed (stored ${L.signature}, now ${TL.tallSignature()}): run npm run layout:tall`);
 let checked = 0;
 for (const [W, H] of TL.TALL_SIZES) {
-  const key = LS.sizeKey(W, H), entry = L.work?.[key]?.side;
+  const key = LS.sizeKey(W, H), entry = L.work?.[key]?.vertical;
   if (!entry) { fail.push(`tall: no stored layout for ${key}`); continue; }
   const M = TL.tallMetrics(W, H).side, maxN = TL.cardsMaxFor('tall', W, H), pc = TL.liteCards(C.buildProjectCards, pool, slugs, T.WORK.seed, maxN);
   if (maxN <= 0) { // images only: every project has an entry with the hash of today's metrics and no card; a missing project or a stale hash fails

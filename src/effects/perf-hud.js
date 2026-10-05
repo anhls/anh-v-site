@@ -79,11 +79,15 @@ const environment = () => {
   };
 };
 
+// the last n frame gaps (ms): median / p95 / max (live: the diagnosis line and the report)
+const gapStats = (n) => { const a = frames.slice(-n).map((x) => x[1]).sort((x, y) => x - y); return a.length ? { last30GapMedianMs: r2(pct(a, 0.5)), last30GapP95Ms: r2(pct(a, 0.95)), last30GapMaxMs: r2(a[a.length - 1]) } : {}; };
+
 const buildReport = () => ({
   tool: 'anh-v-site ?perf (R31)', environment: environment(), canvasNow: canvasInfo(),
   baselinePlainScroll5s: saved.base || 'not taken yet (needs 5 s on the Work page with no input right after load)',
   lastForward: saved.fwd[saved.fwd.length - 1] || null, lastBack: saved.back[saved.back.length - 1] || null,
   forwardRuns: saved.fwd, backRuns: saved.back,
+  warpDiagnosis: window.__tallDiag ? { ...window.__tallDiag(), ...gapStats(30) } : 'not the Work page',
   tallGuard: window.__tallGuard ? { ...window.__tallGuard, note: 'R24d frame-time guard of the phone / tablet Work page: step 0 = full warp, 1 = warp pass x0.75, 2 = x0.5, 3 = warp off' } : 'not a phone / tablet Work page',
 });
 
@@ -180,7 +184,9 @@ export function mountPerf() {
     const up = uploads.filter((x) => x[0] > now - 1000).reduce((a, x) => a + x[1], 0);
     const c = glApi?.canvas, st = glApi?.stats?.();
     const heap = performance.memory ? `${(performance.memory.usedJSHeapSize / 1048576).toFixed(0)} MB` : 'n/a';
-    pre.textContent = `${(f[f.length - 1]?.[1] ?? 0).toFixed(1)} ms  ${l1.length} fps  worst(2s) ${worst.toFixed(1)} ms\ncanvas ${c ? `${c.width}x${c.height}` : 'none'} @DPR ${r2(devicePixelRatio)}\ntextures ${st ? st.loaded : 'n/a'}  up/1s ${(up / 1048576).toFixed(1)} MB  heap ${heap}\n${cur ? `run: ${cur.kind} (${cur.marks[cur.marks.length - 1].name})` : base.done ? 'idle' : 'baseline...'}`;
+    const dg = window.__tallDiag ? window.__tallDiag() : null, gs = gapStats(30);
+    const diagLine = dg ? `\nwarp: gl ${dg.glOn ? 'on' : 'OFF (' + dg.glOffReason + ')'} | pass ${dg.warpPassActive ? 'on' : 'idle'} | warp ${dg.warpOn ? 'on' : 'off'}${dg.warpForced ? ' (forced)' : ''}\namount ${dg.warpAmountNow} / peak ${dg.warpAmountPeak} | guard ${dg.guardStep} | dpr ${dg.dpr} (${dg.canvasDpr}) pass x${dg.passScale}\ngaps med ${gs.last30GapMedianMs ?? '-'} p95 ${gs.last30GapP95Ms ?? '-'} ms | ${dg.strip}` : '';
+    pre.textContent = `${(f[f.length - 1]?.[1] ?? 0).toFixed(1)} ms  ${l1.length} fps  worst(2s) ${worst.toFixed(1)} ms\ncanvas ${c ? `${c.width}x${c.height}` : 'none'} @DPR ${r2(devicePixelRatio)}\ntextures ${st ? st.loaded : 'n/a'}  up/1s ${(up / 1048576).toFixed(1)} MB  heap ${heap}\n${cur ? `run: ${cur.kind} (${cur.marks[cur.marks.length - 1].name})` : base.done ? 'idle' : 'baseline...'}${diagLine}`;
   };
   requestAnimationFrame(tick);
 }

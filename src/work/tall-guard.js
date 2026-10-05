@@ -1,4 +1,5 @@
 import { TALL } from '../timeline.js';
+import { perfOn } from '../util/perf-mark.js';
 
 // R24d: the frame-time guard of the lite modes (phone, tablet). A weak phone must still scroll smoothly, just flat. While the strip moves (drag, coast, snap, wheel) the
 // frame times are collected (rAF gaps); every TALL.guardFrames frames, and at the end of a burst of movement of at least half that, the median and the p95 are checked: over
@@ -19,7 +20,7 @@ export function createGuard({ setScale, enabled = true }) {
     if (state.step >= 3) state.warp = false; else setScale?.(state.scale);
     const label = ['', 'warp pass x0.75', 'warp pass x0.5', 'warp off'][state.step];
     state.history.push({ step: state.step, label, medianMs: +median.toFixed(1), p95Ms: +p95.toFixed(1), atMs: Math.round(performance.now()) });
-    if (import.meta.env.DEV) console.info(`[tall guard] step ${state.step}: ${label} (median ${median.toFixed(1)} ms, p95 ${p95.toFixed(1)} ms)`);
+    if (import.meta.env.DEV || perfOn) console.info(`[tall guard] step ${state.step}: ${label} (median ${median.toFixed(1)} ms, p95 ${p95.toFixed(1)} ms)`);
   };
   return {
     state,

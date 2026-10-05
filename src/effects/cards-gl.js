@@ -52,6 +52,7 @@ void main() {
 // goes to the screen through the warp shader. At rest the pass is skipped altogether (cards go straight to the canvas).
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const param = new URLSearchParams(location.search).get('gl');
+const warpForced = new URLSearchParams(location.search).get('warp') === '1'; // R24f: ?warp=1 forces the GL path on even under reduced motion / on a 'weak' device (and the Work page bypasses the guard)
 
 // els: the card elements (img / video); cards: data (z, w, h, mouse); arrays (shared with selected-work.js, filled by it): bx, by
 // (centre x / page y), bw, bh (px); the loop calls setOffset(i, x, y) for every card and then draw(...).
@@ -70,7 +71,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
   const WARP = warpOpt || WARP_DEF;
   let axis = 0;
   let warpScale = 1; // R24d: the warp pass's offscreen buffer resolution (the frame-time guard steps it down while the warp is on; the flat draw is never affected)
-  if (param === '0' || (param !== '1' && (reduced || weakDevice(BEND.weakCores, BEND.weakMemoryGb)))) return null;
+  if (param === '0' || (param !== '1' && !warpForced && (reduced || weakDevice(BEND.weakCores, BEND.weakMemoryGb)))) return null;
   const canvas = document.createElement('canvas');
   canvas.className = 'sw__gl';
   canvas.setAttribute('aria-hidden', 'true');
@@ -107,6 +108,8 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
   // Offscreen buffers (made on first use, rebuilt on resize): a multisampled renderbuffer the cards are drawn into (same edge
   // quality as the canvas), resolved into a texture that the post shader samples.
   let fb = null;
+  let fbInfo = { fbPath: 'not built yet', samples: 0, bufferPx: '' };
+  let passCount = 0, lastPass = 0;
   // The warp samples the picture beyond the screen edge (content that is just off screen is pulled in), so the offscreen buffer
   // holds the screen plus an overscan margin on every side, sized from the warp settings (px, rounded up to 8).
   const margins = () => {
@@ -131,13 +134,26 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     const h = Math.round((H + 2 * my) * dprNow);
     // multisampling costs memory (samples x 4 bytes per pixel): 4 samples up to ~6 M pixels, 2 up to ~14 M, none beyond
     const px = w * h;
-    const samples = Math.min(px > 14e6 ? 0 : px > 6e6 ? 2 : 4, gl.getParameter(gl.MAX_SAMPLES));
-    const rb = gl.createRenderbuffer();
-    gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
-    gl.renderbufferStorageMultisample(gl.RENDERBUFFER, samples, gl.RGBA8, w, h);
-    const ms = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, ms);
-    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rb);
+    let samples = Math.min(px > 14e6 ? 0 : px > 6e6 ? 2 : 4, gl.getParameter(gl.MAX_SAMPLES));
+    // R24f: the buffer is plain RGBA8 (no float / half-float target, which iOS lacks without an extension). If the multisampled renderbuffer cannot be made or the framebuffer is not
+    // complete, fall back to fewer samples, then to none (the warp keeps running, a little less smooth at the edges); the path that ran is in api.diag() and the console (dev / ?perf)
+    let rb = null, ms = null;
+    for (;;) {
+      if (rb) gl.deleteRenderbuffer(rb);
+      if (ms) gl.deleteFramebuffer(ms);
+      rb = gl.createRenderbuffer();
+      gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+      gl.getError();
+      gl.renderbufferStorageMultisample(gl.RENDERBUFFER, samples, gl.RGBA8, w, h);
+      ms = gl.createFramebuffer();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, ms);
+      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rb);
+      if (gl.getError() === gl.NO_ERROR && gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE) break;
+      if (samples === 0) break; // nothing left to try: the draw below reports the error
+      samples = samples > 2 ? 2 : 0;
+    }
+    fbInfo = { fbPath: `RGBA8, ${samples} samples`, samples, bufferPx: `${w}x${h}` };
+    if (import.meta.env.DEV || new URLSearchParams(location.search).has('perf')) console.info(`[cards-gl] warp buffer ${fbInfo.bufferPx}: ${fbInfo.fbPath}`);
     const tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
@@ -348,6 +364,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
   // Resolves the multisampled buffer into the texture and draws it to the screen through the warp shader.
   // img = the main images' program and settings (layers); over = composite over what the canvas already holds (a later layer)
   const postPass = (amt, grainAmt, seed, img = false, over = false) => {
+    passCount++; lastPass = performance.now();
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fb.ms);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb.res);
     gl.blitFramebuffer(0, 0, fb.w, fb.h, 0, 0, fb.w, fb.h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
@@ -508,6 +525,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     draw,
     show: (on) => { canvas.style.visibility = on ? 'visible' : 'hidden'; if (on) dirty = true; },
     markDirty: () => { dirty = true; },
+    diag: () => ({ postOk, ...fbInfo, warpScale, passCount, lastPass }), // R24f: what the ?perf diagnosis line shows
     setWarpScale: (k) => { warpScale = Math.max(0.25, Math.min(1, k)); dirty = true; },
     setAxis: (a) => { axis = a ? 1 : 0; dirty = true; },
     reweigh: () => { computeWeights(); dirty = true; }, // after a depth-bell change in the tuning panel

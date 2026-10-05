@@ -217,6 +217,9 @@ export const TUNE_DOCS = {
 Object.assign(TUNE_DOCS, {
   'TALL.frame': 'Phone and tablet portrait: how wide the project image is, as a share of the screen width (the height follows from the desktop image ratio). With no cards on the page, 0.8-0.9 is the range to try.',
   'TABLET.frameH': 'Tablet landscape: how tall the project image is, as a share of the screen height (the width follows from the desktop image ratio, at most 90 % of the screen width).',
+  'TALL.gapV': 'Phone and tablet portrait: the vertical strip. The gap between two project images as a share of the image height (the wide vertical gap scaled to this frame).',
+  'TALL.warpGain': 'Phone / tablet warp: how strongly the swipe speed drives the warp. The speed is measured against the screen length along the strip, so a phone and a tablet swipe give the same amount. Medium swipe about 0.5, hard flick above 1.',
+  'TALL.warpPow': 'Phone / tablet warp: shapes the speed (1 = straight, 1.5 = gentle swipes bend little and hard flicks a lot).',
   'TALL.guardMs': 'Frame-time guard (phone / tablet): if the median frame time while the strip moves is over this, the warp steps down one stage (the warp buffer at 0.75, then 0.5, then the warp off). It never steps back up in a visit.',
   'TALL.guardP95': 'Frame-time guard: the same step-down if the slowest 5 % of the frames while the strip moves are over this.',
 });

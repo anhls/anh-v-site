@@ -24,11 +24,15 @@ export function liteFrame(kind, W, H) {
   const fw = TALL.frame * W; return { w: fw, h: fw / r };
 }
 export const liteScale = (kind, W, H) => { const f = liteFrame(kind, W, H); return Math.sqrt(f.w * f.h) / TALL.frameRef; }; // the cards' size scale (only used when cards are on)
+// R24f: tall = a VERTICAL strip (the image centred across the width, the gap TALL.gapV of the image height, along = the screen height); tablet / phone landscape = the horizontal strip
 export function liteMetrics(kind, W, H) {
   const f = liteFrame(kind, W, H), scale = liteScale(kind, W, H);
-  const side = { vertical: false, alongF: f.w, crossF: f.h, scale, gap: (WORK.gapSide / WORK.frameW) * f.w, gapPx: (WORK.dupGap * W) / 100, viewAlong: W, viewCross: H };
-  return { side, vertical: side }; // (`vertical` only so the load-time fallback pass has both keys; the lite modes have one)
+  const m = kind === 'tablet'
+    ? { vertical: false, alongF: f.w, crossF: f.h, scale, gap: (WORK.gapSide / WORK.frameW) * f.w, gapPx: (WORK.dupGap * W) / 100, viewAlong: W, viewCross: H }
+    : { vertical: true, alongF: f.h, crossF: f.w, scale, gap: TALL.gapV * f.h, gapPx: (WORK.dupGap * H) / 100, viewAlong: H, viewCross: W };
+  return { side: m, vertical: m }; // (both keys hold the one strip of the mode, so the load-time fallback pass has both)
 }
+export const liteMode = (kind) => (kind === 'tablet' ? 'side' : 'vertical');
 export const tallMetrics = (W, H) => liteMetrics('tall', W, H);
 export const tabletMetrics = (W, H) => liteMetrics('tablet', W, H);
 export const tallFrame = (W, H = 0) => liteFrame('tall', W, H).w; // (kept for the stored-size ratio)
@@ -39,7 +43,7 @@ export const tallLimits = (W = 390, H = 844) => limitsFor(cardsMaxFor('tall', W,
 export const liteCards = (build, pool, slugs, seed, max) => (max <= 0 ? slugs.map(() => []) : build(pool, slugs, seed, limitsFor(max)));
 
 const fnv = (str) => { let h = 2166136261; for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619); return (h >>> 0).toString(36); };
-export const tallSignature = () => fnv(`${ruleSignature()}|${JSON.stringify([TALL.cardsMax, TALL.cardsMaxTablet, TALL.frame, TALL.frameRef, frameRatio(), TALL_STATES])}`);
+export const tallSignature = () => fnv(`${ruleSignature()}|${JSON.stringify([TALL.cardsMax, TALL.cardsMaxTablet, TALL.frame, TALL.gapV, TALL.frameRef, frameRatio(), TALL_STATES, 'vertical'])}`);
 
 export const tabletSignature = () => fnv(`${ruleSignature()}|${JSON.stringify([TABLET.cards, TABLET.frameH, frameRatio()])}`);
 

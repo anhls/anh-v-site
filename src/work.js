@@ -5,7 +5,7 @@ import { gsap } from 'gsap';
 import data from './data/data.json';
 import pool from './data/work-pool.json';
 import { WORK, BEND, WARP, CARDS, CARD_HOVER, DEPTH, SCROLL, INDEX, TRANSITION, TALL, TABLET } from './timeline.js';
-import { isTall } from './util/layout-mode.js';
+import { isTall, isLiteLandscape } from './util/layout-mode.js';
 import { frameZ } from './data/depth.js';
 import { capW, dist } from './scale.js';
 import { initNav } from './effects/nav.js';
@@ -22,7 +22,6 @@ import { workEase, blendSoft, moveForce, forceOf, EASES } from './util/ease.js';
 import { ambUnits, ambParams, ambDepthW, ambProgress, ambCardOffset, ambImageOffset, leadUnits, leadParams, leadOffset } from './work/ambient.js';
 import { buildProjectCards, placeCards, balanceDark, workMetrics, fixWorkLayout, fixWorkLayoutIdle } from './work/cards.js';
 import { slugSeed } from './work/states.js';
-import { isTabletAspect } from './work/layout-store.js';
 import { createGuard } from './work/tall-guard.js';
 import layoutsData from './data/layouts.json';
 import { pickSize, placeStored, applyStoredDark, ruleSignature, projectHash } from './work/layout-store.js';
@@ -41,8 +40,10 @@ const params = new URLSearchParams(location.search);
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 // R24a / R24d / R24e: the LITE modes: TALL (phones, tablet portrait) and TABLET LANDSCAPE (R24b's test): the project images only (cards are a flag, 0 now), side scroll
 // only, no toggle, the image keeps the desktop ratio, the image warp on (frame-time guard), burger menu in tall; everything lite-only is behind `lite` / `tall`.
+// R24f: tall = a VERTICAL strip (drag along Y), landscape on a touch device = the horizontal one.
 const tall = isTall();
-const tabletLand = !tall && isTabletAspect(innerWidth, innerHeight);
+const tabletLand = isLiteLandscape(); // R24f: landscape on a touch device (decided by the screen, layout-mode.js), not by the window ratio
+const warpForce = params.get('warp') === '1'; // R24f: ?warp=1 forces the warp on and bypasses the frame-time guard (to tell "too subtle" from "the guard switched it off")
 const lite = tall || tabletLand, liteKind = tall ? 'tall' : 'tablet';
 const TLm = lite ? await import('./work/tall.js') : null;
 const cardsMaxNow = lite ? TLm.cardsMaxFor(liteKind, innerWidth, innerHeight) : -1; // cards per project in this mode (-1 = the desktop rule)
@@ -58,7 +59,7 @@ const store = { get: () => { try { return localStorage.getItem('work-mode'); } c
 const back = !reduced && params.get('gl') !== '0' ? readBack() : null;
 const perfP = perfOn ? import('./effects/perf-hud.js').then((m) => { m.mountPerf(); return m; }) : null; // R31: ?perf report (own chunk)
 if (back) pm('back:arrive');
-let vertical = !lite && (back ? back.mode === 'vertical' : store.get() === 'vertical');
+let vertical = tall || (!lite && (back ? back.mode === 'vertical' : store.get() === 'vertical'));
 
 const lenis = new Lenis({ infinite: true, gestureOrientation: 'both', lerp: 0.07, wheelMultiplier: 1 });
 // R22j: Lenis runs on a clock that never advances more than 100 ms per frame: after a hidden tab or a long freeze its glide carries on from where
@@ -156,9 +157,9 @@ const layouts = () => {
   if (laidOnce && !storedOK) fixWorkLayout(projCards, metricsNow(), { structural: false }); // fallback only, a resize: nudges only (the card set stays)
   laidOnce = true;
   const placedAll = {};
-  for (const mode of lite ? ['side'] : ['side', 'vertical']) {
+  for (const mode of lite ? [TLm.liteMode(liteKind)] : ['side', 'vertical']) {
     const v = mode === 'vertical';
-    const M = lite ? TLm.liteMetrics(liteKind, W, H).side : { vertical: v, alongF: v ? fh : fw, crossF: v ? fw : fh, scale, gap: v ? (WORK.gapVert * H) / 100 : (WORK.gapSide * W) / 100, gapPx: (WORK.dupGap * (v ? H : W)) / 100, viewAlong: v ? H : W, viewCross: v ? W : H };
+    const M = lite ? TLm.liteMetrics(liteKind, W, H)[mode] : { vertical: v, alongF: v ? fh : fw, crossF: v ? fw : fh, scale, gap: v ? (WORK.gapVert * H) / 100 : (WORK.gapSide * W) / 100, gapPx: (WORK.dupGap * (v ? H : W)) / 100, viewAlong: v ? H : W, viewCross: v ? W : H };
     const pitch = M.alongF + M.gap;
     const pk = storedOK ? pickNow() : null;
     let placed = noCards ? projCards.map(() => []) : pk ? placeStored(LD, projCards, M, mode, pk) : null;
@@ -171,7 +172,7 @@ const layouts = () => {
     });
     LAY[mode] = { M, pitch, period: N * pitch, pos };
   }
-  if (lite) LAY.vertical = LAY.side;
+  if (lite) { const only = LAY[TLm.liteMode(liteKind)]; LAY.side = only; LAY.vertical = only; }
   if (!storedOK) balanceDark(projCards, [placedAll.side, placedAll.vertical].filter(Boolean)); // dark runs <= 2 along the strip in both modes (the stored flags already hold it)
   items.forEach((it, i) => {
     if (it.kind === 'card') { it.dark = it.card.dark; it.el.dataset.dark = it.dark ? '1' : '0'; if (gl) { gl.darkCard[i] = it.dark; gl.hd[i] = it.dark && fine ? CARD_HOVER.darkRest : 0; } }
@@ -187,8 +188,10 @@ const cur = () => LAY[vertical ? 'vertical' : 'side'];
 // ---- WebGL (the homepage card renderer, with the Work page's own warp numbers)
 // R22h: two warps with their own settings: WORK.cardWarp (the cards) and WORK.frameWarp (the main images, own shader). Both are read live.
 // R24d: the frame-time guard of the lite modes (work/tall-guard.js): steps the warp pass down when the strip does not hold the frame budget
-const guard = createGuard({ setScale: (k) => gl?.setWarpScale?.(k), enabled: lite && TALL.guard });
+const guard = createGuard({ setScale: (k) => gl?.setWarpScale?.(k), enabled: lite && TALL.guard && !warpForce });
 if (perfOn) window.__tallGuard = guard.state; // read by the ?perf report
+const warpSpeed = (v, along) => { const vn = (v * TALL.warpRefPx) / Math.max(along, 1), r = (Math.abs(vn) * TALL.warpGain) / TALL.warpVRef; return Math.sign(vn) * TALL.warpVRef * r ** TALL.warpPow; }; // R24f: the speed the warp sees in the lite modes
+const diag = { now: 0, peak: 0, moving: 0 }; // R24f: the warp amount now / the peak of the last movement (the ?perf diagnosis line)
 const bendP = { ...BEND };
 if (lite) { bendP.dprCap = Math.min(bendP.dprCap, TALL.dprCap); bendP.dprCapLarge = Math.min(bendP.dprCapLarge, TALL.dprCap); } // R24a: a lighter backing store on a phone / tablet
 const warpP = { ...WARP };
@@ -229,6 +232,12 @@ let glOn = false;
   }
 }
 
+// R24f: the diagnosis the ?perf overlay shows (live while dragging) and the report holds: is GL on, is the warp pass running, the warp amount now / peak, why GL is off
+if (perfOn) window.__tallDiag = () => {
+  const d = gl?.diag?.() || {};
+  const why = gl ? '' : params.get('gl') === '0' ? '?gl=0' : reduced ? 'reduced motion (the iOS "Reduce Motion" setting): add ?warp=1' : 'weak device or no WebGL2';
+  return { lite, kind: lite ? liteKind : 'desktop', strip: vertical ? 'vertical' : 'side', glOn: !!gl, glOffReason: why, warpForced: warpForce, warpOn: TALL.warp && guard.state.warp, warpPassActive: d.lastPass ? performance.now() - d.lastPass < 300 : false, warpPasses: d.passCount ?? 0, warpAmountNow: +diag.now.toFixed(3), warpAmountPeak: +diag.peak.toFixed(3), guardStep: guard.state.step, dpr: devicePixelRatio, canvasDpr: gl ? +(gl.canvas.width / innerWidth).toFixed(2) : 0, passScale: d.warpScale ?? 1, bufferPath: d.fbPath ?? 'n/a', warpProgram: d.postOk ?? 'n/a', bufferPx: d.bufferPx ?? 'n/a' };
+};
 // ---- pointer: parallax (the homepage mouse drift), hover (zoom, the dark layer fades), click opens the project page (the anchors)
 const mouse = { tx: 0, ty: 0, x: 0, y: 0, px: -1e5, py: -1e5, known: false }; // px, py: the raw pointer (the push), tx, ty: normalised (the drift)
 if (fine) {
@@ -690,7 +699,10 @@ const tick = (_time, deltaMs) => {
     const moving = Math.abs(vel) > 0.5 || hoverMoving || pushMoving || settleMoving || !!morph || focusMoving || !!snap || Math.abs(mouse.tx - mouse.x) > 0.0005 || Math.abs(mouse.ty - mouse.y) > 0.0005;
     if (moving) lastDirty = now;
     if (moving || now - lastDirty < 80) gl.markDirty();
-    gl.draw(0, dt, vel, scale);
+    // R24f: in the lite modes the warp's speed is measured against the screen length along the strip (phone, tablet and a desktop wheel give comparable amounts)
+    if (import.meta.env.DEV && lite) { const m = (window.__vl ||= { raw: 0, out: 0 }); m.raw = Math.max(m.raw, Math.abs(vel)); m.out = Math.max(m.out, Math.abs(warpSpeed(vel, L.M.viewAlong))); }
+    gl.draw(0, dt, lite ? warpSpeed(vel, L.M.viewAlong) : vel, scale);
+    if (lite) { const a = Math.abs(gl.bendImg().amt || 0); diag.now = a; if (a > diag.peak) diag.peak = a; if (Math.abs(vel) > 5 || drag) diag.moving = now; else if (now - diag.moving > 4000) diag.peak = 0; }
   }
   if (morph && now - morph.t0 >= WORK.morphSec * 1000) finishMorph();
 };

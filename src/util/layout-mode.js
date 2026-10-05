@@ -22,3 +22,8 @@ export const getMode = () => {
 };
 export const isTall = () => getMode() === 'tall';
 export const isTouch = touch;
+// R24f: the Work page's LITE mode (project images only, no cards, image warp): tall (phone / tablet portrait) OR landscape on a TOUCH device. Touch devices are decided by the screen
+// (screen size + orientation, as aspectNow() does) never by the window: the browser toolbar eats height (an iPad at 1180x820 shows a window of about 1180x700), so a window ratio
+// test would send a real tablet or a phone held sideways to the desktop page. Only a mouse device in a wide window gets the desktop page. ?mode=wide forces the desktop page.
+export const isLiteLandscape = () => !isTall() && touch() && new URLSearchParams(location.search).get('mode') !== 'wide';
+export const isLite = () => isTall() || isLiteLandscape();

@@ -109,6 +109,9 @@ export function mountWorkTune({ relayout }) {
     groups.header(hl);
     defs[add('TALL', TALL, ['frame', 'Phone + tablet portrait: image width (share of the screen width)', 0.4, 1, 0.01], relayout)] = [TALL, 'frame'];
     defs[add('TABLET', TABLET, ['frameH', 'Tablet landscape: image height (share of the screen height)', 0.3, 0.9, 0.01], relayout)] = [TABLET, 'frameH'];
+    defs[add('TALL', TALL, ['gapV', 'Phone + tablet portrait: gap between images (share of the image height)', 0, 1.5, 0.01], relayout)] = [TALL, 'gapV'];
+    defs[add('TALL', TALL, ['warpGain', 'Phone / tablet warp: swipe sensitivity (gain)', 0.02, 0.6, 0.005])] = [TALL, 'warpGain'];
+    defs[add('TALL', TALL, ['warpPow', 'Phone / tablet warp: curve (1 = linear, higher = gentle swipes bend less)', 1, 3, 0.05])] = [TALL, 'warpPow'];
     defs[add('TALL', TALL, ['guardMs', 'Frame-time guard: median over (ms)', 8, 60, 1])] = [TALL, 'guardMs'];
     defs[add('TALL', TALL, ['guardP95', 'Frame-time guard: p95 over (ms)', 10, 100, 1])] = [TALL, 'guardP95'];
     WARP_SLIDERS.forEach((d) => { defs[add('TALL.frameWarp', TALL.frameWarp, d)] = [TALL.frameWarp, d[0]]; });
