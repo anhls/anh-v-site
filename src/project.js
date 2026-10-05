@@ -35,7 +35,7 @@ if (project?.page) {
   const app = document.getElementById('app');
   if (tall) (await import('./sections/project-page-tall.js')).buildProjectPageTall(app, project.page, lenis); else buildProjectPage(app, project.page, lenis);
   buildFooter(app, data.footer, lenis); // same footer + back-to-top as home
-  initNav(data.hero.wordmark, lenis, tall ? { gateFrame: false, small: { x: 5, y: 3.4, width: 26 } } : { gateFrame: false, startSmall: !!window.__pxt?.wm }); // after the footer exists: the big wordmark returns when it is reached
+  initNav(data.hero.wordmark, lenis, tall ? { gateFrame: false, small: { x: 5, y: 3.4, width: 28 } } : { gateFrame: false, startSmall: !!window.__pxt?.wm }); // after the footer exists: the big wordmark returns when it is reached
   ScrollTrigger.refresh();
   // R25: the hand-off overlay (inline script in the page) goes once the header's own picture is decoded: same file, same crop, so nothing changes on screen
   const ov = document.getElementById('pxt');

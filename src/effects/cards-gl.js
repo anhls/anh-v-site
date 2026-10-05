@@ -66,12 +66,12 @@ const warpForced = new URLSearchParams(location.search).get('warp') === '1'; // 
 // layers in paint order: the cards behind the images, the images, the cards in front; each warped layer is composited over the one before it
 // (exact depth order because every image sits at the same depth; a card is behind or in front of ALL images). Without `layers` (the homepage)
 // everything is one pass, exactly as before.
-export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, bend: bendOpt, warp: warpOpt, near: nearFn, layers }) {
+export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, bend: bendOpt, warp: warpOpt, near: nearFn, layers, lite = false }) {
   const BEND = bendOpt || BEND_DEF;
   const WARP = warpOpt || WARP_DEF;
   let axis = 0;
   let warpScale = 1; // R24d: the warp pass's offscreen buffer resolution (the frame-time guard steps it down while the warp is on; the flat draw is never affected)
-  if (param === '0' || (param !== '1' && !warpForced && (reduced || weakDevice(BEND.weakCores, BEND.weakMemoryGb)))) return null;
+  if (param === '0' || (param !== '1' && !warpForced && (reduced || (lite ? navigator.connection?.saveData === true : weakDevice(BEND.weakCores, BEND.weakMemoryGb))))) return null; // R24g: the lite Work page does not use the core / memory test (the frame-time guard decides)
   const canvas = document.createElement('canvas');
   canvas.className = 'sw__gl';
   canvas.setAttribute('aria-hidden', 'true');

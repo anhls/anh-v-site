@@ -79,6 +79,8 @@ const environment = () => {
   };
 };
 
+// R24g: a frame gap of about 16.7 ms on an Apple touch device: the screen may do 120 Hz (iPhone Pro / iPad Pro) and be capped (Low Power Mode)
+const gpuNote = () => { const g = gapStats(30).last30GapMedianMs; return g >= 15.5 && g <= 18 && /iPhone|iPad|Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 0 ? 'the frame rate is about 60 Hz: on an iPhone Pro / iPad Pro (120 Hz) this looks capped: Low Power Mode?' : ''; };
 // the last n frame gaps (ms): median / p95 / max (live: the diagnosis line and the report)
 const gapStats = (n) => { const a = frames.slice(-n).map((x) => x[1]).sort((x, y) => x - y); return a.length ? { last30GapMedianMs: r2(pct(a, 0.5)), last30GapP95Ms: r2(pct(a, 0.95)), last30GapMaxMs: r2(a[a.length - 1]) } : {}; };
 
@@ -87,7 +89,7 @@ const buildReport = () => ({
   baselinePlainScroll5s: saved.base || 'not taken yet (needs 5 s on the Work page with no input right after load)',
   lastForward: saved.fwd[saved.fwd.length - 1] || null, lastBack: saved.back[saved.back.length - 1] || null,
   forwardRuns: saved.fwd, backRuns: saved.back,
-  warpDiagnosis: window.__tallDiag ? { ...window.__tallDiag(), ...gapStats(30) } : 'not the Work page',
+  warpDiagnosis: window.__tallDiag ? { ...window.__tallDiag(), ...gapStats(30), gpuNote: gpuNote() } : 'not the Work page',
   tallGuard: window.__tallGuard ? { ...window.__tallGuard, note: 'R24d frame-time guard of the phone / tablet Work page: step 0 = full warp, 1 = warp pass x0.75, 2 = x0.5, 3 = warp off' } : 'not a phone / tablet Work page',
 });
 
@@ -185,7 +187,7 @@ export function mountPerf() {
     const c = glApi?.canvas, st = glApi?.stats?.();
     const heap = performance.memory ? `${(performance.memory.usedJSHeapSize / 1048576).toFixed(0)} MB` : 'n/a';
     const dg = window.__tallDiag ? window.__tallDiag() : null, gs = gapStats(30);
-    const diagLine = dg ? `\nwarp: gl ${dg.glOn ? 'on' : 'OFF (' + dg.glOffReason + ')'} | pass ${dg.warpPassActive ? 'on' : 'idle'} | warp ${dg.warpOn ? 'on' : 'off'}${dg.warpForced ? ' (forced)' : ''}\namount ${dg.warpAmountNow} / peak ${dg.warpAmountPeak} | guard ${dg.guardStep} | dpr ${dg.dpr} (${dg.canvasDpr}) pass x${dg.passScale}\ngaps med ${gs.last30GapMedianMs ?? '-'} p95 ${gs.last30GapP95Ms ?? '-'} ms | ${dg.strip}` : '';
+    const diagLine = dg ? `\nwarp: gl ${dg.glOn ? 'on' : 'OFF (' + dg.glOffReason + ')'} | pass ${dg.warpPassActive ? 'on' : 'idle'} | warp ${dg.warpOn ? 'on' : 'off'}${dg.warpForced ? ' (forced)' : ''}\namount ${dg.warpAmountNow} / peak ${dg.warpAmountPeak} | guard ${dg.guardStep} | dpr ${dg.dpr} (${dg.canvasDpr}) pass x${dg.passScale}\ngaps med ${gs.last30GapMedianMs ?? '-'} p95 ${gs.last30GapP95Ms ?? '-'} ms | ${dg.strip}\npeak last ${dg.warpAmountPeakLast} / all ${dg.warpAmountPeak} | cores ${dg.cores}${dg.appleGpu ? ' Apple GPU' : ''}${gpuNote() ? '\n' + gpuNote() : ''}\nswipes (L/s, coast pitches, peak): ${(dg.touch || []).slice(-4).map((t) => `${t.releaseLenPerS} ${t.fling ? t.coastPitches : '-'} ${t.peak}`).join(' | ') || '-'}\nfg ${dg.values.flingGain} fr ${dg.values.dragFriction} fm ${dg.values.dragMaxCoast} sa ${dg.values.snapAfterSpeed} wg ${dg.values.warpGain} wp ${dg.values.warpPow} ws ${dg.values.warpStrength} wf ${dg.values.warpFall} fw ${dg.values.frame}` : '';
     pre.textContent = `${(f[f.length - 1]?.[1] ?? 0).toFixed(1)} ms  ${l1.length} fps  worst(2s) ${worst.toFixed(1)} ms\ncanvas ${c ? `${c.width}x${c.height}` : 'none'} @DPR ${r2(devicePixelRatio)}\ntextures ${st ? st.loaded : 'n/a'}  up/1s ${(up / 1048576).toFixed(1)} MB  heap ${heap}\n${cur ? `run: ${cur.kind} (${cur.marks[cur.marks.length - 1].name})` : base.done ? 'idle' : 'baseline...'}${diagLine}`;
   };
   requestAnimationFrame(tick);
