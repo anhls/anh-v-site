@@ -244,6 +244,42 @@ Object.assign(TUNE_DOCS, {
   'WORK.frameWarp.leanBuf': 'How much bigger the offscreen warp buffer is along the strip so the leaned axis has picture to look at (screen lengths; takes effect after a window resize or reload). The lean actually shown is always capped by what this buffer holds, so a bigger value allows a bigger lean but costs more memory and time per frame.',
   'WORK.frameWarp.leanSign': 'Direction of the axis lean: +1 = toward where the images are going (the rule), -1 = flipped (the other way).',
 });
+// R32 Work page v2 (desktop)
+Object.assign(TUNE_DOCS, {
+  'WORK_V2.frameW': 'Width of each main image as a percent of the window width (vw). The height follows from the 1055 x 556 ratio, so the shape stays the same on every window.',
+  'WORK_V2.frameH': 'Tallest an image may be, as a percent of the window height (vh): on a window wider than 16:9 the image shrinks to this so it never runs into the info block above it.',
+  'WORK_V2.gapSide': 'Gap between neighbouring images in Side mode (vw).',
+  'WORK_V2.gapVert': 'Gap between neighbouring images in Vertical mode (vh).',
+  'WORK_V2.focusScale': 'How much the centred image grows when it rests (1 = it keeps its size, as in the reference).',
+  'WORK_V2.focusNeighbour': 'How far the two neighbouring images move away from the centred one, as a share of the pitch (0 = they stay at the measured gap).',
+  'WORK_TITLE.specimenFrac': 'Title size: the width of the words "Clash Display" as a share of the image width (0.926 = the reference). All titles use that size; bigger = bigger letters.',
+  'WORK_TITLE.fitFrac': 'Widest a title may be, as a share of the image width. A longer title first shrinks, then loses its last words (no dots) until it fits.',
+  'WORK_TITLE.minScale': 'How far a long title may shrink (share of the normal size) before its last words are cut instead.',
+  'WORK_TITLE.baseDy': 'Where the title sits: distance of its baseline below the image centre (px at 1920 for the 556 px image; it scales with the image).',
+  'WORK_TITLE.dx': 'Title: shifts the letters sideways (px at 1920, scales with the image); the reference letters sit about 3 px left of the image centre.',
+  'WORK_TITLE.fadeIn': 'The title is fully visible while the image is within this distance of the centre (in pitches).',
+  'WORK_TITLE.fadeOut': 'The title is gone once the image is farther than this from the centre (in pitches); smooth in between.',
+  'WORK_TITLE.fastFrom': 'The title and the info block start to fade out when the strip moves faster than this (screen lengths per second), so a flick shows no flicker.',
+  'WORK_TITLE.fastTo': 'The title and the info block are fully hidden at this strip speed (screen lengths per second).',
+  'WORK_TITLE.fastSec': 'How long the title and the info block take to come back after a fast move (s).',
+  'WORK_INFO.fadeIn': 'The info block (tags, year, text) is fully visible while its image is within this distance of the centre (pitches).',
+  'WORK_INFO.fadeOut': 'The info block is gone once its image is farther than this from the centre (pitches).',
+  'WORK_INFO.side.tagsDx': 'Side mode: the tags start this far right of the image left edge (px at 1920).',
+  'WORK_INFO.side.rowTop': 'Side mode: the top of the info row relative to the image top (px at 1920; -156 puts it 156 px above).',
+  'WORK_INFO.side.yearRight': 'Side mode: the right end of the year relative to the image right edge (px at 1920).',
+  'WORK_INFO.side.descLeft': 'Side mode: the left of the description text relative to the image right edge (px at 1920).',
+  'WORK_INFO.vertical.tagsRight': 'Vertical mode: the left of the tags relative to the image left edge (px at 1920).',
+  'WORK_INFO.vertical.yearLeft': 'Vertical mode: the year starts this far right of the image right edge (px at 1920).',
+  'WORK_INFO.vertical.descLeft': 'Vertical mode: the description starts this far right of the image right edge (px at 1920).',
+  'WORK_RULER.pitch': 'Ruler: the space between two dots (px at 1920).',
+  'WORK_RULER.extra': 'Ruler: extra room on both sides of the current bar (px).',
+  'WORK_RULER.dot': 'Ruler: size of a dot (px).',
+  'WORK_RULER.bar': 'Ruler: length of the current-project bar (px).',
+  'WORK_RULER.barW': 'Ruler: thickness of the current-project bar (px).',
+  'WORK_RULER.dotAlpha': 'Ruler: brightness of the dots (1 = as bright as the bar).',
+  'WORK_UI.copy.side': 'Text of the bottom-right switch while the strip is sideways. Type to preview it; the final text lives in WORK_UI.copy in timeline.js.',
+  'WORK_UI.copy.vertical': 'Text of the bottom-right switch while the strip is vertical. Type to preview it; the final text lives in WORK_UI.copy in timeline.js.',
+});
 const WARP_DOC_KEYS = ['strength', 'riseSec', 'settleSec', 'curl', 'camDown', 'camUp', 'bowDown', 'bowUp', 'reach', 'sym', 'lean', 'leanMax', 'leanSign', 'leanBuf', 'speedRef', 'speedPow', 'speedKnee'];
 WARP_DOC_KEYS.forEach((k) => { const w = TUNE_DOCS[`WORK.frameWarp.${k}`]; if (w) TUNE_DOCS[`TALL.frameWarp.${k}`] = `Phone / tablet image warp: ${w.charAt(0).toLowerCase()}${w.slice(1)}`; });
 export const tuneDoc = (id) => TUNE_DOCS[id] || '';

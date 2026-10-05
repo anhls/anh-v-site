@@ -290,7 +290,32 @@ export const WORK = {
   leadMin: 0.1, leadMax: 0.5, leadMaxPx: 160, leadCapPerCard: 1, leadStiffness: 40, leadDamping: 11, leadVar: 0.2,
   forceFrom: 450, forceTo: 1500,
   snapOvershoot: 0.04, focusOvershootScale: 0.025, focusOvershootPush: 0.025, morphOvershoot: 0.05, overshootSettle: 0.4, followerSettleSec: 0.45,
+  // R32: the Work page v2 (desktop): `cards` false = no card DOM / textures / layer (the card code, solver, rules and stored layouts stay in the repo for the later
+  // "Art Dump" page and are not read while this is false). true = the old page (cards, project name, round toggle) on the v2 image size.
+  cards: false,
 };
+// R32 Work page v2, DESKTOP wide mode. Numbers measured at 1920x1080 from docs/reference/work-v2-side.png / -vertical.png (px there / 19.2 = vw, / 10.8 = vh).
+// WORK.frameW / frameH / gapSide / gapVert above stay the OLD (cards era) numbers on purpose: the phone / tablet pages take their image ratio and gap from them, and the stored
+// card layouts and rule signatures hash them, so they stay byte-identical. The v2 page uses these instead (work.js `geo`).
+//   frameW (vw) / frameH (vh): the image is frameW of the window width, its height from frameW x frameH's ratio, and never taller than frameH of the window height
+//   (so a window wider than 16:9 shrinks the image instead of running it into the info block above it). gapSide (vw) / gapVert (vh) = the space between two images.
+//   focusScale 1 = the centred image keeps its size at rest (the reference); focusNeighbour 0 = the neighbours stay at the measured gap (R22 pushed them 6 % of a pitch away).
+export const WORK_V2 = { frameW: 1055 / 19.2, frameH: 556 / 10.8, gapSide: 57 / 19.2, gapVert: 75 / 10.8, focusScale: 1, focusNeighbour: 0 };
+// R32 UI numbers (px at 1920x1080 unless said; they scale with the capped --ux like the rest of the type: 1 px at 1920 = --ux / 19.2).
+//   title: specimen "Clash Display" is `specimenFrac` of the image width wide (977 / 1055); a title first shrinks down to minScale of that size, then loses trailing words until it
+//   fits `fitFrac` of the image width; baseline `baseDy` below the image centre (px at the 556 px high image, scales with the image height). fade: full inside `fadeIn` pitches
+//   from the centre, 0 beyond `fadeOut`; fast: the strip speed (screen lengths / s) where the fade starts / is complete (so a flick shows no flicker), `fastSec` = how long it
+//   takes to come back. info: the block's fade (own range), the offsets (px at 1920) from the image edge. ruler: dot spacing, the extra room the bar takes, dot / bar sizes.
+export const WORK_TITLE = { weight: 600, specimen: 'Clash Display', specimenFrac: 977 / 1055, fitFrac: 977 / 1055, minScale: 0.7, baseDy: 42, dx: -3, color: '#e9e7e2', fadeIn: 0.12, fadeOut: 0.4, fastFrom: 1.2, fastTo: 3, fastSec: 0.25 };
+export const WORK_INFO = {
+  fadeIn: 0.12, fadeOut: 0.4, descChars: 90,
+  side: { tagsDx: -1.5, rowTop: -156, yearRight: -281, descLeft: -218, descW: 200 }, // above the image: block top = image top + rowTop; year's right edge = image right + yearRight; description from image right + descLeft
+  vertical: { tagsRight: -211, yearLeft: 62, descLeft: 162, descW: 200 }, // beside the image: tags' left = image left + tagsRight; year / description from the image's right edge
+};
+export const WORK_RULER = { pitch: 21, extra: 5.5, dot: 3, bar: 34, barW: 2, dotAlpha: 0.45, side: { x: 962, bottom: 42 }, vertical: { x: 55, y: 531 } };
+export const WORK_COUNTER = { sec: 0.3 };
+// R32 copy and links (Anh rewrites the text here). hideNav: the nav links are not drawn on the Work page desktop (the logo stays).
+export const WORK_UI = { copy: { side: 'Feeling vertical? Flip it', vertical: 'Feeling sideways? Flip it' }, label: 'Selected Work', reachLabel: 'Reach out', reachEmail: 'anhlsls1@gmail.com', hideNav: true };
 // Cards per project (R23b, the same rules as BAND_LIMITS on the homepage): count and total area (px2 at 1920) of the cards along one
 // project's edges. Over a max: dropped by the seeded hash; under a min: duplicates of the project's own images.
 export const WORK_LIMITS = (() => { try { const u = JSON.parse(urlParams.get('wlimits')); if (u && u.maxN) return u; } catch {} return { minN: 7, maxN: 12, minA: 150000, maxA: 330000 }; })(); // ?wlimits={...} overrides (tune panel)

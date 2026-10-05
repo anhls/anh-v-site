@@ -1,4 +1,4 @@
-import { WORK, WORK_LIMITS, CARD_HOVER, DEPTH, SCROLL, BAND_RULES, TRANSITION, TALL, TABLET } from '../timeline.js';
+import { WORK, WORK_V2, WORK_TITLE, WORK_INFO, WORK_RULER, WORK_COUNTER, WORK_UI, WORK_LIMITS, CARD_HOVER, DEPTH, SCROLL, BAND_RULES, TRANSITION, TALL, TABLET } from '../timeline.js';
 import { EASES } from '../util/ease.js';
 import { tuneStore, makeCollapse, tuneGroups } from '../effects/tune-store.js';
 import { tuneDoc } from '../effects/tune-docs.js';
@@ -36,12 +36,21 @@ const SCROLLS = [
 ];
 // R25: opening a project from a main image (src/effects/project-transition.js)
 const TRANS = [['sec', 'Open project: the move (s)', 0.2, 2.5, 0.05], ['fadeSec', 'Open project: the rest goes dark in (s)', 0.1, 2, 0.05], ['pushSec', 'Open project: cards move away over (s of the move)', 0.1, 2.5, 0.05], ['pushScale', 'Open project: how far they move (1 = focus push, 0 = off)', 0, 2, 0.05], ['pushFar', 'Open project: far cards share', 0, 1.5, 0.05], ['pushClear', 'Open project: clearing push (1) or short push (0)', 0, 1, 1], ['clearMargin', 'Open project: clearing margin (px at 1920)', 0, 300, 5], ['clearStagger', 'Open project: far items start later (share)', 0, 0.8, 0.01], ['blackMax', 'Open project: black layer, most (0 = none)', 0, 1, 0.05], ['crossFrom', 'Homepage frame: crossfade starts at (share of the move)', 0, 1, 0.01], ['crossTo', 'Homepage frame: crossfade ends at', 0, 1, 0.01]];
+// R32 Work page v2 (desktop): image size and gaps, the title, the info blocks, the ruler, the counter, the switch copy. All redraw through relayout().
+const V2_SLIDERS = [
+  [WORK_V2, 'WORK_V2', [['frameW', 'Image width (vw)', 30, 75, 0.1], ['frameH', 'Image height limit (vh)', 25, 75, 0.1], ['gapSide', 'Gap, side (vw)', 0.5, 12, 0.05], ['gapVert', 'Gap, vertical (vh)', 0.5, 20, 0.05], ['focusScale', 'Centre image growth (x)', 0.9, 1.3, 0.005], ['focusNeighbour', 'Neighbours move away (share of the pitch)', 0, 0.2, 0.005]]],
+  [WORK_TITLE, 'WORK_TITLE', [['specimenFrac', 'Title: size (specimen width / image width)', 0.4, 1.1, 0.005], ['fitFrac', 'Title: widest allowed (share of the image width)', 0.4, 1.1, 0.005], ['minScale', 'Title: smallest shrink before words are cut', 0.4, 1, 0.01], ['baseDy', 'Title: baseline below the image centre (px at 1920)', -100, 200, 1], ['dx', 'Title: shift sideways (px at 1920; the letters sit 3 px left of the image centre in the reference)', -30, 30, 0.5], ['fadeIn', 'Title: fully visible within (pitches from the centre)', 0, 0.5, 0.01], ['fadeOut', 'Title: gone beyond (pitches)', 0.1, 1, 0.01], ['fastFrom', 'Title / info: fade out from this strip speed (screen lengths / s)', 0.2, 8, 0.1], ['fastTo', 'Title / info: gone at this speed (screen lengths / s)', 0.5, 12, 0.1], ['fastSec', 'Title / info: back after a flick in (s)', 0.01, 1.5, 0.01]]],
+  [WORK_INFO, 'WORK_INFO', [['fadeIn', 'Info block: fully visible within (pitches)', 0, 0.5, 0.01], ['fadeOut', 'Info block: gone beyond (pitches)', 0.1, 1, 0.01]]],
+  [WORK_INFO.side, 'WORK_INFO.side', [['tagsDx', 'Info, side: tags x from the image edge (px at 1920)', -100, 100, 0.5], ['rowTop', 'Info, side: block top above the image (px at 1920)', -400, 0, 1], ['yearRight', 'Info, side: year right edge from the image right (px)', -600, 0, 1], ['descLeft', 'Info, side: description left from the image right (px)', -600, 0, 1]]],
+  [WORK_INFO.vertical, 'WORK_INFO.vertical', [['tagsRight', 'Info, vertical: tags left from the image left (px)', -500, 0, 1], ['yearLeft', 'Info, vertical: year from the image right (px)', 0, 300, 1], ['descLeft', 'Info, vertical: description from the image right (px)', 0, 400, 1]]],
+  [WORK_RULER, 'WORK_RULER', [['pitch', 'Ruler: spacing between dots (px at 1920)', 8, 50, 0.5], ['extra', 'Ruler: extra room around the bar (px)', 0, 20, 0.5], ['dot', 'Ruler: dot size (px)', 1, 8, 0.5], ['bar', 'Ruler: bar length (px)', 10, 80, 1], ['barW', 'Ruler: bar thickness (px)', 1, 6, 0.5], ['dotAlpha', 'Ruler: dot brightness', 0.1, 1, 0.01]]],
+];
 const RELOAD = [
   ['minN', 'Cards per project, min', 0, 12, 1], ['maxN', 'Cards per project, max', 1, 16, 1], ['minA', 'Area min (px2 at 1920)', 0, 800000, 10000], ['maxA', 'Area max (px2 at 1920)', 50000, 1200000, 10000],
 ];
 export function mountWorkTune({ relayout }) {
   const store = tuneStore('work', ['WORK_LIMITS', 'DEPTH', 'HOVER', 'WORK.seed', 'BAND_RULES']);
-  const defaults = { WORK: { ...WORK }, TRANSITION: { ...TRANSITION }, SCROLL: { ...SCROLL }, cardWarp: { ...WORK.cardWarp }, frameWarp: { ...WORK.frameWarp }, TALL: { ...TALL }, tallWarp: { ...TALL.frameWarp }, TABLET: { ...TABLET } };
+  const defaults = { v2: V2_SLIDERS.map(([o]) => ({ ...o })), copy: { ...WORK_UI.copy }, WORK: { ...WORK }, TRANSITION: { ...TRANSITION }, SCROLL: { ...SCROLL }, cardWarp: { ...WORK.cardWarp }, frameWarp: { ...WORK.frameWarp }, TALL: { ...TALL }, tallWarp: { ...TALL.frameWarp }, TABLET: { ...TABLET } };
   const box = document.createElement('div');
   box.style.cssText = 'position:fixed;top:12px;right:12px;z-index:99999;width:290px;max-height:calc(100vh - 24px);overflow:auto;padding:12px 14px;background:rgba(20,20,20,.92);color:#fff;font:12px/1.35 system-ui,sans-serif;border-radius:8px';
   const head = document.createElement('div');
@@ -103,6 +112,21 @@ export function mountWorkTune({ relayout }) {
     groups.header(hd);
     WARP_SLIDERS.concat(block === 'frameWarp' ? LEAN_SLIDERS : []).forEach((d) => { defs[add(`WORK.${block}`, WORK[block], d)] = [WORK[block], d[0]]; });
   }
+  { // R32
+    const h2 = document.createElement('div');
+    h2.style.cssText = 'margin-top:10px;font-weight:600';
+    h2.textContent = 'Work v2 (desktop page)';
+    groups.header(h2);
+    V2_SLIDERS.forEach(([obj, name, list]) => list.forEach((d) => { defs[add(name, obj, d, relayout)] = [obj, d[0]]; }));
+    for (const [k, label] of [['side', 'Switch copy, side mode'], ['vertical', 'Switch copy, vertical mode']]) {
+      const row = document.createElement('label');
+      row.style.cssText = 'display:block;margin:7px 0';
+      row.innerHTML = `<span style="display:block">${label}</span><input type="text" style="width:100%" value="${WORK_UI.copy[k]}">`;
+      const inp = row.querySelector('input');
+      inp.addEventListener('input', () => { WORK_UI.copy[k] = inp.value; relayout(); });
+      groups.add(`WORK_UI.copy.${k}`, row);
+    }
+  }
   // R24d / R24e: the phone, tablet-portrait and tablet-landscape Work page (the lite modes): image size, the image warp, the frame-time guard. Only live in those modes (?mode=tall, a touch screen)
   {
     const hl = document.createElement('div');
@@ -137,7 +161,7 @@ export function mountWorkTune({ relayout }) {
   btn('Apply (reload)', () => { const u = new URL(location.href); u.searchParams.set('dark', CARD_HOVER.darkShare); u.searchParams.set('front', DEPTH.frontShare); u.searchParams.set('wlimits', JSON.stringify(WORK_LIMITS)); u.searchParams.set('pairov', BAND_RULES.pairOverlapMax); location.href = u.href; });
   const copy = btn('Copy values', async () => { await navigator.clipboard.writeText(JSON.stringify({ WORK, WORK_LIMITS, SCROLL: { gainCap: SCROLL.gainCap, gainFrom: SCROLL.gainFrom, gainTo: SCROLL.gainTo, gainDecay: SCROLL.gainDecay }, darkShare: CARD_HOVER.darkShare, frontShare: DEPTH.frontShare }, null, 2)); copy.textContent = 'Copied'; setTimeout(() => { copy.textContent = 'Copy values'; }, 1200); });
   btn('Reset to defaults', () => {
-    Object.assign(WORK, defaults.WORK); Object.assign(SCROLL, defaults.SCROLL); Object.assign(TRANSITION, defaults.TRANSITION); Object.assign(WORK.cardWarp, defaults.cardWarp); Object.assign(WORK.frameWarp, defaults.frameWarp); Object.assign(TALL, defaults.TALL); Object.assign(TALL.frameWarp, defaults.tallWarp); Object.assign(TABLET, defaults.TABLET);
+    Object.assign(WORK, defaults.WORK); Object.assign(SCROLL, defaults.SCROLL); Object.assign(TRANSITION, defaults.TRANSITION); Object.assign(WORK.cardWarp, defaults.cardWarp); Object.assign(WORK.frameWarp, defaults.frameWarp); Object.assign(TALL, defaults.TALL); Object.assign(TALL.frameWarp, defaults.tallWarp); Object.assign(TABLET, defaults.TABLET); V2_SLIDERS.forEach(([o], i) => Object.assign(o, defaults.v2[i])); Object.assign(WORK_UI.copy, defaults.copy);
     store.clear();
     groups.reset();
     readouts.forEach((r) => { r.input.value = r.obj[r.key]; r.v.textContent = r.obj[r.key]; });

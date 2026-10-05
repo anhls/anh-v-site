@@ -42,3 +42,45 @@ html[data-layout='tall'], html[data-layout='tall'] body { overscroll-behavior: n
 [data-layout='tall'] .work { height: 100svh; }
 [data-layout='tall'] .work__count { top: auto; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); left: calc(20px + env(safe-area-inset-left, 0px)); font-size: 0.875rem; }
 
+
+/* R32 Work page v2 (desktop): src/work/v2-ui.js. 1 px at 1920x1080 = --p (the capped --ux / 19.2, so the type is proportional up to 1920 and fixed above). The layer sits above the
+   canvas and every click anchor; only the switch and the e-mail take the pointer. work.js sets --hw / --hh (half the image size, px) and the elements ride on transforms. */
+.w2 { --p: calc(var(--ux) / 19.2); position: fixed; inset: 0; z-index: 12; pointer-events: none; font-family: var(--font-body); font-size: max(10px, calc(14 * var(--p))); line-height: max(18px, calc(25 * var(--p))); color: #fff; }
+.w2__hit { pointer-events: auto; }
+.w2__titles, .w2__infos { position: absolute; inset: 0; }
+.w2__title { position: absolute; left: 0; top: 0; display: block; text-align: center; white-space: nowrap; font-weight: 600; line-height: 1; letter-spacing: 0; color: #e9e7e2; opacity: 0; will-change: transform, opacity; }
+.w2__info { position: absolute; left: 0; top: 0; width: 0; height: 0; opacity: 0; will-change: transform, opacity; }
+.w2__tags, .w2__year, .w2__desc { position: absolute; white-space: nowrap; }
+.w2__desc { white-space: normal; width: calc(200 * var(--p)); color: #787878; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+[data-mode='side'] .w2__tags, .w2:not([data-mode]) .w2__tags { left: calc(var(--hw) * -1 + var(--is-tagsDx) * var(--p)); top: calc(var(--hh) * -1 + var(--is-rowTop) * var(--p)); }
+[data-mode='side'] .w2__year { right: calc(var(--hw) * -1 - var(--is-yearRight) * var(--p)); top: calc(var(--hh) * -1 + var(--is-rowTop) * var(--p)); }
+[data-mode='side'] .w2__desc { left: calc(var(--hw) + var(--is-descLeft) * var(--p)); top: calc(var(--hh) * -1 + var(--is-rowTop) * var(--p)); }
+[data-mode='vertical'] .w2__tags { left: calc(var(--hw) * -1 + var(--iv-tagsRight) * var(--p)); top: calc(-23.5 * var(--p)); }
+[data-mode='vertical'] .w2__year { left: calc(var(--hw) + var(--iv-yearLeft) * var(--p)); top: calc(-23.5 * var(--p)); }
+[data-mode='vertical'] .w2__desc { left: calc(var(--hw) + var(--iv-descLeft) * var(--p)); top: calc(-23.5 * var(--p)); }
+/* ruler: the long axis of a dot / bar runs across the strip (side: tall bar at the bottom centre; vertical: a dash at the left edge) */
+.w2__ruler { position: absolute; }
+.w2__ruler i { position: absolute; background: #fff; opacity: 0; will-change: transform, opacity; }
+[data-mode='side'] .w2__ruler, .w2:not([data-mode]) .w2__ruler { left: calc(50% + 2.5 * var(--p)); bottom: calc(42 * var(--p)); }
+[data-mode='side'] .w2__ruler i { left: calc(var(--rd-dot) * -0.5 * var(--p)); bottom: 0; width: calc(var(--rd-dot) * var(--p)); height: calc(var(--rd-bar) * var(--p)); transform-origin: 50% 100%; }
+[data-mode='vertical'] .w2__ruler { left: calc(55 * var(--p)); top: calc(50% - 8.5 * var(--p)); }
+[data-mode='vertical'] .w2__ruler i { left: 0; top: calc(var(--rd-dot) * -0.5 * var(--p)); width: calc(var(--rd-bar) * var(--p)); height: calc(var(--rd-dot) * var(--p)); transform-origin: 0 50%; }
+/* counter, bottom left: label, the large thin numeral (a cross-fade), the /N superscript */
+.w2__counter { position: absolute; left: calc(45 * var(--p)); bottom: calc(31 * var(--p)); display: flex; align-items: baseline; color: #fff; }
+.w2__label { color: #787878; margin-right: calc(34.5 * var(--p)); }
+.w2__num { position: relative; display: block; font-size: calc(105 * var(--p)); font-weight: 200; line-height: 0.74; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; min-width: calc(130 * var(--p)); height: 0.74em; }
+.w2__num span { position: absolute; left: 0; bottom: 0; opacity: 0; transition: opacity var(--cnt-sec, 0.3s) ease; }
+.w2__num span.is-on { opacity: 1; }
+.w2__total { position: absolute; left: calc(327 * var(--p) - 45 * var(--p)); bottom: calc(60 * var(--p)); color: #787878; }
+.w2__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+/* mode switch, bottom right */
+.w2__switch { all: unset; pointer-events: auto; box-sizing: border-box; position: absolute; right: calc(51 * var(--p)); bottom: calc(28 * var(--p)); cursor: pointer; color: #787878; transition: color 0.2s ease; white-space: nowrap; padding: 4px 0; }
+.w2__switch .footer__line { top: 100%; height: 1px; background: currentColor; }
+@media (hover: hover) { .w2__switch:hover { color: #fff; } }
+.w2__switch:focus-visible { color: #fff; outline: 1px solid #f04a0e; outline-offset: 6px; }
+@media (pointer: coarse) { .w2__switch { min-height: 44px; display: flex; align-items: center; } }
+/* top right: Reach out + the e-mail */
+.w2__reach { position: absolute; right: calc(51 * var(--p)); top: calc(29 * var(--p)); display: flex; gap: calc(32 * var(--p)); align-items: baseline; color: #787878; }
+.w2__email { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+.w2__email:focus-visible { outline: 1px solid #f04a0e; outline-offset: 4px; }
+@media (prefers-reduced-motion: reduce) { .w2__switch, .w2__num span { transition-duration: 0.01s; } }

@@ -4,7 +4,8 @@ import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import data from './data/data.json';
 import pool from './data/work-pool.json';
-import { WORK, BEND, WARP, CARDS, CARD_HOVER, DEPTH, SCROLL, INDEX, TRANSITION, TALL, TABLET } from './timeline.js';
+import { WORK, WORK_V2, WORK_UI, BEND, WARP, CARDS, CARD_HOVER, DEPTH, SCROLL, INDEX, TRANSITION, TALL, TABLET } from './timeline.js';
+import { createV2 } from './work/v2-ui.js';
 import { isTall, isLiteLandscape } from './util/layout-mode.js';
 import { frameZ } from './data/depth.js';
 import { capW, dist } from './scale.js';
@@ -63,7 +64,10 @@ if (lite && (import.meta.env.DEV || perfOn)) {
 }
 const TLm = lite ? await import('./work/tall.js') : null;
 const cardsMaxNow = lite ? TLm.cardsMaxFor(liteKind, innerWidth, innerHeight) : -1; // cards per project in this mode (-1 = the desktop rule)
-const noCards = lite && cardsMaxNow <= 0;
+// R32: the desktop page v2: no cards (WORK.cards false), the new image size, the title / info / ruler / counter / switch layer (work/v2-ui.js); WORK.cards true = the old page
+const v2 = !lite && !WORK.cards;
+const geo = v2 ? WORK_V2 : WORK; // frameW / frameH / gapSide / gapVert of the desktop strip
+const noCards = lite ? cardsMaxNow <= 0 : v2;
 // stored layouts of the lite modes: only needed when cards are on (without cards the files are only checked by the build gate)
 const liteLayouts = lite && !noCards ? (tall ? (await import('./data/layouts-tall.json')).default : (await import('./data/layouts-tablet.json')).default) : null;
 const projects = data.projects;
@@ -87,30 +91,32 @@ installScrollGain(lenis);
 watchDpr();
 
 // ---- DOM
-if (!tall) { // (tablet landscape keeps the nav links; the burger menu is tall only)
+if (!tall && !(v2 && WORK_UI.hideNav)) { // (tablet landscape keeps the nav links; the burger menu is tall only; R32: v2 hides the links for now, the logo stays)
   const nav = document.createElement('nav');
   nav.className = 'nav';
   nav.innerHTML = [['About', '/#2section'], ['Works', '/work/'], ['Contact', '/#contact']]
     .map(([n, h]) => `<a href="${h}" data-link="${n}"><span class="roll"><span>${n}</span><span>${n}</span></span></a>`).join('');
   document.body.prepend(nav);
-} else import('./effects/tall-menu.js').then((m) => m.mountTallMenu());
+} else if (tall) import('./effects/tall-menu.js').then((m) => m.mountTallMenu());
 const app = document.getElementById('app');
 app.innerHTML = `
   <div class="work__spacer"></div>
   <div class="work" id="work">
     <div class="work__stage"></div>
   </div>
-  <div class="work__name" aria-hidden="true">${projects.map((p) => `<span class="work__title">${[...p.title].map((c) => `<span class="work__char">${c === ' ' ? '&nbsp;' : c}</span>`).join('')}</span>`).join('')}</div>
-  <div class="work__count" aria-live="polite">01 / 0${N}</div>
-  ${lite ? '' : `<button type="button" class="work__toggle" aria-label="Switch to vertical scroll">
+  ${v2 ? '' : `<div class="work__name" aria-hidden="true">${projects.map((p) => `<span class="work__title">${[...p.title].map((c) => `<span class="work__char">${c === ' ' ? '&nbsp;' : c}</span>`).join('')}</span>`).join('')}</div>
+  <div class="work__count" aria-live="polite">01 / 0${N}</div>`}
+  ${lite || v2 ? '' : `<button type="button" class="work__toggle" aria-label="Switch to vertical scroll">
     <svg viewBox="0 0 24 24" aria-hidden="true"><g class="work__icon"><rect x="3.5" y="5" width="3" height="14"/><rect x="10.5" y="5" width="3" height="14"/><rect x="17.5" y="5" width="3" height="14"/></g></svg>
-  </button>`}`; // (R24e: no toggle on a tablet or a phone: the strip is horizontal, the orientation picks the layout)
+  </button>`}`; // (R24e: no toggle on a tablet or a phone: the strip is horizontal, the orientation picks the layout; R32: v2 has its own layer below)
 const root = app.querySelector('.work');
 const stage = root.querySelector('.work__stage');
 // R23e: the counter and the toggle are children of the page, not of .work: their own top layer above the canvas and every click anchor
-const countEl = app.querySelector('.work__count');
-const toggleEl = app.querySelector('.work__toggle') || document.createElement('button'); // (a detached stub in the lite modes: nothing is listening)
-const nameEl = app.querySelector('.work__name');
+const ui = v2 ? createV2({ app, projects, reduced }) : null; // R32
+const countEl = app.querySelector('.work__count') || document.createElement('div');
+const toggleEl = ui ? ui.switchEl : app.querySelector('.work__toggle') || document.createElement('button'); // (a detached stub in the lite modes: nothing is listening)
+const nameEl = app.querySelector('.work__name') || document.createElement('div');
+const fadeEls = ui ? [ui.root] : [countEl, toggleEl, nameEl]; // what the project transition fades out / back in
 const titleEls = [...nameEl.querySelectorAll('.work__title')].map((el) => ({ el, chars: [...el.querySelectorAll('.work__char')], f: -1 }));
 const iconEl = toggleEl.querySelector('.work__icon') || document.createElement('span');
 // R24h: the tall wordmark (the largest image on that page = the LCP element) is made right here, before the strip / GL / layout setup below, so it paints at the first frame
@@ -118,7 +124,7 @@ if (tall) initNav(data.hero.wordmark, lenis, { gateFrame: false, position: () =>
 if (tall) await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0))); // (and one paint before the heavy setup: the wordmark is the LCP element; the strip showed a texture-upload burst first)
 
 // ---- items: the N frames first, then every project's cards (the same objects in both layouts)
-const projCards = lite ? TLm.liteCards(buildProjectCards, pool, slugs, WORK.seed, cardsMaxNow) : buildProjectCards(pool, slugs);
+const projCards = lite ? TLm.liteCards(buildProjectCards, pool, slugs, WORK.seed, cardsMaxNow) : v2 ? slugs.map(() => []) : buildProjectCards(pool, slugs);
 const LD = liteLayouts || layoutsData; // the stored layouts of this mode (the dark flags of the lite modes come from them too)
 const metricsNow = () => (lite ? TLm.liteMetrics(liteKind, innerWidth, innerHeight) : workMetrics(innerWidth, innerHeight, capW() / 1920));
 const pickNow = () => (lite ? TLm.pickTall(LD, innerWidth, innerHeight) : pickSize(layoutsData, innerWidth, innerHeight));
@@ -126,7 +132,7 @@ const pickNow = () => (lite ? TLm.pickTall(LD, innerWidth, innerHeight) : pickSi
 // without a stored layout (or rule numbers changed in ?tune) goes through the old fix pass, with a warning. (No cards: nothing to place or check.)
 const storedFlags = noCards || (applyStoredDark(LD, projCards) && LD.signature === (lite ? TLm.tallSignature() : ruleSignature()));
 let storedOK = noCards || (storedFlags && !!pickNow());
-if (storedOK && !lite && import.meta.env.DEV) { // dev: the stored layout must still describe these cards (the gate checks this for every build)
+if (storedOK && !lite && !noCards && import.meta.env.DEV) { // dev: the stored layout must still describe these cards (the gate checks this for every build)
   const pk = pickSize(layoutsData, innerWidth, innerHeight), Mx = workMetrics(innerWidth, innerHeight, capW() / 1920);
   if (pk.exact) for (const mode of ['side', 'vertical']) projCards.forEach((l) => { if (layoutsData.work[pk.key][mode][l[0].slug]?.hash !== projectHash(l, Mx[mode])) storedOK = false; });
 }
@@ -147,7 +153,7 @@ items.forEach((it, i) => {
   if (it.kind === 'frame') a.setAttribute('aria-label', projects[it.proj].title);
   else { a.tabIndex = -1; a.setAttribute('aria-hidden', 'true'); } // R22j: a card is a decoration with the same target as its project's image: not a tab stop, not announced (34 unnamed links otherwise)
   // the picture is only requested once the item is near the screen (activate()): the canvas then uploads exactly that file
-  a.innerHTML = `<img ${imgAttrs(it.kind === 'frame' ? it.ref : it.src, it.kind === 'frame' ? `${lite ? Math.round((tall ? TALL.frame : 0.75) * 100) : WORK.frameW}vw` : '300px', true)} alt="" decoding="async" draggable="false">`;
+  a.innerHTML = `<img ${imgAttrs(it.kind === 'frame' ? it.ref : it.src, it.kind === 'frame' ? `${lite ? Math.round((tall ? TALL.frame : 0.75) * 100) : Math.round(geo.frameW)}vw` : '300px', true)} alt="" decoding="async" draggable="false">`;
   stage.append(a);
   it.el = a;
   it.img = a.firstChild;
@@ -173,13 +179,14 @@ let laidOnce = false;
 const layouts = () => {
   W = innerWidth; H = innerHeight; scale = lite ? TLm.liteScale(liteKind, W, H) : capW() / 1920;
   const lf = lite ? TLm.liteFrame(liteKind, W, H) : null; // the lite frame keeps the desktop image ratio
-  const fw = lite ? lf.w : (WORK.frameW * W) / 100, fh = lite ? lf.h : (WORK.frameH * H) / 100;
+  let fw = lite ? lf.w : (geo.frameW * W) / 100, fh = lite ? lf.h : (geo.frameH * H) / 100;
+  if (v2) { const r = (geo.frameW * 1920) / (geo.frameH * 1080); fw = Math.min(fw, fh * r); fh = fw / r; } // v2: the width is frameW of the window, the height from the ratio; a window wider than 16:9 shrinks the image instead of running it into the info block
   if (laidOnce && !storedOK) fixWorkLayout(projCards, metricsNow(), { structural: false }); // fallback only, a resize: nudges only (the card set stays)
   laidOnce = true;
   const placedAll = {};
   for (const mode of lite ? [TLm.liteMode(liteKind)] : ['side', 'vertical']) {
     const v = mode === 'vertical';
-    const M = lite ? TLm.liteMetrics(liteKind, W, H)[mode] : { vertical: v, alongF: v ? fh : fw, crossF: v ? fw : fh, scale, gap: v ? (WORK.gapVert * H) / 100 : (WORK.gapSide * W) / 100, gapPx: (WORK.dupGap * (v ? H : W)) / 100, viewAlong: v ? H : W, viewCross: v ? W : H };
+    const M = lite ? TLm.liteMetrics(liteKind, W, H)[mode] : { vertical: v, alongF: v ? fh : fw, crossF: v ? fw : fh, scale, gap: v ? (geo.gapVert * H) / 100 : (geo.gapSide * W) / 100, gapPx: (WORK.dupGap * (v ? H : W)) / 100, viewAlong: v ? H : W, viewCross: v ? W : H };
     const pitch = M.alongF + M.gap;
     const pk = storedOK ? pickNow() : null;
     let placed = noCards ? projCards.map(() => []) : pk ? placeStored(LD, projCards, M, mode, pk) : null;
@@ -201,6 +208,7 @@ const layouts = () => {
     bw[i] = w; bh[i] = h;
     it.el.style.width = `${w}px`; it.el.style.height = `${h}px`;
   });
+  if (ui) ui.layout(fw, fh);
 };
 layouts();
 const cur = () => LAY[vertical ? 'vertical' : 'side'];
@@ -277,7 +285,7 @@ const AMB = { on: false, t0: 0, tOff: 0, a0: new Float64Array(n), r0: new Float6
 const stepAmb = (now) => {
   let fmax = 0;
   for (let q = 0; q < N; q++) if (fP[q] > fmax) fmax = fP[q];
-  const on = glOn && !reduced && (!tall || TALL.ambient) && !morph && !snap && !drag && !inertia && !focusOff(now) && now - lastWheel > WORK.ambDelay * 1000 && fmax >= 0.98;
+  const on = !v2 && glOn && !reduced && (!tall || TALL.ambient) && !morph && !snap && !drag && !inertia && !focusOff(now) && now - lastWheel > WORK.ambDelay * 1000 && fmax >= 0.98;
   if (on && !AMB.on) { AMB.on = true; AMB.t0 = now; AMB.a0.set(AMB.av); } // start (or resume from the current offsets: no pop)
   else if (!on && AMB.on) { AMB.on = false; AMB.tOff = now; AMB.r0.set(AMB.av); }
   let moving = false, any = false;
@@ -330,7 +338,8 @@ const stepLead = (dt, vel, active) => {
 // R28: the project transition's push (cards and the two neighbours move away from the image), driven by TRANSITION, not by the focus
 const TP = { q: -1, p: 0, p0: 0, hold: false };
 const pushArr = new Float64Array(N);
-const PT = new Proxy(WORK, { get: (t, k) => (k === 'focusPushOthers' ? TRANSITION.pushFar : t[k]) });
+const FOC = v2 ? new Proxy(WORK, { get: (t, k) => (k === 'focusScale' ? WORK_V2.focusScale : k === 'focusNeighbour' ? WORK_V2.focusNeighbour : t[k]) }) : WORK; // R32: v2 keeps the centred image at its size and the neighbours at the measured gap
+const PT = new Proxy(FOC, { get: (t, k) => (k === 'focusPushOthers' ? TRANSITION.pushFar : t[k]) });
 // R30: the clearing push. Per item (all but the clicked image): the direction away from that image's centre and how far to travel to be fully off screen
 // (+ clearMargin); the item's own progress is staggered by its distance (near first). TC.u = the linear push time 0..1.
 const TC = { on: false, dx: new Float64Array(n), dy: new Float64Array(n), T: new Float64Array(n), rank: new Float64Array(n), u: 0, q: -1 };
@@ -502,7 +511,7 @@ const endDrag = (by = 'other') => {
 };
 addEventListener('pointerdown', (e) => {
   if ((e.pointerType === 'mouse' && e.button !== 0) || morph || fading || (drag && e.pointerType !== 'mouse')) return; // R24b: touch and pen share the drag; a second finger is ignored
-  if (e.target.closest?.('.work__toggle, .work__count, .tmenu__btn, .tmenu, [data-tune-panel]') || e.target.closest?.('div[style*="99999"]')) return;
+  if (e.target.closest?.('.work__toggle, .work__count, .w2__hit, .tmenu__btn, .tmenu, [data-tune-panel]') || e.target.closest?.('div[style*="99999"]')) return;
   dragMoved = false; swipePeak = 0; curSwipe = null;
   drag = { id: e.pointerId, mouse: e.pointerType === 'mouse', thr: e.pointerType === 'mouse' ? 6 : 10, last: axisOf(e), total: 0, captured: false, samples: [[performance.now(), axisOf(e)]] };
   inertia = null; snap = null; snapForce = 0; lastWheel = performance.now(); wmScrolled = true; inputRelease();
@@ -540,7 +549,7 @@ stage.addEventListener('click', (e) => {
   const it = items.find((q) => q.el === a), i = it.idx, sc = gl.hs[i] || 1;
   e.preventDefault();
   const w = bw[i] * sc, h = bh[i] * sc;
-  runProjectTransition({ slug: it.slug, ref: it.ref, rect: { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, startSrc: it.img.currentSrc || it.img.src, fade: [countEl, toggleEl, nameEl], fromWork: { mode: vertical ? 'vertical' : 'side', projectIndex: it.proj }, onPush: (p, u) => { if (clearMode()) TC.u = u; else if (TRANSITION.pushScale > 0) TP.p = TP.p0 + (TRANSITION.pushScale - TP.p0) * p; }, onStart: () => { pm('fwd:click'); lenis.stop(); nameEl.style.zIndex = '9'; TP.q = it.proj; TP.p0 = fPu.x[it.proj]; TP.p = TP.p0; TP.hold = TRANSITION.pushScale > 0 || clearMode(); if (clearMode()) { TC.u = 0; prepareClear(it.proj); } } }); // (the project name stays above the growing picture and fades with the rest)
+  runProjectTransition({ slug: it.slug, ref: it.ref, rect: { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, startSrc: it.img.currentSrc || it.img.src, fade: fadeEls, fromWork: { mode: vertical ? 'vertical' : 'side', projectIndex: it.proj }, onPush: (p, u) => { if (clearMode()) TC.u = u; else if (TRANSITION.pushScale > 0) TP.p = TP.p0 + (TRANSITION.pushScale - TP.p0) * p; }, onStart: () => { pm('fwd:click'); lenis.stop(); nameEl.style.zIndex = '9'; TP.q = it.proj; TP.p0 = fPu.x[it.proj]; TP.p = TP.p0; TP.hold = TRANSITION.pushScale > 0 || clearMode(); if (clearMode()) { TC.u = 0; prepareClear(it.proj); } } }); // (the project name stays above the growing picture and fades with the rest)
 });
 addEventListener('wheel', () => { inertia = null; }, { capture: true, passive: true });
 addEventListener('wheel', cancelSnap, { capture: true, passive: true });
@@ -560,6 +569,7 @@ const updateNames = () => {
   });
 };
 
+const v2x = new Float64Array(N), v2y = new Float64Array(N), v2s = { pos: 0, idx: 0, vertical: false, morph: false, speed: 0, dt: 0.016, px: v2x, py: v2y };
 const tick = (_time, deltaMs) => {
   if (import.meta.env.DEV && window.__guardBusy) { const t0 = performance.now(); while (performance.now() - t0 < window.__guardBusy); } // dev only: a test hook that makes every frame slow (the frame-time guard test)
   const dt = Math.min(deltaMs, 50) / 1000;
@@ -702,7 +712,7 @@ const tick = (_time, deltaMs) => {
   // R23f: the focus (the centred project grows, every card is pushed away from the focused image, neighbours move off) is applied to the
   // base positions of this frame; fsArr = the image scale per project
   const pushing = TP.q >= 0 && (TP.p > 0 || TP.hold);
-  if (!tall && (focusMoving || anyF || NUD.live || pushing)) { FA.vertical = L.M.vertical; FA.pitch = L.pitch; FA.scale = scale; NUD.dt = dt; let pa = fPu.x; if (pushing) { pushArr.set(fPu.x); pushArr[TP.q] = TP.p; pa = pushArr; } applyFocus(FA, fSc.x, pushing ? PT : WORK, CARDS, fsArr, pa, NUD); if (NUD.live) settleMoving = true; } else fsArr.fill(1);
+  if (!tall && (focusMoving || anyF || NUD.live || pushing)) { FA.vertical = L.M.vertical; FA.pitch = L.pitch; FA.scale = scale; NUD.dt = dt; let pa = fPu.x; if (pushing) { pushArr.set(fPu.x); pushArr[TP.q] = TP.p; pa = pushArr; } applyFocus(FA, fSc.x, pushing ? PT : FOC, CARDS, fsArr, pa, NUD); if (NUD.live) settleMoving = true; } else fsArr.fill(1);
   if (TC.on) applyClear();
   for (let k = 0; k < nSrc; k++) { const sI = psrcs[k]; PS.srcX[sI] = px[sI]; PS.srcY[sI] = py[sI]; }
   for (let i = 0; i < n; i++) {
@@ -744,8 +754,13 @@ const tick = (_time, deltaMs) => {
   const pos = (morph ? sB : S) / pitchNow;
   if (morph || Math.abs(pos - kCount) > 0.58) kCount = Math.round(pos);
   const idx = ((kCount % N) + N) % N;
-  if (idx !== lastIdx) { lastIdx = idx; clearTimeout(preT); preT = setTimeout(() => preloadHeader(projects[idx].slug, heroRef(projects[idx])), 700); /* R25: the centred project's header image is fetched once it rests */ countEl.textContent = `${String(idx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`; }
+  if (idx !== lastIdx) { lastIdx = idx; clearTimeout(preT); preT = setTimeout(() => preloadHeader(projects[idx].slug, heroRef(projects[idx])), 700); /* R25: the centred project's header image is fetched once it rests */ if (!ui) countEl.textContent = `${String(idx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`; }
 
+  if (ui) { // R32: the title / info / ruler / counter layer (frame centres px / py are the base positions of this frame, before the push)
+    for (let p = 0; p < N; p++) { v2x[p] = bx[p] + (glOn ? gl.ox[p] : 0); v2y[p] = by[p] + (glOn ? gl.oy[p] : 0); }
+    v2s.pos = pos; v2s.idx = idx; v2s.vertical = morph ? morph.to === 'vertical' : vertical; v2s.morph = !!morph; v2s.speed = Math.abs(vel) / Math.max(L.M.viewAlong, 1); v2s.dt = dt;
+    ui.frame(v2s);
+  }
   if (lite && glOn) guard.frame(deltaMs, Math.abs(vel) > 5 || !!drag || !!inertia || !!snap);
   if (glOn) {
     if (morph) { const b = gl.bend(); b.x = 0; b.v = 0; const c = gl.bendImg(); c.x = 0; c.v = 0; } // both warps are held flat while the layouts morph
@@ -791,7 +806,7 @@ const commit = (mode) => {
   vertical = mode === 'vertical';
   store.set(mode);
   root.dataset.mode = mode;
-  toggleEl.setAttribute('aria-label', vertical ? 'Switch to side scroll' : 'Switch to vertical scroll');
+  if (ui) ui.setMode(mode); else toggleEl.setAttribute('aria-label', vertical ? 'Switch to side scroll' : 'Switch to vertical scroll');
   if (glOn) gl.setAxis(vertical ? 0 : 1);
 };
 function finishMorph() {
@@ -860,7 +875,7 @@ if (!tall) initNav(data.hero.wordmark, lenis, { gateFrame: false, position: () =
 if (back) {
   off = back.projectIndex * cur().pitch; // S = off while the wheel has not moved
   wmScrolled = true; holdFocus(); arrivalHold = true;
-  const fadeEls = [countEl, toggleEl, nameEl], shrink = !!document.querySelector('#pxb .px__box');
+  const shrink = !!document.querySelector('#pxb .px__box');
   TP.q = back.projectIndex; TP.p = shrink && !clearMode() ? TRANSITION.pushScale : 0;
   gsap.set(fadeEls, { opacity: 0 });
   loadGate = true;
@@ -882,7 +897,7 @@ if (back) {
 document.title = 'Work | Anh V';
 if (import.meta.env.DEV) {
   window.__SCROLL = SCROLL; window.__WORK = WORK; window.__TRANSITION = TRANSITION; window.__TALL = TALL; window.__guard = guard; window.__bendP = bendP;
-  window.__work = { setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, q: Q, PS,  get snap() { return snap; }, AMB, LEAD, get drag() { return drag; }, get inertia() { return inertia; }, fP, fSc, fPu, get kCount() { return kCount; }, bx, by, bw, bh, vis, hp };
+  window.__work = { ui, setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, q: Q, PS,  get snap() { return snap; }, AMB, LEAD, get drag() { return drag; }, get inertia() { return inertia; }, fP, fSc, fPu, get kCount() { return kCount; }, bx, by, bw, bh, vis, hp };
   if (params.has('tune')) import('./work/tune.js').then((m) => m.mountWorkTune({ relayout }));
   if (params.has('overlap')) import('./effects/overlap-debug.js').then((m) => m.mountOverlapDebug('.work__card', () => `focus ${Math.max(...fSc.x).toFixed(2)}${AMB.on ? ', ambient drift on' : ''}${LEAD.moving ? ', lead moving' : ''}${morph ? ', toggle morph' : ''}${TC.on ? ', transition' : ''}${drag ? ', drag' : ''}`));
 }
