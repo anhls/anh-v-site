@@ -12,6 +12,7 @@ import { createCardsGL } from './effects/cards-gl.js';
 import { imgAttrs } from './util/media.js';
 import { installScrollGain } from './util/scroll-gain.js';
 import { watchDpr } from './util/dpr.js';
+import { preloadHeader, runProjectTransition, transitionOK } from './effects/project-transition.js';
 import { applyFocus } from './work/focus.js';
 import { pushTarget, stepPushSpring } from './effects/card-push.js';
 import { withOvershoot, settleBump, settleCurve } from './util/overshoot.js';
@@ -304,6 +305,7 @@ const easeO = (u) => morphFn(1)(u); // the toggle icon
 let morph = null; // { from, to, SA, SB, t0, delay[] }
 let iconAngle = NaN;
 const setAngle = (a) => { if (a !== iconAngle) { iconAngle = a; iconEl.style.setProperty('--a', `${a.toFixed(2)}deg`); } };
+let preT = 0;
 let lastIdx = -1;
 let kCount = 0; // the counter's project index (unwrapped)
 let lastDirty = 0;
@@ -386,6 +388,16 @@ addEventListener('blur', endDrag);
 document.documentElement.addEventListener('lostpointercapture', (e) => { if (drag && e.pointerId === drag.id) endDrag(); }); // R22h: a drag can never stay 'held' after the browser took the pointer back
 document.addEventListener('visibilitychange', () => { if (document.hidden) endDrag(); });
 addEventListener('click', (e) => { if (dragMoved) { e.preventDefault(); e.stopPropagation(); dragMoved = false; } }, { capture: true });
+// R25: a click on a main image grows that picture into the project page's header (cards keep a plain page load)
+items.forEach((it) => { if (it.kind === 'frame') it.el.addEventListener('pointerenter', () => preloadHeader(it.slug, it.ref)); });
+stage.addEventListener('click', (e) => {
+  const a = e.target.closest('a.work__frame');
+  if (!a || !glOn || morph || !transitionOK() || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  const it = items.find((q) => q.el === a), i = it.idx, sc = gl.hs[i] || 1;
+  e.preventDefault();
+  const w = bw[i] * sc, h = bh[i] * sc;
+  runProjectTransition({ slug: it.slug, ref: it.ref, rect: { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, startSrc: it.img.currentSrc || it.img.src, fade: [countEl, toggleEl, nameEl], onStart: () => { lenis.stop(); nameEl.style.zIndex = '9'; } }); // (the project name stays above the growing picture and fades with the rest)
+});
 addEventListener('wheel', () => { inertia = null; }, { capture: true, passive: true });
 addEventListener('wheel', cancelSnap, { capture: true, passive: true });
 addEventListener('touchstart', cancelSnap, { capture: true, passive: true });
@@ -575,7 +587,7 @@ const tick = (_time, deltaMs) => {
   const pos = (morph ? sB : S) / pitchNow;
   if (morph || Math.abs(pos - kCount) > 0.58) kCount = Math.round(pos);
   const idx = ((kCount % N) + N) % N;
-  if (idx !== lastIdx) { lastIdx = idx; countEl.textContent = `${String(idx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`; }
+  if (idx !== lastIdx) { lastIdx = idx; clearTimeout(preT); preT = setTimeout(() => preloadHeader(projects[idx].slug, heroRef(projects[idx])), 700); /* R25: the centred project's header image is fetched once it rests */ countEl.textContent = `${String(idx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`; }
 
   if (glOn) {
     if (morph) { const b = gl.bend(); b.x = 0; b.v = 0; const c = gl.bendImg(); c.x = 0; c.v = 0; } // both warps are held flat while the layouts morph

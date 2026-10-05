@@ -32,8 +32,17 @@ if (project?.page) {
   const app = document.getElementById('app');
   buildProjectPage(app, project.page, lenis);
   buildFooter(app, data.footer, lenis); // same footer + back-to-top as home
-  initNav(data.hero.wordmark, lenis, { gateFrame: false }); // after the footer exists: the big wordmark returns when it is reached
+  initNav(data.hero.wordmark, lenis, { gateFrame: false, startSmall: !!window.__pxt?.wm }); // after the footer exists: the big wordmark returns when it is reached
   ScrollTrigger.refresh();
+  // R25: the hand-off overlay (inline script in the page) goes once the header's own picture is decoded: same file, same crop, so nothing changes on screen
+  const ov = document.getElementById('pxt');
+  if (ov) {
+    const hi = app.querySelector('.pj__hero img');
+    const drop = () => { ov.remove(); };
+    const ready = hi && (hi.complete && hi.naturalWidth ? hi.decode().catch(() => {}) : new Promise((r) => { hi.addEventListener('load', () => hi.decode().then(r, r), { once: true }); hi.addEventListener('error', r, { once: true }); }));
+    (ready || Promise.resolve()).then(() => requestAnimationFrame(() => requestAnimationFrame(drop)));
+    setTimeout(drop, 6000);
+  }
   document.title = project.page.title;
   // Dev only: ?tune opens the wheel-acceleration panel (a build-time constant, nothing ships).
   if (import.meta.env.DEV && new URLSearchParams(location.search).has('tune')) import('./effects/tune-scroll.js').then((m) => m.mountScrollTune());

@@ -32,6 +32,12 @@ const SWAP_2 = plus(SWAP_1, 84.9);
 // span(start, length) -> [start, end]. `start` is a number (uncapped vh) or a C(...) position; length is uncapped vh.
 const span = (start, length) => (typeof start === 'number' ? [+start.toFixed(2), +(start + length).toFixed(2)] : [start, plus(start, length)]);
 
+// R25: opening a project from a main image / the homepage frame (src/effects/project-transition.js): the picture grows from its place to the
+// project page's header (the full screen) along easeInOutCirc; the rest fades to black. sec = the move, fadeSec = how fast the rest goes dark and the
+// Work counter / toggle fade, crossFrom / crossTo = the part of the move over which the homepage frame still crossfades into the header image
+// (the frame shows its own still, not the header image).
+export const TRANSITION = { sec: 0.9, fadeSec: 0.5, crossFrom: 0.3, crossTo: 0.85 };
+
 // Smooth scroll (Lenis). Framer's "Intensity 30" = duration 3 with Lenis' default easing. Lower duration = snappier
 // (try 2.5). `easing` is t (0..1) -> progress (0..1).
 // R23d: gainCap / gainFrom / gainTo / gainDecay = the wheel acceleration (src/util/scroll-gain.js): the distance per wheel tick is multiplied

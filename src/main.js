@@ -18,6 +18,7 @@ import { initClickSound } from './effects/clicksound.js';
 import { buildSpawner } from './effects/spawner.js';
 import { springLayers } from './effects/springs.js';
 import { watchDpr } from './util/dpr.js';
+import { initFrameOpen } from './effects/project-transition.js';
 import { buildCaptionHover } from './effects/caption-hover.js';
 import { buildTrail } from './effects/trail.js';
 import { createFrameGL } from './effects/frame-gl.js';
@@ -53,6 +54,7 @@ initClickSound(data.hero.clickSound);
 // Loader first: hold scrolling until what is visible on the first screen is ready.
 window.scrollTo(0, 0);
 watchDpr();
+initFrameOpen({ hero, projects: data.projects, lenis });
 lenis.stop();
 // The loader only waits for the wordmark, ticker, font and the hero video's first frame (the <video> is on the page already).
 // Images #2/#3 start loading once the loader is ready (hero.loadDeferred).

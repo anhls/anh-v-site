@@ -1,4 +1,4 @@
-import { WORK, WORK_LIMITS, CARD_HOVER, DEPTH, SCROLL, BAND_RULES } from '../timeline.js';
+import { WORK, WORK_LIMITS, CARD_HOVER, DEPTH, SCROLL, BAND_RULES, TRANSITION } from '../timeline.js';
 import { EASES } from '../util/ease.js';
 import { tuneStore, makeCollapse, tuneGroups } from '../effects/tune-store.js';
 import { tuneDoc } from '../effects/tune-docs.js';
@@ -32,12 +32,14 @@ const WARP_SLIDERS = [
 const SCROLLS = [
   ['gainCap', 'Wheel acceleration: cap (1 = off)', 1, 5, 0.05], ['gainFrom', 'Acceleration starts at (px/s of wheel)', 100, 3000, 25], ['gainTo', 'Full acceleration at (px/s of wheel)', 500, 10000, 50], ['gainDecay', 'Speed hold / decay (s)', 0.05, 1.5, 0.01],
 ];
+// R25: opening a project from a main image (src/effects/project-transition.js)
+const TRANS = [['sec', 'Open project: the move (s)', 0.2, 2.5, 0.05], ['fadeSec', 'Open project: the rest goes dark in (s)', 0.1, 2, 0.05], ['crossFrom', 'Homepage frame: crossfade starts at (share of the move)', 0, 1, 0.01], ['crossTo', 'Homepage frame: crossfade ends at', 0, 1, 0.01]];
 const RELOAD = [
   ['minN', 'Cards per project, min', 0, 12, 1], ['maxN', 'Cards per project, max', 1, 16, 1], ['minA', 'Area min (px2 at 1920)', 0, 800000, 10000], ['maxA', 'Area max (px2 at 1920)', 50000, 1200000, 10000],
 ];
 export function mountWorkTune({ relayout }) {
   const store = tuneStore('work', ['WORK_LIMITS', 'DEPTH', 'HOVER', 'WORK.seed', 'BAND_RULES']);
-  const defaults = { WORK: { ...WORK }, SCROLL: { ...SCROLL }, cardWarp: { ...WORK.cardWarp }, frameWarp: { ...WORK.frameWarp } };
+  const defaults = { WORK: { ...WORK }, TRANSITION: { ...TRANSITION }, SCROLL: { ...SCROLL }, cardWarp: { ...WORK.cardWarp }, frameWarp: { ...WORK.frameWarp } };
   const box = document.createElement('div');
   box.style.cssText = 'position:fixed;top:12px;right:12px;z-index:99999;width:290px;max-height:calc(100vh - 24px);overflow:auto;padding:12px 14px;background:rgba(20,20,20,.92);color:#fff;font:12px/1.35 system-ui,sans-serif;border-radius:8px';
   const head = document.createElement('div');
@@ -91,6 +93,7 @@ export function mountWorkTune({ relayout }) {
   }
   SLIDERS.forEach((d) => { defs[add('WORK', WORK, d, relayout)] = [WORK, d[0]]; });
   SCROLLS.forEach((d) => { defs[add('SCROLL', SCROLL, d)] = [SCROLL, d[0]]; });
+  TRANS.forEach((d) => { defs[add('TRANSITION', TRANSITION, d)] = [TRANSITION, d[0]]; });
   for (const [block, title] of [['frameWarp', 'Image warp (the main images)'], ['cardWarp', 'Card warp (the cards)']]) {
     const hd = document.createElement('div');
     hd.style.cssText = 'margin-top:10px;font-weight:600';
@@ -115,7 +118,7 @@ export function mountWorkTune({ relayout }) {
   btn('Apply (reload)', () => { const u = new URL(location.href); u.searchParams.set('dark', CARD_HOVER.darkShare); u.searchParams.set('front', DEPTH.frontShare); u.searchParams.set('wlimits', JSON.stringify(WORK_LIMITS)); u.searchParams.set('darkov', BAND_RULES.darkOverlapMax); u.searchParams.set('pairov', BAND_RULES.pairOverlapMax); location.href = u.href; });
   const copy = btn('Copy values', async () => { await navigator.clipboard.writeText(JSON.stringify({ WORK, WORK_LIMITS, SCROLL: { gainCap: SCROLL.gainCap, gainFrom: SCROLL.gainFrom, gainTo: SCROLL.gainTo, gainDecay: SCROLL.gainDecay }, darkShare: CARD_HOVER.darkShare, frontShare: DEPTH.frontShare }, null, 2)); copy.textContent = 'Copied'; setTimeout(() => { copy.textContent = 'Copy values'; }, 1200); });
   btn('Reset to defaults', () => {
-    Object.assign(WORK, defaults.WORK); Object.assign(SCROLL, defaults.SCROLL); Object.assign(WORK.cardWarp, defaults.cardWarp); Object.assign(WORK.frameWarp, defaults.frameWarp);
+    Object.assign(WORK, defaults.WORK); Object.assign(SCROLL, defaults.SCROLL); Object.assign(TRANSITION, defaults.TRANSITION); Object.assign(WORK.cardWarp, defaults.cardWarp); Object.assign(WORK.frameWarp, defaults.frameWarp);
     store.clear();
     groups.reset();
     readouts.forEach((r) => { r.input.value = r.obj[r.key]; r.v.textContent = r.obj[r.key]; });
