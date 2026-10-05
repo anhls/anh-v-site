@@ -4,6 +4,7 @@
 // tools/layout-check-tall.mjs / -tablet.mjs) and the states they are solved in. Nothing here is read by the wide (desktop) code.
 import { TALL, TABLET, WORK, LAYOUT_STATES } from '../timeline.js';
 import { ruleSignature, sizeKey } from './layout-store.js';
+import { flingPitches } from './speed-curve.js';
 
 export const TALL_SIZES = [[390, 844], [430, 932], [412, 915], [360, 800], [375, 667], [320, 568], [768, 1024], [820, 1180], [834, 1194], [1024, 1366]];
 export const TALL_STATES = { rest: true, drift: 0, focus: false, ambientEnd: false, aura: 0 };
@@ -65,10 +66,10 @@ export function pickTall(layouts, W, H) {
 export const GLIDE_P = 3.5;
 export function flingPlan({ raw, len, pitch, from }, P = TALL) {
   const dir = Math.sign(raw) || 1, shape = Math.pow(Math.max(Math.abs(raw) / len / P.flingRef, 0.05), P.flingPow - 1);
-  const F = Math.max(P.dragFriction, 0.05), cap = P.dragMaxCoast * pitch;
-  let v = Math.abs(raw) * P.flingGain * shape;
-  if (v * F > cap) v = cap / F; // soft limit: keep F, shorten the speed
-  const E = from + dir * v * F, k0 = Math.round(from / pitch);
+  const F = Math.max(P.dragFriction, 0.05);
+  const v = Math.abs(raw) * P.flingGain * shape;
+  // R24j: the distance is the soft-knee curve of the release speed (FLING_KNOTS: 0.5 L/s 0.6 pitches ... 8 L/s 11, cap dragMaxCoast), not v x F with a hard cap
+  const E = from + dir * flingPitches(Math.abs(raw) / len, P) * pitch, k0 = Math.round(from / pitch);
   let k = Math.round(E / pitch);
   if (dir > 0) k = Math.max(k, k0); else k = Math.min(k, k0);
   if (k === k0) k += dir;

@@ -252,7 +252,7 @@ export const DEPTH = { slot: 0.5, frontShare: Number.isFinite(urlFront) ? urlFro
 // focusScale (image growth) / focusPush (px at 1920, the cards move out) / focusNeighbour (share of the pitch) / focusRampSec (pop guard).
 // dupGap = the least distance (vw in the side mode, vh in the vertical one) between a duplicate and its twin.
 export const WORK = {
-  seed: 3, frameW: 42, frameH: 46, gapSide: 16, gapVert: 26, overlapMax: 0.2, minGap: 24, slack: 0.3, wheel: 0.75,
+  seed: 3, frameW: 42, frameH: 46, gapSide: 16, gapVert: 26, overlapMax: 0.2, minGap: 24, slack: 0.3, wheel: 2.5, // (R24j: 0.75 -> 2.5, the ?tune "Wheel speed")
   // R22h: two separate warps, each with its own look and its own timing (all driven by the strip's speed, flat at rest): cardWarp = the cards (the
   // shared cylinder, today's values), frameWarp = the main images (their own shader, src/work/frame-warp-shader.js; starts from FRAME_WARP's strength
   // and is wider and slower than the cards': a gentler curl, a farther camera). strength = size of the warp (1.15 = the homepage cards), curl =
@@ -260,7 +260,7 @@ export const WORK = {
   // bowDown / bowUp = a shallow dome, reach = share of the strip's length that bends (1 - reach stays flat in the middle), sym = weight of the
   // leading side, riseSec / settleSec = how fast it grows while the strip moves / eases flat after it stops.
   cardWarp: { strength: 1.15, riseSec: 1.5, settleSec: 1.4, curl: 0.5, camDown: 1.25, camUp: 1.25, bowDown: 0, bowUp: 0.05, reach: 1, sym: 1 },
-  frameWarp: { strength: 1.39, riseSec: 2.2, settleSec: 1.9, curl: 0.4, camDown: 1.6, camUp: 1.6, bowDown: 0, bowUp: 0.03, reach: 1, sym: 1, lean: 0.3, leanSign: 1, leanMax: 0.45, leanBuf: 0.3 }, // R24i: lean = how far (screen lengths along the strip, at warp amount 1) the cylinder axis moves toward where the images travel on screen; leanSign -1 flips it; leanMax caps the shift; lean 0 = the centred axis of before
+  frameWarp: { strength: 1.39, riseSec: 2.2, settleSec: 1.9, curl: 0.5, camDown: 1.25, camUp: 1.25, bowDown: 0, bowUp: 0.06, reach: 1, sym: 1, speedRef: 5, speedPow: 1.4, speedKnee: 2, lean: 0.4, leanSign: 1, leanMax: 0.45, leanBuf: 0.3 }, // R24i: lean = how far (screen lengths along the strip, at warp amount 1) the cylinder axis moves toward where the images travel on screen; leanSign -1 flips it; leanMax caps the shift; lean 0 = the centred axis of before
   morphSec: 2, morphStagger: 0.45, morphEase: 3, morphLanding: 0.12, dupGap: 40,
   snapDelay: 1, snapWindow: 0.5, snapSec: 2, focusScale: 1.14, focusPush: 95, focusNeighbour: 0.06, focusRampSec: 1.25, focusPushRadius: 400, focusPushOthers: 0.6,
   // R22e overshoot (src/util/overshoot.js; 0 = the old curve): the end passes the target by this share of the distance / value once, then settles.
@@ -268,7 +268,7 @@ export const WORK = {
   // focus (its bump plays when a build completes). The R25 transition and the homepage animations do not use it.
   // R22i drag release: the strip keeps its release speed and loses it by friction (speed x exp(-t / dragFriction) s, so a fling carries speed x dragFriction px);
   // dragMaxCoast = most it may coast, in pitches; dragSnapBlend 0 = off, else the soft snap may start once the coast is slower than this (px/s at 1920).
-  dragFriction: 0.6, dragMaxCoast: 1.5, dragSnapBlend: 0,
+  dragFriction: 0.6, dragMaxCoast: 1.5, dragCoastKnee: 0.6, dragSnapBlend: 0, // (R24j: past the cap the coast keeps growing slowly: cap x (1 + knee x ln(natural / cap)); 0 = the old hard cap)
   // R22f ease curves (src/util/ease.js) shared by the soft snap, the focus build and the toggle morph: easeType 'sine' | 'quad' | 'cubic' | 'circ'
   // (circ = the old snap / focus curve; for the morph, circ keeps the morphEase power curve), easeSoftness 0..1 = blend with a straight line.
   // The project name has no overshoot (it rises along its plain ease).
@@ -419,14 +419,15 @@ export const TALL = {
   frame: 0.8, // R24e: the project image's WIDTH as a share of the viewport width (phone and tablet portrait, one value); the height follows from the desktop image ratio. The number to try: 0.8-0.9
   dprCap: 2, lead: false, ambient: false, transition: false, spawnScale: 0.5, frameRef: 633,
   // R24d: the image warp (WORK.frameWarp, the R22h main-image warp with its own spring) on the strip, driven by the strip's real speed; flat at rest. Strength x warpStrength for the narrow screen.
-  warp: true, warpStrength: 1.4,
+  warp: true, warpStrength: 1, // (R24j: strength now scales the SHAPE only, so the phone uses the desktop shape; it was 1.4 to reach the clamp sooner)
   // R24f: the speed that drives the warp is measured against the screen length ALONG the strip (a phone swipe, a tablet swipe and a desktop wheel then give comparable amounts): vn = vel x (warpRefPx / length); out = vRef x (vn x warpGain / vRef) ^ warpPow (a power curve: gentle swipes barely bend, hard flicks clearly do)
   warpRefPx: 1080, warpGain: 0.2, warpPow: 1, warpVRef: 1500,
   warpFall: 1.9, // R24g: the warp's FALL time after the speed drops (s; slower than the rise, so the bend lingers); the rise time is frameWarp.riseSec
   // R24g: real flick inertia on touch (the lite modes; the desktop drag keeps WORK.dragFriction / dragMaxCoast): release speed from the last 100 ms of the finger (no fling if it
   // stopped more than 80 ms before the lift) x flingGain, no coast under flingMin screen lengths / s, friction time dragFriction (s), at most dragMaxCoast pitches; the soft snap
   // takes over when the speed is under snapAfterSpeed screen lengths / s, or snapDelay s after the last movement when there was no coast
-  flingGain: 0.9, flingRef: 1.5, flingPow: 1.8, flingMin: 0.3, dragFriction: 0.9, dragMaxCoast: 8, snapAfterSpeed: 0.06, snapDelay: 0.35, focusDelay: 0.25, // (R24h: Anh's values from a real iPhone; snapAfterSpeed is only the old hand-over, the glide now plans its own landing; focusDelay = s after the glide stopped before the focus builds)
+  flingGain: 0.9, flingRef: 1.5, flingPow: 1.8, flingMin: 0.3, dragFriction: 0.9, dragMaxCoast: 12, flingKnee: 4, // (R24j: the glide distance follows FLING_PITCHES below, flingKnee = L/s e-fold of the approach to dragMaxCoast past the last knot)
+  snapAfterSpeed: 0.06, snapDelay: 0.35, focusDelay: 0.25, // (R24h: Anh's values from a real iPhone; snapAfterSpeed is only the old hand-over, the glide now plans its own landing; focusDelay = s after the glide stopped before the focus builds)
   gapV: WORK.gapVert / WORK.frameH, // R24f: tall = a VERTICAL strip; the gap between images as a share of the image height (the wide vertical gap / frame height)
   // R24d: the frame-time guard: while the strip moves, a median over guardMs or a p95 over guardP95 steps the warp down: (a) the warp buffer x0.75, (b) x0.5, (c) warp off. Never back up in a visit.
   guard: true, guardMs: 20, guardP95: 30, guardFrames: 30,

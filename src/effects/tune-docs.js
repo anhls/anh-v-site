@@ -155,6 +155,7 @@ export const TUNE_DOCS = {
   'WORK.cardWarp.strength': 'Size of the scroll warp on the cards (1.15 = the homepage cards); 0 = flat.',
   'WORK.cardWarp.sym': 'Weight of the leading side of the cards warp (1 = both sides alike, 0 = only the trailing side).',
   'WORK.dragFriction': 'How long a released drag keeps its speed, as a friction time in seconds (the strip coasts speed x this many px); lower = it stops sooner, 0.1 = hardly any coast.',
+  'WORK.dragCoastKnee': 'R24j: a harder mouse fling keeps coasting a little further than the most coast: most x (1 + this x ln(natural distance / most)). 0 = the old hard limit, so hard and very hard flings coast the same.',
   'WORK.dragMaxCoast': 'Furthest a released drag may coast, in project pitches; a harder fling is slowed to this instead of crossing more projects.',
   'WORK.dragSnapBlend': 'Speed (px/s at 1920) under which the soft snap may take over while the strip is still coasting; 0 = off (the snap waits for the usual rest).',
   'WORK.dupGap': 'Least distance between a duplicated card and its twin along the strip (vw in Side, vh in Vertical); higher = twins sit farther apart.',
@@ -225,7 +226,8 @@ Object.assign(TUNE_DOCS, {
   'TALL.flingPow': 'Phone / tablet flick: the curve (1 = the glide grows in step with the speed, 1.8 = a light swipe glides far less than a firm flick). A deliberate flick always moves on by at least one image.',
   'TALL.flingMin': 'Phone / tablet flick: under this speed (screen lengths per second) the strip does not glide, it just snaps to the nearest image.',
   'TALL.dragFriction': 'Phone / tablet flick: the friction time of the glide (seconds); longer = it glides further and longer.',
-  'TALL.dragMaxCoast': 'Phone / tablet flick: the most images a glide may travel after the finger lifts (a hard flick is shortened to this).',
+  'TALL.dragMaxCoast': 'Phone / tablet flick: the most images a glide may travel after the finger lifts. The distance follows a soft curve of the release speed (0.5 screen lengths/s about 0.6 images, 1.5 about 2.5, 4 about 7, 8 about 11) and nears this limit past that.',
+  'TALL.flingKnee': 'Phone / tablet flick: past a release speed of 8 screen lengths per second, how quickly the glide approaches the most images (smaller = faster).',
   'TALL.snapAfterSpeed': 'Phone / tablet: the soft snap to the centred image takes over once the glide is slower than this (screen lengths per second); it never cuts a fast glide.',
   'TALL.snapDelay': 'Phone / tablet: with no glide the soft snap starts this long after the finger stopped (seconds).',
   'TALL.focusDelay': 'Phone / tablet: how long after the strip has completely stopped (glide and landing over) the project name and the focus build wait; never during a glide.',
@@ -236,9 +238,12 @@ Object.assign(TUNE_DOCS, {
 Object.assign(TUNE_DOCS, {
   'WORK.frameWarp.lean': 'R24i: how far the main image warp cylinder axis moves toward where the images are travelling on screen, in screen lengths along the strip at full warp (0 = the axis stays at the centre). The more speed, the more it leans; at rest it is back at the centre.',
   'WORK.frameWarp.leanMax': 'Upper limit of the axis lean (screen lengths along the strip), so a very strong warp cannot push the curl too far to one side.',
+  'WORK.frameWarp.speedRef': 'R24j: how fast the strip must move (in screen lengths per second along the strip) for the main images warp, and the axis lean, to reach their full amount. A normal swipe / wheel is about 1.5, a hard flick 4-5. Higher = more room between normal and hard.',
+  'WORK.frameWarp.speedPow': 'R24j: shape of the speed curve; above 1 a slow scroll bends clearly less than a quick one (a softer start), 1 = nearly straight.',
+  'WORK.frameWarp.speedKnee': 'R24j: how sharply the speed curve flattens toward full warp; higher = it gets close to the top earlier.',
   'WORK.frameWarp.leanBuf': 'How much bigger the offscreen warp buffer is along the strip so the leaned axis has picture to look at (screen lengths; takes effect after a window resize or reload). The lean actually shown is always capped by what this buffer holds, so a bigger value allows a bigger lean but costs more memory and time per frame.',
   'WORK.frameWarp.leanSign': 'Direction of the axis lean: +1 = toward where the images are going (the rule), -1 = flipped (the other way).',
 });
-const WARP_DOC_KEYS = ['strength', 'riseSec', 'settleSec', 'curl', 'camDown', 'camUp', 'bowDown', 'bowUp', 'reach', 'sym', 'lean', 'leanMax', 'leanSign', 'leanBuf'];
+const WARP_DOC_KEYS = ['strength', 'riseSec', 'settleSec', 'curl', 'camDown', 'camUp', 'bowDown', 'bowUp', 'reach', 'sym', 'lean', 'leanMax', 'leanSign', 'leanBuf', 'speedRef', 'speedPow', 'speedKnee'];
 WARP_DOC_KEYS.forEach((k) => { const w = TUNE_DOCS[`WORK.frameWarp.${k}`]; if (w) TUNE_DOCS[`TALL.frameWarp.${k}`] = `Phone / tablet image warp: ${w.charAt(0).toLowerCase()}${w.slice(1)}`; });
 export const tuneDoc = (id) => TUNE_DOCS[id] || '';

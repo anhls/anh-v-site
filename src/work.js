@@ -16,6 +16,7 @@ import { watchDpr } from './util/dpr.js';
 import { preloadHeader, runProjectTransition, transitionOK, readBack, playBack } from './effects/project-transition.js';
 import { perfOn, pm } from './util/perf-mark.js';
 import { applyFocus } from './work/focus.js';
+import { frameAmount, FRAME_STRENGTH_REF } from './work/speed-curve.js';
 import { pushTarget, stepPushSpring } from './effects/card-push.js';
 import { withOvershoot, settleBump, settleCurve } from './util/overshoot.js';
 import { workEase, blendSoft, moveForce, forceOf, EASES } from './util/ease.js';
@@ -47,7 +48,7 @@ const tabletLand = isLiteLandscape(); // R24f: landscape on a touch device (deci
 const warpForce = params.get('warp') === '1'; // R24f: ?warp=1 forces the warp on and bypasses the frame-time guard (to tell "too subtle" from "the guard switched it off")
 const lite = tall || tabletLand, liteKind = tall ? 'tall' : 'tablet';
 // R24g: live tuning on a real phone: URL overrides of the lite numbers (dev always; in production only with ?perf): fg flingGain, fr dragFriction, fm dragMaxCoast, sa snapAfterSpeed,
-// wg warpGain, wp warpPow, ws warpStrength, wf warpFall, ln lean (R24i), ls leanSign, lb leanBuf, fw TALL.frame, fn flingMin, sd snapDelay, wr warp rise (s). The overlay prints the values in force.
+// wg warpGain, wp warpPow, ws warpStrength, wf warpFall, ln lean (R24i), ls leanSign, lb leanBuf, sr/sp/sk warp speed ref / pow / knee, fk flingKnee, fw TALL.frame, fn flingMin, sd snapDelay, wr warp rise (s). The overlay prints the values in force.
 const overrides = {};
 if (lite && (import.meta.env.DEV || perfOn)) {
   const map = { fg: ['flingGain'], fr: ['dragFriction'], fm: ['dragMaxCoast'], sa: ['snapAfterSpeed'], wg: ['warpGain'], wp: ['warpPow'], wf: ['warpFall'], fw: ['frame'], fn: ['flingMin'], sd: ['snapDelay'] };
@@ -56,6 +57,8 @@ if (lite && (import.meta.env.DEV || perfOn)) {
   const ln = parseFloat(params.get('ln')); if (Number.isFinite(ln)) { TALL.frameWarp.lean = ln; overrides.ln = ln; } // R24i: the axis lean; ls = leanSign (+1 / -1)
   const ls = parseFloat(params.get('ls')); if (Number.isFinite(ls)) { TALL.frameWarp.leanSign = ls < 0 ? -1 : 1; overrides.ls = ls; }
   const lb = parseFloat(params.get('lb')); if (Number.isFinite(lb)) { TALL.frameWarp.leanBuf = lb; overrides.lb = lb; } // lb = leanBuf (extra warp-buffer overscan for the lean; read when the buffer is built, so reload)
+  for (const [k, f] of [['sr', 'speedRef'], ['sp', 'speedPow'], ['sk', 'speedKnee']]) { const v = parseFloat(params.get(k)); if (Number.isFinite(v)) { TALL.frameWarp[f] = v; overrides[k] = v; } } // R24j: warp speed curve (ref L/s, pow, knee)
+  const fk = parseFloat(params.get('fk')); if (Number.isFinite(fk)) { TALL.flingKnee = fk; overrides.fk = fk; } // R24j: fling knee
   const wr = parseFloat(params.get('wr')); if (Number.isFinite(wr)) { TALL.frameWarp.riseSec = wr; overrides.wr = wr; }
 }
 const TLm = lite ? await import('./work/tall.js') : null;
@@ -217,7 +220,7 @@ const warpImg = { ...WARP };
 const copyWarp = (dst, src) => {
   dst.strengthUp = dst.strengthDown = src.strength;
   dst.curl = src.curl; dst.camDown = src.camDown; dst.camUp = src.camUp; dst.bowDown = src.bowDown; dst.bowUp = src.bowUp; dst.reach = src.reach; dst.sym = src.sym;
-  dst.lean = src.lean; dst.leanSign = src.leanSign; dst.leanMax = src.leanMax; dst.leanBuf = src.leanBuf; // (R24i: only the image warp has them)
+  dst.shapeK = src.strength / FRAME_STRENGTH_REF; dst.speedRef = src.speedRef; dst.speedPow = src.speedPow; dst.speedKnee = src.speedKnee; dst.lean = src.lean; dst.leanSign = src.leanSign; dst.leanMax = src.leanMax; dst.leanBuf = src.leanBuf; // (R24i: only the image warp has them)
 };
 const syncWarp = () => {
   copyWarp(warpP, WORK.cardWarp);
@@ -238,7 +241,7 @@ fine = matchMedia('(pointer: fine)').matches && !reduced && !tall; // (tablet la
 let glOn = false;
 {
   const fallback = () => { glOn = false; root.classList.remove('work--gl'); gl?.destroy?.(); gl = null; };
-  gl = createCardsGL({ lite, section: root, els: items.map((it) => it.img), cards: items, bx, by, bw, bh, onLost: fallback, bend: bendP, warp: warpP, near: (i) => items[i].active === true, layers: { isFrame: Uint8Array.from(items, (it) => (it.kind === 'frame' ? 1 : 0)), warp: warpImg, bend: bendImg } });
+  gl = createCardsGL({ lite, section: root, els: items.map((it) => it.img), cards: items, bx, by, bw, bh, onLost: fallback, bend: bendP, warp: warpP, near: (i) => items[i].active === true, layers: { isFrame: Uint8Array.from(items, (it) => (it.kind === 'frame' ? 1 : 0)), warp: warpImg, bend: bendImg, target: (v) => frameAmount(v / Math.max(cur().M.viewAlong, 1), warpImg) } });
   if (gl) {
     glOn = true;
     perfP?.then((m) => m.attachGl(gl));
@@ -464,11 +467,13 @@ const axisOf = (e) => (vertical ? e.clientY : e.clientX);
 // R24g: the release of a drag in the lite modes: the speed from the last 100 ms of the finger (displacement / elapsed; none when it stopped more than 80 ms before the lift),
 // x TALL.flingGain; under TALL.flingMin screen lengths / s no coast; friction TALL.dragFriction, at most TALL.dragMaxCoast pitches. Every swipe is logged for the ?perf touch block.
 const touchLog = []; let curSwipe = null, swipePeak = 0;
+const ampHist = []; // R24j: [time, |warp amount|] of the last frames (the touch block's ampAtRelease)
 const liteRelease = (d, now, by = 'other') => {
   const len = Math.max(cur().M.viewAlong, 1), pitch = cur().pitch;
   const s = d.samples.filter((q) => now - q[0] <= 100), last = d.samples[d.samples.length - 1];
   const entry = { releaseLenPerS: 0, fling: false, coastPitches: 0, peak: swipePeak, at: Math.round(now), endedBy: by, landedPx: null, snapCorrectionPx: 0, gapFromPrevMs: touchLog.length ? Math.round(now - touchLog[touchLog.length - 1].at) : null };
   entry.durationMs = Math.round(now - d.samples[0][0]);
+  { const h = ampHist.filter((q) => now - q[0] >= 100).pop() || ampHist[0]; entry.ampAtRelease = h ? +Math.min(1, h[1]).toFixed(2) : 0; } // R24j: the warp amount 100 ms before the lift
   if (s.length >= 2 && now - last[0] <= 80 && entry.durationMs >= 60) { // (R24h: a touch that lasted under 60 ms is a tap-like stray, never a fling)
     const raw = -((s[s.length - 1][1] - s[0][1]) / Math.max((s[s.length - 1][0] - s[0][0]) / 1000, 0.008)), v0 = raw * TALL.flingGain * Math.pow(Math.max(Math.abs(raw) / len / TALL.flingRef, 0.05), TALL.flingPow - 1); // (the curve: a light swipe glides less than linear, a firm flick more)
     entry.releaseLenPerS = +(raw / len).toFixed(2);
@@ -492,7 +497,7 @@ const endDrag = (by = 'other') => {
   const s = d.samples.filter((q) => now - q[0] < 90);
   if (s.length >= 2) {
     const v = -((s[s.length - 1][1] - s[0][1]) / Math.max((s[s.length - 1][0] - s[0][0]) / 1000, 0.008));
-    if (Math.abs(v) > 30) { const F = Math.min(Math.max(WORK.dragFriction, 0.05), (WORK.dragMaxCoast * cur().pitch) / Math.abs(v)); inertia = { from: S, v0: v, F, t0: now }; } // the release speed is the last drag speed (no step); a hard fling gets a shorter friction time so the distance stays capped
+    if (Math.abs(v) > 30) { const F0 = Math.max(WORK.dragFriction, 0.05), cap = WORK.dragMaxCoast * cur().pitch, nat = Math.abs(v) * F0, F = nat <= cap ? F0 : (cap * (1 + WORK.dragCoastKnee * Math.log(nat / cap))) / Math.abs(v); inertia = { from: S, v0: v, F, t0: now }; } // the release speed is the last drag speed (no step); a hard fling gets a shorter friction time so the distance stays capped
   }
 };
 addEventListener('pointerdown', (e) => {
@@ -749,7 +754,8 @@ const tick = (_time, deltaMs) => {
     if (moving || now - lastDirty < 80) gl.markDirty();
     // R24f: in the lite modes the warp's speed is measured against the screen length along the strip (phone, tablet and a desktop wheel give comparable amounts)
     if (import.meta.env.DEV && lite) { const m = (window.__vl ||= { raw: 0, out: 0 }); m.raw = Math.max(m.raw, Math.abs(vel)); m.out = Math.max(m.out, Math.abs(warpSpeed(vel, L.M.viewAlong))); }
-    gl.draw(0, dt, lite ? warpSpeed(vel, L.M.viewAlong) : vel, scale);
+    gl.draw(0, dt, lite ? warpSpeed(vel, L.M.viewAlong) : vel, scale, vel); // (R24j: the images' spring gets the raw strip speed: own curve in speed-curve.js)
+    ampHist.push([now, Math.abs(gl.bendImg().amt || 0)]); while (ampHist.length > 40) ampHist.shift();
     if (lite) { // R24g: the warp amount now / the peak of the last movement / the peak since load (the ?perf diagnosis) and of each swipe (the touch block)
       const a = Math.abs(gl.bendImg().amt || 0), mv = Math.abs(vel) > 5 || !!drag;
       diag.now = a; if (a > diag.peakAll) diag.peakAll = a;

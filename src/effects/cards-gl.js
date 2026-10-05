@@ -123,8 +123,8 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     let [fx, fy] = cylinderMargins(sMax, WARP.curl, WARP.camDown, WARP.reach, WARP.sym, WARP.bowDown);
     let [ux, uy] = cylinderMargins(sMax, WARP.curl, WARP.camUp, WARP.reach, WARP.sym, WARP.bowUp);
     if (layers) { // the images' warp may reach farther: the buffer is sized for the larger of the two
-      const IW = layers.warp, sI = Math.min(Math.max(IW.strengthUp, IW.strengthDown) * 1.2, capS);
-      const [a, b] = cylinderMargins(sI, IW.curl, IW.camDown, IW.reach, IW.sym, IW.bowDown), [c, d] = cylinderMargins(sI, IW.curl, IW.camUp, IW.reach, IW.sym, IW.bowUp);
+      const IW = layers.warp, sI = 1, cI = IW.curl * (IW.shapeK ?? 1); // R24j: the image amount is 0..1 (own speed curve); the strength scales the curl (shapeK)
+      const [a, b] = cylinderMargins(sI, cI, IW.camDown, IW.reach, IW.sym, IW.bowDown), [c, d] = cylinderMargins(sI, cI, IW.camUp, IW.reach, IW.sym, IW.bowUp);
       fx = Math.max(fx, a, c); fy = Math.max(fy, b, d); ux = Math.max(ux, a, c); uy = Math.max(uy, b, d);
       // R24i: the axis may lean along the strip: the sheet is seen farther out on that axis (and a little wider across). The buffer grows by leanBuf (0.3 desktop, 0.15 phone / tablet: a lighter buffer) screen lengths along / 0.05 across; the lean itself is
       // capped each frame by what that buffer holds (lean-limit.js), so a bigger lean setting never shows a blank edge or a fold.
@@ -395,7 +395,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     gl.uniform1i(Pu.uScene, 0);
     gl.uniform2f(Pu.uRes, canvas.width, canvas.height);
     gl.uniform1f(Pu.uAmt, Math.max(-1, Math.min(1, amt)));
-    gl.uniform4f(Pu.uShape, WP.curl, ...(WARP_DIR > 0 ? [WP.camDown, WP.camUp] : [WP.camUp, WP.camDown]), WP.reach); // the shader's first camera / bow slot belongs to its positive (recede) side // R16e: cylinder parameters
+    gl.uniform4f(Pu.uShape, img ? WP.curl * (WP.shapeK ?? 1) : WP.curl, ...(WARP_DIR > 0 ? [WP.camDown, WP.camUp] : [WP.camUp, WP.camDown]), WP.reach); // the shader's first camera / bow slot belongs to its positive (recede) side // R16e: cylinder parameters
     gl.uniform2f(Pu.uBow, ...(WARP_DIR > 0 ? [WP.bowDown, WP.bowUp] : [WP.bowUp, WP.bowDown]));
     gl.uniform2f(Pu.uMargin, fb.mx / W, fb.my / H);
     gl.uniform1f(Pu.uSym, WP.sym);
@@ -409,7 +409,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     if (img) { // R24i: the cylinder axis leans toward where the images travel on screen: forward scroll = items move toward the negative screen side; amt = WARP_DIR x (signed spring) x strength, so the shift follows the same spring (0 at rest, no pop)
       const sh = (WP.lean || 0) * (WP.leanSign || 1) * -WARP_DIR * Math.max(-1, Math.min(1, bendI.amt || 0)), lm = WP.leanMax ?? 0.45;
       const am = Math.max(-1, Math.min(1, bendI.amt || 0)), mAl = axis ? fb.mx / W : fb.my / H, mCr = axis ? fb.my / H : fb.mx / W;
-      shift = limitLean(am, Math.max(-lm, Math.min(lm, sh)), { curl: WP.curl, camA: WARP_DIR > 0 ? WP.camDown : WP.camUp, camB: WARP_DIR > 0 ? WP.camUp : WP.camDown, reach: WP.reach, bowA: WARP_DIR > 0 ? WP.bowDown : WP.bowUp, bowB: WARP_DIR > 0 ? WP.bowUp : WP.bowDown, sym: WP.sym }, mAl, mCr); // never past what the buffer holds (no blank edge, no fold)
+      shift = limitLean(am, Math.max(-lm, Math.min(lm, sh)), { curl: WP.curl * (WP.shapeK ?? 1), camA: WARP_DIR > 0 ? WP.camDown : WP.camUp, camB: WARP_DIR > 0 ? WP.camUp : WP.camDown, reach: WP.reach, bowA: WARP_DIR > 0 ? WP.bowDown : WP.bowUp, bowB: WARP_DIR > 0 ? WP.bowUp : WP.bowDown, sym: WP.sym }, mAl, mCr); // never past what the buffer holds (no blank edge, no fold)
       gl.uniform1f(Pu.uShift, shift);
     }
     gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -456,15 +456,15 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
 
   // Called once per frame by the loop, after setOffset for every card. sy = scroll position, dt in s, vel = signed scroll speed (px/s),
   // scale = layout scale (capW / 1920), near(i) is true when a card is close enough to be worth uploading.
-  const draw = (sy, dt, vel, scale) => {
+  const draw = (sy, dt, vel, scale, velImg = vel) => {
     if (lost) return false;
     // Bend spring. target = tanh(speed / ref) signed; overshoot -> damping ratio (the usual 2nd-order step response).
     const os = Math.min(Math.max(BEND.overshoot, 0.001), 0.95);
     const zeta = -Math.log(os) / Math.sqrt(Math.PI * Math.PI + Math.log(os) ** 2);
-    const target = Math.tanh((vel * BEND.sensitivity) / BEND.speedRef);
+    const targetCards = Math.tanh((vel * BEND.sensitivity) / BEND.speedRef);
     const steps = Math.max(1, Math.ceil(dt / 0.004));
     const h = dt / steps;
-    const spring = (st, B) => {
+    const spring = (st, B, target = targetCards) => {
       const wn = (Math.abs(target) > Math.abs(st.x) ? B.riseSpeed : B.settleSpeed) ?? B.returnSpeed;
       for (let s = 0; s < steps; s++) {
         st.v += (wn * wn * (target - st.x) - 2 * zeta * wn * st.v) * h;
@@ -473,7 +473,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
       if (Math.abs(st.x) < 0.0005 && Math.abs(st.v) < 0.002 && target === 0) { st.x = 0; st.v = 0; }
     };
     spring(bend, BEND);
-    if (layers) spring(bendI, layers.bend);
+    if (layers) spring(bendI, layers.bend, layers.target ? layers.target(velImg) : targetCards); // R24j: the Work images have their own speed curve (work/speed-curve.js)
     grainSpeed += (Math.min(Math.abs(vel) / BEND.speedRef, 1) - grainSpeed) * (1 - Math.exp(-dt / 0.15));
     const bendNow = bend.x !== 0 || bendI.x !== 0;
 
@@ -503,7 +503,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     const amt = WARP_DIR * bend.x * (bend.x > 0 ? WARP.strengthDown : WARP.strengthUp); // shader sign: + = recede look, - = toward the viewer; WARP_DIR maps scroll direction onto it
     bend.amt = amt; // the signed value handed to the warp shader (+ = scrolling down); read by tools/scratch checks
     if (layers) {
-      const amtI = import.meta.env.DEV && holdAmt !== null ? holdAmt : WARP_DIR * bendI.x * (bendI.x > 0 ? layers.warp.strengthDown : layers.warp.strengthUp); // (dev: api.holdWarp pins the image warp amount for the pixel comparison tests)
+      const amtI = import.meta.env.DEV && holdAmt !== null ? holdAmt : WARP_DIR * bendI.x * (Math.max(layers.warp.strengthUp, layers.warp.strengthDown) > 0 ? 1 : 0); // (dev: api.holdWarp pins the image warp amount for the pixel comparison tests)
       bendI.amt = amtI;
       if (Math.abs(amtI) <= 0.0015) shift = 0; // (no image pass this frame: the axis is centred)
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
