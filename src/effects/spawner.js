@@ -11,13 +11,14 @@ import { bezier } from '../util/bezier.js';
 const easeOut = bezier(0, 0, 0.58, 1); // Framer's "easeOut"
 const rnd = (m) => (Math.random() * 2 - 1) * m;
 
-export function buildSpawner(root, urls) {
-  if (!pointerEnabled || !urls?.length) return;
+// R24a: `touch` (tall mode): the tap spawner: pointerdown instead of click, runs on touch (not under reduced motion), `sizeScale` shrinks the images for a phone
+export function buildSpawner(root, urls, { touch = false, sizeScale = 1 } = {}) {
+  if (!(pointerEnabled || (touch && !window.matchMedia('(prefers-reduced-motion: reduce)').matches)) || !urls?.length) return;
   const S = SPAWNER;
   const frame = document.createElement('div');
   frame.className = 'spawner';
   frame.style.perspective = `${S.perspective}px`;
-  root.querySelector('.hero')?.after(frame); // right after the hero layer: same z-index, later in the page, so it sits on top
+  (root.querySelector('.hero') || root.querySelector('.thero'))?.after(frame); // right after the hero layer: same z-index, later in the page, so it sits on top
 
   const pool = Array.from({ length: S.maxImages }, () => {
     const box = document.createElement('div');
@@ -55,7 +56,7 @@ export function buildSpawner(root, urls) {
     const ref = nextUrl();
     const info = imgInfo(ref);
     const aspect = info ? info.source.width / info.source.height : 1.5;
-    const h = (Math.random() * (S.sizeVh - S.minVh) + S.minVh) * vh;
+    const h = (Math.random() * (S.sizeVh - S.minVh) + S.minVh) * vh * sizeScale;
     const w = h * aspect;
     // recycle: a free element, else the oldest
     const it = pool.find((p) => !p.alive) || pool.reduce((a, b) => (b.birth < a.birth ? b : a));
@@ -80,7 +81,7 @@ export function buildSpawner(root, urls) {
     it.tl = tl;
   };
 
-  document.addEventListener('click', (e) => {
+  document.addEventListener(touch ? 'pointerdown' : 'click', (e) => {
     if (e.target.closest('a, button')) return;
     if (e.pageY > window.innerHeight) return; // the top 100vh of the page only
     const dx = rnd(window.innerWidth * (S.offsetVw / 100));

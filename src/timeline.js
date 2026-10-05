@@ -409,3 +409,11 @@ export const FRAME_WARP = {
   on: 1, strengthUp: 1.39, strengthDown: 1.39, reach: 1, pinch: 0.11, pinchDown: 0.11, arc: 0, persp: 0.18, sym: 1,
   threshold: 400, deadzone: 580, coverZoom: 1, fadeSec: 0.15, videoMode: 1, lodBias: 0, softScaled: 1,
 };
+
+// R24a: the TALL mode (phones, tablet portrait; src/util/layout-mode.js). Flags and numbers for what tall does differently; desktop never reads them.
+// cardsMax: cards per project on the Work page; dprCap: backing-store DPR cap; warp / lead / ambient: the Work strip's warp, speed lead and ambient
+// drift (off = lighter, see the status note for their cost); transition: the R25 / R28 / R30 project transitions (false = a plain page load);
+// spawnScale: the tap spawner's image size relative to desktop (phone width is small).
+export const TALL = { cardsMax: 5, dprCap: 2, warp: false, lead: false, ambient: false, transition: false, spawnScale: 0.5, baseW: 390, tabletCap: 1.6 };
+// R24a: the menu's Contact item stays hidden until this is set (a mailto: link); Anh has no address yet.
+export const CONTACT = { email: '' };

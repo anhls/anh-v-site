@@ -493,3 +493,6 @@ a:focus-visible, button:focus-visible { outline: 2px solid #f04a0e; outline-offs
 .work__item:focus-visible { outline-offset: -6px; }
 .skip { position: fixed; left: 12px; top: 12px; z-index: 200; padding: 10px 14px; background: #000; color: #fff; font-size: 0.875rem; line-height: 1; text-decoration: none; transform: translateY(-200%); }
 .skip:focus-visible { transform: none; }
+
+/* R24a: viewport hygiene (harmless on desktop) */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }

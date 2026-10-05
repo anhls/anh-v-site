@@ -13,6 +13,7 @@ import { buildProjectPage } from './sections/project-page.js';
 // Project pages: Lenis smooth scroll (same settings as home), the shared nav + wordmark, and the blocks from data.json (projects[].page).
 // No scroll-linked GSAP here: the text fade is one CSS variable per block, videos play only while on screen.
 gsap.registerPlugin(ScrollTrigger);
+ScrollTrigger.config({ ignoreMobileResize: true }); // R24a: the mobile address bar must not refresh every trigger
 const slug = document.body.dataset.project;
 const project = data.projects.find((p) => p.slug === slug);
 

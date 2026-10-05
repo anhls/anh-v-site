@@ -28,6 +28,7 @@ import { SCROLL, CARDS, FRAME_WARP } from './timeline.js';
 import { installScrollGain } from './util/scroll-gain.js';
 
 gsap.registerPlugin(ScrollTrigger);
+ScrollTrigger.config({ ignoreMobileResize: true }); // R24a: the mobile address bar must not refresh every trigger
 
 // Lenis drives the scroll; GSAP's ticker feeds it so pinned sections stay in sync.
 const lenis = new Lenis({ duration: SCROLL.duration, easing: SCROLL.easing }); // Framer "Intensity 30"; tune in timeline.js
