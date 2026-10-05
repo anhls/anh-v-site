@@ -33,3 +33,12 @@
 .work { cursor: grab; }
 .work .work__item { cursor: grab; }
 .work.is-dragging, .work.is-dragging .work__item { cursor: grabbing; }
+
+/* R24a / R24b: touch drag on the strip (touch-action none: the page does not scroll under the finger) */
+.work { touch-action: none; -webkit-tap-highlight-color: transparent; }
+/* R24a: the TALL mode (phones, tablet portrait): no toggle, the counter bottom-left, the name sized for a phone; svh so the address bar does not move the layout */
+html[data-layout='tall'] { --index-size: clamp(2.25rem, 11vw, 4.25rem); --index-x: 20px; --index-label-size: 0.8125rem; --index-top: calc(50svh - var(--index-size) * 0.4); }
+html[data-layout='tall'], html[data-layout='tall'] body { overscroll-behavior: none; }
+[data-layout='tall'] .work { height: 100svh; }
+[data-layout='tall'] .work__toggle { display: none; }
+[data-layout='tall'] .work__count { top: auto; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); left: calc(20px + env(safe-area-inset-left, 0px)); font-size: 0.875rem; }

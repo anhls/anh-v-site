@@ -4,7 +4,8 @@ import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import data from './data/data.json';
 import pool from './data/work-pool.json';
-import { WORK, BEND, WARP, CARDS, CARD_HOVER, DEPTH, SCROLL, INDEX, TRANSITION } from './timeline.js';
+import { WORK, BEND, WARP, CARDS, CARD_HOVER, DEPTH, SCROLL, INDEX, TRANSITION, TALL } from './timeline.js';
+import { isTall } from './util/layout-mode.js';
 import { frameZ } from './data/depth.js';
 import { capW, dist } from './scale.js';
 import { initNav } from './effects/nav.js';
@@ -36,6 +37,10 @@ history.scrollRestoration = 'manual';
 window.scrollTo(0, 0);
 const params = new URLSearchParams(location.search);
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+// R24a: the TALL mode (phones, tablet portrait): side scroll only, a square image, fewer cards, no toggle, burger menu; everything tall-only is behind `tall`
+const tall = isTall();
+const TLm = tall ? await import('./work/tall.js') : null;
+const tallLayouts = tall ? (await import('./data/layouts-tall.json')).default : null;
 const projects = data.projects;
 const slugs = projects.map((p) => p.slug);
 const N = projects.length;
@@ -45,7 +50,7 @@ const store = { get: () => { try { return localStorage.getItem('work-mode'); } c
 const back = !reduced && params.get('gl') !== '0' ? readBack() : null;
 const perfP = perfOn ? import('./effects/perf-hud.js').then((m) => { m.mountPerf(); return m; }) : null; // R31: ?perf report (own chunk)
 if (back) pm('back:arrive');
-let vertical = back ? back.mode === 'vertical' : store.get() === 'vertical';
+let vertical = !tall && (back ? back.mode === 'vertical' : store.get() === 'vertical');
 
 const lenis = new Lenis({ infinite: true, gestureOrientation: 'both', lerp: 0.07, wheelMultiplier: 1 });
 // R22j: Lenis runs on a clock that never advances more than 100 ms per frame: after a hidden tab or a long freeze its glide carries on from where
@@ -57,11 +62,13 @@ installScrollGain(lenis);
 watchDpr();
 
 // ---- DOM
-const nav = document.createElement('nav');
-nav.className = 'nav';
-nav.innerHTML = [['About', '/#2section'], ['Works', '/work/'], ['Contact', '/#contact']]
-  .map(([n, h]) => `<a href="${h}" data-link="${n}"><span class="roll"><span>${n}</span><span>${n}</span></span></a>`).join('');
-document.body.prepend(nav);
+if (!tall) {
+  const nav = document.createElement('nav');
+  nav.className = 'nav';
+  nav.innerHTML = [['About', '/#2section'], ['Works', '/work/'], ['Contact', '/#contact']]
+    .map(([n, h]) => `<a href="${h}" data-link="${n}"><span class="roll"><span>${n}</span><span>${n}</span></span></a>`).join('');
+  document.body.prepend(nav);
+} else import('./effects/tall-menu.js').then((m) => m.mountTallMenu());
 const app = document.getElementById('app');
 app.innerHTML = `
   <div class="work__spacer"></div>
@@ -83,18 +90,21 @@ const titleEls = [...nameEl.querySelectorAll('.work__title')].map((el) => ({ el,
 const iconEl = toggleEl.querySelector('.work__icon');
 
 // ---- items: the N frames first, then every project's cards (the same objects in both layouts)
-const projCards = buildProjectCards(pool, slugs);
+const projCards = tall ? buildProjectCards(pool, slugs, WORK.seed, TLm.tallLimits()) : buildProjectCards(pool, slugs);
+const LD = tall ? tallLayouts : layoutsData; // the stored layouts of this mode
+const metricsNow = () => (tall ? TLm.tallMetrics(innerWidth, innerHeight) : workMetrics(innerWidth, innerHeight, capW() / 1920));
+const pickNow = () => (tall ? TLm.pickTall(LD, innerWidth, innerHeight) : pickSize(layoutsData, innerWidth, innerHeight));
 // R29: the card positions and dark flags come from src/data/layouts.json (tools/layout-solve.mjs, verified by the build gate): no layout work at load. A project
 // without a stored layout (or rule numbers changed in ?tune) goes through the old fix pass, with a warning.
-const storedFlags = applyStoredDark(layoutsData, projCards) && layoutsData.signature === ruleSignature();
-let storedOK = storedFlags && !!pickSize(layoutsData, innerWidth, innerHeight);
-if (storedOK && import.meta.env.DEV) { // dev: the stored layout must still describe these cards (the gate checks this for every build)
+const storedFlags = applyStoredDark(LD, projCards) && LD.signature === (tall ? TLm.tallSignature() : ruleSignature());
+let storedOK = storedFlags && !!pickNow();
+if (storedOK && !tall && import.meta.env.DEV) { // dev: the stored layout must still describe these cards (the gate checks this for every build)
   const pk = pickSize(layoutsData, innerWidth, innerHeight), Mx = workMetrics(innerWidth, innerHeight, capW() / 1920);
   if (pk.exact) for (const mode of ['side', 'vertical']) projCards.forEach((l) => { if (layoutsData.work[pk.key][mode][l[0].slug]?.hash !== projectHash(l, Mx[mode])) storedOK = false; });
 }
 if (!storedOK) {
   if (import.meta.env.DEV) console.warn('[layouts] no usable stored layout for this window / these cards / these rules: running the load-time fix pass (npm run layout)');
-  await fixWorkLayoutIdle(projCards, workMetrics(innerWidth, innerHeight, capW() / 1920)); // the old time-sliced pass (R22j)
+  await fixWorkLayoutIdle(projCards, metricsNow()); // the old time-sliced pass (R22j)
 }
 const items = [];
 projects.forEach((p, i) => items.push({ kind: 'frame', proj: i, slug: p.slug, z: frameZ(), mouse: 20 + 80 * DEPTH.slot, dark: false, ref: heroRef(p) }));
@@ -132,17 +142,17 @@ let gl = null; // the card canvas (created below)
 let fine = false;
 let laidOnce = false;
 const layouts = () => {
-  W = innerWidth; H = innerHeight; scale = capW() / 1920;
-  const fw = (WORK.frameW * W) / 100, fh = (WORK.frameH * H) / 100;
-  if (laidOnce && !storedOK) fixWorkLayout(projCards, workMetrics(W, H, scale), { structural: false }); // fallback only, a resize: nudges only (the card set stays)
+  W = innerWidth; H = innerHeight; scale = tall ? TLm.scaleTall(W) : capW() / 1920;
+  const fw = tall ? TLm.tallFrame(W) : (WORK.frameW * W) / 100, fh = tall ? fw : (WORK.frameH * H) / 100;
+  if (laidOnce && !storedOK) fixWorkLayout(projCards, metricsNow(), { structural: false }); // fallback only, a resize: nudges only (the card set stays)
   laidOnce = true;
   const placedAll = {};
-  for (const mode of ['side', 'vertical']) {
+  for (const mode of tall ? ['side'] : ['side', 'vertical']) {
     const v = mode === 'vertical';
-    const M = { vertical: v, alongF: v ? fh : fw, crossF: v ? fw : fh, scale, gap: v ? (WORK.gapVert * H) / 100 : (WORK.gapSide * W) / 100, gapPx: (WORK.dupGap * (v ? H : W)) / 100, viewAlong: v ? H : W, viewCross: v ? W : H };
+    const M = tall ? TLm.tallMetrics(W, H).side : { vertical: v, alongF: v ? fh : fw, crossF: v ? fw : fh, scale, gap: v ? (WORK.gapVert * H) / 100 : (WORK.gapSide * W) / 100, gapPx: (WORK.dupGap * (v ? H : W)) / 100, viewAlong: v ? H : W, viewCross: v ? W : H };
     const pitch = M.alongF + M.gap;
-    const pk = storedOK ? pickSize(layoutsData, W, H) : null;
-    let placed = pk ? placeStored(layoutsData, projCards, M, mode, pk) : null;
+    const pk = storedOK ? pickNow() : null;
+    let placed = pk ? placeStored(LD, projCards, M, mode, pk) : null;
     if (!placed) { storedOK = false; placed = placeCards(projCards, M); } // (a size without a stored layout: the card set is the same, the positions come from the generator)
     placedAll[mode] = placed;
     const pos = items.map((it) => {
@@ -152,7 +162,8 @@ const layouts = () => {
     });
     LAY[mode] = { M, pitch, period: N * pitch, pos };
   }
-  if (!storedOK) balanceDark(projCards, [placedAll.side, placedAll.vertical]); // dark runs <= 2 along the strip in both modes (the stored flags already hold it)
+  if (tall) LAY.vertical = LAY.side;
+  if (!storedOK) balanceDark(projCards, [placedAll.side, placedAll.vertical].filter(Boolean)); // dark runs <= 2 along the strip in both modes (the stored flags already hold it)
   items.forEach((it, i) => {
     if (it.kind === 'card') { it.dark = it.card.dark; it.el.dataset.dark = it.dark ? '1' : '0'; if (gl) { gl.darkCard[i] = it.dark; gl.hd[i] = it.dark && fine ? CARD_HOVER.darkRest : 0; } }
     const w = it.kind === 'frame' ? fw : it.card.w * scale;
@@ -167,6 +178,7 @@ const cur = () => LAY[vertical ? 'vertical' : 'side'];
 // ---- WebGL (the homepage card renderer, with the Work page's own warp numbers)
 // R22h: two warps with their own settings: WORK.cardWarp (the cards) and WORK.frameWarp (the main images, own shader). Both are read live.
 const bendP = { ...BEND };
+if (tall) { bendP.dprCap = Math.min(bendP.dprCap, TALL.dprCap); bendP.dprCapLarge = Math.min(bendP.dprCapLarge, TALL.dprCap); } // R24a: a lighter backing store on a phone
 const warpP = { ...WARP };
 const bendImg = { riseSpeed: 1, settleSpeed: 1 };
 const warpImg = { ...WARP };
@@ -181,9 +193,10 @@ const syncWarp = () => {
   copyWarp(warpImg, WORK.frameWarp);
   bendImg.riseSpeed = 7 / Math.max(WORK.frameWarp.riseSec, 0.02);
   bendImg.settleSpeed = 7 / Math.max(WORK.frameWarp.settleSec, 0.02);
+  if (tall && !TALL.warp) { warpP.strengthUp = warpP.strengthDown = 0; warpImg.strengthUp = warpImg.strengthDown = 0; } // R24a: no warp pass (flag TALL.warp)
 };
 syncWarp();
-fine = matchMedia('(pointer: fine)').matches && !reduced;
+fine = matchMedia('(pointer: fine)').matches && !reduced && !tall;
 let glOn = false;
 {
   const fallback = () => { glOn = false; root.classList.remove('work--gl'); gl?.destroy?.(); gl = null; };
@@ -217,7 +230,7 @@ const AMB = { on: false, t0: 0, tOff: 0, a0: new Float64Array(n), r0: new Float6
 const stepAmb = (now) => {
   let fmax = 0;
   for (let q = 0; q < N; q++) if (fP[q] > fmax) fmax = fP[q];
-  const on = glOn && !reduced && !morph && !snap && !drag && !inertia && !focusOff(now) && now - lastWheel > WORK.ambDelay * 1000 && fmax >= 0.98;
+  const on = glOn && !reduced && (!tall || TALL.ambient) && !morph && !snap && !drag && !inertia && !focusOff(now) && now - lastWheel > WORK.ambDelay * 1000 && fmax >= 0.98;
   if (on && !AMB.on) { AMB.on = true; AMB.t0 = now; AMB.a0.set(AMB.av); } // start (or resume from the current offsets: no pop)
   else if (!on && AMB.on) { AMB.on = false; AMB.tOff = now; AMB.r0.set(AMB.av); }
   let moving = false, any = false;
@@ -410,7 +423,7 @@ const endDrag = () => {
   drag = null;
   root.classList.remove('is-dragging');
   try { if (d.captured) document.documentElement.releasePointerCapture(d.id); } catch { /* already released */ }
-  if (!d.total || d.total <= 6) return;
+  if (!d.total || d.total <= d.thr) return;
   // the pointer's speed over the last 90 ms, as strip speed (the strip moves against the pointer's coordinate)
   const now = performance.now();
   const s = d.samples.filter((q) => now - q[0] < 90);
@@ -420,10 +433,10 @@ const endDrag = () => {
   }
 };
 addEventListener('pointerdown', (e) => {
-  if (e.pointerType !== 'mouse' || e.button !== 0 || morph || fading) return;
-  if (e.target.closest?.('.work__toggle, .work__count, [data-tune-panel]') || e.target.closest?.('div[style*="99999"]')) return;
+  if ((e.pointerType === 'mouse' && e.button !== 0) || morph || fading || (drag && e.pointerType !== 'mouse')) return; // R24b: touch and pen share the drag; a second finger is ignored
+  if (e.target.closest?.('.work__toggle, .work__count, .tmenu__btn, .tmenu, [data-tune-panel]') || e.target.closest?.('div[style*="99999"]')) return;
   dragMoved = false;
-  drag = { id: e.pointerId, last: axisOf(e), total: 0, captured: false, samples: [[performance.now(), axisOf(e)]] };
+  drag = { id: e.pointerId, mouse: e.pointerType === 'mouse', thr: e.pointerType === 'mouse' ? 6 : 10, last: axisOf(e), total: 0, captured: false, samples: [[performance.now(), axisOf(e)]] };
   inertia = null; snap = null; snapForce = 0; lastWheel = performance.now(); wmScrolled = true; inputRelease();
   e.preventDefault(); // no text selection, no image drag
 }, { capture: true });
@@ -433,10 +446,10 @@ addEventListener('pointermove', (e) => {
   const pos = axisOf(e), dpos = pos - drag.last;
   drag.last = pos;
   drag.total += Math.abs(dpos);
-  if (drag.total > 6) {
+  if (drag.total > drag.thr) {
     dragMoved = true;
     root.classList.add('is-dragging');
-    if (!drag.captured) { try { document.documentElement.setPointerCapture(drag.id); drag.captured = true; } catch { /* not capturable */ } } // from here the move / up come even outside the window
+    if (!drag.captured && drag.mouse) { try { document.documentElement.setPointerCapture(drag.id); drag.captured = true; } catch { /* not capturable */ } } // from here the move / up come even outside the window
   }
   off -= dpos; // 1:1: the content follows the pointer
   dragAccum -= dpos;
@@ -445,7 +458,7 @@ addEventListener('pointermove', (e) => {
 }, { capture: true, passive: true });
 for (const type of ['pointerup', 'pointercancel']) addEventListener(type, (e) => { if (drag && e.pointerId === drag.id) endDrag(); }, { capture: true });
 addEventListener('blur', endDrag);
-document.documentElement.addEventListener('lostpointercapture', (e) => { if (drag && e.pointerId === drag.id) endDrag(); }); // R22h: a drag can never stay 'held' after the browser took the pointer back
+document.documentElement.addEventListener('lostpointercapture', (e) => { if (drag && drag.mouse && e.pointerId === drag.id) endDrag(); }); // R22h: a drag can never stay 'held' after the browser took the pointer back
 document.addEventListener('visibilitychange', () => { if (document.hidden) endDrag(); });
 addEventListener('click', (e) => { if (dragMoved) { e.preventDefault(); e.stopPropagation(); dragMoved = false; } }, { capture: true });
 // R25: a click on a main image grows that picture into the project page's header (cards keep a plain page load)
@@ -577,7 +590,7 @@ const tick = (_time, deltaMs) => {
   const dur = Math.max(WORK.morphSec - WORK.morphStagger, 0.05);
   let settleMoving = false;
   if (stepAmb(now)) settleMoving = true;
-  if (stepLead(dt, vel, glOn && !reduced && !morph && !snap)) settleMoving = true;
+  if (stepLead(dt, vel, glOn && !reduced && (!tall || TALL.lead) && !morph && !snap)) settleMoving = true;
   // R22g: the mouse drift fades out / in over 0.6 s around the toggle morph (it used to switch off at the first frame and on at the last: a card
   // jumped by its whole drift when the pointer was off-centre)
   driftW += Math.max(-dt / 0.6, Math.min(dt / 0.6, (morph || arrivalHold ? 0 : 1) - driftW));
@@ -607,7 +620,7 @@ const tick = (_time, deltaMs) => {
   // R23f: the focus (the centred project grows, every card is pushed away from the focused image, neighbours move off) is applied to the
   // base positions of this frame; fsArr = the image scale per project
   const pushing = TP.q >= 0 && (TP.p > 0 || TP.hold);
-  if (focusMoving || anyF || NUD.live || pushing) { FA.vertical = L.M.vertical; FA.pitch = L.pitch; FA.scale = scale; NUD.dt = dt; let pa = fPu.x; if (pushing) { pushArr.set(fPu.x); pushArr[TP.q] = TP.p; pa = pushArr; } applyFocus(FA, fSc.x, pushing ? PT : WORK, CARDS, fsArr, pa, NUD); if (NUD.live) settleMoving = true; } else fsArr.fill(1);
+  if (!tall && (focusMoving || anyF || NUD.live || pushing)) { FA.vertical = L.M.vertical; FA.pitch = L.pitch; FA.scale = scale; NUD.dt = dt; let pa = fPu.x; if (pushing) { pushArr.set(fPu.x); pushArr[TP.q] = TP.p; pa = pushArr; } applyFocus(FA, fSc.x, pushing ? PT : WORK, CARDS, fsArr, pa, NUD); if (NUD.live) settleMoving = true; } else fsArr.fill(1);
   if (TC.on) applyClear();
   for (let k = 0; k < nSrc; k++) { const sI = psrcs[k]; PS.srcX[sI] = px[sI]; PS.srcY[sI] = py[sI]; }
   for (let i = 0; i < n; i++) {
@@ -746,7 +759,7 @@ addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(relayout, 1
 
 commit(vertical ? 'vertical' : 'side');
 // the endless strip passes through 0 at every wrap, so the distance must not drive the wordmark: it reports "scrolled" once and never rest again
-initNav(data.hero.wordmark, lenis, { gateFrame: false, position: () => (wmScrolled ? 1e9 : 0), startBig: !!back && !back.leave.wm });
+initNav(data.hero.wordmark, lenis, tall ? { gateFrame: false, position: () => 1e9, startSmall: true, small: { x: 5, y: 3.4, width: 26 } } : { gateFrame: false, position: () => (wmScrolled ? 1e9 : 0), startBig: !!back && !back.leave.wm }); // (tall: the small wordmark from the start, wider than desktop's 169 px)
 // R28: the way back. The overlay (#pxb, painted by the inline script in work/index.html) covers the page with the project's header at the scroll it was
 // left at; the strip is built in that mode with the project centred and at rest, its cards and neighbours pushed; when the header file is decoded
 // and the textures are up, the enlarge plays in reverse (project-transition.js playBack). Input finishes it at once.
@@ -774,7 +787,7 @@ if (back) {
 }
 document.title = 'Work | Anh V';
 if (import.meta.env.DEV) {
-  window.__SCROLL = SCROLL; window.__WORK = WORK; window.__TRANSITION = TRANSITION;
+  window.__SCROLL = SCROLL; window.__WORK = WORK; window.__TRANSITION = TRANSITION; window.__TALL = TALL;
   window.__work = { setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, q: Q, PS,  get snap() { return snap; }, AMB, LEAD, get drag() { return drag; }, get inertia() { return inertia; }, fP, fSc, fPu, get kCount() { return kCount; }, bx, by, bw, bh, vis, hp };
   if (params.has('tune')) import('./work/tune.js').then((m) => m.mountWorkTune({ relayout }));
   if (params.has('overlap')) import('./effects/overlap-debug.js').then((m) => m.mountOverlapDebug('.work__card', () => `focus ${Math.max(...fSc.x).toFixed(2)}${AMB.on ? ', ambient drift on' : ''}${LEAD.moving ? ', lead moving' : ''}${morph ? ', toggle morph' : ''}${TC.on ? ', transition' : ''}${drag ? ', drag' : ''}`));

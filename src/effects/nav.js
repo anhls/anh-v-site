@@ -30,7 +30,7 @@ const ROLL = 18; // px; each link label exists twice, stacked 18px apart
 // the user scrolls toward/away from the top instead of waiting for the smooth-scroll glide to finish.
 // `gateFrame` (home): the footer state also needs the hero mask to be full screen again. Project pages have no mask, so they pass false.
 // `position` (Work page): a function giving the distance scrolled (the strip is endless, the page itself never moves).
-export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe, onHome = false, startSmall = false, startBig = false } = {}) {
+export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe, onHome = false, startSmall = false, startBig = false, small: SMALL = WORDMARK.small } = {}) { // R24a: `small` = the tall mode's own small-wordmark box
   // R22j: the wordmark is a link to the homepage (the fixed, transformed box is the <a>; the picture fills it). It takes clicks only in the SMALL
   // state: the big one covers 82vw x 32vh of the hero (captions, cards, the spawner's click area), so it stays click-through; the keyboard
   // reaches it in both. Home: click = the back-to-top transition when scrolled, nothing at the top. Other pages: plain navigation to '/'.
@@ -61,10 +61,10 @@ export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe,
   const apply = (v) => {
     const p = v.p;
     const bigY = H - vw(BASE_W) / ASPECT; // flush with the bottom
-    ringScale = 1 + (cw(WORDMARK.small.width) / vw(BASE_W) - 1) * p;
+    ringScale = 1 + (cw(SMALL.width) / vw(BASE_W) - 1) * p;
     gsap.set(img, {
-      x: vw(WORDMARK.big.x) + (cw(WORDMARK.small.x) - vw(WORDMARK.big.x)) * p,
-      y: bigY + (ch(WORDMARK.small.y) - bigY) * p,
+      x: vw(WORDMARK.big.x) + (cw(SMALL.x) - vw(WORDMARK.big.x)) * p,
+      y: bigY + (ch(SMALL.y) - bigY) * p,
       scale: ringScale, // ONE uniform scale: the logo never squashes or stretches
       transformOrigin: '0 0',
     });

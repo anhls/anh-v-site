@@ -3,6 +3,8 @@ import { TRANSITION as T } from '../timeline.js';
 import { EASES } from '../util/ease.js';
 import { imgSet } from '../util/media.js';
 import { pm } from '../util/perf-mark.js';
+import { isTall } from '../util/layout-mode.js';
+import { TALL } from '../timeline.js';
 
 // R25: open a project from a main image (Work page) or from the homepage frame without a visible page change.
 // A fixed overlay takes the picture's place (same crop), grows to the full screen = the project page's header at scroll 0 (a 100vw x 100vh cover
@@ -10,7 +12,7 @@ import { pm } from '../util/perf-mark.js';
 // work/<slug>.html reads the hand-off from sessionStorage), and project.js removes it once the header's own image is decoded (same file, no swap).
 // Not used (plain page load): reduced motion, ?gl=0, direct links, anything that is not a plain left click.
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-export const transitionOK = () => !reduced && new URLSearchParams(location.search).get('gl') !== '0';
+export const transitionOK = () => !reduced && new URLSearchParams(location.search).get('gl') !== '0' && (!isTall() || TALL.transition); // R24a: off in tall mode (a plain page load)
 
 const full = new Map(); // slug -> an <img> preloading the header image with the header's own srcset / sizes (so the same file is picked)
 export function preloadHeader(slug, ref) {

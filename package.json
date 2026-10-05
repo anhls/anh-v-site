@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node tools/layout-check.mjs && vite build",
+    "build": "node tools/layout-check.mjs && node tools/layout-check-tall.mjs && vite build",
     "layout": "node tools/layout-solve.mjs",
-    "layout:check": "node tools/layout-check.mjs",
+    "layout:tall": "node tools/layout-solve-tall.mjs",
+    "layout:check": "node tools/layout-check.mjs && node tools/layout-check-tall.mjs",
     "preview": "vite preview",
     "compare": "node tools/compare.mjs",
     "media": "node tools/media.mjs"

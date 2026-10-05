@@ -414,6 +414,7 @@ export const FRAME_WARP = {
 // cardsMax: cards per project on the Work page; dprCap: backing-store DPR cap; warp / lead / ambient: the Work strip's warp, speed lead and ambient
 // drift (off = lighter, see the status note for their cost); transition: the R25 / R28 / R30 project transitions (false = a plain page load);
 // spawnScale: the tap spawner's image size relative to desktop (phone width is small).
-export const TALL = { cardsMax: 5, dprCap: 2, warp: false, lead: false, ambient: false, transition: false, spawnScale: 0.5, baseW: 390, tabletCap: 1.6 };
+export const TALL = { cardsMax: 5, dprCap: 2, warp: false, lead: false, ambient: false, transition: false, spawnScale: 0.5, baseW: 390, tabletCap: 1.6, frame: 0.72, frameRef: 633 };
+// (frame: the square main image's side as a share of the width, capped at baseW x tabletCap; frameRef: the geometric mean of the desktop frame at 1920x1080, px: the cards scale = frame side / frameRef)
 // R24a: the menu's Contact item stays hidden until this is set (a mailto: link); Anh has no address yet.
 export const CONTACT = { email: '' };
