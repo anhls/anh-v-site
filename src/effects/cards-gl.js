@@ -25,23 +25,32 @@ uniform float uBend;             // signed px; + = the middle sags downward
 uniform float uShape;            // arc shape: 1 = round arc (sin, keeps curving into the corners), higher = flatter corners
 uniform vec4 uCover;             // object-fit: cover as (scaleU, scaleV, offU, offV)
 out vec2 vUv;
-out vec2 vA;                      // R33: the position on the card itself (0..1), for the pointer field
+out vec2 vA;                      // R33b: the position on the picture itself (0..1; outside 0..1 on the spill margin)
+out vec2 vS;                      // R33b: the position on the screen, 0..1 (the pixel grid's coordinates)
+uniform vec2 uPad;               // R33b: spill margin around the picture in px (0 = none; the quad is then exactly the picture)
+uniform vec2 uMarg;              // the warp buffer's overscan margin in px
+uniform vec2 uScr;               // the screen size in px
 void main() {
   float arc = pow(sin(3.14159265 * a.x), uShape);
-  vec2 p = uCenter + (a - 0.5) * uSize + vec2(0.0, uBend * arc);
+  vec2 sz = uSize + 2.0 * uPad;
+  vec2 p = uCenter + (a - 0.5) * sz + vec2(0.0, uBend * arc);
+  vec2 a01 = a;
+  if (uPad.x + uPad.y > 0.0) a01 = (a * sz - uPad) / uSize;
   gl_Position = vec4(p.x / uView.x * 2.0 - 1.0, 1.0 - p.y / uView.y * 2.0, 0.0, 1.0);
-  vUv = a * uCover.xy + uCover.zw;
-  vA = a;
+  vUv = a01 * uCover.xy + uCover.zw;
+  vA = a01;
+  vS = (p - uMarg) / uScr;
 }`;
 const FRAG = `#version 300 es
 precision mediump float;
 in vec2 vUv;
 in vec2 vA;
+in vec2 vS;
 uniform sampler2D uTex;
-uniform sampler2D uField;        // R33: the pointer field of the centre image (RG = a vector, 0.5 = none), only read when uFx > 0
-uniform float uFx;
-uniform vec4 uFxP;               // x displacement, y smear length, z rgb shift (all in picture units), w unused
-uniform vec2 uFxS;               // the picture's cover scale (so the effect is in the image's own space)
+uniform sampler2D uGrid;         // R33b: the pixel grid (screen space, one displacement per cell, NEAREST), only read when uFx > 0
+uniform float uFx;               // this picture's share of the effect (0 = off: the picture is exactly as before)
+uniform vec4 uFxP;               // x strength (picture units per grid unit), y rgb split, zw unused
+uniform vec2 uFxS;               // the picture's cover scale
 uniform float uGrain;
 uniform float uSeed;
 uniform float uFlat;             // >= 0: draw the flat dark layer at this opacity instead of the texture
@@ -50,12 +59,13 @@ float h(vec2 p) { vec3 q = fract(vec3(p.xyx) * 0.1031); q += dot(q, q.yzx + 33.3
 void main() {
   if (uFlat >= 0.0) { o = vec4(vec3(10.0 / 255.0) * uFlat, uFlat); return; }
   vec4 c;
-  if (uFx > 0.0) { // R33: the pointer smear + distortion trail (one vector field in the image's own space; the lookup is displaced, smeared along the vector, and split by colour)
-    vec2 v = (texture(uField, vA).rg - 0.5) * 2.0 * uFx;
-    vec2 uv = vUv - v * uFxP.x * uFxS, sm = v * uFxP.y * uFxS, sh = v * uFxP.z * uFxS;
-    vec3 acc = vec3(0.0);
-    for (int i = 0; i < 6; i++) { vec2 o = sm * (float(i) / 5.0 - 0.5); acc += vec3(texture(uTex, uv + o + sh).r, texture(uTex, uv + o).g, texture(uTex, uv + o - sh).b); }
-    c = vec4(acc / 6.0, texture(uTex, uv).a);
+  if (uFx > 0.0) { // R33b: the Codrops pixel grid: the lookup is moved by the cell's displacement; pixels pushed past the picture's edge may spill onto the margin (the padded quad)
+    vec2 d = texture(uGrid, vS).rg * uFx * uFxP.x;
+    vec2 a2 = vA - d;
+    bool out2 = a2.x < 0.0 || a2.x > 1.0 || a2.y < 0.0 || a2.y > 1.0;
+    if (out2 && (vA.x < 0.0 || vA.x > 1.0 || vA.y < 0.0 || vA.y > 1.0)) discard; // only displaced edge pixels leave the rectangle
+    vec2 g = clamp(a2, 0.0, 1.0), sh = d * uFxP.y;
+    c = vec4(texture(uTex, clamp(g + sh, 0.0, 1.0) * uFxS + (vUv - vA * uFxS)).r, texture(uTex, g * uFxS + (vUv - vA * uFxS)).g, texture(uTex, clamp(g - sh, 0.0, 1.0) * uFxS + (vUv - vA * uFxS)).b, texture(uTex, g * uFxS + (vUv - vA * uFxS)).a);
   } else c = texture(uTex, vUv);
   float n = h(gl_FragCoord.xy + uSeed) - 0.5;
   c.rgb = clamp(c.rgb + n * uGrain * c.a, 0.0, 1.0);
@@ -104,12 +114,13 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
   gl.linkProgram(prog);
   if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return null;
   gl.useProgram(prog);
-  const U = Object.fromEntries(['uView', 'uCenter', 'uSize', 'uBend', 'uShape', 'uCover', 'uTex', 'uGrain', 'uSeed', 'uFlat', 'uField', 'uFx', 'uFxP', 'uFxS'].map((k) => [k, gl.getUniformLocation(prog, k)]));
+  const U = Object.fromEntries(['uView', 'uCenter', 'uSize', 'uBend', 'uShape', 'uCover', 'uTex', 'uGrain', 'uSeed', 'uFlat', 'uGrid', 'uFx', 'uFxP', 'uFxS', 'uPad', 'uMarg', 'uScr'].map((k) => [k, gl.getUniformLocation(prog, k)]));
   gl.uniform1i(U.uTex, 0);
-  gl.uniform1i(U.uField, 1);
+  gl.uniform1i(U.uGrid, 1);
+  gl.uniform2f(U.uPad, 0, 0);
   gl.uniform1f(U.uFx, 0);
-  // R33: the pointer field texture (unit 1), made on first use (setField)
-  let fieldTex = null, fieldW = 0, fieldH = 0, fxIdx = -1, fxAmt = 0, fxP = [0, 0, 0, 0];
+  // R33b: the pixel grid texture (unit 1, RGBA32F, NEAREST), made on first use (setPixelFx)
+  let gridTex = null, gridW = 0, gridH = 0, fxOn = false, fxAmt = null, fxP = [0, 0, 0, 0], fxPad = [0, 0];
   const post = gl.createProgram();
   gl.attachShader(post, compile(gl.VERTEX_SHADER, POST_VERT));
   gl.attachShader(post, compile(gl.FRAGMENT_SHADER, POST_FRAG));
@@ -458,7 +469,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
       if (t && !(darkCard[i] && hd[i] >= 0.999)) {
         gl.bindTexture(gl.TEXTURE_2D, t);
         gl.uniform1f(U.uFlat, -1);
-        if (fxIdx >= 0) { const on = i === fxIdx && fxAmt > 0; gl.uniform1f(U.uFx, on ? fxAmt : 0); if (on) { gl.uniform4f(U.uFxP, fxP[0], fxP[1], fxP[2], 0); gl.uniform2f(U.uFxS, cover[i * 4], cover[i * 4 + 1]); } }
+        if (fxOn) { const f = fxAmt[i] || 0; gl.uniform1f(U.uFx, f); if (f > 0) { gl.uniform4f(U.uFxP, fxP[0], fxP[1], 0, 0); gl.uniform2f(U.uFxS, cover[i * 4], cover[i * 4 + 1]); gl.uniform2f(U.uPad, fxPad[0], fxPad[1]); gl.uniform2f(U.uMarg, mx, my); gl.uniform2f(U.uScr, W, H); } else gl.uniform2f(U.uPad, 0, 0); }
         gl.uniform2f(U.uSize, bw[i] * hs[i], bh[i] * hs[i]);
         gl.uniform4fv(U.uCover, cover.subarray(i * 4, i * 4 + 4));
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, (COLS + 1) * 2);
@@ -571,20 +582,21 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     holdWarp: (a) => { holdAmt = a; dirty = true; }, // dev only
     diag: () => ({ postOk, shift, ...fbInfo, warpScale, passCount, lastPass }), // R24f: what the ?perf diagnosis line shows
     setWarpScale: (k) => { warpScale = Math.max(0.25, Math.min(1, k)); dirty = true; },
-    // R33: the pointer field (RGBA8 bytes, w x h) of picture `idx`; amount 0 = off (the shader branch is not taken: the picture is exactly as before)
-    setField: (idx, amount, params, bytes, w, h) => {
-      fxIdx = amount > 0 || bytes ? idx : -1; fxAmt = amount; fxP = params || fxP;
-      if (bytes) {
+    // R33b: the pixel grid. amt = Float32Array (per picture: its share of the effect, 0 = untouched), params = [strength, rgb], data = RGBA32F cells (cols x rows, screen space, row 0 = top),
+    // pad = [px, py] spill margin. amt null = off (nothing is uploaded or sampled; every picture is exactly as before).
+    setPixelFx: (amt, params, data, cols, rows, pad) => {
+      fxOn = !!amt; fxAmt = amt; if (params) fxP = params; if (pad) fxPad = pad;
+      if (data) {
         gl.useProgram(prog);
         gl.activeTexture(gl.TEXTURE1);
-        if (!fieldTex || w !== fieldW || h !== fieldH) {
-          if (fieldTex) gl.deleteTexture(fieldTex);
-          fieldTex = gl.createTexture(); fieldW = w; fieldH = h;
-          gl.bindTexture(gl.TEXTURE_2D, fieldTex);
-          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        if (!gridTex || cols !== gridW || rows !== gridH) {
+          if (gridTex) gl.deleteTexture(gridTex);
+          gridTex = gl.createTexture(); gridW = cols; gridH = rows;
+          gl.bindTexture(gl.TEXTURE_2D, gridTex);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, bytes);
-        } else { gl.bindTexture(gl.TEXTURE_2D, fieldTex); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, bytes); }
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, cols, rows, 0, gl.RGBA, gl.FLOAT, data);
+        } else { gl.bindTexture(gl.TEXTURE_2D, gridTex); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, cols, rows, gl.RGBA, gl.FLOAT, data); }
         gl.activeTexture(gl.TEXTURE0);
       }
       dirty = true;

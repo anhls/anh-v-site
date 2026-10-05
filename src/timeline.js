@@ -252,7 +252,7 @@ export const DEPTH = { slot: 0.5, frontShare: Number.isFinite(urlFront) ? urlFro
 // focusScale (image growth) / focusPush (px at 1920, the cards move out) / focusNeighbour (share of the pitch) / focusRampSec (pop guard).
 // dupGap = the least distance (vw in the side mode, vh in the vertical one) between a duplicate and its twin.
 export const WORK = {
-  seed: 3, frameW: 42, frameH: 46, gapSide: 16, gapVert: 26, overlapMax: 0.2, minGap: 24, slack: 0.3, wheel: 2.5, // (R24j: 0.75 -> 2.5, the ?tune "Wheel speed")
+  seed: 3, frameW: 42, frameH: 46, gapSide: 16, gapVert: 26, overlapMax: 0.2, minGap: 24, slack: 0.3, wheel: 1.8, // (R24j: 0.75 -> 2.5; R33b: 1.8, Anh's ?tune)
   // R22h: two separate warps, each with its own look and its own timing (all driven by the strip's speed, flat at rest): cardWarp = the cards (the
   // shared cylinder, today's values), frameWarp = the main images (their own shader, src/work/frame-warp-shader.js; starts from FRAME_WARP's strength
   // and is wider and slower than the cards': a gentler curl, a farther camera). strength = size of the warp (1.15 = the homepage cards), curl =
@@ -260,7 +260,8 @@ export const WORK = {
   // bowDown / bowUp = a shallow dome, reach = share of the strip's length that bends (1 - reach stays flat in the middle), sym = weight of the
   // leading side, riseSec / settleSec = how fast it grows while the strip moves / eases flat after it stops.
   cardWarp: { strength: 1.15, riseSec: 1.5, settleSec: 1.4, curl: 0.5, camDown: 1.25, camUp: 1.25, bowDown: 0, bowUp: 0.05, reach: 1, sym: 1 },
-  frameWarp: { strength: 1.39, riseSec: 2.2, settleSec: 1.9, curl: 0.5, camDown: 1.25, camUp: 1.25, bowDown: 0, bowUp: 0.06, reach: 1, sym: 1, speedRef: 5, speedPow: 1.4, speedKnee: 2, lean: 0.4, leanSign: 1, leanSignDown: -1, leanSignUp: 1, leanMax: 0.45, leanBuf: 0.3 }, // R33: leanSignDown / leanSignUp = the lean's sign per scroll direction (down = wheel down: -1 leans AGAINST the motion; up +1 = toward it, as before); R24i: lean = how far (screen lengths along the strip, at warp amount 1) the cylinder axis moves toward where the images travel on screen; leanSign -1 flips it; leanMax caps the shift; lean 0 = the centred axis of before
+  // R33b: Anh's tuned image warp (grid twin: 0 folds, 0 samples outside the buffer at strength 1.6); the phone / tablet pages keep the R24j look below (TALL.frameWarp)
+  frameWarp: { strength: 1.6, riseSec: 2.2, settleSec: 1.9, curl: 0.56, camDown: 2.24, camUp: 2.13, bowDown: 0.085, bowUp: 0.095, reach: 0.8, sym: 1, speedRef: 5, speedPow: 1.4, speedKnee: 2, lean: 0.4, leanSign: 1, leanSignDown: -1, leanSignUp: 1, leanMax: 0.45, leanBuf: 0.3 }, // R33: leanSignDown / leanSignUp = the lean's sign per scroll direction (down = wheel down: -1 leans AGAINST the motion; up +1 = toward it, as before); R24i: lean = how far (screen lengths along the strip, at warp amount 1) the cylinder axis moves toward where the images travel on screen; leanSign -1 flips it; leanMax caps the shift; lean 0 = the centred axis of before
   morphSec: 2, morphStagger: 0.45, morphEase: 3, morphLanding: 0.12, dupGap: 40,
   snapDelay: 1, snapWindow: 0.5, snapSec: 2, focusScale: 1.14, focusPush: 95, focusNeighbour: 0.06, focusRampSec: 1.25, focusPushRadius: 400, focusPushOthers: 0.6,
   // R22e overshoot (src/util/overshoot.js; 0 = the old curve): the end passes the target by this share of the distance / value once, then settles.
@@ -318,13 +319,14 @@ export const WORK_RULER = { pitch: 21, extra: 5.5, dot: 3, bar: 34, barW: 2, rul
 // textOutSec); its content swaps while hidden; when the next image is in focus (the strip rests and is centred for textDelay s) it refocuses in place over textInSec (the title also
 // rises titleRise px at 1920). Counter: an odometer; it rolls with the strip at most counterMaxSteps numbers per second, settles over counterSettleSec (counterOvershoot = most it passes
 // the target, in digit heights, 0 = none) and blurs vertically by up to counterBlurPx while rolling.
-export const WORK_TEXT = { textBlurPx: 12, textOutSec: 0.25, textInSec: 0.5, textDelay: 0.25, titleRise: 36 };
-// R33 item 6: the pointer smear + distortion trail on the CENTRE image (work/pointer-fx.js). res = field cells across; strength = the lookup displacement, smear = the smear length, rgb = the
-// colour split (all as a share of the picture at full field value); brush = radius (share of the image height); startSpeed / fullSpeed = pointer speed (image heights / s) where it starts
-// and reaches full push; gain = push per frame at full speed; stiffness / damping = the spring that brings the field back to exactly 0; clickSec = how fast it eases out on a click / drag /
-// when the strip moves; warpCap = how strongly the scroll warp fades it (1 = gone at warp amount 1). on false = off (also off for touch, ?gl=0, reduced motion, weak devices).
-export const WORK_PTR = { on: 1, res: 96, strength: 0.03, smear: 0.07, rgb: 0.012, brush: 0.2, startSpeed: 0.25, fullSpeed: 2.5, gain: 0.45, stiffness: 55, damping: 10, clickSec: 0.15, warpCap: 1 };
-export const WORK_COUNTER = { counterSettleSec: 0.35, counterBlurPx: 6, counterMaxSteps: 12, counterOvershoot: 0.04 };
+export const WORK_TEXT = { textBlurPx: 8, textBlurInSec: 0.2, textBlurOutSec: 1.3, textDelay: 0.25 };
+// R33b: the pixel smear (Codrops pixel-distortion grid, work/pointer-fx.js) on every picture of the strip. on 0 = off (also off for touch, ?gl=0, reduced motion, weak devices).
+// pixelGrid = columns of the screen-space grid (rows follow the aspect); pixelBrush = brush radius (share of the image height); pixelStrength = picture units moved per grid unit;
+// pixelRelax = what is left of a cell after 1/60 s; pixelVelMax = most a cell can hold (a fast flick cannot tear the picture); pixelRgb = colour split; pixelSideMul = share of the
+// effect on the side pictures (0 = centre only); pixelSpill = px (at 1920) the displaced picture may draw past its edge; clickSec = ease-out on a press / drag / strip move;
+// warpCap = how strongly the scroll warp fades it (1 = gone at full warp).
+export const WORK_PTR = { on: 1, pixelGrid: 32, pixelBrush: 0.12, pixelStrength: 0.04, pixelRelax: 0.9, pixelVelMax: 2.5, pixelRgb: 0.01, pixelSideMul: 1, pixelSpill: 40, clickSec: 0.15, warpCap: 1 };
+export const WORK_COUNTER = { counterSettleSec: 0.35, counterBlurPx: 10, counterMaxSteps: 12, counterOvershoot: 0 };
 // R32 copy and links (Anh rewrites the text here). hideNav: the nav links are not drawn on the Work page desktop (the logo stays).
 export const WORK_UI = { copy: { side: 'Feeling vertical? Flip it', vertical: 'Feeling sideways? Flip it' }, label: 'Selected Work', reachLabel: 'Reach out', reachEmail: 'anhlsls1@gmail.com', hideNav: true };
 // Cards per project (R23b, the same rules as BAND_LIMITS on the homepage): count and total area (px2 at 1920) of the cards along one
@@ -469,7 +471,7 @@ export const TALL = {
   guard: true, guardMs: 20, guardP95: 30, guardFrames: 30,
 };
 // the tall image warp: the wide image warp with the strength scaled (read live: ?tune)
-TALL.frameWarp = { ...WORK.frameWarp, strength: WORK.frameWarp.strength * TALL.warpStrength, riseSec: 0.5, leanBuf: 0.15, leanSignDown: 1 }; // (R33: the phone / tablet pages keep the lean toward the motion in both directions) // (R24i: leanBuf = extra offscreen overscan along the strip for the axis lean, in screen lengths; the lean is capped by what it holds)
+TALL.frameWarp = { ...WORK.frameWarp, strength: 1.39 * TALL.warpStrength, curl: 0.5, camDown: 1.25, camUp: 1.25, bowDown: 0, bowUp: 0.06, reach: 1, riseSec: 0.5, leanBuf: 0.15, leanSignDown: 1 }; // (R33: the phone / tablet pages keep the lean toward the motion in both directions) // (R24i: leanBuf = extra offscreen overscan along the strip for the axis lean, in screen lengths; the lean is capped by what it holds)
 // R24e: tablet LANDSCAPE (R24b's test: layout-store.js isTabletAspect): the wide-style strip, no cards (cards: 0), the image `frameH` of the viewport height (width from the desktop ratio, at most 90 % of the width)
 export const TABLET = { cards: 0, frameH: 0.62 };
 // R24a: the menu's Contact item stays hidden until this is set (a mailto: link); Anh has no address yet.

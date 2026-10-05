@@ -31,7 +31,7 @@ export function createV2({ app, projects, reduced }) {
     <div class="w2__titles" aria-hidden="true"><span class="w2__title" data-fx=""></span></div>
     <div class="w2__infos" aria-hidden="true"><div class="w2__info"><div class="w2__tags"></div><div class="w2__year"></div><div class="w2__desc"></div></div></div>
     <div class="w2__ruler" aria-hidden="true">${Array.from({ length: 9 }, () => '<i></i>').join('')}</div>
-    <div class="w2__counter" role="status" aria-live="polite"><span class="w2__label">${esc(WORK_UI.label)}</span><span class="w2__num" aria-hidden="true">${[0, 1].map(() => '<span class="w2__slot"><span class="w2__col"><span></span><span></span></span></span>').join('')}</span><span class="w2__total" aria-hidden="true">/${String(N).padStart(2, '0')}</span><span class="w2__sr"></span></div>
+    <div class="w2__counter" role="status" aria-live="polite"><span class="w2__label">${esc(WORK_UI.label)}</span><span class="w2__num" aria-hidden="true">${[0, 1].map(() => '<span class="w2__slot"><span class="w2__col"></span></span>').join('')}</span><span class="w2__total" aria-hidden="true">/${String(N).padStart(2, '0')}</span><span class="w2__sr"></span></div>
     <svg class="w2__defs" width="0" height="0" aria-hidden="true"><filter id="w2-vblur" x="-10%" y="-30%" width="120%" height="160%"><feGaussianBlur stdDeviation="0 0"/></filter></svg>
     <button type="button" class="w2__switch w2__hit"><span class="w2__swtext"></span><span class="footer__line"></span></button>
     <div class="w2__reach"><span>${esc(WORK_UI.reachLabel)}</span><a class="w2__hit w2__email" href="mailto:${esc(WORK_UI.reachEmail)}">${esc(WORK_UI.reachEmail)}</a></div>`;
@@ -40,7 +40,7 @@ export function createV2({ app, projects, reduced }) {
   const tagsEl = root.querySelector('.w2__tags'), yearEl = root.querySelector('.w2__year'), descEl = root.querySelector('.w2__desc');
   const dots = [...root.querySelectorAll('.w2__ruler i')];
   const switchEl = root.querySelector('.w2__switch'), swText = root.querySelector('.w2__swtext');
-  const numEl = root.querySelector('.w2__num'), slots = [...root.querySelectorAll('.w2__col')].map((col) => ({ col, a: col.children[0], b: col.children[1], k: null, fr: NaN }));
+  const numEl = root.querySelector('.w2__num'), slots = [...root.querySelectorAll('.w2__col')].map((col) => { col.innerHTML = Array.from({ length: 30 }, (_, i) => `<span>${i % 10}</span>`).join(''); return { col, last: NaN }; }); // R33b: a DRUM per digit: 0-9 three times, so it turns either way without a seam
   const srEl = root.querySelector('.w2__sr'), blurNode = root.querySelector('feGaussianBlur');
   const measureSwitch = lineHover(switchEl);
   let mode = 'side';
@@ -70,8 +70,8 @@ export function createV2({ app, projects, reduced }) {
     set('is', WORK_INFO.side); set('iv', WORK_INFO.vertical);
     root.style.setProperty('--rd-dot', String(WORK_RULER.dot)); root.style.setProperty('--rd-bar', String(WORK_RULER.bar));
   };
-  // text state: shown = the project whose text is in the DOM, tp = 0 (hidden / blurred) .. 1 (in focus)
-  let shown = -1, tp = 0, lastTp = -1;
+  // text state (R33b, blur only): shown = the project whose text is in the DOM; bp = blur progress 0 (sharp) .. 1 (full blur), in 0.2 s once the strip moves, out over ~1.3 s at rest
+  let shown = -1, bp = 1, lastBp = -1, outT = 1, outFrom = 1;
   const swap = (idx) => {
     shown = idx;
     const inf = infos[idx];
@@ -79,7 +79,7 @@ export function createV2({ app, projects, reduced }) {
     tagsEl.innerHTML = inf.tags.map(esc).join('<br>'); yearEl.textContent = inf.year; descEl.textContent = inf.desc;
     tagsEl.style.display = inf.tags.length ? '' : 'none'; yearEl.style.display = inf.year ? '' : 'none'; descEl.style.display = inf.desc ? '' : 'none';
     placeTitle();
-    lastTp = -1;
+    lastBp = -1;
   };
   // the title sits at the image centre of the resting strip = the window centre (the same place in both modes); it never moves with the strip or the hover
   const placeTitle = () => {
@@ -116,34 +116,37 @@ export function createV2({ app, projects, reduced }) {
     switchEl.setAttribute('aria-label', `${swText.textContent} (switch to ${next} scroll)`);
     measureSwitch();
   };
-  const label = (k) => String((((k % N) + N) % N) + 1).padStart(2, '0');
   const ease = (x) => x * x * (3 - 2 * x);
-  let lastBlur = -1;
-  const setCounter = (dt, target, rest) => {
-    if (!Rinit) { R = target; Rinit = true; }
+  let lastBlur = -1, D = 0, DV = 0, Dinit = false, lastDigits = '';
+  // the drum position D (a float, the project number 1..N, NO wrap shortcut: 05 -> 01 turns back through 04, 03, 02) follows the nearest project's number with a speed cap and an
+  // ease-out onto it. A units drum turns on every number; the tens drum only while the tens digit changes.
+  const setCounter = (dt, target, rest, hidden) => {
+    if (!Dinit) { D = target; Dinit = true; }
     const C = WORK_COUNTER;
-    if (reduced) { R = target; V = 0; } else { // a spring onto the target (settle time counterSettleSec), speed capped, the pass beyond the target limited to counterOvershoot digits
-      const lag = C.counterMaxSteps * 0.6; // never more than ~0.6 s of rolling behind the strip (a long flick would otherwise keep rolling for seconds after it landed)
-      if (Math.abs(target - R) > lag) R = target - Math.sign(target - R) * lag;
-      const cap = rest ? Math.max(C.counterMaxSteps, Math.abs(target - R) / 0.5) : C.counterMaxSteps;
+    if (reduced) { if (hidden) { D = target; DV = 0; } } else {
+      const lag = C.counterMaxSteps * 0.6;
+      if (Math.abs(target - D) > lag) D = target - Math.sign(target - D) * lag;
+      const cap = rest ? Math.max(C.counterMaxSteps, Math.abs(target - D) / 0.5) : C.counterMaxSteps;
       const w = 6 / Math.max(C.counterSettleSec, 0.05), z = C.counterOvershoot > 0 ? 0.8 : 1, steps = Math.max(1, Math.ceil(dt / 0.004)), h = dt / steps;
       for (let q = 0; q < steps; q++) {
-        V += (w * w * (target - R) - 2 * z * w * V) * h;
-        V = Math.max(-cap, Math.min(cap, V));
-        R += V * h;
-        const over = (R - target) * Math.sign(V);
-        if (over > C.counterOvershoot) { R = target + Math.sign(V) * C.counterOvershoot; V *= 0.5; }
+        DV += (w * w * (target - D) - 2 * z * w * DV) * h;
+        DV = Math.max(-cap, Math.min(cap, DV));
+        D += DV * h;
+        const over = (D - target) * Math.sign(DV);
+        if (over > C.counterOvershoot) { D = target + Math.sign(DV) * C.counterOvershoot; DV *= 0.5; }
       }
-      if (Math.abs(target - R) < 0.0005 && Math.abs(V) < 0.01) { R = target; V = 0; }
+      if (Math.abs(target - D) < 0.0005 && Math.abs(DV) < 0.01) { D = target; DV = 0; }
     }
-    const fl = Math.floor(R), fr = R - fl;
-    const s0 = label(fl), s1 = label(fl + 1);
+    const un = ((D % 10) + 10) % 10, tf = Math.floor(D / 10) + Math.max(0, un - 9); // units drum position; tens drum: moves only during the last digit step of the units
+    const pos = [tf, un];
     slots.forEach((sl, j) => {
-      const key = `${s0[j]}${s1[j]}`;
-      if (sl.k !== key) { sl.k = key; sl.a.textContent = s0[j]; sl.b.textContent = s1[j]; }
-      if (Math.abs(fr - sl.fr) > 0.0005 || Number.isNaN(sl.fr)) { sl.fr = fr; sl.col.style.transform = `translate3d(0,${(-fr * 50).toFixed(3)}%,0)`; }
+      const v = j === 0 ? ((pos[0] % 10) + 10) % 10 : pos[1];
+      if (Math.abs(v - sl.last) > 0.0005 || Number.isNaN(sl.last)) { sl.last = v; sl.col.style.transform = `translate3d(0,${(-((v + 10) / 30) * 100).toFixed(4)}%,0)`; }
     });
-    const b = reduced ? 0 : C.counterBlurPx * Math.min(1, Math.abs(V) / Math.max(C.counterMaxSteps * 0.5, 1));
+    return Math.abs(DV);
+  };
+  const applyBlur = (px, rollSpeed) => {
+    const C = WORK_COUNTER, b = reduced ? 0 : Math.max(px * (C.counterBlurPx / Math.max(WORK_TEXT.textBlurPx, 0.01)), C.counterBlurPx * Math.min(1, rollSpeed / Math.max(C.counterMaxSteps * 0.5, 1)));
     if (Math.abs(b - lastBlur) > 0.05) { lastBlur = b; blurNode.setAttribute('stdDeviation', `0 ${b.toFixed(2)}`); numEl.style.filter = b > 0.1 ? 'url(#w2-vblur)' : 'none'; }
   };
 
@@ -152,21 +155,23 @@ export function createV2({ app, projects, reduced }) {
     const dt = Math.min(s.dt, 0.1);
     const mt = s.morph ? 0 : 1;
     mv = reduced ? mt : mv + (mt - mv) * Math.min(1, dt / 0.18);
-    // ---- text: blur out while the strip moves, swap while hidden, refocus in place when the next image is in focus
+    // ---- text (R33b): blur ONLY (opacity stays 1; reduced motion fades instead). Blur in 0.2 s once the strip moves, held while it moves, eased out over ~1.3 s at rest; the content
+    // swaps to the nearest project while fully blurred, so a change is never seen in focus
     const T_ = WORK_TEXT, want = s.focused && !s.morph && shown === s.idx;
-    const outSec = reduced ? 0.2 : T_.textOutSec, inSec = reduced ? 0.2 : T_.textInSec;
-    tp = want ? Math.min(1, tp + dt / Math.max(inSec, 0.01)) : Math.max(0, tp - dt / Math.max(outSec, 0.01));
-    if (tp <= 0.001 && shown !== s.idx) swap(s.idx);
-    if (tp !== lastTp) {
-      lastTp = tp;
-      const e = ease(tp), bl = reduced ? 0 : (1 - e) * T_.textBlurPx, rise = reduced ? 0 : (1 - e) * T_.titleRise * Math.min(1, T.W / 1920);
-      const filt = bl > 0.1 ? `blur(${bl.toFixed(2)}px)` : 'none', op = e.toFixed(3);
-      titleEl.style.opacity = op; titleEl.style.filter = filt; titleEl.style.transform = `translate3d(0,${rise.toFixed(2)}px,0)`;
-      infoEl.style.opacity = op; infoEl.style.filter = filt;
+    const inSec = reduced ? 0.2 : T_.textBlurInSec, outSec = reduced ? 0.2 : T_.textBlurOutSec;
+    if (!want) { if (outT < 1) outT = 1; bp = Math.min(1, bp + dt / Math.max(inSec, 0.01)); outFrom = bp; outT = 0; }
+    else { outT = Math.min(1, outT + dt / Math.max(outSec, 0.01)); bp = outFrom * (1 - (reduced ? outT : ease(outT))); }
+    if (bp >= 0.999 && shown !== s.idx) swap(s.idx);
+    if (bp !== lastBp) {
+      lastBp = bp;
+      const bl = reduced ? 0 : bp * T_.textBlurPx, filt = bl > 0.1 ? `blur(${bl.toFixed(2)}px)` : 'none', op = reduced ? (1 - bp).toFixed(3) : '1';
+      titleEl.style.filter = filt; infoEl.style.filter = filt; titleEl.style.opacity = op; infoEl.style.opacity = op;
     }
-    // ---- counter (odometer)
+    // ---- counter (odometer drum): the project number, no wrap
     if (s.idx !== lastIdx) { lastIdx = s.idx; srEl.textContent = `Project ${String(s.idx + 1).padStart(2, '0')} of ${N}`; }
-    setCounter(dt, s.kTarget, s.rest);
+    const rollSpeed = setCounter(dt, s.idxNum, s.rest, bp >= 0.999);
+    applyBlur(bp * T_.textBlurPx, rollSpeed);
+    numEl.style.opacity = reduced ? (1 - bp).toFixed(3) : '1';
     // ---- ruler: the dots slide with the fractional position. The bar (the dot at the centre) shrinks to a dot and dims as soon as the text goes, and lights up and grows only
     // when the project is in focus (g: 0 = all dots, 1 = the bar).
     const gt = s.focused && !s.morph ? 1 : 0, R_ = WORK_RULER;
@@ -185,5 +190,5 @@ export function createV2({ app, projects, reduced }) {
       if (Math.abs(o - rj.a) > 0.002 || Number.isNaN(rj.a)) { rj.a = o; dots[j].style.opacity = o.toFixed(3); }
     }
   };
-  return { root, switchEl, layout, frame, setMode, el: root, titles: T, infos, get roll() { return { R, V }; } };
+  return { root, switchEl, layout, frame, setMode, el: root, titles: T, infos, get roll() { return { R: D, V: DV }; } };
 }
