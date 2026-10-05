@@ -314,6 +314,12 @@ Builds on R32 (src/work/v2-ui.js, WORK_V2, WORK_UI, WORK_TITLE). Desktop Work v2
 - Tunables (?tune): smear strength / length / start speed, distortion strength / brush radius / decay, field resolution, RGB shift, spring stiffness / damping, overshoot.
 - Check: pixel-identical to R32 at rest with the pointer still, frame time 4x CPU with the pointer moving continuously (median <= 7.5 ms, state the number), the field is exactly 0 within 1.5 s after the pointer stops, screenshots of 3 strengths in tools/scratch/r33-shots/.
 
+### 7. Warp axis lean on scroll DOWN only (Anh, after using it)
+- Scroll DOWN = the strip direction that a wheel-down (positive wheel delta) and a downward keyboard / drag-equivalent produce (side mode: strip moves right to left; vertical mode: its own wheel-down direction). For that direction ONLY, the axis lean (frameWarp `uShift`, `leanSign`) flips: the axis leans AGAINST the motion instead of toward it. Scroll UP keeps today's lean (toward the motion) exactly: same values, same sign, pixel-identical to R32 for upward movement.
+- The warp itself is unchanged in BOTH directions: same bend, same amount curve (speed-curve.js), same strength / curl / cam / bow. Only the sign of the axis shift for the down direction changes. The buffer cap (lean-limit.js) must be re-checked for the flipped side: the lean toward the strong side (about 0.25 desktop) is now used when scrolling down; keep 0 folds and 0 samples outside the buffer with the grid twin (121x121, both axes, both directions, amounts -2.4..2.4), and report the effective shift for down and up at full warp.
+- Implementation hint: a separate sign per direction, e.g. `frameWarp.leanSignDown` (start -1 = against the motion) and `leanSignUp` (start +1 = as today), in ?tune, so Anh can flip either by feel; the transition between directions (reversal mid-scroll) stays continuous (largest 1-frame shift change <= 0.017 as in R24i), and rest is exactly 0.
+- Applies on desktop Work v2 (both modes). The phone / tablet lite pages keep today's behaviour unless the same flag is set there (default: unchanged).
+
 ### Report
 Write the usual docs/status.md entry: every number you chose, the checks above with results, what you could not test (Safari, real device), and what stays for Anh to tune by feel (hoverScale, textBlurPx, counterBlurPx, smear / distortion strengths).
 
