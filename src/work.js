@@ -22,6 +22,7 @@ import { workEase, blendSoft, moveForce, forceOf, EASES } from './util/ease.js';
 import { ambUnits, ambParams, ambDepthW, ambProgress, ambCardOffset, ambImageOffset, leadUnits, leadParams, leadOffset } from './work/ambient.js';
 import { buildProjectCards, placeCards, balanceDark, workMetrics, fixWorkLayout, fixWorkLayoutIdle } from './work/cards.js';
 import { slugSeed } from './work/states.js';
+import { pickTablet, isTabletAspect } from './work/layout-store.js';
 import layoutsData from './data/layouts.json';
 import { pickSize, placeStored, applyStoredDark, ruleSignature, projectHash } from './work/layout-store.js';
 
@@ -41,6 +42,8 @@ const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const tall = isTall();
 const TLm = tall ? await import('./work/tall.js') : null;
 const tallLayouts = tall ? (await import('./data/layouts-tall.json')).default : null;
+// R24b: landscape tablets (3:2, 4:3) have their own stored Work layouts (loaded only for such a window; 16:9 / 16:10 never read this file)
+const tabletLayouts = !tall && isTabletAspect(innerWidth, innerHeight) ? (await import('./data/layouts-tablet.json')).default : null;
 const projects = data.projects;
 const slugs = projects.map((p) => p.slug);
 const N = projects.length;
@@ -91,12 +94,17 @@ const iconEl = toggleEl.querySelector('.work__icon');
 
 // ---- items: the N frames first, then every project's cards (the same objects in both layouts)
 const projCards = tall ? buildProjectCards(pool, slugs, WORK.seed, TLm.tallLimits()) : buildProjectCards(pool, slugs);
-const LD = tall ? tallLayouts : layoutsData; // the stored layouts of this mode
+let LD = tall ? tallLayouts : layoutsData; // the stored layouts of this mode / this window class (the dark flags always come from layoutsData)
 const metricsNow = () => (tall ? TLm.tallMetrics(innerWidth, innerHeight) : workMetrics(innerWidth, innerHeight, capW() / 1920));
-const pickNow = () => (tall ? TLm.pickTall(LD, innerWidth, innerHeight) : pickSize(layoutsData, innerWidth, innerHeight));
+const pickNow = () => {
+  if (tall) return TLm.pickTall(LD, innerWidth, innerHeight);
+  const t = tabletLayouts && pickTablet(tabletLayouts, innerWidth, innerHeight);
+  LD = t ? tabletLayouts : layoutsData;
+  return t || pickSize(layoutsData, innerWidth, innerHeight);
+};
 // R29: the card positions and dark flags come from src/data/layouts.json (tools/layout-solve.mjs, verified by the build gate): no layout work at load. A project
 // without a stored layout (or rule numbers changed in ?tune) goes through the old fix pass, with a warning.
-const storedFlags = applyStoredDark(LD, projCards) && LD.signature === (tall ? TLm.tallSignature() : ruleSignature());
+const storedFlags = applyStoredDark(tall ? LD : layoutsData, projCards) && (tall ? LD : layoutsData).signature === (tall ? TLm.tallSignature() : ruleSignature());
 let storedOK = storedFlags && !!pickNow();
 if (storedOK && !tall && import.meta.env.DEV) { // dev: the stored layout must still describe these cards (the gate checks this for every build)
   const pk = pickSize(layoutsData, innerWidth, innerHeight), Mx = workMetrics(innerWidth, innerHeight, capW() / 1920);

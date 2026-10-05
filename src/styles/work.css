@@ -42,3 +42,6 @@ html[data-layout='tall'], html[data-layout='tall'] body { overscroll-behavior: n
 [data-layout='tall'] .work { height: 100svh; }
 [data-layout='tall'] .work__toggle { display: none; }
 [data-layout='tall'] .work__count { top: auto; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); left: calc(20px + env(safe-area-inset-left, 0px)); font-size: 0.875rem; }
+
+/* R24b: the toggle keeps a 44 px touch target on touch screens (the icon stays the same size and in the same place) */
+@media (pointer: coarse) { .work-page { --tg-box: max(calc(var(--tg-glyph) * 2.4), 44px); } }

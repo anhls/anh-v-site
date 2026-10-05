@@ -66,3 +66,17 @@ export function applyStoredDark(layouts, projects) {
   for (const list of projects) { const e = d[list[0]?.slug]; if (!e) return false; for (const c of list) { if (!(cardId(c) in e)) return false; c.dark = !!e[cardId(c)]; } }
   return true;
 }
+
+// R24b: the landscape TABLET sizes (aspect classes 3:2 and 4:3; src/data/layouts-tablet.json, tools/layout-solve-tablet.mjs, checked by tools/layout-check-tablet.mjs).
+// Windows with H / W above TABLET_ABOVE (closer to 3:2 than to 16:10) and landscape use the nearest of these; 16:9 / 16:10 windows never do (pickSize is unchanged).
+export const TABLET_SIZES = { '3:2': [[1440, 960], [1180, 820]], '4:3': [[1024, 768], [1366, 1024]] };
+export const TABLET_ABOVE = 0.646;
+export const isTabletAspect = (W, H) => H / W > TABLET_ABOVE && H < W;
+export function pickTablet(layouts, W, H) {
+  if (!isTabletAspect(W, H) || layouts?.signature !== ruleSignature()) return null;
+  const list = Object.values(TABLET_SIZES).flat().filter(([w, h]) => layouts?.work?.[sizeKey(w, h)]);
+  if (!list.length) return null;
+  const d = ([w, h]) => Math.abs(H / W - h / w) * 4 + Math.abs(Math.log(W / w));
+  const best = list.reduce((a, b) => (d(b) < d(a) ? b : a));
+  return { key: sizeKey(best[0], best[1]), exact: best[0] === W && best[1] === H, ratio: W / best[0] };
+}
