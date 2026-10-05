@@ -273,6 +273,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     used += w * h * 4 * 1.34 - texBytes[i];
     texBytes[i] = w * h * 4 * 1.34;
     setCover(i, w, h);
+    api.onUpload?.(w * h * 4 * 1.34);
     bmp.close?.();
     dirty = true;
   };

@@ -13,6 +13,7 @@ import { imgAttrs } from './util/media.js';
 import { installScrollGain } from './util/scroll-gain.js';
 import { watchDpr } from './util/dpr.js';
 import { preloadHeader, runProjectTransition, transitionOK, readBack, playBack } from './effects/project-transition.js';
+import { perfOn, pm } from './util/perf-mark.js';
 import { applyFocus } from './work/focus.js';
 import { pushTarget, stepPushSpring } from './effects/card-push.js';
 import { withOvershoot, settleBump, settleCurve } from './util/overshoot.js';
@@ -42,6 +43,8 @@ const heroRef = (p) => p.page.blocks.find((b) => b.t === 'hero').img;
 const store = { get: () => { try { return localStorage.getItem('work-mode'); } catch { return null; } }, set: (v) => { try { localStorage.setItem('work-mode', v); } catch { /* private window */ } } };
 // R28: arriving from a project page entered through the R25 transition: the same mode, that project centred, the enlarge played in reverse (below)
 const back = !reduced && params.get('gl') !== '0' ? readBack() : null;
+const perfP = perfOn ? import('./effects/perf-hud.js').then((m) => { m.mountPerf(); return m; }) : null; // R31: ?perf report (own chunk)
+if (back) pm('back:arrive');
 let vertical = back ? back.mode === 'vertical' : store.get() === 'vertical';
 
 const lenis = new Lenis({ infinite: true, gestureOrientation: 'both', lerp: 0.07, wheelMultiplier: 1 });
@@ -186,6 +189,7 @@ let glOn = false;
   gl = createCardsGL({ section: root, els: items.map((it) => it.img), cards: items, bx, by, bw, bh, onLost: fallback, bend: bendP, warp: warpP, near: (i) => items[i].active === true, layers: { isFrame: Uint8Array.from(items, (it) => (it.kind === 'frame' ? 1 : 0)), warp: warpImg, bend: bendImg } });
   if (gl) {
     glOn = true;
+    perfP?.then((m) => m.attachGl(gl));
     root.classList.add('work--gl');
     gl.resize(W, H);
     gl.setAxis(vertical ? 0 : 1);
@@ -451,7 +455,7 @@ stage.addEventListener('click', (e) => {
   const it = items.find((q) => q.el === a), i = it.idx, sc = gl.hs[i] || 1;
   e.preventDefault();
   const w = bw[i] * sc, h = bh[i] * sc;
-  runProjectTransition({ slug: it.slug, ref: it.ref, rect: { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, startSrc: it.img.currentSrc || it.img.src, fade: [countEl, toggleEl, nameEl], fromWork: { mode: vertical ? 'vertical' : 'side', projectIndex: it.proj }, onPush: (p, u) => { if (clearMode()) TC.u = u; else if (TRANSITION.pushScale > 0) TP.p = TP.p0 + (TRANSITION.pushScale - TP.p0) * p; }, onStart: () => { lenis.stop(); nameEl.style.zIndex = '9'; TP.q = it.proj; TP.p0 = fPu.x[it.proj]; TP.p = TP.p0; TP.hold = TRANSITION.pushScale > 0 || clearMode(); if (clearMode()) { TC.u = 0; prepareClear(it.proj); } } }); // (the project name stays above the growing picture and fades with the rest)
+  runProjectTransition({ slug: it.slug, ref: it.ref, rect: { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, startSrc: it.img.currentSrc || it.img.src, fade: [countEl, toggleEl, nameEl], fromWork: { mode: vertical ? 'vertical' : 'side', projectIndex: it.proj }, onPush: (p, u) => { if (clearMode()) TC.u = u; else if (TRANSITION.pushScale > 0) TP.p = TP.p0 + (TRANSITION.pushScale - TP.p0) * p; }, onStart: () => { pm('fwd:click'); lenis.stop(); nameEl.style.zIndex = '9'; TP.q = it.proj; TP.p0 = fPu.x[it.proj]; TP.p = TP.p0; TP.hold = TRANSITION.pushScale > 0 || clearMode(); if (clearMode()) { TC.u = 0; prepareClear(it.proj); } } }); // (the project name stays above the growing picture and fades with the rest)
 });
 addEventListener('wheel', () => { inertia = null; }, { capture: true, passive: true });
 addEventListener('wheel', cancelSnap, { capture: true, passive: true });
@@ -741,9 +745,11 @@ if (back) {
     const hi = new Image(); hi.src = back.src;
     const until = (fn, ms) => new Promise((res) => { const t0 = performance.now(); const f = () => (fn() || performance.now() - t0 > ms ? res() : requestAnimationFrame(f)); f(); });
     await Promise.all([Promise.race([hi.decode().catch(() => {}), until(() => false, 1200)]), until(() => !gl || gl.stats().loaded >= n, 1200)]);
+    pm('back:textures');
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     const fi = items.findIndex((it) => it.kind === 'frame' && it.proj === back.projectIndex);
     if (shrink && clearMode()) { TC.u = 0; prepareClear(back.projectIndex); TC.u = 1; } // everything starts off screen
+    pm('back:shrink-start');
     playBack({ rec: back, target: { x: px[fi] - bw[fi] / 2, y: py[fi] - bh[fi] / 2, w: bw[fi], h: bh[fi] }, fade: fadeEls, onPush: (p, u) => { if (TC.on) TC.u = u; else TP.p = p * TRANSITION.pushScale; }, done: () => { TP.q = -1; TP.p = 0; TC.on = false; TC.u = 0; gsap.set(fadeEls, { clearProps: 'opacity' }); } });
   })();
 }

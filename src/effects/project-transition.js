@@ -2,6 +2,7 @@ import { gsap } from 'gsap';
 import { TRANSITION as T } from '../timeline.js';
 import { EASES } from '../util/ease.js';
 import { imgSet } from '../util/media.js';
+import { pm } from '../util/perf-mark.js';
 
 // R25: open a project from a main image (Work page) or from the homepage frame without a visible page change.
 // A fixed overlay takes the picture's place (same crop), grows to the full screen = the project page's header at scroll 0 (a 100vw x 100vh cover
@@ -75,6 +76,7 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
   if (fade.length) tl.to(fade, { opacity: 0, duration: Math.min(T.fadeSec, 0.3), ease: 'none' }, 0);
   if (import.meta.env.DEV) { window.__pxTl = tl; if (window.__pxFreeze) tl.pause(); } // dev checks: freeze at the first frame
   const finish = () => {
+    pm('fwd:end');
     try { sessionStorage.setItem('pxt', JSON.stringify({ slug, src: headerFile(), t: Date.now(), wm: document.querySelector('a.wordmark')?.classList.contains('is-link') ? 1 : 0 })); } catch { /* private window: the page just loads */ }
     if (fromWork) { try { sessionStorage.setItem('pxb', JSON.stringify({ slug, src: headerFile(), origin: 'work', blackMax: T.blackMax, mode: fromWork.mode, projectIndex: fromWork.projectIndex, t: Date.now() })); } catch { /* plain load on the way back */ } } else { try { sessionStorage.removeItem('pxb'); } catch { /* */ } }
     if (import.meta.env.DEV && window.__pxHold) { window.__pxGo = () => { location.href = `/work/${slug}.html`; }; return; } // dev checks: hold the last overlay frame
@@ -126,7 +128,7 @@ export function clearBack() { try { sessionStorage.removeItem('pxb'); } catch { 
 export function playBack({ rec, target, onPush, fade = [], done }) {
   const root = document.getElementById('pxb');
   const L = rec.leave, W = innerWidth, H = innerHeight;
-  const finish = () => { root?.remove(); clearBack(); done?.(); };
+  const finish = () => { root?.remove(); clearBack(); pm('back:swap'); done?.(); };
   if (!root) { finish(); return null; }
   if (!root.querySelector('.px__box')) { // the header had scrolled out: nothing to match, the black fades out over 0.4 s
     const bgOnly = root.querySelector('.px__bg') || root;
@@ -144,13 +146,14 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
     const ix = lerp(A.x - A.x, BI.x - B.x, e), iy = lerp(0, BI.y - B.y, e);
     im.style.left = `${ix}px`; im.style.top = `${iy}px`; im.style.width = `${lerp(A.w, BI.w, e)}px`; im.style.height = `${lerp(A.h, BI.h, e)}px`;
   };
-  const tl = gsap.timeline({ onComplete: () => { onPush?.(0, 0); tailEnd(); } });
+  let flyMarked = false;
+  const tl = gsap.timeline({ onComplete: () => { onPush?.(0, 0); pm('back:shrink-end'); tailEnd(); } });
   tl.to(prog, {
     t: 1, duration: T.sec, ease: 'none',
     onUpdate: () => {
       const u = 1 - prog.t; // forward progress
       place(ease(u));
-      { const up = Math.min(1, (u * T.sec) / Math.max(T.pushSec, 0.01)); onPush?.(ease(up), up); }
+      { const up = Math.min(1, (u * T.sec) / Math.max(T.pushSec, 0.01)); if (up < 1 && !flyMarked) { flyMarked = true; pm('back:fly-start'); } onPush?.(ease(up), up); }
       bg.style.opacity = bgMax * sineIO(Math.min(1, (u * T.sec) / Math.max(T.fadeSec, 0.01))); // the forward black layer, time-reversed
     },
   }, 0);
