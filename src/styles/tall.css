@@ -2,7 +2,7 @@
 :root { --safe-t: env(safe-area-inset-top, 0px); --safe-r: env(safe-area-inset-right, 0px); --safe-b: env(safe-area-inset-bottom, 0px); --safe-l: env(safe-area-inset-left, 0px); }
 
 /* ---- the hero-only home */
-html[data-layout='tall'], html[data-layout='tall'] body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+html.tall-home, html.tall-home body { height: 100%; overflow: hidden; overscroll-behavior: none; }
 .thero { position: fixed; inset: 0; height: 100vh; height: 100svh; background: #000; overflow: hidden; touch-action: none; }
 .thero__video, .thero__poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; }
 .thero__poster { z-index: 0; }

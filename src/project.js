@@ -9,6 +9,7 @@ import { installScrollGain } from './util/scroll-gain.js';
 import { initNav } from './effects/nav.js';
 import { buildFooter } from './sections/footer.js';
 import { buildProjectPage } from './sections/project-page.js';
+import { isTall } from './util/layout-mode.js';
 
 // Project pages: Lenis smooth scroll (same settings as home), the shared nav + wordmark, and the blocks from data.json (projects[].page).
 // No scroll-linked GSAP here: the text fade is one CSS variable per block, videos play only while on screen.
@@ -16,6 +17,7 @@ gsap.registerPlugin(ScrollTrigger);
 ScrollTrigger.config({ ignoreMobileResize: true }); // R24a: the mobile address bar must not refresh every trigger
 const slug = document.body.dataset.project;
 const project = data.projects.find((p) => p.slug === slug);
+const tall = isTall(); // R24a: the TALL mode (phones, tablet portrait): one column, a burger menu, no R25 hand-off, no desktop scroll effects
 
 if (project?.page) {
   const lenis = new Lenis({ duration: SCROLL.duration, easing: SCROLL.easing });
@@ -29,11 +31,11 @@ if (project?.page) {
   nav.className = 'nav';
   nav.innerHTML = [['About', '/#2section'], ['Works', '/work/'], ['Contact', '/#contact']]
     .map(([n, h]) => `<a href="${h}" data-link="${n}"><span class="roll"><span>${n}</span><span>${n}</span></span></a>`).join('');
-  document.body.prepend(nav);
+  if (!tall) document.body.prepend(nav); else import('./effects/tall-menu.js').then((m) => m.mountTallMenu());
   const app = document.getElementById('app');
-  buildProjectPage(app, project.page, lenis);
+  if (tall) (await import('./sections/project-page-tall.js')).buildProjectPageTall(app, project.page, lenis); else buildProjectPage(app, project.page, lenis);
   buildFooter(app, data.footer, lenis); // same footer + back-to-top as home
-  initNav(data.hero.wordmark, lenis, { gateFrame: false, startSmall: !!window.__pxt?.wm }); // after the footer exists: the big wordmark returns when it is reached
+  initNav(data.hero.wordmark, lenis, tall ? { gateFrame: false, small: { x: 5, y: 3.4, width: 26 } } : { gateFrame: false, startSmall: !!window.__pxt?.wm }); // after the footer exists: the big wordmark returns when it is reached
   ScrollTrigger.refresh();
   // R25: the hand-off overlay (inline script in the page) goes once the header's own picture is decoded: same file, same crop, so nothing changes on screen
   const ov = document.getElementById('pxt');

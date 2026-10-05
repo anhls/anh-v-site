@@ -1,0 +1,43 @@
+/* R24a Part 4: a project page in the TALL mode (src/sections/project-page-tall.js): one column, full width, swipe rows, readable text. */
+html[data-layout='tall'], html[data-layout='tall'] body { overscroll-behavior-y: none; }
+html[data-layout='tall'] .nav { display: none; }
+.tp { background: #000; color: #fff; }
+.tp-hero { position: relative; width: 100%; height: 100vh; height: 100svh; overflow: hidden; background: #000; }
+.tp-hero .tp-media { width: 100%; height: 100%; object-fit: cover; }
+.tp-media { display: block; width: 100%; height: auto; background: #0a0a0a; }
+.tp-block { margin: 0; }
+.tp-pad { padding: 0 max(20px, env(safe-area-inset-left)) 0 max(20px, env(safe-area-inset-right)); max-width: calc(34em + 40px); margin-inline: auto; }
+.tp > * + * { margin-top: 12px; }
+.tp > .tp-pad, .tp > .tp-text { margin-top: 36px; margin-bottom: 24px; }
+/* text: 16 px body at least, lines under 34 em */
+.tp-lead { margin: 10px 0 0; font-size: clamp(1.5rem, 7vw, 2.25rem); line-height: 1.1; font-weight: 500; letter-spacing: -0.01em; white-space: pre-line; }
+.tp-label { display: block; font-size: 0.75rem; letter-spacing: 0.08em; opacity: 0.6; }
+.tp-h2 { margin: 0; font-size: clamp(1.75rem, 8vw, 2.5rem); line-height: 1.05; font-weight: 500; letter-spacing: -0.01em; }
+.tp-h4 { margin: 28px 0 0; font-size: 1rem; line-height: 1.2; font-weight: 500; }
+.tp-body { margin: 0; font-size: 1rem; line-height: 1.4; font-weight: 400; opacity: 0.78; white-space: pre-line; max-width: 34em; }
+.tp-body--light { font-weight: 300; }
+.tp-body strong { font-weight: 700; }
+.tp-cap { margin: 8px 0 0; font-size: 0.875rem; line-height: 1.3; opacity: 0.7; }
+.tp-titles { display: grid; gap: 4px; margin-bottom: 4px; }
+.tp-details { margin-top: 48px; }
+.tp-rows { margin: 16px 0 24px; display: grid; gap: 14px; }
+.tp-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 1rem; line-height: 1.25; }
+.tp-row2 span:first-child { opacity: 0.55; }
+.tp-row2 span:last-child { font-weight: 500; }
+/* swipe rows: scroll-snap x mandatory, the next item peeks */
+.tp-row { display: flex; gap: 10px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-padding-inline: 20px; padding-inline: 20px; scrollbar-width: none; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; }
+.tp-row::-webkit-scrollbar { display: none; }
+.tp-item { flex: 0 0 84%; max-width: 560px; scroll-snap-align: start; }
+.tp-row:focus-visible { outline: 2px solid #f04a0e; outline-offset: -2px; }
+/* YouTube */
+.tp-yt { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; }
+.tp-ytbtn { position: relative; display: block; width: 100%; height: 100%; padding: 0; border: 0; background: #000; cursor: pointer; touch-action: manipulation; }
+.tp-ytbtn .tp-media { height: 100%; object-fit: cover; }
+.tp-play { position: absolute; left: 50%; top: 50%; width: 68px; height: 48px; translate: -50% -50%; border-radius: 12px; background: rgba(33, 33, 33, 0.8); }
+.tp-play::before { content: ''; position: absolute; left: 50%; top: 50%; translate: -35% -50%; border-style: solid; border-width: 10px 0 10px 17px; border-color: transparent transparent transparent #fff; }
+.tp-frame { display: block; width: 100%; height: 100%; border: 0; }
+/* one simple enter fade per block */
+.tp-fade { opacity: 0; transform: translate3d(0, 14px, 0); transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+.tp-fade.is-in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .tp-fade { opacity: 1; transform: none; transition: none; } }
+.pj__footer { height: var(--pj-footer-h, 25svh); }
