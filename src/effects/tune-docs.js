@@ -213,4 +213,13 @@ export const TUNE_DOCS = {
   'WORK_LIMITS.minA': 'Least total card area per project (px2 at 1920, reload to apply); under it cards are duplicated.',
   'WORK_LIMITS.minN': 'Fewest cards a project may have (reload to apply); under it the project\'s own images are duplicated.',
 };
+// R24d / R24e: the phone / tablet Work page (project images only)
+Object.assign(TUNE_DOCS, {
+  'TALL.frame': 'Phone and tablet portrait: how wide the project image is, as a share of the screen width (the height follows from the desktop image ratio). With no cards on the page, 0.8-0.9 is the range to try.',
+  'TABLET.frameH': 'Tablet landscape: how tall the project image is, as a share of the screen height (the width follows from the desktop image ratio, at most 90 % of the screen width).',
+  'TALL.guardMs': 'Frame-time guard (phone / tablet): if the median frame time while the strip moves is over this, the warp steps down one stage (the warp buffer at 0.75, then 0.5, then the warp off). It never steps back up in a visit.',
+  'TALL.guardP95': 'Frame-time guard: the same step-down if the slowest 5 % of the frames while the strip moves are over this.',
+});
+const WARP_DOC_KEYS = ['strength', 'riseSec', 'settleSec', 'curl', 'camDown', 'camUp', 'bowDown', 'bowUp', 'reach', 'sym'];
+WARP_DOC_KEYS.forEach((k) => { const w = TUNE_DOCS[`WORK.frameWarp.${k}`]; if (w) TUNE_DOCS[`TALL.frameWarp.${k}`] = `Phone / tablet image warp: ${w.charAt(0).toLowerCase()}${w.slice(1)}`; });
 export const tuneDoc = (id) => TUNE_DOCS[id] || '';

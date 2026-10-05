@@ -15,7 +15,11 @@ let checked = 0;
 for (const [W, H] of TL.TALL_SIZES) {
   const key = LS.sizeKey(W, H), entry = L.work?.[key]?.side;
   if (!entry) { fail.push(`tall: no stored layout for ${key}`); continue; }
-  const M = TL.tallMetrics(W, H).side, pc = C.buildProjectCards(pool, slugs, T.WORK.seed, TL.tallLimits());
+  const M = TL.tallMetrics(W, H).side, maxN = TL.cardsMaxFor('tall', W, H), pc = TL.liteCards(C.buildProjectCards, pool, slugs, T.WORK.seed, maxN);
+  if (maxN <= 0) { // images only: every project has an entry with the hash of today's metrics and no card; a missing project or a stale hash fails
+    for (const slug of slugs) { const e = entry[slug]; if (!e) fail.push(`tall ${key}: project ${slug} has no entry`); else if (e.hash !== LS.projectHash([], M)) fail.push(`tall ${key} ${slug}: out of date (the frame size / the rules changed): run npm run layout:tall`); else if (Object.keys(e.cards).length) fail.push(`tall ${key} ${slug}: stored cards but the card count is 0`); }
+    checked++; continue;
+  }
   if (!LS.applyStoredDark(L, pc)) { fail.push(`tall ${key}: the dark flags do not cover every card`); continue; }
   const flat = pc.flat(), placed = []; let ok = true;
   for (const list of pc) {
@@ -42,4 +46,4 @@ for (const [W, H] of TL.TALL_SIZES) {
   if (d.undarked) fail.push(`tall ${key}: ${d.undarked} card(s) would still have to be undarked`);
 }
 if (fail.length) { console.error(`layout:check (tall): FAILED\n  ${fail.join('\n  ')}`); process.exit(1); }
-console.log(`layout:check (tall): ${checked} sizes OK (rest state, ${T.TALL.cardsMax} cards per project at most)`);
+console.log(`layout:check (tall): ${checked} sizes OK (rest state, ${T.TALL.cardsMax} / ${T.TALL.cardsMaxTablet} cards per project on a phone / tablet portrait)`);

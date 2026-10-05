@@ -69,6 +69,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
   const BEND = bendOpt || BEND_DEF;
   const WARP = warpOpt || WARP_DEF;
   let axis = 0;
+  let warpScale = 1; // R24d: the warp pass's offscreen buffer resolution (the frame-time guard steps it down while the warp is on; the flat draw is never affected)
   if (param === '0' || (param !== '1' && (reduced || weakDevice(BEND.weakCores, BEND.weakMemoryGb)))) return null;
   const canvas = document.createElement('canvas');
   canvas.className = 'sw__gl';
@@ -125,7 +126,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
   const makeFb = () => {
     const [mx, my] = margins();
     if (fb) { gl.deleteFramebuffer(fb.ms); gl.deleteFramebuffer(fb.res); gl.deleteRenderbuffer(fb.rb); gl.deleteTexture(fb.tex); }
-    const dprNow = canvas.width / W;
+    const dprNow = (canvas.width / W) * warpScale;
     const w = Math.round((W + 2 * mx) * dprNow);
     const h = Math.round((H + 2 * my) * dprNow);
     // multisampling costs memory (samples x 4 bytes per pixel): 4 samples up to ~6 M pixels, 2 up to ~14 M, none beyond
@@ -148,7 +149,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     gl.bindFramebuffer(gl.FRAMEBUFFER, res);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    fb = { ms, res, rb, tex, w, h, mx, my, key: `${canvas.width}x${canvas.height}:${mx}:${my}` };
+    fb = { ms, res, rb, tex, w, h, mx, my, key: `${canvas.width}x${canvas.height}:${mx}:${my}:${warpScale}` };
   };
 
   // One strip mesh shared by every card: COLS + 1 columns x 2 rows (the bend only depends on x, so two rows are enough).
@@ -341,7 +342,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
 
   const ensureFb = () => {
     const [mx, my] = margins();
-    if (!fb || fb.key !== `${canvas.width}x${canvas.height}:${mx}:${my}`) makeFb();
+    if (!fb || fb.key !== `${canvas.width}x${canvas.height}:${mx}:${my}:${warpScale}`) makeFb();
   };
 
   // Resolves the multisampled buffer into the texture and draws it to the screen through the warp shader.
@@ -507,6 +508,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     draw,
     show: (on) => { canvas.style.visibility = on ? 'visible' : 'hidden'; if (on) dirty = true; },
     markDirty: () => { dirty = true; },
+    setWarpScale: (k) => { warpScale = Math.max(0.25, Math.min(1, k)); dirty = true; },
     setAxis: (a) => { axis = a ? 1 : 0; dirty = true; },
     reweigh: () => { computeWeights(); dirty = true; }, // after a depth-bell change in the tuning panel
     bend: () => bend,

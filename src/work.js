@@ -4,7 +4,7 @@ import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import data from './data/data.json';
 import pool from './data/work-pool.json';
-import { WORK, BEND, WARP, CARDS, CARD_HOVER, DEPTH, SCROLL, INDEX, TRANSITION, TALL } from './timeline.js';
+import { WORK, BEND, WARP, CARDS, CARD_HOVER, DEPTH, SCROLL, INDEX, TRANSITION, TALL, TABLET } from './timeline.js';
 import { isTall } from './util/layout-mode.js';
 import { frameZ } from './data/depth.js';
 import { capW, dist } from './scale.js';
@@ -22,7 +22,8 @@ import { workEase, blendSoft, moveForce, forceOf, EASES } from './util/ease.js';
 import { ambUnits, ambParams, ambDepthW, ambProgress, ambCardOffset, ambImageOffset, leadUnits, leadParams, leadOffset } from './work/ambient.js';
 import { buildProjectCards, placeCards, balanceDark, workMetrics, fixWorkLayout, fixWorkLayoutIdle } from './work/cards.js';
 import { slugSeed } from './work/states.js';
-import { pickTablet, isTabletAspect } from './work/layout-store.js';
+import { isTabletAspect } from './work/layout-store.js';
+import { createGuard } from './work/tall-guard.js';
 import layoutsData from './data/layouts.json';
 import { pickSize, placeStored, applyStoredDark, ruleSignature, projectHash } from './work/layout-store.js';
 
@@ -38,12 +39,16 @@ history.scrollRestoration = 'manual';
 window.scrollTo(0, 0);
 const params = new URLSearchParams(location.search);
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-// R24a: the TALL mode (phones, tablet portrait): side scroll only, a square image, fewer cards, no toggle, burger menu; everything tall-only is behind `tall`
+// R24a / R24d / R24e: the LITE modes: TALL (phones, tablet portrait) and TABLET LANDSCAPE (R24b's test): the project images only (cards are a flag, 0 now), side scroll
+// only, no toggle, the image keeps the desktop ratio, the image warp on (frame-time guard), burger menu in tall; everything lite-only is behind `lite` / `tall`.
 const tall = isTall();
-const TLm = tall ? await import('./work/tall.js') : null;
-const tallLayouts = tall ? (await import('./data/layouts-tall.json')).default : null;
-// R24b: landscape tablets (3:2, 4:3) have their own stored Work layouts (loaded only for such a window; 16:9 / 16:10 never read this file)
-const tabletLayouts = !tall && isTabletAspect(innerWidth, innerHeight) ? (await import('./data/layouts-tablet.json')).default : null;
+const tabletLand = !tall && isTabletAspect(innerWidth, innerHeight);
+const lite = tall || tabletLand, liteKind = tall ? 'tall' : 'tablet';
+const TLm = lite ? await import('./work/tall.js') : null;
+const cardsMaxNow = lite ? TLm.cardsMaxFor(liteKind, innerWidth, innerHeight) : -1; // cards per project in this mode (-1 = the desktop rule)
+const noCards = lite && cardsMaxNow <= 0;
+// stored layouts of the lite modes: only needed when cards are on (without cards the files are only checked by the build gate)
+const liteLayouts = lite && !noCards ? (tall ? (await import('./data/layouts-tall.json')).default : (await import('./data/layouts-tablet.json')).default) : null;
 const projects = data.projects;
 const slugs = projects.map((p) => p.slug);
 const N = projects.length;
@@ -53,7 +58,7 @@ const store = { get: () => { try { return localStorage.getItem('work-mode'); } c
 const back = !reduced && params.get('gl') !== '0' ? readBack() : null;
 const perfP = perfOn ? import('./effects/perf-hud.js').then((m) => { m.mountPerf(); return m; }) : null; // R31: ?perf report (own chunk)
 if (back) pm('back:arrive');
-let vertical = !tall && (back ? back.mode === 'vertical' : store.get() === 'vertical');
+let vertical = !lite && (back ? back.mode === 'vertical' : store.get() === 'vertical');
 
 const lenis = new Lenis({ infinite: true, gestureOrientation: 'both', lerp: 0.07, wheelMultiplier: 1 });
 // R22j: Lenis runs on a clock that never advances more than 100 ms per frame: after a hidden tab or a long freeze its glide carries on from where
@@ -65,7 +70,7 @@ installScrollGain(lenis);
 watchDpr();
 
 // ---- DOM
-if (!tall) {
+if (!tall) { // (tablet landscape keeps the nav links; the burger menu is tall only)
   const nav = document.createElement('nav');
   nav.className = 'nav';
   nav.innerHTML = [['About', '/#2section'], ['Works', '/work/'], ['Contact', '/#contact']]
@@ -80,33 +85,28 @@ app.innerHTML = `
   </div>
   <div class="work__name" aria-hidden="true">${projects.map((p) => `<span class="work__title">${[...p.title].map((c) => `<span class="work__char">${c === ' ' ? '&nbsp;' : c}</span>`).join('')}</span>`).join('')}</div>
   <div class="work__count" aria-live="polite">01 / 0${N}</div>
-  <button type="button" class="work__toggle" aria-label="Switch to vertical scroll">
+  ${lite ? '' : `<button type="button" class="work__toggle" aria-label="Switch to vertical scroll">
     <svg viewBox="0 0 24 24" aria-hidden="true"><g class="work__icon"><rect x="3.5" y="5" width="3" height="14"/><rect x="10.5" y="5" width="3" height="14"/><rect x="17.5" y="5" width="3" height="14"/></g></svg>
-  </button>`;
+  </button>`}`; // (R24e: no toggle on a tablet or a phone: the strip is horizontal, the orientation picks the layout)
 const root = app.querySelector('.work');
 const stage = root.querySelector('.work__stage');
 // R23e: the counter and the toggle are children of the page, not of .work: their own top layer above the canvas and every click anchor
 const countEl = app.querySelector('.work__count');
-const toggleEl = app.querySelector('.work__toggle');
+const toggleEl = app.querySelector('.work__toggle') || document.createElement('button'); // (a detached stub in the lite modes: nothing is listening)
 const nameEl = app.querySelector('.work__name');
 const titleEls = [...nameEl.querySelectorAll('.work__title')].map((el) => ({ el, chars: [...el.querySelectorAll('.work__char')], f: -1 }));
-const iconEl = toggleEl.querySelector('.work__icon');
+const iconEl = toggleEl.querySelector('.work__icon') || document.createElement('span');
 
 // ---- items: the N frames first, then every project's cards (the same objects in both layouts)
-const projCards = tall ? buildProjectCards(pool, slugs, WORK.seed, TLm.tallLimits()) : buildProjectCards(pool, slugs);
-let LD = tall ? tallLayouts : layoutsData; // the stored layouts of this mode / this window class (the dark flags always come from layoutsData)
-const metricsNow = () => (tall ? TLm.tallMetrics(innerWidth, innerHeight) : workMetrics(innerWidth, innerHeight, capW() / 1920));
-const pickNow = () => {
-  if (tall) return TLm.pickTall(LD, innerWidth, innerHeight);
-  const t = tabletLayouts && pickTablet(tabletLayouts, innerWidth, innerHeight);
-  LD = t ? tabletLayouts : layoutsData;
-  return t || pickSize(layoutsData, innerWidth, innerHeight);
-};
+const projCards = lite ? TLm.liteCards(buildProjectCards, pool, slugs, WORK.seed, cardsMaxNow) : buildProjectCards(pool, slugs);
+const LD = liteLayouts || layoutsData; // the stored layouts of this mode (the dark flags of the lite modes come from them too)
+const metricsNow = () => (lite ? TLm.liteMetrics(liteKind, innerWidth, innerHeight) : workMetrics(innerWidth, innerHeight, capW() / 1920));
+const pickNow = () => (lite ? TLm.pickTall(LD, innerWidth, innerHeight) : pickSize(layoutsData, innerWidth, innerHeight));
 // R29: the card positions and dark flags come from src/data/layouts.json (tools/layout-solve.mjs, verified by the build gate): no layout work at load. A project
-// without a stored layout (or rule numbers changed in ?tune) goes through the old fix pass, with a warning.
-const storedFlags = applyStoredDark(tall ? LD : layoutsData, projCards) && (tall ? LD : layoutsData).signature === (tall ? TLm.tallSignature() : ruleSignature());
-let storedOK = storedFlags && !!pickNow();
-if (storedOK && !tall && import.meta.env.DEV) { // dev: the stored layout must still describe these cards (the gate checks this for every build)
+// without a stored layout (or rule numbers changed in ?tune) goes through the old fix pass, with a warning. (No cards: nothing to place or check.)
+const storedFlags = noCards || (applyStoredDark(LD, projCards) && LD.signature === (lite ? TLm.tallSignature() : ruleSignature()));
+let storedOK = noCards || (storedFlags && !!pickNow());
+if (storedOK && !lite && import.meta.env.DEV) { // dev: the stored layout must still describe these cards (the gate checks this for every build)
   const pk = pickSize(layoutsData, innerWidth, innerHeight), Mx = workMetrics(innerWidth, innerHeight, capW() / 1920);
   if (pk.exact) for (const mode of ['side', 'vertical']) projCards.forEach((l) => { if (layoutsData.work[pk.key][mode][l[0].slug]?.hash !== projectHash(l, Mx[mode])) storedOK = false; });
 }
@@ -127,7 +127,7 @@ items.forEach((it, i) => {
   if (it.kind === 'frame') a.setAttribute('aria-label', projects[it.proj].title);
   else { a.tabIndex = -1; a.setAttribute('aria-hidden', 'true'); } // R22j: a card is a decoration with the same target as its project's image: not a tab stop, not announced (34 unnamed links otherwise)
   // the picture is only requested once the item is near the screen (activate()): the canvas then uploads exactly that file
-  a.innerHTML = `<img ${imgAttrs(it.kind === 'frame' ? it.ref : it.src, it.kind === 'frame' ? `${WORK.frameW}vw` : '300px', true)} alt="" decoding="async" draggable="false">`;
+  a.innerHTML = `<img ${imgAttrs(it.kind === 'frame' ? it.ref : it.src, it.kind === 'frame' ? `${lite ? Math.round((tall ? TALL.frame : 0.75) * 100) : WORK.frameW}vw` : '300px', true)} alt="" decoding="async" draggable="false">`;
   stage.append(a);
   it.el = a;
   it.img = a.firstChild;
@@ -150,17 +150,18 @@ let gl = null; // the card canvas (created below)
 let fine = false;
 let laidOnce = false;
 const layouts = () => {
-  W = innerWidth; H = innerHeight; scale = tall ? TLm.scaleTall(W) : capW() / 1920;
-  const fw = tall ? TLm.tallFrame(W) : (WORK.frameW * W) / 100, fh = tall ? fw : (WORK.frameH * H) / 100;
+  W = innerWidth; H = innerHeight; scale = lite ? TLm.liteScale(liteKind, W, H) : capW() / 1920;
+  const lf = lite ? TLm.liteFrame(liteKind, W, H) : null; // the lite frame keeps the desktop image ratio
+  const fw = lite ? lf.w : (WORK.frameW * W) / 100, fh = lite ? lf.h : (WORK.frameH * H) / 100;
   if (laidOnce && !storedOK) fixWorkLayout(projCards, metricsNow(), { structural: false }); // fallback only, a resize: nudges only (the card set stays)
   laidOnce = true;
   const placedAll = {};
-  for (const mode of tall ? ['side'] : ['side', 'vertical']) {
+  for (const mode of lite ? ['side'] : ['side', 'vertical']) {
     const v = mode === 'vertical';
-    const M = tall ? TLm.tallMetrics(W, H).side : { vertical: v, alongF: v ? fh : fw, crossF: v ? fw : fh, scale, gap: v ? (WORK.gapVert * H) / 100 : (WORK.gapSide * W) / 100, gapPx: (WORK.dupGap * (v ? H : W)) / 100, viewAlong: v ? H : W, viewCross: v ? W : H };
+    const M = lite ? TLm.liteMetrics(liteKind, W, H).side : { vertical: v, alongF: v ? fh : fw, crossF: v ? fw : fh, scale, gap: v ? (WORK.gapVert * H) / 100 : (WORK.gapSide * W) / 100, gapPx: (WORK.dupGap * (v ? H : W)) / 100, viewAlong: v ? H : W, viewCross: v ? W : H };
     const pitch = M.alongF + M.gap;
     const pk = storedOK ? pickNow() : null;
-    let placed = pk ? placeStored(LD, projCards, M, mode, pk) : null;
+    let placed = noCards ? projCards.map(() => []) : pk ? placeStored(LD, projCards, M, mode, pk) : null;
     if (!placed) { storedOK = false; placed = placeCards(projCards, M); } // (a size without a stored layout: the card set is the same, the positions come from the generator)
     placedAll[mode] = placed;
     const pos = items.map((it) => {
@@ -170,7 +171,7 @@ const layouts = () => {
     });
     LAY[mode] = { M, pitch, period: N * pitch, pos };
   }
-  if (tall) LAY.vertical = LAY.side;
+  if (lite) LAY.vertical = LAY.side;
   if (!storedOK) balanceDark(projCards, [placedAll.side, placedAll.vertical].filter(Boolean)); // dark runs <= 2 along the strip in both modes (the stored flags already hold it)
   items.forEach((it, i) => {
     if (it.kind === 'card') { it.dark = it.card.dark; it.el.dataset.dark = it.dark ? '1' : '0'; if (gl) { gl.darkCard[i] = it.dark; gl.hd[i] = it.dark && fine ? CARD_HOVER.darkRest : 0; } }
@@ -185,8 +186,11 @@ const cur = () => LAY[vertical ? 'vertical' : 'side'];
 
 // ---- WebGL (the homepage card renderer, with the Work page's own warp numbers)
 // R22h: two warps with their own settings: WORK.cardWarp (the cards) and WORK.frameWarp (the main images, own shader). Both are read live.
+// R24d: the frame-time guard of the lite modes (work/tall-guard.js): steps the warp pass down when the strip does not hold the frame budget
+const guard = createGuard({ setScale: (k) => gl?.setWarpScale?.(k), enabled: lite && TALL.guard });
+if (perfOn) window.__tallGuard = guard.state; // read by the ?perf report
 const bendP = { ...BEND };
-if (tall) { bendP.dprCap = Math.min(bendP.dprCap, TALL.dprCap); bendP.dprCapLarge = Math.min(bendP.dprCapLarge, TALL.dprCap); } // R24a: a lighter backing store on a phone
+if (lite) { bendP.dprCap = Math.min(bendP.dprCap, TALL.dprCap); bendP.dprCapLarge = Math.min(bendP.dprCapLarge, TALL.dprCap); } // R24a: a lighter backing store on a phone / tablet
 const warpP = { ...WARP };
 const bendImg = { riseSpeed: 1, settleSpeed: 1 };
 const warpImg = { ...WARP };
@@ -201,10 +205,15 @@ const syncWarp = () => {
   copyWarp(warpImg, WORK.frameWarp);
   bendImg.riseSpeed = 7 / Math.max(WORK.frameWarp.riseSec, 0.02);
   bendImg.settleSpeed = 7 / Math.max(WORK.frameWarp.settleSec, 0.02);
-  if (tall && !TALL.warp) { warpP.strengthUp = warpP.strengthDown = 0; warpImg.strengthUp = warpImg.strengthDown = 0; } // R24a: no warp pass (flag TALL.warp)
+  if (lite) { // R24d: no cards, so no card warp; the image warp uses TALL.frameWarp (read live), off when TALL.warp is false or the frame-time guard has stepped to its last stage
+    warpP.strengthUp = warpP.strengthDown = 0;
+    const fw = TALL.frameWarp, on = TALL.warp && guard.state.warp;
+    copyWarp(warpImg, { ...fw, strength: on ? fw.strength : 0 });
+    bendImg.riseSpeed = 7 / Math.max(fw.riseSec, 0.02); bendImg.settleSpeed = 7 / Math.max(fw.settleSec, 0.02);
+  }
 };
 syncWarp();
-fine = matchMedia('(pointer: fine)').matches && !reduced && !tall;
+fine = matchMedia('(pointer: fine)').matches && !reduced && !tall; // (tablet landscape keeps its hover rules: touch has no fine pointer anyway)
 let glOn = false;
 {
   const fallback = () => { glOn = false; root.classList.remove('work--gl'); gl?.destroy?.(); gl = null; };
@@ -498,6 +507,7 @@ const updateNames = () => {
 };
 
 const tick = (_time, deltaMs) => {
+  if (import.meta.env.DEV && window.__guardBusy) { const t0 = performance.now(); while (performance.now() - t0 < window.__guardBusy); } // dev only: a test hook that makes every frame slow (the frame-time guard test)
   const dt = Math.min(deltaMs, 50) / 1000;
   const now = performance.now();
   advance();
@@ -530,7 +540,9 @@ const tick = (_time, deltaMs) => {
     if (snap) {
       const t = Math.min(1, (now - snap.t0) / 1000 / Math.max(WORK.snapSec, 0.05));
       const target = snap.from + (snap.to - snap.from) * withOvershoot(workEase(WORK), WORK.snapOvershoot * qForce(snap.force), WORK.overshootSettle)(t);
+      const sPrev = S;
       off += target - S; S = target;
+      if (lite) vel += (S - sPrev) / Math.max(dt, 1e-3); // R24d: the soft snap drives the warp too (tall / tablet only)
       if (t >= 1) snap = null;
     } else if (now - lastWheel > WORK.snapDelay * 1000 && (Math.abs(vel) < 250 || now - lastWheel > WORK.snapDelay * 1000 + 600)) {
       // R22h: the snap must always take over. A speed above 250 px/s can no longer hold it off for more than 0.6 s after the quiet time, and a stale
@@ -672,6 +684,7 @@ const tick = (_time, deltaMs) => {
   const idx = ((kCount % N) + N) % N;
   if (idx !== lastIdx) { lastIdx = idx; clearTimeout(preT); preT = setTimeout(() => preloadHeader(projects[idx].slug, heroRef(projects[idx])), 700); /* R25: the centred project's header image is fetched once it rests */ countEl.textContent = `${String(idx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`; }
 
+  if (lite && glOn) guard.frame(deltaMs, Math.abs(vel) > 5 || !!drag || !!inertia || !!snap);
   if (glOn) {
     if (morph) { const b = gl.bend(); b.x = 0; b.v = 0; const c = gl.bendImg(); c.x = 0; c.v = 0; } // both warps are held flat while the layouts morph
     const moving = Math.abs(vel) > 0.5 || hoverMoving || pushMoving || settleMoving || !!morph || focusMoving || !!snap || Math.abs(mouse.tx - mouse.x) > 0.0005 || Math.abs(mouse.ty - mouse.y) > 0.0005;
@@ -795,7 +808,7 @@ if (back) {
 }
 document.title = 'Work | Anh V';
 if (import.meta.env.DEV) {
-  window.__SCROLL = SCROLL; window.__WORK = WORK; window.__TRANSITION = TRANSITION; window.__TALL = TALL;
+  window.__SCROLL = SCROLL; window.__WORK = WORK; window.__TRANSITION = TRANSITION; window.__TALL = TALL; window.__guard = guard;
   window.__work = { setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, q: Q, PS,  get snap() { return snap; }, AMB, LEAD, get drag() { return drag; }, get inertia() { return inertia; }, fP, fSc, fPu, get kCount() { return kCount; }, bx, by, bw, bh, vis, hp };
   if (params.has('tune')) import('./work/tune.js').then((m) => m.mountWorkTune({ relayout }));
   if (params.has('overlap')) import('./effects/overlap-debug.js').then((m) => m.mountOverlapDebug('.work__card', () => `focus ${Math.max(...fSc.x).toFixed(2)}${AMB.on ? ', ambient drift on' : ''}${LEAD.moving ? ', lead moving' : ''}${morph ? ', toggle morph' : ''}${TC.on ? ', transition' : ''}${drag ? ', drag' : ''}`));

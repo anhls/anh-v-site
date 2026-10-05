@@ -84,6 +84,7 @@ const buildReport = () => ({
   baselinePlainScroll5s: saved.base || 'not taken yet (needs 5 s on the Work page with no input right after load)',
   lastForward: saved.fwd[saved.fwd.length - 1] || null, lastBack: saved.back[saved.back.length - 1] || null,
   forwardRuns: saved.fwd, backRuns: saved.back,
+  tallGuard: window.__tallGuard ? { ...window.__tallGuard, note: 'R24d frame-time guard of the phone / tablet Work page: step 0 = full warp, 1 = warp pass x0.75, 2 = x0.5, 3 = warp off' } : 'not a phone / tablet Work page',
 });
 
 export function attachGl(api) {

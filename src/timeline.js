@@ -414,7 +414,18 @@ export const FRAME_WARP = {
 // cardsMax: cards per project on the Work page; dprCap: backing-store DPR cap; warp / lead / ambient: the Work strip's warp, speed lead and ambient
 // drift (off = lighter, see the status note for their cost); transition: the R25 / R28 / R30 project transitions (false = a plain page load);
 // spawnScale: the tap spawner's image size relative to desktop (phone width is small).
-export const TALL = { cardsMax: 5, dprCap: 2, warp: false, lead: false, ambient: false, transition: false, spawnScale: 0.5, baseW: 390, tabletCap: 1.6, frame: 0.72, frameRef: 633 };
-// (frame: the square main image's side as a share of the width, capped at baseW x tabletCap; frameRef: the geometric mean of the desktop frame at 1920x1080, px: the cards scale = frame side / frameRef)
+export const TALL = {
+  cardsMax: 0, cardsMaxTablet: 0, // R24d: cards per project on a phone / on a tablet in portrait (0 = the project images only; Anh may want cards back on tablets later)
+  frame: 0.8, // R24e: the project image's WIDTH as a share of the viewport width (phone and tablet portrait, one value); the height follows from the desktop image ratio. The number to try: 0.8-0.9
+  dprCap: 2, lead: false, ambient: false, transition: false, spawnScale: 0.5, frameRef: 633,
+  // R24d: the image warp (WORK.frameWarp, the R22h main-image warp with its own spring) on the strip, driven by the strip's real speed; flat at rest. Strength x warpStrength for the narrow screen.
+  warp: true, warpStrength: 0.8,
+  // R24d: the frame-time guard: while the strip moves, a median over guardMs or a p95 over guardP95 steps the warp down: (a) the warp buffer x0.75, (b) x0.5, (c) warp off. Never back up in a visit.
+  guard: true, guardMs: 20, guardP95: 30, guardFrames: 30,
+};
+// the tall image warp: the wide image warp with the strength scaled (read live: ?tune)
+TALL.frameWarp = { ...WORK.frameWarp, strength: WORK.frameWarp.strength * TALL.warpStrength };
+// R24e: tablet LANDSCAPE (R24b's test: layout-store.js isTabletAspect): the wide-style strip, no cards (cards: 0), the image `frameH` of the viewport height (width from the desktop ratio, at most 90 % of the width)
+export const TABLET = { cards: 0, frameH: 0.62 };
 // R24a: the menu's Contact item stays hidden until this is set (a mailto: link); Anh has no address yet.
 export const CONTACT = { email: '' };

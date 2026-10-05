@@ -15,12 +15,22 @@ const OUT = arg('--out', 'src/data/layouts-tall.json');
 const pool = JSON.parse(fs.readFileSync('src/data/work-pool.json', 'utf8')); const data = JSON.parse(fs.readFileSync('src/data/data.json', 'utf8')); const slugs = data.projects.map((p) => p.slug);
 const hashOf = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619); return h >>> 0; };
 const BR = T.BAND_RULES, mode = 'side', t0 = Date.now(), log = (...a) => console.log(...a);
-const fresh = () => C.buildProjectCards(pool, slugs, T.WORK.seed, TL.tallLimits());
+// R24d: the card count is a flag per class (phone TALL.cardsMax, tablet portrait TALL.cardsMaxTablet, 0 = the project images only); the solver works on one count at a time
+const maxes = [...new Set(sizeList.map(([w, h]) => TL.cardsMaxFor('tall', w, h)))];
+if (maxes.length > 1) { console.error(`phone and tablet portrait sizes have different card counts (${maxes.join(' / ')}): solve them with separate --sizes runs`); process.exit(1); }
+const maxN = maxes[0];
+const fresh = () => TL.liteCards(C.buildProjectCards, pool, slugs, T.WORK.seed, maxN);
 const sig = TL.tallSignature();
 const pcAll = fresh();
 const result = { v: 1, signature: sig, rules: { pairOverlapMax: BR.pairOverlapMax, clusterLink: BR.clusterLink, maxDarkPerCluster: BR.maxDarkPerCluster, minLightShare: BR.minLightShare, states: TL.TALL_STATES, cardsMax: T.TALL.cardsMax }, dark: {}, work: {} };
 const keepOld = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : null;
 if (keepOld && keepOld.signature === sig) for (const [k, v] of Object.entries(keepOld.work || {})) if (!sizeList.some(([w, h]) => LS.sizeKey(w, h) === k)) result.work[k] = v;
+const sortKeys0 = (o) => (Array.isArray(o) || o === null || typeof o !== 'object' ? o : Object.fromEntries(Object.keys(o).sort().map((k) => [k, sortKeys0(o[k])])));
+if (maxN <= 0) { // no cards: nothing to place or check; every size keeps one entry per project (the hash of the metrics) so the gate still catches a stale file
+  for (const [W, H] of sizeList) { const M = TL.tallMetrics(W, H).side, entry = {}; slugs.forEach((slug) => { entry[slug] = { hash: LS.projectHash([], M), cards: {} }; }); result.work[LS.sizeKey(W, H)] = { side: entry }; log(`${LS.sizeKey(W, H)}: no cards (frame ${Math.round(M.alongF)} x ${Math.round(M.crossF)} px)`); }
+  slugs.forEach((slug) => { result.dark[slug] = {}; });
+  fs.writeFileSync(OUT, JSON.stringify(sortKeys0(result)) + '\n'); log(`wrote ${OUT} (${(fs.statSync(OUT).size / 1024).toFixed(1)} kB): images only`); process.exit(0);
+}
 const solved = {}, placedAll = [];
 for (const [W, H] of sizeList) {
   const key = LS.sizeKey(W, H), M = TL.tallMetrics(W, H)[mode];

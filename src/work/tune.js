@@ -1,4 +1,4 @@
-import { WORK, WORK_LIMITS, CARD_HOVER, DEPTH, SCROLL, BAND_RULES, TRANSITION } from '../timeline.js';
+import { WORK, WORK_LIMITS, CARD_HOVER, DEPTH, SCROLL, BAND_RULES, TRANSITION, TALL, TABLET } from '../timeline.js';
 import { EASES } from '../util/ease.js';
 import { tuneStore, makeCollapse, tuneGroups } from '../effects/tune-store.js';
 import { tuneDoc } from '../effects/tune-docs.js';
@@ -39,7 +39,7 @@ const RELOAD = [
 ];
 export function mountWorkTune({ relayout }) {
   const store = tuneStore('work', ['WORK_LIMITS', 'DEPTH', 'HOVER', 'WORK.seed', 'BAND_RULES']);
-  const defaults = { WORK: { ...WORK }, TRANSITION: { ...TRANSITION }, SCROLL: { ...SCROLL }, cardWarp: { ...WORK.cardWarp }, frameWarp: { ...WORK.frameWarp } };
+  const defaults = { WORK: { ...WORK }, TRANSITION: { ...TRANSITION }, SCROLL: { ...SCROLL }, cardWarp: { ...WORK.cardWarp }, frameWarp: { ...WORK.frameWarp }, TALL: { ...TALL }, tallWarp: { ...TALL.frameWarp }, TABLET: { ...TABLET } };
   const box = document.createElement('div');
   box.style.cssText = 'position:fixed;top:12px;right:12px;z-index:99999;width:290px;max-height:calc(100vh - 24px);overflow:auto;padding:12px 14px;background:rgba(20,20,20,.92);color:#fff;font:12px/1.35 system-ui,sans-serif;border-radius:8px';
   const head = document.createElement('div');
@@ -101,6 +101,18 @@ export function mountWorkTune({ relayout }) {
     groups.header(hd);
     WARP_SLIDERS.forEach((d) => { defs[add(`WORK.${block}`, WORK[block], d)] = [WORK[block], d[0]]; });
   }
+  // R24d / R24e: the phone, tablet-portrait and tablet-landscape Work page (the lite modes): image size, the image warp, the frame-time guard. Only live in those modes (?mode=tall, a touch screen)
+  {
+    const hl = document.createElement('div');
+    hl.style.cssText = 'margin-top:10px;font-weight:600';
+    hl.textContent = 'Phone / tablet Work page';
+    groups.header(hl);
+    defs[add('TALL', TALL, ['frame', 'Phone + tablet portrait: image width (share of the screen width)', 0.4, 1, 0.01], relayout)] = [TALL, 'frame'];
+    defs[add('TABLET', TABLET, ['frameH', 'Tablet landscape: image height (share of the screen height)', 0.3, 0.9, 0.01], relayout)] = [TABLET, 'frameH'];
+    defs[add('TALL', TALL, ['guardMs', 'Frame-time guard: median over (ms)', 8, 60, 1])] = [TALL, 'guardMs'];
+    defs[add('TALL', TALL, ['guardP95', 'Frame-time guard: p95 over (ms)', 10, 100, 1])] = [TALL, 'guardP95'];
+    WARP_SLIDERS.forEach((d) => { defs[add('TALL.frameWarp', TALL.frameWarp, d)] = [TALL.frameWarp, d[0]]; });
+  }
   const h = document.createElement('div');
   h.style.cssText = 'margin-top:10px;font-weight:600';
   h.textContent = 'Which cards (Apply reloads)';
@@ -119,7 +131,7 @@ export function mountWorkTune({ relayout }) {
   btn('Apply (reload)', () => { const u = new URL(location.href); u.searchParams.set('dark', CARD_HOVER.darkShare); u.searchParams.set('front', DEPTH.frontShare); u.searchParams.set('wlimits', JSON.stringify(WORK_LIMITS)); u.searchParams.set('pairov', BAND_RULES.pairOverlapMax); location.href = u.href; });
   const copy = btn('Copy values', async () => { await navigator.clipboard.writeText(JSON.stringify({ WORK, WORK_LIMITS, SCROLL: { gainCap: SCROLL.gainCap, gainFrom: SCROLL.gainFrom, gainTo: SCROLL.gainTo, gainDecay: SCROLL.gainDecay }, darkShare: CARD_HOVER.darkShare, frontShare: DEPTH.frontShare }, null, 2)); copy.textContent = 'Copied'; setTimeout(() => { copy.textContent = 'Copy values'; }, 1200); });
   btn('Reset to defaults', () => {
-    Object.assign(WORK, defaults.WORK); Object.assign(SCROLL, defaults.SCROLL); Object.assign(TRANSITION, defaults.TRANSITION); Object.assign(WORK.cardWarp, defaults.cardWarp); Object.assign(WORK.frameWarp, defaults.frameWarp);
+    Object.assign(WORK, defaults.WORK); Object.assign(SCROLL, defaults.SCROLL); Object.assign(TRANSITION, defaults.TRANSITION); Object.assign(WORK.cardWarp, defaults.cardWarp); Object.assign(WORK.frameWarp, defaults.frameWarp); Object.assign(TALL, defaults.TALL); Object.assign(TALL.frameWarp, defaults.tallWarp); Object.assign(TABLET, defaults.TABLET);
     store.clear();
     groups.reset();
     readouts.forEach((r) => { r.input.value = r.obj[r.key]; r.v.textContent = r.obj[r.key]; });
