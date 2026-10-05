@@ -20,8 +20,22 @@
     <meta name="twitter:image" content="https://www.anh-v.com/media/hero/poster.jpg" />
     <link rel="preload" href="/media/brand/wordmark.svg" as="image" type="image/svg+xml" />
     <link rel="preload" href="/fonts/ClashDisplay-Variable.woff2" as="font" type="font/woff2" crossorigin />
+      <style>html { background: #000; }</style>
   </head>
   <body class="work-page">
+    <script>
+      /* R28: the way back from a project entered through the R25 transition: paint the header (as it was left) over black from the first frame; work.js plays the shrink */
+      (function () {
+        try {
+          var r = JSON.parse(sessionStorage.getItem('pxb') || 'null');
+          if (!r || r.origin !== 'work' || !r.leave || Date.now() - r.t > 60000 || /[?&]gl=0/.test(location.search) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+          var L = r.leave, ok = L.mode === 'shrink' && L.W === innerWidth && L.H === innerHeight, s = L.sec, i = L.img;
+          var h = '<div id="pxb" aria-hidden="true" style="position:fixed;inset:0;z-index:8;overflow:hidden"><div class="px__bg" style="position:absolute;inset:0;background:#000"></div>';
+          if (ok) h += '<div class="px__box" style="position:absolute;overflow:hidden;left:' + s[0] + 'px;top:' + s[1] + 'px;width:' + s[2] + 'px;height:' + s[3] + 'px"><img alt="" decoding="sync" src="' + r.src + '" style="position:absolute;left:' + (i[0] - s[0]) + 'px;top:' + (i[1] - s[1]) + 'px;width:' + i[2] + 'px;height:' + i[3] + 'px;object-fit:cover;display:block"></div>';
+          document.body.insertAdjacentHTML('afterbegin', h + '</div>');
+        } catch (e) {}
+      })();
+    </script>
     <a class="skip" href="#app">Skip to content</a>
     <main id="app" tabindex="-1"></main>
     <script type="module" src="/src/work.js"></script>

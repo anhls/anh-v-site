@@ -30,7 +30,7 @@ const ROLL = 18; // px; each link label exists twice, stacked 18px apart
 // the user scrolls toward/away from the top instead of waiting for the smooth-scroll glide to finish.
 // `gateFrame` (home): the footer state also needs the hero mask to be full screen again. Project pages have no mask, so they pass false.
 // `position` (Work page): a function giving the distance scrolled (the strip is endless, the page itself never moves).
-export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe, onHome = false, startSmall = false } = {}) {
+export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe, onHome = false, startSmall = false, startBig = false } = {}) {
   // R22j: the wordmark is a link to the homepage (the fixed, transformed box is the <a>; the picture fills it). It takes clicks only in the SMALL
   // state: the big one covers 82vw x 32vh of the hero (captions, cards, the spawner's click area), so it stays click-through; the keyboard
   // reaches it in both. Home: click = the back-to-top transition when scrolled, nothing at the top. Other pages: plain navigation to '/'.
@@ -92,9 +92,9 @@ export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe,
     return window.scrollY < NAV.thresholdPx ? 0 : 1;
   };
 
-  state.p = startSmall ? 1 : target(); // R25: arriving from a project transition, the wordmark was small on the page before: it grows to its big state
+  state.p = startSmall ? 1 : startBig ? 0 : target(); // R28: startBig = the project page's wordmark was big when it was left, the Work page grows it small. R25: arriving from a project transition, the wordmark was small on the page before: it grows to its big state
   const layer = springLayer({ target: state, springs: { p: SPRING.nav }, apply });
-  if (startSmall) state.p = target();
+  if (startSmall || startBig) state.p = target();
 
   const check = () => { frameFull = isFull(); state.p = target(); };
   // the mask size is written by the scrubbed hero timeline (a little behind the scroll): watch it on the shared ticker, switch only when it flips

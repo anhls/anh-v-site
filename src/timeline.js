@@ -36,7 +36,9 @@ const span = (start, length) => (typeof start === 'number' ? [+start.toFixed(2),
 // project page's header (the full screen) along easeInOutCirc; the rest fades to black. sec = the move, fadeSec = how fast the rest goes dark and the
 // Work counter / toggle fade, crossFrom / crossTo = the part of the move over which the homepage frame still crossfades into the header image
 // (the frame shows its own still, not the header image).
-export const TRANSITION = { sec: 0.9, fadeSec: 0.5, crossFrom: 0.3, crossTo: 0.85 };
+// R28: pushSec = the first part of the move in which the cards and the two neighbours move away from the image (Work page; the same numbers play
+// in reverse on the way back), pushScale = how far (1 = the focus push at full progress, 0 = off), pushFar = the far cards' share (focusPushOthers).
+export const TRANSITION = { sec: 0.9, fadeSec: 0.5, crossFrom: 0.3, crossTo: 0.85, pushSec: 0.6, pushScale: 1, pushFar: 0.6 };
 
 // Smooth scroll (Lenis). Framer's "Intensity 30" = duration 3 with Lenis' default easing. Lower duration = snappier
 // (try 2.5). `easing` is t (0..1) -> progress (0..1).

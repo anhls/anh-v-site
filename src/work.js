@@ -4,7 +4,7 @@ import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import data from './data/data.json';
 import pool from './data/work-pool.json';
-import { WORK, BEND, WARP, CARDS, CARD_HOVER, DEPTH, SCROLL, INDEX } from './timeline.js';
+import { WORK, BEND, WARP, CARDS, CARD_HOVER, DEPTH, SCROLL, INDEX, TRANSITION } from './timeline.js';
 import { frameZ } from './data/depth.js';
 import { capW, dist } from './scale.js';
 import { initNav } from './effects/nav.js';
@@ -12,7 +12,7 @@ import { createCardsGL } from './effects/cards-gl.js';
 import { imgAttrs } from './util/media.js';
 import { installScrollGain } from './util/scroll-gain.js';
 import { watchDpr } from './util/dpr.js';
-import { preloadHeader, runProjectTransition, transitionOK } from './effects/project-transition.js';
+import { preloadHeader, runProjectTransition, transitionOK, readBack, playBack } from './effects/project-transition.js';
 import { applyFocus } from './work/focus.js';
 import { pushTarget, stepPushSpring } from './effects/card-push.js';
 import { withOvershoot, settleBump, settleCurve } from './util/overshoot.js';
@@ -37,7 +37,9 @@ const slugs = projects.map((p) => p.slug);
 const N = projects.length;
 const heroRef = (p) => p.page.blocks.find((b) => b.t === 'hero').img;
 const store = { get: () => { try { return localStorage.getItem('work-mode'); } catch { return null; } }, set: (v) => { try { localStorage.setItem('work-mode', v); } catch { /* private window */ } } };
-let vertical = store.get() === 'vertical';
+// R28: arriving from a project page entered through the R25 transition: the same mode, that project centred, the enlarge played in reverse (below)
+const back = !reduced && params.get('gl') !== '0' ? readBack() : null;
+let vertical = back ? back.mode === 'vertical' : store.get() === 'vertical';
 
 const lenis = new Lenis({ infinite: true, gestureOrientation: 'both', lerp: 0.07, wheelMultiplier: 1 });
 // R22j: Lenis runs on a clock that never advances more than 100 ms per frame: after a hidden tab or a long freeze its glide carries on from where
@@ -244,6 +246,11 @@ const stepLead = (dt, vel, active) => {
   LEAD.moving = moving;
   return moving;
 };
+// R28: the project transition's push (cards and the two neighbours move away from the image), driven by TRANSITION, not by the focus
+const TP = { q: -1, p: 0, p0: 0, hold: false };
+const pushArr = new Float64Array(N);
+const PT = new Proxy(WORK, { get: (t, k) => (k === 'focusPushOthers' ? TRANSITION.pushFar : t[k]) });
+let arrivalHold = false; // after arriving from a project: no mouse drift until the first input
 const NUD = { x: new Float64Array(n), y: new Float64Array(n), dt: 0, tau: 0.09, live: false }; // R22g: the focus nudge, smoothed in time (work/focus.js)
 let driftW = 1; // weight of the mouse drift (1 at rest, 0 during the toggle morph)
 const hp = new Float64Array(n), hv = new Float64Array(n); // hover progress (critically damped spring, as the homepage cards)
@@ -333,7 +340,7 @@ let focusHeld = false, focusHoldUntil = 0;
 const holdFocus = () => { focusHeld = WORK.focusAfterMorph !== 0; focusHoldUntil = 0; };
 const focusOff = (now) => focusHeld && (!!morph || (typeof WORK.focusAfterMorph === 'number' ? now < focusHoldUntil : true));
 const inputRelease = () => { if (focusHeld && !morph && WORK.focusAfterMorph === 'input') focusHeld = false; };
-const cancelSnap = () => { snap = null; snapForce = 0; lastWheel = performance.now(); wmScrolled = true; inputRelease(); };
+const cancelSnap = () => { snap = null; snapForce = 0; lastWheel = performance.now(); wmScrolled = true; arrivalHold = false; inputRelease(); };
 // ---- R22e: hold and drag (desktop mouse). The strip follows the pointer 1:1 (the scroll gain does not apply) along the mode's axis; on release
 // it keeps the pointer's speed and loses it by friction (R22i: speed x exp(-t / WORK.dragFriction), distance = speed x friction time, capped at
 // WORK.dragMaxCoast pitches; no overshoot; it ends when the speed is under 5 px/s)
@@ -396,7 +403,7 @@ stage.addEventListener('click', (e) => {
   const it = items.find((q) => q.el === a), i = it.idx, sc = gl.hs[i] || 1;
   e.preventDefault();
   const w = bw[i] * sc, h = bh[i] * sc;
-  runProjectTransition({ slug: it.slug, ref: it.ref, rect: { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, startSrc: it.img.currentSrc || it.img.src, fade: [countEl, toggleEl, nameEl], onStart: () => { lenis.stop(); nameEl.style.zIndex = '9'; } }); // (the project name stays above the growing picture and fades with the rest)
+  runProjectTransition({ slug: it.slug, ref: it.ref, rect: { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, startSrc: it.img.currentSrc || it.img.src, fade: [countEl, toggleEl, nameEl], fromWork: { mode: vertical ? 'vertical' : 'side', projectIndex: it.proj }, onPush: (p) => { if (TRANSITION.pushScale > 0) TP.p = TP.p0 + (TRANSITION.pushScale - TP.p0) * p; }, onStart: () => { lenis.stop(); nameEl.style.zIndex = '9'; TP.q = it.proj; TP.p0 = fPu.x[it.proj]; TP.p = TP.p0; TP.hold = TRANSITION.pushScale > 0; } }); // (the project name stays above the growing picture and fades with the rest)
 });
 addEventListener('wheel', () => { inertia = null; }, { capture: true, passive: true });
 addEventListener('wheel', cancelSnap, { capture: true, passive: true });
@@ -471,7 +478,7 @@ const tick = (_time, deltaMs) => {
     const hold = focusOff(now);
     const rate = dt / Math.max(hold ? 0.35 : WORK.focusRampSec, 0.02);
     for (let q = 0; q < N; q++) {
-      const tgt = snapOk && restOk && !hold && q === pk ? workEase(WORK)(c) : 0;
+      const tgt = TP.hold ? fP[q] : snapOk && restOk && !hold && q === pk ? workEase(WORK)(c) : 0; // (frozen while a project opens)
       const nv = fP[q] + Math.max(-rate, Math.min(rate, tgt - fP[q]));
       if (nv !== fP[q]) { fP[q] = nv; focusMoving = true; }
     }
@@ -520,7 +527,7 @@ const tick = (_time, deltaMs) => {
   if (stepLead(dt, vel, glOn && !reduced && !morph && !snap)) settleMoving = true;
   // R22g: the mouse drift fades out / in over 0.6 s around the toggle morph (it used to switch off at the first frame and on at the last: a card
   // jumped by its whole drift when the pointer was off-centre)
-  driftW += Math.max(-dt / 0.6, Math.min(dt / 0.6, (morph ? 0 : 1) - driftW));
+  driftW += Math.max(-dt / 0.6, Math.min(dt / 0.6, (morph || arrivalHold ? 0 : 1) - driftW));
   if (driftW > 0 && driftW < 1) settleMoving = true;
   let anyF = false;
   for (let q = 0; q < N; q++) if (fSc.x[q] > 0 || fPu.x[q] > 0) anyF = true;
@@ -546,7 +553,8 @@ const tick = (_time, deltaMs) => {
   }
   // R23f: the focus (the centred project grows, every card is pushed away from the focused image, neighbours move off) is applied to the
   // base positions of this frame; fsArr = the image scale per project
-  if (focusMoving || anyF || NUD.live) { FA.vertical = L.M.vertical; FA.pitch = L.pitch; FA.scale = scale; NUD.dt = dt; applyFocus(FA, fSc.x, WORK, CARDS, fsArr, fPu.x, NUD); if (NUD.live) settleMoving = true; } else fsArr.fill(1);
+  const pushing = TP.q >= 0 && (TP.p > 0 || TP.hold);
+  if (focusMoving || anyF || NUD.live || pushing) { FA.vertical = L.M.vertical; FA.pitch = L.pitch; FA.scale = scale; NUD.dt = dt; let pa = fPu.x; if (pushing) { pushArr.set(fPu.x); pushArr[TP.q] = TP.p; pa = pushArr; } applyFocus(FA, fSc.x, pushing ? PT : WORK, CARDS, fsArr, pa, NUD); if (NUD.live) settleMoving = true; } else fsArr.fill(1);
   for (let k = 0; k < nSrc; k++) { const sI = psrcs[k]; PS.srcX[sI] = px[sI]; PS.srcY[sI] = py[sI]; }
   for (let i = 0; i < n; i++) {
     const it = items[i];
@@ -669,7 +677,25 @@ addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(relayout, 1
 
 commit(vertical ? 'vertical' : 'side');
 // the endless strip passes through 0 at every wrap, so the distance must not drive the wordmark: it reports "scrolled" once and never rest again
-initNav(data.hero.wordmark, lenis, { gateFrame: false, position: () => (wmScrolled ? 1e9 : 0) });
+initNav(data.hero.wordmark, lenis, { gateFrame: false, position: () => (wmScrolled ? 1e9 : 0), startBig: !!back && !back.leave.wm });
+// R28: the way back. The overlay (#pxb, painted by the inline script in work/index.html) covers the page with the project's header at the scroll it was
+// left at; the strip is built in that mode with the project centred and at rest, its cards and neighbours pushed; when the header file is decoded
+// and the textures are up, the enlarge plays in reverse (project-transition.js playBack). Input finishes it at once.
+if (back) {
+  off = back.projectIndex * cur().pitch; // S = off while the wheel has not moved
+  wmScrolled = true; holdFocus(); arrivalHold = true;
+  const fadeEls = [countEl, toggleEl, nameEl], shrink = !!document.querySelector('#pxb .px__box');
+  TP.q = back.projectIndex; TP.p = shrink ? TRANSITION.pushScale : 0;
+  gsap.set(fadeEls, { opacity: 0 });
+  (async () => {
+    const hi = new Image(); hi.src = back.src;
+    const until = (fn, ms) => new Promise((res) => { const t0 = performance.now(); const f = () => (fn() || performance.now() - t0 > ms ? res() : requestAnimationFrame(f)); f(); });
+    await Promise.all([Promise.race([hi.decode().catch(() => {}), until(() => false, 1200)]), until(() => !gl || gl.stats().loaded >= Math.min(n, 12), 1200)]);
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const fi = items.findIndex((it) => it.kind === 'frame' && it.proj === back.projectIndex);
+    playBack({ rec: back, target: { x: px[fi] - bw[fi] / 2, y: py[fi] - bh[fi] / 2, w: bw[fi], h: bh[fi] }, fade: fadeEls, onPush: (p) => { TP.p = p * TRANSITION.pushScale; }, done: () => { TP.q = -1; TP.p = 0; gsap.set(fadeEls, { clearProps: 'opacity' }); } });
+  })();
+}
 document.title = 'Work | Anh V';
 if (import.meta.env.DEV) {
   window.__SCROLL = SCROLL; window.__WORK = WORK;

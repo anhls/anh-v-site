@@ -44,6 +44,28 @@ if (project?.page) {
     setTimeout(drop, 6000);
   }
   document.title = project.page.title;
+  // R28: leaving: remember where the header was (for the way back to the Work page) ...
+  addEventListener('pagehide', () => {
+    try {
+      const r = JSON.parse(sessionStorage.getItem('pxb') || 'null');
+      if (!r || r.slug !== slug || r.origin !== 'work') return;
+      const sec = app.querySelector('.pj__hero'), im = sec?.querySelector('img');
+      if (!sec || !im) return;
+      const a = sec.getBoundingClientRect(), b = im.getBoundingClientRect();
+      r.leave = { W: innerWidth, H: innerHeight, scroll: Math.round(scrollY), mode: a.bottom > 8 && a.top < innerHeight ? 'shrink' : 'fade', sec: [a.left, a.top, a.width, a.height], img: [b.left, b.top, b.width, b.height], wm: document.querySelector('a.wordmark')?.classList.contains('is-link') ? 1 : 0 };
+      r.t = Date.now();
+      sessionStorage.setItem('pxb', JSON.stringify(r));
+    } catch { /* the Work page then loads plainly */ }
+  });
+  // ... and the nav Work link fades to black for 0.25 s first (Back cannot be delayed: the Work page does the whole animation on arrival)
+  nav.querySelector('a[data-link="Works"]')?.addEventListener('click', (e) => {
+    if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || matchMedia('(prefers-reduced-motion: reduce)').matches || new URLSearchParams(location.search).get('gl') === '0') return;
+    let r = null; try { r = JSON.parse(sessionStorage.getItem('pxb') || 'null'); } catch { /* */ }
+    if (!r || r.slug !== slug || r.origin !== 'work') return;
+    e.preventDefault();
+    const f = document.createElement('div'); f.style.cssText = 'position:fixed;inset:0;z-index:8;background:#000;opacity:0;pointer-events:auto'; document.body.append(f);
+    gsap.to(f, { opacity: 1, duration: 0.25, ease: 'sine.inOut', onComplete: () => { location.href = '/work/'; } });
+  });
   // Dev only: ?tune opens the wheel-acceleration panel (a build-time constant, nothing ships).
   if (import.meta.env.DEV && new URLSearchParams(location.search).has('tune')) import('./effects/tune-scroll.js').then((m) => m.mountScrollTune());
 }
