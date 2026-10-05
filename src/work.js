@@ -47,12 +47,15 @@ const tabletLand = isLiteLandscape(); // R24f: landscape on a touch device (deci
 const warpForce = params.get('warp') === '1'; // R24f: ?warp=1 forces the warp on and bypasses the frame-time guard (to tell "too subtle" from "the guard switched it off")
 const lite = tall || tabletLand, liteKind = tall ? 'tall' : 'tablet';
 // R24g: live tuning on a real phone: URL overrides of the lite numbers (dev always; in production only with ?perf): fg flingGain, fr dragFriction, fm dragMaxCoast, sa snapAfterSpeed,
-// wg warpGain, wp warpPow, ws warpStrength, wf warpFall, fw TALL.frame, fn flingMin, sd snapDelay, wr warp rise (s). The overlay prints the values in force.
+// wg warpGain, wp warpPow, ws warpStrength, wf warpFall, ln lean (R24i), ls leanSign, lb leanBuf, fw TALL.frame, fn flingMin, sd snapDelay, wr warp rise (s). The overlay prints the values in force.
 const overrides = {};
 if (lite && (import.meta.env.DEV || perfOn)) {
   const map = { fg: ['flingGain'], fr: ['dragFriction'], fm: ['dragMaxCoast'], sa: ['snapAfterSpeed'], wg: ['warpGain'], wp: ['warpPow'], wf: ['warpFall'], fw: ['frame'], fn: ['flingMin'], sd: ['snapDelay'] };
   for (const [k, [name]] of Object.entries(map)) { const v = parseFloat(params.get(k)); if (Number.isFinite(v)) { TALL[name] = v; overrides[k] = v; } }
   const ws = parseFloat(params.get('ws')); if (Number.isFinite(ws)) { TALL.warpStrength = ws; TALL.frameWarp.strength = WORK.frameWarp.strength * ws; overrides.ws = ws; }
+  const ln = parseFloat(params.get('ln')); if (Number.isFinite(ln)) { TALL.frameWarp.lean = ln; overrides.ln = ln; } // R24i: the axis lean; ls = leanSign (+1 / -1)
+  const ls = parseFloat(params.get('ls')); if (Number.isFinite(ls)) { TALL.frameWarp.leanSign = ls < 0 ? -1 : 1; overrides.ls = ls; }
+  const lb = parseFloat(params.get('lb')); if (Number.isFinite(lb)) { TALL.frameWarp.leanBuf = lb; overrides.lb = lb; } // lb = leanBuf (extra warp-buffer overscan for the lean; read when the buffer is built, so reload)
   const wr = parseFloat(params.get('wr')); if (Number.isFinite(wr)) { TALL.frameWarp.riseSec = wr; overrides.wr = wr; }
 }
 const TLm = lite ? await import('./work/tall.js') : null;
@@ -214,6 +217,7 @@ const warpImg = { ...WARP };
 const copyWarp = (dst, src) => {
   dst.strengthUp = dst.strengthDown = src.strength;
   dst.curl = src.curl; dst.camDown = src.camDown; dst.camUp = src.camUp; dst.bowDown = src.bowDown; dst.bowUp = src.bowUp; dst.reach = src.reach; dst.sym = src.sym;
+  dst.lean = src.lean; dst.leanSign = src.leanSign; dst.leanMax = src.leanMax; dst.leanBuf = src.leanBuf; // (R24i: only the image warp has them)
 };
 const syncWarp = () => {
   copyWarp(warpP, WORK.cardWarp);

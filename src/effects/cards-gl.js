@@ -2,6 +2,7 @@ import { BEND as BEND_DEF, WARP as WARP_DEF, WARP_DIR, CARD_HOVER } from '../tim
 import { weakDevice } from '../util/device.js';
 import { POST_VERT, POST_FRAG } from './warp-shader.js';
 import { cylinderMargins } from './warp-model.js';
+import { limitLean } from './lean-limit.js';
 import { FRAME_POST_FRAG } from '../work/frame-warp-shader.js';
 
 // Selected Work cards on ONE WebGL2 canvas (R16). Plain WebGL, no library (0 KB added): 35 textured planes, one draw call each.
@@ -104,7 +105,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     gl.attachShader(postF, compile(gl.FRAGMENT_SHADER, FRAME_POST_FRAG));
     gl.linkProgram(postF);
     if (!gl.getProgramParameter(postF, gl.LINK_STATUS)) return null;
-    PF = Object.fromEntries(['uScene', 'uRes', 'uAmt', 'uShape', 'uMargin', 'uSym', 'uBow', 'uGrain', 'uSeed', 'uAxis'].map((k) => [k, gl.getUniformLocation(postF, k)]));
+    PF = Object.fromEntries(['uScene', 'uRes', 'uAmt', 'uShape', 'uMargin', 'uSym', 'uBow', 'uGrain', 'uSeed', 'uAxis', 'uShift'].map((k) => [k, gl.getUniformLocation(postF, k)]));
   }
   const emptyVao = gl.createVertexArray();
   // Offscreen buffers (made on first use, rebuilt on resize): a multisampled renderbuffer the cards are drawn into (same edge
@@ -125,6 +126,11 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
       const IW = layers.warp, sI = Math.min(Math.max(IW.strengthUp, IW.strengthDown) * 1.2, capS);
       const [a, b] = cylinderMargins(sI, IW.curl, IW.camDown, IW.reach, IW.sym, IW.bowDown), [c, d] = cylinderMargins(sI, IW.curl, IW.camUp, IW.reach, IW.sym, IW.bowUp);
       fx = Math.max(fx, a, c); fy = Math.max(fy, b, d); ux = Math.max(ux, a, c); uy = Math.max(uy, b, d);
+      // R24i: the axis may lean along the strip: the sheet is seen farther out on that axis (and a little wider across). The buffer grows by leanBuf (0.3 desktop, 0.15 phone / tablet: a lighter buffer) screen lengths along / 0.05 across; the lean itself is
+      // capped each frame by what that buffer holds (lean-limit.js), so a bigger lean setting never shows a blank edge or a fold.
+      const lm = IW.lean > 0 ? Math.min(Math.max(0, IW.leanMax ?? 0), IW.leanBuf ?? 0.3) : 0;
+      fy += lm; uy += lm; // (fy / uy are the margins ALONG the strip for both axes: the cross margin of the vertical strip uses fx / ux)
+      if (lm > 0) { fx += 0.05; ux += 0.05; }
     }
     const my = axis ? Math.min(Math.ceil((Math.max(fx, ux) * H + 4) / 8) * 8, Math.round(H * 0.5)) : Math.min(Math.ceil((Math.max(fy, uy) * H + 4) / 8) * 8, Math.round(H * 0.7));
     const mx = axis ? Math.min(Math.ceil((Math.max(fy, uy) * W + 4) / 8) * 8, Math.round(W * 0.7)) : Math.min(Math.ceil((Math.max(fx, ux) * W + 4) / 8) * 8, Math.round(W * 0.5));
@@ -250,6 +256,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
   // Dev only (?warptest): every card shows a plain grid with a border instead of its image, so the shape of the warp can be judged
   // from real scrolling. Not in the production build (import.meta.env.DEV is a build-time constant).
   const warpTest = import.meta.env.DEV && new URLSearchParams(location.search).has('warptest');
+  const warpCover = warpTest && new URLSearchParams(location.search).get('warptest') === 'cover'; // ?warptest=cover: the grid goes through the real object-fit: cover (cells stay square)
   let testCanvas = null;
   const wantTexture = (i) => {
     if (warpTest) {
@@ -263,7 +270,8 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
       tex[i] = makeTexture(true); gl.bindTexture(gl.TEXTURE_2D, tex[i]);
       gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, testCanvas); gl.generateMipmap(gl.TEXTURE_2D);
-      cover.set([1, 1, 0, 0], i * 4); aspect[i] = 1; dirty = true;
+      if (warpCover) setCover(i, 256, 256); else { cover.set([1, 1, 0, 0], i * 4); aspect[i] = 1; }
+      dirty = true;
       return;
     }
     if (tex[i] || loading[i] || inflight + pending.length >= 2) return;
@@ -326,6 +334,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
   const bend = { x: 0, v: 0, speed: 0 };
   const bendI = { x: 0, v: 0, amt: 0 }; // the main images' own spring (Work page)
   let lastT = 0;
+  let shift = 0; // R24i: the image pass's axis shift now (screen lengths; read by diag / the checks)
   let grainStep = -1;
   let grainSpeed = 0;
 
@@ -334,6 +343,9 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     H = h;
     const cap = w > 2560 ? BEND.dprCapLarge : BEND.dprCap;
     const dpr = Math.min(window.devicePixelRatio || 1, cap);
+    // R24i: on phones / tablets 100vh (the CSS height) is the LARGEST viewport while innerHeight is the visible one (browser bars showing), so a bitmap of innerHeight stretched to 100vh
+    // squashed / stretched every picture. The lite canvas is sized in CSS px to exactly the bitmap's units (the wide pages keep the 100vw x 100vh of base.css).
+    if (lite) { canvas.style.width = `${w}px`; canvas.style.height = `${h}px`; }
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
     gl.viewport(0, 0, canvas.width, canvas.height);
@@ -394,6 +406,12 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     gl.uniform1f(Pu.uGrain, grainAmt);
     gl.uniform1f(Pu.uSeed, seed);
     gl.uniform1f(Pu.uAxis, axis);
+    if (img) { // R24i: the cylinder axis leans toward where the images travel on screen: forward scroll = items move toward the negative screen side; amt = WARP_DIR x (signed spring) x strength, so the shift follows the same spring (0 at rest, no pop)
+      const sh = (WP.lean || 0) * (WP.leanSign || 1) * -WARP_DIR * Math.max(-1, Math.min(1, bendI.amt || 0)), lm = WP.leanMax ?? 0.45;
+      const am = Math.max(-1, Math.min(1, bendI.amt || 0)), mAl = axis ? fb.mx / W : fb.my / H, mCr = axis ? fb.my / H : fb.mx / W;
+      shift = limitLean(am, Math.max(-lm, Math.min(lm, sh)), { curl: WP.curl, camA: WARP_DIR > 0 ? WP.camDown : WP.camUp, camB: WARP_DIR > 0 ? WP.camUp : WP.camDown, reach: WP.reach, bowA: WARP_DIR > 0 ? WP.bowDown : WP.bowUp, bowB: WARP_DIR > 0 ? WP.bowUp : WP.bowDown, sym: WP.sym }, mAl, mCr); // never past what the buffer holds (no blank edge, no fold)
+      gl.uniform1f(Pu.uShift, shift);
+    }
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     gl.enable(gl.BLEND);
     gl.useProgram(prog);
@@ -487,6 +505,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     if (layers) {
       const amtI = import.meta.env.DEV && holdAmt !== null ? holdAmt : WARP_DIR * bendI.x * (bendI.x > 0 ? layers.warp.strengthDown : layers.warp.strengthUp); // (dev: api.holdWarp pins the image warp amount for the pixel comparison tests)
       bendI.amt = amtI;
+      if (Math.abs(amtI) <= 0.0015) shift = 0; // (no image pass this frame: the axis is centred)
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.viewport(0, 0, canvas.width, canvas.height);
       gl.clear(gl.COLOR_BUFFER_BIT);
@@ -530,13 +549,14 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     show: (on) => { canvas.style.visibility = on ? 'visible' : 'hidden'; if (on) dirty = true; },
     markDirty: () => { dirty = true; },
     holdWarp: (a) => { holdAmt = a; dirty = true; }, // dev only
-    diag: () => ({ postOk, ...fbInfo, warpScale, passCount, lastPass }), // R24f: what the ?perf diagnosis line shows
+    diag: () => ({ postOk, shift, ...fbInfo, warpScale, passCount, lastPass }), // R24f: what the ?perf diagnosis line shows
     setWarpScale: (k) => { warpScale = Math.max(0.25, Math.min(1, k)); dirty = true; },
     setAxis: (a) => { axis = a ? 1 : 0; dirty = true; },
     reweigh: () => { computeWeights(); dirty = true; }, // after a depth-bell change in the tuning panel
     bend: () => bend,
     bendImg: () => bendI,
     has: (i) => !!tex[i],
+    coverRatio: (i) => (aspect[i] ? (bw[i] / bh[i]) * (cover[i * 4 + 1] / cover[i * 4]) / aspect[i] : 0), // R24i check: drawn picture's x scale / y scale (1 = no stretch)
     stats: () => ({ textureMb: used / 1048576, loaded: tex.filter(Boolean).length, bend: bend.x, bendRaw: bend.x }),
     destroy: () => { canvas.remove(); api.active = false; },
   };

@@ -29,6 +29,8 @@ const WARP_SLIDERS = [
   ['camDown', 'Camera distance, + side (screen heights)', 0.5, 4, 0.01], ['camUp', 'Camera distance, - side (screen heights)', 0.5, 4, 0.01], ['bowDown', 'Dome, + side', 0, 0.4, 0.005], ['bowUp', 'Dome, - side', 0, 0.4, 0.005],
   ['reach', 'Reach (share of the length that bends)', 0.2, 1, 0.01], ['sym', 'Leading side weight', 0, 1, 0.05],
 ];
+// R24i: the image warp's axis lean (the main images only)
+const LEAN_SLIDERS = [['lean', 'Axis lean (screen lengths at full warp)', 0, 1, 0.01], ['leanMax', 'Axis lean: cap (screen lengths)', 0, 0.8, 0.01], ['leanSign', 'Axis lean direction (+1 / -1)', -1, 1, 2], ['leanBuf', 'Axis lean: extra warp-buffer overscan (screen lengths; applies after a resize)', 0, 0.6, 0.01]];
 const SCROLLS = [
   ['gainCap', 'Wheel acceleration: cap (1 = off)', 1, 5, 0.05], ['gainFrom', 'Acceleration starts at (px/s of wheel)', 100, 3000, 25], ['gainTo', 'Full acceleration at (px/s of wheel)', 500, 10000, 50], ['gainDecay', 'Speed hold / decay (s)', 0.05, 1.5, 0.01],
 ];
@@ -99,7 +101,7 @@ export function mountWorkTune({ relayout }) {
     hd.style.cssText = 'margin-top:10px;font-weight:600';
     hd.textContent = title;
     groups.header(hd);
-    WARP_SLIDERS.forEach((d) => { defs[add(`WORK.${block}`, WORK[block], d)] = [WORK[block], d[0]]; });
+    WARP_SLIDERS.concat(block === 'frameWarp' ? LEAN_SLIDERS : []).forEach((d) => { defs[add(`WORK.${block}`, WORK[block], d)] = [WORK[block], d[0]]; });
   }
   // R24d / R24e: the phone, tablet-portrait and tablet-landscape Work page (the lite modes): image size, the image warp, the frame-time guard. Only live in those modes (?mode=tall, a touch screen)
   {
@@ -115,7 +117,7 @@ export function mountWorkTune({ relayout }) {
     for (const d of [['flingGain', 'Phone / tablet flick: release speed gain', 0.3, 3, 0.05], ['flingRef', 'Phone / tablet flick: reference speed (screen lengths / s)', 0.5, 4, 0.05], ['flingPow', 'Phone / tablet flick: curve (1 = linear, higher = light swipes glide less)', 1, 3, 0.05], ['flingMin', 'Phone / tablet flick: no glide under (screen lengths / s)', 0, 1, 0.02], ['dragFriction', 'Phone / tablet flick: friction time (s)', 0.1, 3, 0.05], ['dragMaxCoast', 'Phone / tablet flick: most glide (images)', 0.5, 10, 0.25], ['snapAfterSpeed', 'Phone / tablet: soft snap starts under (screen lengths / s)', 0.05, 1, 0.01], ['snapDelay', 'Phone / tablet: soft snap waits after the last movement (s)', 0.05, 2, 0.05], ['warpFall', 'Phone / tablet warp: fall time (s)', 0.2, 4, 0.05], ['focusDelay', 'Phone / tablet: the project name / focus waits after the glide stopped (s)', 0, 2, 0.05]]) defs[add('TALL', TALL, d)] = [TALL, d[0]];
     defs[add('TALL', TALL, ['guardMs', 'Frame-time guard: median over (ms)', 8, 60, 1])] = [TALL, 'guardMs'];
     defs[add('TALL', TALL, ['guardP95', 'Frame-time guard: p95 over (ms)', 10, 100, 1])] = [TALL, 'guardP95'];
-    WARP_SLIDERS.forEach((d) => { defs[add('TALL.frameWarp', TALL.frameWarp, d)] = [TALL.frameWarp, d[0]]; });
+    WARP_SLIDERS.concat(LEAN_SLIDERS).forEach((d) => { defs[add('TALL.frameWarp', TALL.frameWarp, d)] = [TALL.frameWarp, d[0]]; });
   }
   const h = document.createElement('div');
   h.style.cssText = 'margin-top:10px;font-weight:600';

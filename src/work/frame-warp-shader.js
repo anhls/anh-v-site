@@ -17,12 +17,14 @@ uniform vec2 uBow;            // dome depth, + side / - side
 uniform float uGrain;
 uniform float uSeed;
 uniform float uAxis;          // 1 = turned 90 degrees (a horizontally scrolling strip)
+uniform float uShift;         // R24i: the cylinder axis moves by this (screen lengths along the strip, signed, after the axis turn); 0 = centred = the picture of before
 out vec4 o;
 float h(vec2 p) { vec3 q = fract(vec3(p.xyx) * 0.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
 void main() {
   float fy = uRes.y - gl_FragCoord.y;
   vec2 p = vec2(gl_FragCoord.x / uRes.x - 0.5, fy / uRes.y - 0.5);
   if (uAxis > 0.5) p = p.yx;
+  p.y -= uShift;
   float y0 = (1.0 - uShape.w) * 0.5;
   float side = p.y >= 0.0 ? 1.0 : -1.0;
   float a = abs(uAmt);
@@ -58,6 +60,7 @@ void main() {
       q.y = side * (y0 + R * th);
     }
   }
+  q.y += uShift;
   if (uAxis > 0.5) q = q.yx;
   vec2 src = vec2(q.x + 0.5, q.y + 0.5);
   vec2 uv = vec2((src.x + uMargin.x) / (1.0 + 2.0 * uMargin.x), (src.y + uMargin.y) / (1.0 + 2.0 * uMargin.y));

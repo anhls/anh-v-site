@@ -260,7 +260,7 @@ export const WORK = {
   // bowDown / bowUp = a shallow dome, reach = share of the strip's length that bends (1 - reach stays flat in the middle), sym = weight of the
   // leading side, riseSec / settleSec = how fast it grows while the strip moves / eases flat after it stops.
   cardWarp: { strength: 1.15, riseSec: 1.5, settleSec: 1.4, curl: 0.5, camDown: 1.25, camUp: 1.25, bowDown: 0, bowUp: 0.05, reach: 1, sym: 1 },
-  frameWarp: { strength: 1.39, riseSec: 2.2, settleSec: 1.9, curl: 0.4, camDown: 1.6, camUp: 1.6, bowDown: 0, bowUp: 0.03, reach: 1, sym: 1 },
+  frameWarp: { strength: 1.39, riseSec: 2.2, settleSec: 1.9, curl: 0.4, camDown: 1.6, camUp: 1.6, bowDown: 0, bowUp: 0.03, reach: 1, sym: 1, lean: 0.3, leanSign: 1, leanMax: 0.45, leanBuf: 0.3 }, // R24i: lean = how far (screen lengths along the strip, at warp amount 1) the cylinder axis moves toward where the images travel on screen; leanSign -1 flips it; leanMax caps the shift; lean 0 = the centred axis of before
   morphSec: 2, morphStagger: 0.45, morphEase: 3, morphLanding: 0.12, dupGap: 40,
   snapDelay: 1, snapWindow: 0.5, snapSec: 2, focusScale: 1.14, focusPush: 95, focusNeighbour: 0.06, focusRampSec: 1.25, focusPushRadius: 400, focusPushOthers: 0.6,
   // R22e overshoot (src/util/overshoot.js; 0 = the old curve): the end passes the target by this share of the distance / value once, then settles.
@@ -432,7 +432,7 @@ export const TALL = {
   guard: true, guardMs: 20, guardP95: 30, guardFrames: 30,
 };
 // the tall image warp: the wide image warp with the strength scaled (read live: ?tune)
-TALL.frameWarp = { ...WORK.frameWarp, strength: WORK.frameWarp.strength * TALL.warpStrength, riseSec: 0.5 };
+TALL.frameWarp = { ...WORK.frameWarp, strength: WORK.frameWarp.strength * TALL.warpStrength, riseSec: 0.5, leanBuf: 0.15 }; // (R24i: leanBuf = extra offscreen overscan along the strip for the axis lean, in screen lengths; the lean is capped by what it holds)
 // R24e: tablet LANDSCAPE (R24b's test: layout-store.js isTabletAspect): the wide-style strip, no cards (cards: 0), the image `frameH` of the viewport height (width from the desktop ratio, at most 90 % of the width)
 export const TABLET = { cards: 0, frameH: 0.62 };
 // R24a: the menu's Contact item stays hidden until this is set (a mailto: link); Anh has no address yet.

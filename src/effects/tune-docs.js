@@ -233,6 +233,12 @@ Object.assign(TUNE_DOCS, {
   'TALL.guardMs': 'Frame-time guard (phone / tablet): if the median frame time while the strip moves is over this, the warp steps down one stage (the warp buffer at 0.75, then 0.5, then the warp off). It never steps back up in a visit.',
   'TALL.guardP95': 'Frame-time guard: the same step-down if the slowest 5 % of the frames while the strip moves are over this.',
 });
-const WARP_DOC_KEYS = ['strength', 'riseSec', 'settleSec', 'curl', 'camDown', 'camUp', 'bowDown', 'bowUp', 'reach', 'sym'];
+Object.assign(TUNE_DOCS, {
+  'WORK.frameWarp.lean': 'R24i: how far the main images warp's cylinder axis moves toward where the images are travelling on screen, in screen lengths along the strip at full warp (0 = the axis stays at the centre). The more speed, the more it leans; at rest it is back at the centre.',
+  'WORK.frameWarp.leanMax': 'Upper limit of the axis lean (screen lengths along the strip), so a very strong warp cannot push the curl too far to one side.',
+  'WORK.frameWarp.leanBuf': 'How much bigger the offscreen warp buffer is along the strip so the leaned axis has picture to look at (screen lengths; takes effect after a window resize or reload). The lean actually shown is always capped by what this buffer holds, so a bigger value allows a bigger lean but costs more memory and time per frame.',
+  'WORK.frameWarp.leanSign': 'Direction of the axis lean: +1 = toward where the images are going (the rule), -1 = flipped (the other way).',
+});
+const WARP_DOC_KEYS = ['strength', 'riseSec', 'settleSec', 'curl', 'camDown', 'camUp', 'bowDown', 'bowUp', 'reach', 'sym', 'lean', 'leanMax', 'leanSign', 'leanBuf'];
 WARP_DOC_KEYS.forEach((k) => { const w = TUNE_DOCS[`WORK.frameWarp.${k}`]; if (w) TUNE_DOCS[`TALL.frameWarp.${k}`] = `Phone / tablet image warp: ${w.charAt(0).toLowerCase()}${w.slice(1)}`; });
 export const tuneDoc = (id) => TUNE_DOCS[id] || '';
