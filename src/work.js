@@ -4,7 +4,7 @@ import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import data from './data/data.json';
 import pool from './data/work-pool.json';
-import { WORK, WORK_V2, WORK_UI, WORK_TEXT, WORK_PTR, BEND, WARP, CARDS, CARD_HOVER, DEPTH, SCROLL, INDEX, TRANSITION, TALL, TABLET } from './timeline.js';
+import { WORK, WORK_V2, WORK_UI, WORK_TEXT, WORK_SMEAR, WORK_LINE, WORK_PTR, BEND, WARP, CARDS, CARD_HOVER, DEPTH, SCROLL, INDEX, TRANSITION, TALL, TABLET } from './timeline.js';
 import { createV2 } from './work/v2-ui.js';
 import { createPointerFx } from './work/pointer-fx.js';
 import { isTall, isLiteLandscape } from './util/layout-mode.js';
@@ -114,10 +114,11 @@ const root = app.querySelector('.work');
 const stage = root.querySelector('.work__stage');
 // R23e: the counter and the toggle are children of the page, not of .work: their own top layer above the canvas and every click anchor
 const ui = v2 ? createV2({ app, projects, reduced }) : null; // R32
+if (ui) root.insertBefore(ui.lineEl, stage); // R33d: the scroll line sits in .work, under the canvas
 const countEl = app.querySelector('.work__count') || document.createElement('div');
 const toggleEl = ui ? ui.switchEl : app.querySelector('.work__toggle') || document.createElement('button'); // (a detached stub in the lite modes: nothing is listening)
 const nameEl = app.querySelector('.work__name') || document.createElement('div');
-const fadeEls = ui ? [ui.root] : [countEl, toggleEl, nameEl]; // what the project transition fades out / back in
+const fadeEls = ui ? [ui.root, ui.lineEl] : [countEl, toggleEl, nameEl]; // what the project transition fades out / back in
 const titleEls = [...nameEl.querySelectorAll('.work__title')].map((el) => ({ el, chars: [...el.querySelectorAll('.work__char')], f: -1 }));
 const iconEl = toggleEl.querySelector('.work__icon') || document.createElement('span');
 // R24h: the tall wordmark (the largest image on that page = the LCP element) is made right here, before the strip / GL / layout setup below, so it paints at the first frame
@@ -852,6 +853,7 @@ function finishMorph() {
   morph = null;
   if (typeof WORK.focusAfterMorph === 'number') focusHoldUntil = performance.now() + WORK.focusAfterMorph * 1000;
   commit(m.to);
+  ui?.settleRoll();
   advance();
   off = m.SB - virt * WORK.wheel;
   lenis.start();
@@ -878,9 +880,11 @@ const setMode = (mode) => {
       morph.force[i] = moveForce(tr, scale, base, dur0, WORK);
       morph.fn[i] = morphFn(morph.force[i]);
     }
+    ui?.rollMode(mode, WORK.morphSec); // R33d: the info blocks roll out now and in at modeRollInAt of the morph
     lenis.stop(); // wheel and drag are ignored while the move plays
     root.classList.add('is-morphing');
   } else {
+    ui?.rollMode(mode, 0.2);
     fading = true;
     stage.classList.add('is-switching');
     setTimeout(() => {
@@ -934,7 +938,7 @@ if (back) {
 }
 document.title = 'Work | Anh V';
 if (import.meta.env.DEV) {
-  window.__SCROLL = SCROLL; window.__WORK = WORK; window.__TRANSITION = TRANSITION; window.__TALL = TALL; window.__guard = guard; window.__bendP = bendP;
+  window.__SMEAR = WORK_SMEAR; window.__LINE = WORK_LINE; window.__V2 = WORK_V2; window.__TEXT = WORK_TEXT; window.__PTRCFG = WORK_PTR; window.__SCROLL = SCROLL; window.__WORK = WORK; window.__TRANSITION = TRANSITION; window.__TALL = TALL; window.__guard = guard; window.__bendP = bendP;
   window.__work = { ui, get ptr() { return ptrFx; }, get hz() { return hzA; }, setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, q: Q, PS,  get snap() { return snap; }, AMB, LEAD, get drag() { return drag; }, get inertia() { return inertia; }, fP, fSc, fPu, get kCount() { return kCount; }, bx, by, bw, bh, vis, hp };
   if (params.has('tune')) import('./work/tune.js').then((m) => m.mountWorkTune({ relayout }));
   if (params.has('overlap')) import('./effects/overlap-debug.js').then((m) => m.mountOverlapDebug('.work__card', () => `focus ${Math.max(...fSc.x).toFixed(2)}${AMB.on ? ', ambient drift on' : ''}${LEAD.moving ? ', lead moving' : ''}${morph ? ', toggle morph' : ''}${TC.on ? ', transition' : ''}${drag ? ', drag' : ''}`));

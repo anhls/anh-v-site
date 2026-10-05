@@ -50,14 +50,15 @@ html[data-layout='tall'], html[data-layout='tall'] body { overscroll-behavior: n
 .w2__titles, .w2__infos { position: absolute; inset: 0; }
 .w2__title { position: absolute; left: 0; top: 0; display: block; text-align: center; white-space: nowrap; font-weight: 600; line-height: 1; letter-spacing: 0; color: #e9e7e2; opacity: 0; font-kerning: normal; text-rendering: geometricPrecision; will-change: opacity; }
 .w2__info { position: absolute; left: var(--cx, 50%); top: var(--cy, 50%); width: 0; height: 0; will-change: filter, opacity; }
-.w2__tags, .w2__year, .w2__desc { position: absolute; white-space: nowrap; }
+.w2__tags, .w2__year, .w2__desc { position: absolute; white-space: nowrap; overflow: hidden; } /* R33d: each block is the mask of its own roll */
+.w2__rin { display: block; will-change: transform, opacity; }
 .w2__desc { white-space: normal; width: calc(200 * var(--p)); color: #787878; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-[data-mode='side'] .w2__tags, .w2:not([data-mode]) .w2__tags { left: calc(var(--hw) * -1 + var(--is-tagsDx) * var(--p)); top: calc(var(--hh) * -1 + var(--is-rowTop) * var(--p)); }
-[data-mode='side'] .w2__year { right: calc(var(--hw) * -1 - var(--is-yearRight) * var(--p)); top: calc(var(--hh) * -1 + var(--is-rowTop) * var(--p)); }
-[data-mode='side'] .w2__desc { left: calc(var(--hw) + var(--is-descLeft) * var(--p)); top: calc(var(--hh) * -1 + var(--is-rowTop) * var(--p)); }
-[data-mode='vertical'] .w2__tags { left: calc(var(--hw) * -1 + var(--iv-tagsRight) * var(--p)); top: calc(-23.5 * var(--p)); }
-[data-mode='vertical'] .w2__year { left: calc(var(--hw) + var(--iv-yearLeft) * var(--p)); top: calc(-23.5 * var(--p)); }
-[data-mode='vertical'] .w2__desc { left: calc(var(--hw) + var(--iv-descLeft) * var(--p)); top: calc(-23.5 * var(--p)); }
+.w2__tags[data-pos='side'] { left: calc(var(--hw) * -1 + var(--is-tagsDx) * var(--p)); top: calc(var(--hh) * -1 + var(--is-rowTop) * var(--p)); }
+.w2__year[data-pos='side'] { right: calc(var(--hw) * -1 - var(--is-yearRight) * var(--p)); top: calc(var(--hh) * -1 + var(--is-rowTop) * var(--p)); }
+.w2__desc[data-pos='side'] { left: calc(var(--hw) + var(--is-descLeft) * var(--p)); top: calc(var(--hh) * -1 + var(--is-rowTop) * var(--p)); }
+.w2__tags[data-pos='vertical'] { left: calc(var(--hw) * -1 + var(--iv-tagsRight) * var(--p)); top: calc(-23.5 * var(--p)); }
+.w2__year[data-pos='vertical'] { left: calc(var(--hw) + var(--iv-yearLeft) * var(--p)); top: calc(-23.5 * var(--p)); }
+.w2__desc[data-pos='vertical'] { left: calc(var(--hw) + var(--iv-descLeft) * var(--p)); top: calc(-23.5 * var(--p)); }
 /* ruler: the long axis of a dot / bar runs across the strip (side: tall bar at the bottom centre; vertical: a dash at the left edge) */
 .w2__ruler { position: absolute; }
 .w2__ruler i { position: absolute; background: #fff; opacity: 0; will-change: transform, opacity; }
@@ -67,15 +68,16 @@ html[data-layout='tall'], html[data-layout='tall'] body { overscroll-behavior: n
 [data-mode='vertical'] .w2__ruler i { left: 0; top: calc(var(--rd-dot) * -0.5 * var(--p)); width: calc(var(--rd-bar) * var(--p)); height: calc(var(--rd-dot) * var(--p)); transform-origin: 0 50%; }
 /* counter, bottom left: label, the large thin numeral (a cross-fade), the /N superscript */
 .w2__counter { position: absolute; left: calc(45 * var(--p)); bottom: calc(31 * var(--p)); display: flex; align-items: baseline; color: #fff; }
-.w2__label { color: #787878; margin-right: calc(34.5 * var(--p)); }
-.w2__num { position: relative; display: flex; font-size: calc(105 * var(--p)); font-weight: 200; line-height: 0.74; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; height: 0.74em; min-width: calc(130 * var(--p)); }
-.w2__slot { position: relative; display: block; width: 0.64em; height: 0.74em; overflow: hidden; } /* R33: one digit tall, masked; the column of two numbers rolls inside */
+.w2__label { color: #787878; margin-right: calc(31.5 * var(--p)); }
+.w2__num { position: relative; display: flex; font-size: calc(105 * var(--p)); font-weight: 200; line-height: 0.74; letter-spacing: -0.01em; height: 0.74em; }
+.w2__slot { position: relative; display: block; width: 0.7em; height: 0.74em; overflow: hidden; clip-path: inset(0 0 1.5px 0); will-change: filter; } /* R33d: one digit tall, masked; the TENS is right-aligned and the UNITS left-aligned on their shared seam */
 .w2__col { position: absolute; left: 0; top: 0; width: 100%; will-change: transform; }
-.w2__num { will-change: filter; }
-.w2__smear { z-index: 1; }
+.w2__wrapcol { display: none; }
 .w2__col span { display: block; height: 0.74em; }
+.w2__tens .w2__col span { text-align: right; }
+.w2__units .w2__col span { text-align: left; }
 .w2__defs { position: absolute; width: 0; height: 0; }
-.w2__total { position: absolute; left: calc(327 * var(--p) - 45 * var(--p)); bottom: calc(60 * var(--p)); color: #787878; }
+.w2__total { position: absolute; left: 0; top: 0; line-height: 1; color: #787878; white-space: nowrap; will-change: transform; } /* R33d: x follows the units digit, top meets the numeral top (v2-ui.js measureCounter) */
 .w2__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 /* mode switch, bottom right */
 .w2__switch { all: unset; pointer-events: auto; box-sizing: border-box; position: absolute; right: calc(51 * var(--p)); bottom: calc(28 * var(--p)); cursor: pointer; color: #787878; transition: color 0.2s ease; white-space: nowrap; padding: 4px 0; }
@@ -88,3 +90,8 @@ html[data-layout='tall'], html[data-layout='tall'] body { overscroll-behavior: n
 .w2__email { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
 .w2__email:focus-visible { outline: 1px solid #f04a0e; outline-offset: 4px; }
 @media (prefers-reduced-motion: reduce) { .w2__switch, .w2__num span { transition-duration: 0.01s; } }
+
+/* R33d scroll line: in .work, above the black background and under the canvas (the pictures draw over it); scrollLineOver puts it over them (still under the text layer) */
+.work .w2__line { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.work .w2__line.is-over { z-index: 2; }
+.w2__line i { position: absolute; left: 0; top: 0; display: block; background: #e9e7e2; opacity: 0; will-change: transform; width: 1px; height: 100%; }

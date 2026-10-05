@@ -301,7 +301,9 @@ export const WORK = {
 //   frameW (vw) / frameH (vh): the image is frameW of the window width, its height from frameW x frameH's ratio, and never taller than frameH of the window height
 //   (so a window wider than 16:9 shrinks the image instead of running it into the info block above it). gapSide (vw) / gapVert (vh) = the space between two images.
 //   focusScale 1 = the centred image keeps its size at rest (the reference); focusNeighbour 0 = the neighbours stay at the measured gap (R22 pushed them 6 % of a pitch away).
-export const WORK_V2 = { frameW: 1055 / 19.2, frameH: 556 / 10.8, gapSide: 57 / 19.2, gapVert: 75 / 10.8, focusScale: 1, focusNeighbour: 0, hoverOn: 1, hoverScale: 1.04, hoverSec: 0.6, hoverClickSec: 0.15 };
+export const WORK_V2 = { frameW: 1055 / 19.2, frameH: 556 / 10.8, gapSide: 57 / 19.2, gapVert: 75 / 10.8, focusScale: 1, focusNeighbour: 0, hoverOn: 1, hoverScale: 1.04, hoverSec: 0.6, hoverClickSec: 0.15, modeRollPx: 18, modeRollSec: 0.4, modeRollBounce: 0.2, modeRollStagger: 0.06, modeRollInAt: 0.55 };
+// R33d: the info blocks (tags, year, description) roll out and in when the mode switches, like the nav link hover: modeRollPx up on a spring (modeRollSec / modeRollBounce = SPRING.linkRoll), one block after
+// the other (modeRollStagger), the roll-in starts at modeRollInAt of the toggle morph.
 // R33: hoverScale = how much the CENTRE image grows under a fine pointer (the neighbours are pushed out by exactly the growth, so the gaps stay), hoverSec = the soft ease, hoverClickSec = ease back to 1 when a click starts the project transition.
 // R32 UI numbers (px at 1920x1080 unless said; they scale with the capped --ux like the rest of the type: 1 px at 1920 = --ux / 19.2).
 //   title: specimen "Clash Display" is `specimenFrac` of the image width wide (977 / 1055); a title first shrinks down to minScale of that size, then loses trailing words until it
@@ -319,12 +321,16 @@ export const WORK_RULER = { pitch: 21, extra: 5.5, dot: 3, bar: 34, barW: 2, rul
 // textOutSec); its content swaps while hidden; when the next image is in focus (the strip rests and is centred for textDelay s) it refocuses in place over textInSec (the title also
 // rises titleRise px at 1920). Counter: an odometer; it rolls with the strip at most counterMaxSteps numbers per second, settles over counterSettleSec (counterOvershoot = most it passes
 // the target, in digit heights, 0 = none) and blurs vertically by up to counterBlurPx while rolling.
+// R33c / R33d: the title is NOT blurred: it plays the corner-pull reveal (src/effects/text-fx/smear.js) at scroll stop and leaves when the strip moves. scrollStopSec = no input for this long
+// (scrollStopSpeed = a coasting drag / flick counts as moving until it is slower than this, in screen lengths / s). The reveal is ONE progress value folded into a triangle: enterSec = the
+// enter (u 0 -> 0.5), eased with power enterPow (higher = it forms faster at the start); leaveSec = the leave (the title blows out toward the top-right while fading); noiseScale /
+// noiseAmount = the simplex wobble of the sample position; pull = the corner pull strength (1 = as the reference). titleOutSec is only the plain fade of the fallbacks.
 export const WORK_TEXT = { textBlurPx: 8, textBlurInSec: 0.2, textBlurOutSec: 1.3, swapHoldMs: 60, scrollStopSec: 0.15, scrollStopSpeed: 0.05, titleOutSec: 0.2 };
-// R33c: the title is NOT blurred: it fades out while the strip moves (titleOutSec) and plays the R27 `smear` reveal (src/effects/text-fx/smear.js) at scroll stop. scrollStopSec = no input for this long
-// (scrollStopSpeed = a coasting drag / flick counts as moving until it is slower than this, in screen lengths / s). Smear numbers, fitted to docs/reference/text-fx-label.mov (R33c): smearSec = the whole effect; the growth is an ease out (power growPow) over growSec; skewHold / skewSec and sliceHold / sliceSec = how long the slant / the slices keep full size and then fade out; startScaleX / Y
-// (the streak it grows from, anchored at the left baseline), startOpacity, skewDeg (gone after skewSec), the slices (sliceAmp = most a slice moves, as a share of the text height, gone after sliceSec;
-// sliceBand = slice height as a share of the text box; sliceNoise = how fast the offsets change); for the big title the slice shift is also capped to what the image rectangle + spill allows.
-export const WORK_SMEAR = { smearSec: 0.9, growSec: 0.42, growPow: 1.6, startScaleX: 0.5, startScaleY: 0.05, startOpacity: 0.3, skewDeg: 22, skewHold: 0.25, skewSec: 0.6, sliceHold: 0.2, sliceSec: 0.55, sliceAmp: 0.5, sliceBand: 0.045, sliceSmooth: 0.85, sliceNoise: 1 };
+export const WORK_SMEAR = { enterSec: 0.6, enterPow: 3.5, leaveSec: 0.35, noiseScale: 5, noiseAmount: 0.35, pull: 1 };
+// R33d scroll line (after angusemmerson.com): ONE thin line, full height (side mode) / full width (vertical mode), behind the pictures, that travels once across the page per loop of the list
+// (x = frac(strip position / project count) x width) and EASES after the strip (scrollLineFollowSec, ease out; it stops that long after the strip). Two instances (x and x - width) so it rolls
+// off one edge and in from the other without a reset. scrollLineGap = how much wider than the page its loop is (the share of the page width it spends outside the screen before it comes in from the other side). scrollLineOver 1 = over the pictures. scrollLineDrag is NOT built (see status.md).
+export const WORK_LINE = { scrollLineOn: 1, scrollLineOpacity: 0.12, scrollLineFollowSec: 1.3, scrollLineWidth: 1, scrollLineOver: 0, scrollLineDrag: 0, scrollLineGap: 0.25 };
 // R33b: the pixel smear (Codrops pixel-distortion grid, work/pointer-fx.js) on every picture of the strip. on 0 = off (also off for touch, ?gl=0, reduced motion, weak devices).
 // pixelGrid = columns of the screen-space grid (rows follow the aspect); pixelBrush = brush radius (share of the image height); pixelStrength = picture units moved per grid unit;
 // pixelRelax = what is left of a cell after 1/60 s; pixelVelMax = most a cell can hold (a fast flick cannot tear the picture); pixelRgb = colour split; pixelSideMul = share of the
