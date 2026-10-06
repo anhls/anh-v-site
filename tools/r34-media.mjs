@@ -35,18 +35,23 @@ for (const it of cfg.items) {
     manifest[key] = { type: 'image', source: { width: meta.width, height: meta.height }, alpha: !!meta.hasAlpha, sig: `r34:${srcBytes}`, files };
     report.push([key, it.src, `${meta.width}x${meta.height}`, (srcBytes / 1e6).toFixed(1) + 'MB', files.map((f) => `${f.width}w ${kb(f.bytes)}`).join(' + '), files.reduce((s, f) => s + f.bytes, 0)]);
   } else {
-    const meta = await sharp(src, { animated: true }).metadata();
+    const meta = await sharp(src, { animated: true, limitInputPixels: false }).metadata();
     const ph = meta.pageHeight || meta.height, delays = (meta.delay || []).filter((d) => d > 0).sort((a, b) => a - b), med = delays.length ? delays[Math.floor(delays.length / 2)] : 40;
     const fps = it.fps || Math.max(10, Math.min(30, Math.round(1000 / Math.max(med, 20))));
-    let w = Math.min(it.maxW || 1440, meta.width); w -= w % 2;
-    const h = Math.round((w * ph) / meta.width / 2) * 2;
-    const pm = await sharp(src, { pages: 1 }).metadata();
-    const alpha = !!it.alpha; // (checked by hand: GIF palette dithering shows up as 'transparent' pixels, e.g. duhat/ring 1.07 %; set alpha: true in the config only for a real transparent background)
-    const vf = `fps=${fps},scale=${w}:${h}:flags=lanczos`;
+    let w;
+    // R35: it.crop = [w, h, x, y] in source pixels (trim a transparent border); it.bg = '#rrggbb' bakes the colour under a transparent GIF (outlines drawn in black need a light slide colour)
+    const [cw, ch, cx, cy] = it.crop || [meta.width, ph, 0, 0];
+    w = Math.min(it.maxW || 1440, cw); w -= w % 2;
+    const h = Math.round((w * ch) / cw / 2) * 2;
+    const pm = await sharp(src, { pages: 1, limitInputPixels: false }).metadata();
+    const alpha = !!it.alpha;
+    const base = `${it.crop ? `crop=${cw}:${ch}:${cx}:${cy},` : ''}fps=${fps},scale=${w}:${h}:flags=lanczos`;
+    const bgIn = it.bg ? ['-f', 'lavfi', '-i', `color=c=0x${it.bg.replace('#', '')}:s=${meta.width}x${ph}:r=${fps}`] : [];
+    const inArgs = (extra) => (it.bg ? [...bgIn, '-i', src, '-filter_complex', `[0][1]overlay=shortest=1,${base},format=${extra}`] : ['-i', src, '-vf', `${base},format=${extra}`]);
     const webm = `${cfg.slug}/${it.name}.webm`, mp4 = `${cfg.slug}/${it.name}.mp4`, poster = `${cfg.slug}/${it.name}-poster.webp`;
-    ff('-i', src, '-vf', `${vf},format=${alpha ? 'yuva420p' : 'yuv420p'}`, '-c:v', 'libvpx-vp9', '-crf', String(it.crf || 34), '-b:v', '0', '-an', ...(alpha ? ['-auto-alt-ref', '0'] : []), resolve(ROOT, 'public/media', webm));
-    ff('-i', src, '-vf', `${vf},format=yuv420p`, '-c:v', 'libx264', '-crf', String((it.crf || 34) - 6), '-preset', 'slow', '-movflags', '+faststart', '-an', resolve(ROOT, 'public/media', mp4));
-    await sharp(src, { pages: 1 }).resize({ width: Math.min(w, 1200) }).flatten(alpha ? {} : { background: '#000' }).webp({ quality: 80 }).toFile(resolve(ROOT, 'public/media', poster));
+    ff(...inArgs(alpha ? 'yuva420p' : 'yuv420p'), '-c:v', 'libvpx-vp9', '-crf', String(it.crf || 34), '-b:v', '0', '-an', ...(alpha ? ['-auto-alt-ref', '0'] : []), resolve(ROOT, 'public/media', webm));
+    ff(...inArgs('yuv420p'), '-c:v', 'libx264', '-crf', String((it.crf || 34) - 6), '-preset', 'slow', '-movflags', '+faststart', '-an', resolve(ROOT, 'public/media', mp4));
+    await sharp(src, { pages: 1, limitInputPixels: false }).extract({ left: cx, top: cy, width: cw, height: ch }).flatten(alpha ? {} : { background: it.bg || '#000' }).resize({ width: Math.min(w, 1200) }).webp({ quality: 80 }).toFile(resolve(ROOT, 'public/media', poster));
     const files = [webm, mp4, poster].map((f) => ({ file: f, bytes: statSync(resolve(ROOT, 'public/media', f)).size }));
     manifest[key] = { type: 'video', width: w, height: h, alpha, webm, mp4, poster, sig: `r34:${srcBytes}`, files };
     report.push([key, it.src, `${meta.width}x${ph} x${meta.pages} @${fps}fps${alpha ? ' ALPHA' : ''}`, (srcBytes / 1e6).toFixed(1) + 'MB', `${w}x${h}: webm ${kb(files[0].bytes)} + mp4 ${kb(files[1].bytes)} + poster ${kb(files[2].bytes)}`, files[0].bytes + files[1].bytes + files[2].bytes]);

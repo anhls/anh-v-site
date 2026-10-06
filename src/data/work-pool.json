@@ -136,6 +136,15 @@
  },
  {
   "slug": "duhat",
+  "key": "duhat/breath",
+  "hash": 3043405758,
+  "w": 1920,
+  "h": 1080,
+  "lum": 206,
+  "selected": false
+ },
+ {
+  "slug": "duhat",
   "key": "duhat/circles",
   "hash": 439302185,
   "w": 1920,
@@ -185,6 +194,24 @@
   "hash": 1113039936,
   "w": 948,
   "h": 1659,
+  "lum": 179,
+  "selected": false
+ },
+ {
+  "slug": "duhat",
+  "key": "duhat/mood-e",
+  "hash": 4235918537,
+  "w": 640,
+  "h": 640,
+  "lum": 97,
+  "selected": false
+ },
+ {
+  "slug": "duhat",
+  "key": "duhat/pattern",
+  "hash": 4009216126,
+  "w": 1920,
+  "h": 1080,
   "lum": 179,
   "selected": false
  },

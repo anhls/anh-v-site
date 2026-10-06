@@ -67,10 +67,11 @@ const assemble = (pieces) => {
 };
 
 const blocks = {
-  hero: (b) => `<section class="tp-hero">${img(b.img, document.title.replace(/ \| Anh V$/, '')).replace('loading="lazy" decoding="async"', 'fetchpriority="high"')}</section>`,
+  hero: (b) => b.loop ? `<section class="tp-hero" style="height:auto;aspect-ratio:${b.aspect}">${loop({ ref: b.loop })}</section>` : `<section class="tp-hero">${img(b.img, document.title.replace(/ \| Anh V$/, '')).replace('loading="lazy" decoding="async"', 'fetchpriority="high"')}</section>`,
   text: (b) => `<section class="tp-text tp-pad tp-fade"><span class="tp-label">${esc(b.label)}</span><p class="tp-lead">${esc(b.text.trim())}</p></section>`,
   split: (b) => assemble([...piecesOfCell(b.left), ...piecesOfCell(b.right)]),
   full: (b) => assemble([...piecesOfCell(b.img), ...(b.note ? [text(b.note.body)] : [])]),
+  row: (b) => assemble(b.items.map((c) => ({ k: 'media', html: `${media(c)}${c.cap ? `<p class="tp-cap">${esc(c.cap)}</p>` : ''}` }))),
   threeup: (b) => assemble(b.cells.map((c) => ({ k: 'media', html: `${img(c.ref, c.alt)}${c.caption ? `<p class="tp-cap">${esc(c.caption)}</p>` : ''}` }))),
   youtube: (b) => `<section class="tp-yt tp-fade" data-yt="${b.id}" data-title="${esc(b.title)}"><button class="tp-ytbtn" type="button" aria-label="Play video: ${esc(b.title)}"><img class="tp-media" alt="" data-src="https://i.ytimg.com/vi/${b.id}/maxresdefault.jpg" data-fallback="https://i.ytimg.com/vi/${b.id}/hqdefault.jpg"><span class="tp-play"></span></button></section>`,
   details: (b) => `<section class="tp-details tp-pad tp-fade"><div class="tp-titles">${b.title.map((t) => `<p class="tp-h2">${esc(t)}</p>`).join('')}</div><p class="tp-h4">${esc(b.heading)}</p><div class="tp-rows">${b.rows.map(([k, v]) => `<div class="tp-row2"><span>${esc(k)}</span><span>${lines(v)}</span></div>`).join('')}</div><p class="tp-body">${rich(b.body)}</p></section>`,

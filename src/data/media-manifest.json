@@ -5650,5 +5650,708 @@
     "bytes": 106746
    }
   ]
+ },
+ "duhat/ring-o": {
+  "type": "video",
+  "width": 832,
+  "height": 816,
+  "alpha": false,
+  "webm": "duhat/ring-o.webm",
+  "mp4": "duhat/ring-o.mp4",
+  "poster": "duhat/ring-o-poster.webp",
+  "sig": "r34:674261",
+  "files": [
+   {
+    "file": "duhat/ring-o.webm",
+    "bytes": 6684
+   },
+   {
+    "file": "duhat/ring-o.mp4",
+    "bytes": 9782
+   },
+   {
+    "file": "duhat/ring-o-poster.webp",
+    "bytes": 6838
+   }
+  ]
+ },
+ "duhat/s6": {
+  "type": "video",
+  "width": 1280,
+  "height": 720,
+  "alpha": false,
+  "webm": "duhat/s6.webm",
+  "mp4": "duhat/s6.mp4",
+  "poster": "duhat/s6-poster.webp",
+  "sig": "r34:22712821",
+  "files": [
+   {
+    "file": "duhat/s6.webm",
+    "bytes": 371804
+   },
+   {
+    "file": "duhat/s6.mp4",
+    "bytes": 445875
+   },
+   {
+    "file": "duhat/s6-poster.webp",
+    "bytes": 12150
+   }
+  ]
+ },
+ "duhat/pattern": {
+  "type": "image",
+  "source": {
+   "width": 1920,
+   "height": 1080
+  },
+  "alpha": false,
+  "sig": "r34:992385",
+  "files": [
+   {
+    "file": "duhat/pattern-800.webp",
+    "width": 800,
+    "height": 450,
+    "bytes": 28014
+   },
+   {
+    "file": "duhat/pattern-1600.webp",
+    "width": 1600,
+    "height": 900,
+    "bytes": 67810
+   },
+   {
+    "file": "duhat/pattern-1920.webp",
+    "width": 1920,
+    "height": 1080,
+    "bytes": 87520
+   }
+  ]
+ },
+ "duhat/breath": {
+  "type": "image",
+  "source": {
+   "width": 1920,
+   "height": 1080
+  },
+  "alpha": false,
+  "sig": "r34:524207",
+  "files": [
+   {
+    "file": "duhat/breath-800.webp",
+    "width": 800,
+    "height": 450,
+    "bytes": 19682
+   },
+   {
+    "file": "duhat/breath-1600.webp",
+    "width": 1600,
+    "height": 900,
+    "bytes": 48496
+   },
+   {
+    "file": "duhat/breath-1920.webp",
+    "width": 1920,
+    "height": 1080,
+    "bytes": 61038
+   }
+  ]
+ },
+ "duhat/breath-loop": {
+  "type": "video",
+  "width": 1080,
+  "height": 1080,
+  "alpha": false,
+  "webm": "duhat/breath-loop.webm",
+  "mp4": "duhat/breath-loop.mp4",
+  "poster": "duhat/breath-loop-poster.webp",
+  "sig": "r34:9070645",
+  "files": [
+   {
+    "file": "duhat/breath-loop.webm",
+    "bytes": 442383
+   },
+   {
+    "file": "duhat/breath-loop.mp4",
+    "bytes": 242262
+   },
+   {
+    "file": "duhat/breath-loop-poster.webp",
+    "bytes": 32262
+   }
+  ]
+ },
+ "duhat/g-sac": {
+  "type": "video",
+  "width": 838,
+  "height": 566,
+  "alpha": false,
+  "webm": "duhat/g-sac.webm",
+  "mp4": "duhat/g-sac.mp4",
+  "poster": "duhat/g-sac-poster.webp",
+  "sig": "r34:117431",
+  "files": [
+   {
+    "file": "duhat/g-sac.webm",
+    "bytes": 147926
+   },
+   {
+    "file": "duhat/g-sac.mp4",
+    "bytes": 136656
+   },
+   {
+    "file": "duhat/g-sac-poster.webp",
+    "bytes": 6720
+   }
+  ]
+ },
+ "duhat/b-sac": {
+  "type": "image",
+  "source": {
+   "width": 411,
+   "height": 226
+  },
+  "alpha": true,
+  "sig": "r34:7560",
+  "files": [
+   {
+    "file": "duhat/b-sac-411.webp",
+    "width": 411,
+    "height": 226,
+    "bytes": 5094
+   }
+  ]
+ },
+ "duhat/m-sac": {
+  "type": "image",
+  "source": {
+   "width": 415,
+   "height": 359
+  },
+  "alpha": true,
+  "sig": "r34:3774",
+  "files": [
+   {
+    "file": "duhat/m-sac-415.webp",
+    "width": 415,
+    "height": 359,
+    "bytes": 1722
+   }
+  ]
+ },
+ "duhat/g-huyen": {
+  "type": "video",
+  "width": 836,
+  "height": 562,
+  "alpha": false,
+  "webm": "duhat/g-huyen.webm",
+  "mp4": "duhat/g-huyen.mp4",
+  "poster": "duhat/g-huyen-poster.webp",
+  "sig": "r34:120551",
+  "files": [
+   {
+    "file": "duhat/g-huyen.webm",
+    "bytes": 144898
+   },
+   {
+    "file": "duhat/g-huyen.mp4",
+    "bytes": 133614
+   },
+   {
+    "file": "duhat/g-huyen-poster.webp",
+    "bytes": 6764
+   }
+  ]
+ },
+ "duhat/b-huyen": {
+  "type": "image",
+  "source": {
+   "width": 411,
+   "height": 226
+  },
+  "alpha": true,
+  "sig": "r34:7791",
+  "files": [
+   {
+    "file": "duhat/b-huyen-411.webp",
+    "width": 411,
+    "height": 226,
+    "bytes": 4944
+   }
+  ]
+ },
+ "duhat/m-huyen": {
+  "type": "image",
+  "source": {
+   "width": 392,
+   "height": 286
+  },
+  "alpha": true,
+  "sig": "r34:3801",
+  "files": [
+   {
+    "file": "duhat/m-huyen-392.webp",
+    "width": 392,
+    "height": 286,
+    "bytes": 1430
+   }
+  ]
+ },
+ "duhat/g-nang": {
+  "type": "video",
+  "width": 678,
+  "height": 714,
+  "alpha": false,
+  "webm": "duhat/g-nang.webm",
+  "mp4": "duhat/g-nang.mp4",
+  "poster": "duhat/g-nang-poster.webp",
+  "sig": "r34:143533",
+  "files": [
+   {
+    "file": "duhat/g-nang.webm",
+    "bytes": 198687
+   },
+   {
+    "file": "duhat/g-nang.mp4",
+    "bytes": 175416
+   },
+   {
+    "file": "duhat/g-nang-poster.webp",
+    "bytes": 6934
+   }
+  ]
+ },
+ "duhat/b-nang": {
+  "type": "image",
+  "source": {
+   "width": 411,
+   "height": 226
+  },
+  "alpha": true,
+  "sig": "r34:4749",
+  "files": [
+   {
+    "file": "duhat/b-nang-411.webp",
+    "width": 411,
+    "height": 226,
+    "bytes": 2816
+   }
+  ]
+ },
+ "duhat/m-nang": {
+  "type": "image",
+  "source": {
+   "width": 262,
+   "height": 312
+  },
+  "alpha": true,
+  "sig": "r34:3521",
+  "files": [
+   {
+    "file": "duhat/m-nang-262.webp",
+    "width": 262,
+    "height": 312,
+    "bytes": 1370
+   }
+  ]
+ },
+ "duhat/g-nga": {
+  "type": "video",
+  "width": 686,
+  "height": 756,
+  "alpha": false,
+  "webm": "duhat/g-nga.webm",
+  "mp4": "duhat/g-nga.mp4",
+  "poster": "duhat/g-nga-poster.webp",
+  "sig": "r34:155426",
+  "files": [
+   {
+    "file": "duhat/g-nga.webm",
+    "bytes": 229936
+   },
+   {
+    "file": "duhat/g-nga.mp4",
+    "bytes": 205607
+   },
+   {
+    "file": "duhat/g-nga-poster.webp",
+    "bytes": 6970
+   }
+  ]
+ },
+ "duhat/b-nga": {
+  "type": "image",
+  "source": {
+   "width": 411,
+   "height": 226
+  },
+  "alpha": true,
+  "sig": "r34:9408",
+  "files": [
+   {
+    "file": "duhat/b-nga-411.webp",
+    "width": 411,
+    "height": 226,
+    "bytes": 5624
+   }
+  ]
+ },
+ "duhat/m-nga": {
+  "type": "image",
+  "source": {
+   "width": 565,
+   "height": 300
+  },
+  "alpha": true,
+  "sig": "r34:5740",
+  "files": [
+   {
+    "file": "duhat/m-nga-565.webp",
+    "width": 565,
+    "height": 300,
+    "bytes": 2586
+   }
+  ]
+ },
+ "duhat/g-hoi": {
+  "type": "video",
+  "width": 730,
+  "height": 730,
+  "alpha": false,
+  "webm": "duhat/g-hoi.webm",
+  "mp4": "duhat/g-hoi.mp4",
+  "poster": "duhat/g-hoi-poster.webp",
+  "sig": "r34:162772",
+  "files": [
+   {
+    "file": "duhat/g-hoi.webm",
+    "bytes": 339134
+   },
+   {
+    "file": "duhat/g-hoi.mp4",
+    "bytes": 222862
+   },
+   {
+    "file": "duhat/g-hoi-poster.webp",
+    "bytes": 7048
+   }
+  ]
+ },
+ "duhat/b-hoi": {
+  "type": "image",
+  "source": {
+   "width": 411,
+   "height": 226
+  },
+  "alpha": true,
+  "sig": "r34:6141",
+  "files": [
+   {
+    "file": "duhat/b-hoi-411.webp",
+    "width": 411,
+    "height": 226,
+    "bytes": 3806
+   }
+  ]
+ },
+ "duhat/m-hoi": {
+  "type": "image",
+  "source": {
+   "width": 271,
+   "height": 389
+  },
+  "alpha": true,
+  "sig": "r34:4674",
+  "files": [
+   {
+    "file": "duhat/m-hoi-271.webp",
+    "width": 271,
+    "height": 389,
+    "bytes": 1932
+   }
+  ]
+ },
+ "duhat/cue-a": {
+  "type": "video",
+  "width": 540,
+  "height": 540,
+  "alpha": false,
+  "webm": "duhat/cue-a.webm",
+  "mp4": "duhat/cue-a.mp4",
+  "poster": "duhat/cue-a-poster.webp",
+  "sig": "r34:99762",
+  "files": [
+   {
+    "file": "duhat/cue-a.webm",
+    "bytes": 76164
+   },
+   {
+    "file": "duhat/cue-a.mp4",
+    "bytes": 38066
+   },
+   {
+    "file": "duhat/cue-a-poster.webp",
+    "bytes": 11866
+   }
+  ]
+ },
+ "duhat/cue-img": {
+  "type": "image",
+  "source": {
+   "width": 480,
+   "height": 270
+  },
+  "alpha": false,
+  "sig": "r34:5600",
+  "files": [
+   {
+    "file": "duhat/cue-img-480.webp",
+    "width": 480,
+    "height": 270,
+    "bytes": 3792
+   }
+  ]
+ },
+ "duhat/cue-b": {
+  "type": "video",
+  "width": 1080,
+  "height": 1080,
+  "alpha": false,
+  "webm": "duhat/cue-b.webm",
+  "mp4": "duhat/cue-b.mp4",
+  "poster": "duhat/cue-b-poster.webp",
+  "sig": "r34:2102484",
+  "files": [
+   {
+    "file": "duhat/cue-b.webm",
+    "bytes": 136473
+   },
+   {
+    "file": "duhat/cue-b.mp4",
+    "bytes": 158481
+   },
+   {
+    "file": "duhat/cue-b-poster.webp",
+    "bytes": 23888
+   }
+  ]
+ },
+ "duhat/cue-c": {
+  "type": "video",
+  "width": 600,
+  "height": 800,
+  "alpha": false,
+  "webm": "duhat/cue-c.webm",
+  "mp4": "duhat/cue-c.mp4",
+  "poster": "duhat/cue-c-poster.webp",
+  "sig": "r34:9120892",
+  "files": [
+   {
+    "file": "duhat/cue-c.webm",
+    "bytes": 151062
+   },
+   {
+    "file": "duhat/cue-c.mp4",
+    "bytes": 96728
+   },
+   {
+    "file": "duhat/cue-c-poster.webp",
+    "bytes": 30180
+   }
+  ]
+ },
+ "duhat/mood-e": {
+  "type": "image",
+  "source": {
+   "width": 640,
+   "height": 640
+  },
+  "alpha": false,
+  "sig": "r34:163602",
+  "files": [
+   {
+    "file": "duhat/mood-e-640.webp",
+    "width": 640,
+    "height": 640,
+    "bytes": 18482
+   }
+  ]
+ },
+ "duhat/mood-f": {
+  "type": "image",
+  "source": {
+   "width": 735,
+   "height": 450
+  },
+  "alpha": false,
+  "sig": "r34:34692",
+  "files": [
+   {
+    "file": "duhat/mood-f-735.webp",
+    "width": 735,
+    "height": 450,
+    "bytes": 22670
+   }
+  ]
+ },
+ "duhat/mood-g": {
+  "type": "image",
+  "source": {
+   "width": 735,
+   "height": 413
+  },
+  "alpha": false,
+  "sig": "r34:38410",
+  "files": [
+   {
+    "file": "duhat/mood-g-735.webp",
+    "width": 735,
+    "height": 413,
+    "bytes": 22290
+   }
+  ]
+ },
+ "duhat/adapt-c": {
+  "type": "video",
+  "width": 256,
+  "height": 144,
+  "alpha": false,
+  "webm": "duhat/adapt-c.webm",
+  "mp4": "duhat/adapt-c.mp4",
+  "poster": "duhat/adapt-c-poster.webp",
+  "sig": "r34:3202901",
+  "files": [
+   {
+    "file": "duhat/adapt-c.webm",
+    "bytes": 157786
+   },
+   {
+    "file": "duhat/adapt-c.mp4",
+    "bytes": 81017
+   },
+   {
+    "file": "duhat/adapt-c-poster.webp",
+    "bytes": 1644
+   }
+  ]
+ },
+ "duhat/adapt-d": {
+  "type": "video",
+  "width": 800,
+  "height": 426,
+  "alpha": false,
+  "webm": "duhat/adapt-d.webm",
+  "mp4": "duhat/adapt-d.mp4",
+  "poster": "duhat/adapt-d-poster.webp",
+  "sig": "r34:16467027",
+  "files": [
+   {
+    "file": "duhat/adapt-d.webm",
+    "bytes": 824098
+   },
+   {
+    "file": "duhat/adapt-d.mp4",
+    "bytes": 397024
+   },
+   {
+    "file": "duhat/adapt-d-poster.webp",
+    "bytes": 23818
+   }
+  ]
+ },
+ "duhat/phone": {
+  "type": "video",
+  "width": 854,
+  "height": 384,
+  "alpha": false,
+  "webm": "duhat/phone.webm",
+  "mp4": "duhat/phone.mp4",
+  "poster": "duhat/phone-poster.webp",
+  "sig": "r34:10241873",
+  "files": [
+   {
+    "file": "duhat/phone.webm",
+    "bytes": 667995
+   },
+   {
+    "file": "duhat/phone.mp4",
+    "bytes": 369922
+   },
+   {
+    "file": "duhat/phone-poster.webp",
+    "bytes": 33642
+   }
+  ]
+ },
+ "duhat/hero-still": {
+  "type": "image",
+  "source": {
+   "width": 854,
+   "height": 384
+  },
+  "alpha": true,
+  "sig": "r34:10241873",
+  "files": [
+   {
+    "file": "duhat/hero-still-800.webp",
+    "width": 800,
+    "height": 360,
+    "bytes": 32468
+   },
+   {
+    "file": "duhat/hero-still-854.webp",
+    "width": 854,
+    "height": 384,
+    "bytes": 32688
+   }
+  ]
+ },
+ "duhat/hands": {
+  "type": "video",
+  "width": 356,
+  "height": 200,
+  "alpha": false,
+  "webm": "duhat/hands.webm",
+  "mp4": "duhat/hands.mp4",
+  "poster": "duhat/hands-poster.webp",
+  "sig": "r34:4656806",
+  "files": [
+   {
+    "file": "duhat/hands.webm",
+    "bytes": 732210
+   },
+   {
+    "file": "duhat/hands.mp4",
+    "bytes": 412785
+   },
+   {
+    "file": "duhat/hands-poster.webp",
+    "bytes": 10168
+   }
+  ]
+ },
+ "duhat/girl": {
+  "type": "video",
+  "width": 800,
+  "height": 600,
+  "alpha": false,
+  "webm": "duhat/girl.webm",
+  "mp4": "duhat/girl.mp4",
+  "poster": "duhat/girl-poster.webp",
+  "sig": "r34:17784049",
+  "files": [
+   {
+    "file": "duhat/girl.webm",
+    "bytes": 1139864
+   },
+   {
+    "file": "duhat/girl.mp4",
+    "bytes": 451221
+   },
+   {
+    "file": "duhat/girl-poster.webp",
+    "bytes": 75824
+   }
+  ]
  }
 }

@@ -99,3 +99,10 @@ body { background: #000; color: #fff; font-family: var(--font-display); }
 .pj__scroller--plain .pj__pin { position: relative; height: auto; overflow-x: auto; display: flex; align-items: center; gap: calc(var(--ux) * 3.125); padding: calc(var(--ux) * 3.125); }
 .pj__scroller--plain .pj__layer { position: static; flex: none; transform: none !important; }
 .pj__scroller--plain .pj__layer > .pj__si { height: calc(var(--uy) * 56); }
+
+/* R35: loop hero at its own aspect (the still behind it fills the same box); row block: items at their own aspect ratios, one shared height, no crop */
+.pj__hero--loop { background: #000; }
+.pj__hero--loop > .pj__img { position: absolute; inset: 0; }
+.pj__rowblk { height: auto; align-items: center; justify-content: center; gap: var(--rg, 0px); padding-inline: calc((100% - var(--rw, 100%)) / 2); }
+.pj__ritem { position: relative; min-width: 0; overflow: hidden; }
+.pj__ritem > .pj__img { position: absolute; inset: 0; width: 100%; height: 100%; }

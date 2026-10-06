@@ -3,14 +3,40 @@
  "srcDir": "tools/scratch/duhat-src/media",
  "items": [
   {
+   "name": "phone",
+   "src": "image58.gif",
+   "kind": "loop",
+   "maxW": 854,
+   "crf": 30
+  },
+  {
+   "name": "hero-still",
+   "src": "image58.gif",
+   "kind": "img"
+  },
+  {
    "name": "hero",
    "src": "image59.png",
    "kind": "img"
   },
   {
+   "name": "hands",
+   "src": "image29.gif",
+   "kind": "loop",
+   "crop": [
+    356,
+    200,
+    222,
+    125
+   ],
+   "maxW": 356,
+   "crf": 30
+  },
+  {
    "name": "ring",
    "src": "image33.gif",
-   "kind": "loop"
+   "kind": "loop",
+   "maxW": 838
   },
   {
    "name": "couple",
@@ -18,9 +44,34 @@
    "kind": "img"
   },
   {
+   "name": "girl",
+   "src": "image51.gif",
+   "kind": "loop",
+   "maxW": 800
+  },
+  {
+   "name": "ring-o",
+   "src": "image3.gif",
+   "kind": "loop",
+   "alpha": false,
+   "maxW": 832,
+   "crop": [
+    832,
+    816,
+    536,
+    214
+   ]
+  },
+  {
    "name": "words",
    "src": "image28.png",
    "kind": "img"
+  },
+  {
+   "name": "s6",
+   "src": "image36.gif",
+   "kind": "loop",
+   "maxW": 1280
   },
   {
    "name": "t-ngang",
@@ -65,6 +116,11 @@
    "q": 90
   },
   {
+   "name": "pattern",
+   "src": "image37.png",
+   "kind": "img"
+  },
+  {
    "name": "circles",
    "src": "image19.png",
    "kind": "img"
@@ -80,18 +136,160 @@
    "kind": "img"
   },
   {
+   "name": "breath",
+   "src": "image40.png",
+   "kind": "img"
+  },
+  {
+   "name": "breath-loop",
+   "src": "image21.gif",
+   "kind": "loop",
+   "maxW": 1080
+  },
+  {
    "name": "gesture",
    "src": "image17.gif",
-   "kind": "loop"
+   "kind": "loop",
+   "maxW": 1440
+  },
+  {
+   "name": "g-sac",
+   "src": "image7.gif",
+   "kind": "loop",
+   "bg": "#fbfbf2",
+   "maxW": 838,
+   "crf": 30,
+   "crop": [
+    838,
+    566,
+    716,
+    214
+   ]
+  },
+  {
+   "name": "b-sac",
+   "src": "image24.png",
+   "kind": "img",
+   "q": 92,
+   "maxW": 411
+  },
+  {
+   "name": "m-sac",
+   "src": "image6.png",
+   "kind": "img",
+   "q": 92
+  },
+  {
+   "name": "g-huyen",
+   "src": "image15.gif",
+   "kind": "loop",
+   "bg": "#fbfbf2",
+   "maxW": 836,
+   "crf": 30,
+   "crop": [
+    836,
+    562,
+    716,
+    298
+   ]
+  },
+  {
+   "name": "b-huyen",
+   "src": "image16.png",
+   "kind": "img",
+   "q": 92,
+   "maxW": 411
+  },
+  {
+   "name": "m-huyen",
+   "src": "image8.png",
+   "kind": "img",
+   "q": 92
+  },
+  {
+   "name": "g-nang",
+   "src": "image11.gif",
+   "kind": "loop",
+   "bg": "#fbfbf2",
+   "maxW": 678,
+   "crf": 30,
+   "crop": [
+    678,
+    714,
+    622,
+    310
+   ]
+  },
+  {
+   "name": "b-nang",
+   "src": "image22.png",
+   "kind": "img",
+   "q": 92,
+   "maxW": 411
+  },
+  {
+   "name": "m-nang",
+   "src": "image10.png",
+   "kind": "img",
+   "q": 92
+  },
+  {
+   "name": "g-nga",
+   "src": "image27.gif",
+   "kind": "loop",
+   "bg": "#fbfbf2",
+   "maxW": 686,
+   "crf": 30,
+   "crop": [
+    686,
+    756,
+    664,
+    238
+   ]
+  },
+  {
+   "name": "b-nga",
+   "src": "image20.png",
+   "kind": "img",
+   "q": 92,
+   "maxW": 411
+  },
+  {
+   "name": "m-nga",
+   "src": "image31.png",
+   "kind": "img",
+   "q": 92
+  },
+  {
+   "name": "g-hoi",
+   "src": "image18.gif",
+   "kind": "loop",
+   "bg": "#fbfbf2",
+   "maxW": 730,
+   "crf": 30,
+   "crop": [
+    730,
+    730,
+    478,
+    166
+   ]
+  },
+  {
+   "name": "b-hoi",
+   "src": "image23.png",
+   "kind": "img",
+   "q": 92,
+   "maxW": 411
+  },
+  {
+   "name": "m-hoi",
+   "src": "image14.png",
+   "kind": "img",
+   "q": 92
   },
   {
    "name": "key-stack",
    "src": "image25.png",
-   "kind": "img"
-  },
-  {
-   "name": "keychain",
-   "src": "image26.png",
    "kind": "img"
   },
   {
@@ -100,14 +298,94 @@
    "kind": "img"
   },
   {
+   "name": "keychain",
+   "src": "image26.png",
+   "kind": "img"
+  },
+  {
    "name": "vinyl",
    "src": "image44.png",
    "kind": "img"
   },
   {
+   "name": "cue-a",
+   "src": "image30.gif",
+   "kind": "loop",
+   "maxW": 540
+  },
+  {
+   "name": "cue-img",
+   "src": "image34.jpg",
+   "kind": "img"
+  },
+  {
+   "name": "cue-b",
+   "src": "image32.gif",
+   "kind": "loop",
+   "maxW": 1080
+  },
+  {
+   "name": "cue-c",
+   "src": "image56.gif",
+   "kind": "loop",
+   "maxW": 600
+  },
+  {
+   "name": "mood-a",
+   "src": "image35.gif",
+   "kind": "loop",
+   "maxW": 600
+  },
+  {
+   "name": "mood-b",
+   "src": "image61.gif",
+   "kind": "loop",
+   "maxW": 720
+  },
+  {
+   "name": "mood-c",
+   "src": "image43.gif",
+   "kind": "loop",
+   "maxW": 800
+  },
+  {
+   "name": "mood-d",
+   "src": "image52.gif",
+   "kind": "loop",
+   "maxW": 800
+  },
+  {
+   "name": "mood-e",
+   "src": "image41.png",
+   "kind": "img"
+  },
+  {
+   "name": "mood-f",
+   "src": "image47.jpg",
+   "kind": "img"
+  },
+  {
+   "name": "mood-g",
+   "src": "image42.jpg",
+   "kind": "img"
+  },
+  {
    "name": "adapt-a",
    "src": "image57.gif",
-   "kind": "loop"
+   "kind": "loop",
+   "maxW": 800
+  },
+  {
+   "name": "adapt-c",
+   "src": "image45.gif",
+   "kind": "loop",
+   "maxW": 256
+  },
+  {
+   "name": "adapt-d",
+   "src": "image53.gif",
+   "kind": "loop",
+   "maxW": 800
   },
   {
    "name": "adapt-b",
@@ -123,27 +401,6 @@
    "name": "type-b",
    "src": "image55.png",
    "kind": "img"
-  },
-  {
-   "name": "mood-a",
-   "src": "image35.gif",
-   "kind": "loop"
-  },
-  {
-   "name": "mood-b",
-   "src": "image61.gif",
-   "kind": "loop",
-   "maxW": 720
-  },
-  {
-   "name": "mood-c",
-   "src": "image43.gif",
-   "kind": "loop"
-  },
-  {
-   "name": "mood-d",
-   "src": "image52.gif",
-   "kind": "loop"
   },
   {
    "name": "gear-a",

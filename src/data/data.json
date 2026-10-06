@@ -2312,12 +2312,45 @@
         "blocks": [
           {
             "t": "hero",
-            "img": "duhat/hero",
-            "parallax": {
-              "y": 0.25,
-              "s": 1,
-              "ds": 1,
-              "k": 0.0492
+            "img": "duhat/hero-still",
+            "loop": "duhat/phone",
+            "aspect": 2.224
+          },
+          {
+            "t": "full",
+            "aspect": 1.7778,
+            "img": {
+              "kind": "img",
+              "ref": "duhat/hero",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "loop",
+                "ref": "duhat/hands",
+                "aspect": 1.78
+              }
+            ],
+            "width": 37,
+            "pad": 60
+          },
+          {
+            "t": "text",
+            "label": "THE CIRCLE",
+            "text": "           Connection, community, family, friends, work.",
+            "pad": 58,
+            "hvh": 25
+          },
+          {
+            "t": "full",
+            "aspect": 1.7906,
+            "img": {
+              "kind": "loop",
+              "ref": "duhat/ring",
+              "fit": "cover"
             }
           },
           {
@@ -2327,25 +2360,49 @@
             "hvh": 50
           },
           {
-            "t": "split",
-            "left": {
-              "kind": "loop",
-              "ref": "duhat/ring",
-              "fit": "cover"
-            },
-            "right": {
-              "kind": "img",
-              "ref": "duhat/couple",
-              "fit": "cover"
-            }
+            "t": "text",
+            "label": "QUESTION",
+            "text": "           How do we make The Circle ours? Circles are universal. Every platform uses them: avatars, bubbles, rings, dots. A circle belongs to everyone and no one.",
+            "pad": 58
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "duhat/couple",
+                "aspect": 1.4473
+              }
+            ],
+            "width": 78,
+            "pad": 60
           },
           {
             "t": "text",
-            "label": "INSIGHT",
-            "text": "           Vietnamese is the only major language where a single stroke changes meaning entirely. The mark is the soul of the word."
+            "label": "THE IDEA",
+            "text": "           Bỏ dấu cho tròn.",
+            "pad": 58,
+            "hvh": 25
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "loop",
+                "ref": "duhat/girl",
+                "aspect": 1.3333
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/ring-o",
+                "aspect": 1.0196
+              }
+            ],
+            "width": 100
           },
           {
             "t": "full",
+            "aspect": 1.7778,
             "img": {
               "kind": "img",
               "ref": "duhat/words",
@@ -2354,80 +2411,24 @@
           },
           {
             "t": "text",
-            "label": "TONES",
-            "text": "           Six tones, six circles. Each dấu gives the circle its own form, colour and gesture.",
+            "label": "INSIGHT",
+            "text": "           Vietnamese is the only major language where a single stroke changes meaning entirely. The mark is the soul of the word. Without it, the word is empty."
+          },
+          {
+            "t": "full",
+            "aspect": 1.7778,
+            "img": {
+              "kind": "loop",
+              "ref": "duhat/s6",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "text",
+            "label": "BỎ DẤU CHO TRÒN",
+            "text": "           To give the dấu to the circle: to give meaning and fulfill.",
             "pad": 58,
             "hvh": 25
-          },
-          {
-            "t": "threeup",
-            "cells": [
-              {
-                "kind": "img",
-                "ref": "duhat/t-ngang",
-                "fit": "cover",
-                "w": 100,
-                "aspect": 1.7778,
-                "h": null,
-                "caption": "ngang",
-                "capColor": "#111"
-              },
-              {
-                "kind": "img",
-                "ref": "duhat/t-sac",
-                "fit": "cover",
-                "w": 100,
-                "aspect": 1.7778,
-                "h": null,
-                "caption": "sắc",
-                "capColor": "#111"
-              },
-              {
-                "kind": "img",
-                "ref": "duhat/t-huyen",
-                "fit": "cover",
-                "w": 100,
-                "aspect": 1.7778,
-                "h": null,
-                "caption": "huyền",
-                "capColor": "#fff"
-              }
-            ]
-          },
-          {
-            "t": "threeup",
-            "cells": [
-              {
-                "kind": "img",
-                "ref": "duhat/t-nang",
-                "fit": "cover",
-                "w": 100,
-                "aspect": 1.7778,
-                "h": null,
-                "caption": "nặng",
-                "capColor": "#111"
-              },
-              {
-                "kind": "img",
-                "ref": "duhat/t-hoi",
-                "fit": "cover",
-                "w": 100,
-                "aspect": 1.7778,
-                "h": null,
-                "caption": "hỏi",
-                "capColor": "#fff"
-              },
-              {
-                "kind": "img",
-                "ref": "duhat/t-nga",
-                "fit": "cover",
-                "w": 100,
-                "aspect": 1.7778,
-                "h": null,
-                "caption": "ngã",
-                "capColor": "#fff"
-              }
-            ]
           },
           {
             "t": "details",
@@ -2460,7 +2461,69 @@
             "body": "Duhat is an art treatment for a visual identity built from the Vietnamese diacritic, the “dấu”, and the circle.\nEvery tone becomes a gesture and a pattern: a shape you perform on content, so each conversation draws a circle of its own.\nThe treatment covers the tone circles, the way two circles overlap into a co-authored pattern, adaptive type, brand artifacts and motion."
           },
           {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "duhat/t-nga",
+                "aspect": 1.7778,
+                "cap": "ngã",
+                "capColor": "#fff"
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/t-ngang",
+                "aspect": 1.7778,
+                "cap": "ngang",
+                "capColor": "#111"
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/t-sac",
+                "aspect": 1.7778,
+                "cap": "sắc",
+                "capColor": "#111"
+              }
+            ]
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "duhat/t-huyen",
+                "aspect": 1.7778,
+                "cap": "huyền",
+                "capColor": "#fff"
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/t-nang",
+                "aspect": 1.7778,
+                "cap": "nặng",
+                "capColor": "#111"
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/t-hoi",
+                "aspect": 1.7778,
+                "cap": "hỏi",
+                "capColor": "#fff"
+              }
+            ]
+          },
+          {
             "t": "full",
+            "aspect": 1.7778,
+            "img": {
+              "kind": "img",
+              "ref": "duhat/pattern",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "full",
+            "aspect": 1.7778,
             "img": {
               "kind": "img",
               "ref": "duhat/circles",
@@ -2468,130 +2531,409 @@
             }
           },
           {
-            "t": "split",
-            "left": {
-              "kind": "img",
-              "ref": "duhat/phone-a",
-              "fit": "cover"
-            },
-            "right": {
-              "kind": "img",
-              "ref": "duhat/phone-b",
-              "fit": "cover"
-            }
+            "t": "text",
+            "label": "TWO CIRCLES, ONE SPACE",
+            "text": "           When two people mark the same content, their toned circles overlap. The intersection is co-authored: infinite possibility for combination, an evolving, ever-changing pattern system.",
+            "pad": 58
           },
           {
-            "t": "text",
-            "label": "MISC",
-            "text": "           Each dấu is a gesture you perform on content, not just a shape.",
-            "pad": 58,
-            "hvh": 25
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "duhat/phone-a",
+                "aspect": 1.3353
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/phone-b",
+                "aspect": 0.8
+              }
+            ]
           },
           {
             "t": "full",
+            "aspect": 1.7778,
             "img": {
-              "kind": "loop",
-              "ref": "duhat/gesture",
+              "kind": "img",
+              "ref": "duhat/breath",
               "fit": "cover"
             }
           },
           {
-            "t": "split",
-            "left": {
-              "kind": "img",
-              "ref": "duhat/key-stack",
-              "fit": "contain"
-            },
-            "right": {
-              "kind": "img",
-              "ref": "duhat/keychain",
-              "fit": "contain"
-            }
-          },
-          {
-            "t": "split",
-            "left": {
-              "kind": "img",
-              "ref": "duhat/key",
-              "fit": "cover"
-            },
-            "right": {
-              "kind": "img",
-              "ref": "duhat/vinyl",
-              "fit": "cover"
-            }
+            "t": "row",
+            "items": [
+              {
+                "kind": "loop",
+                "ref": "duhat/breath-loop",
+                "aspect": 1.0
+              }
+            ],
+            "width": 40,
+            "pad": 60
           },
           {
             "t": "text",
-            "label": "ADAPTIVE",
-            "text": "           Type adapts to the circle: serif for trusted, business circles, sans-serif for daily conversation, display for expressive ones.",
+            "label": "THE VISUAL BREATH",
+            "text": "           The visual breathes and changes with the context and the behavior of the user.",
             "pad": 58,
             "hvh": 25
           },
           {
-            "t": "split",
-            "left": {
-              "kind": "loop",
-              "ref": "duhat/adapt-a",
-              "fit": "cover"
-            },
-            "right": {
-              "kind": "img",
-              "ref": "duhat/adapt-b",
-              "fit": "cover"
-            }
+            "t": "text",
+            "label": "NOT JUST AN IMAGE",
+            "text": "           Each dấu isn’t just a visual shape, it’s a gesture you perform on content. The same stroke that gives the circle its form also triggers the platform action.",
+            "pad": 58
           },
           {
-            "t": "split",
-            "left": {
-              "kind": "img",
-              "ref": "duhat/type-a",
-              "fit": "cover"
-            },
-            "right": {
-              "kind": "img",
-              "ref": "duhat/type-b",
-              "fit": "cover"
-            }
+            "t": "row",
+            "items": [
+              {
+                "kind": "loop",
+                "ref": "duhat/gesture",
+                "aspect": 1.3353
+              }
+            ],
+            "width": 75,
+            "pad": 60
           },
           {
-            "t": "split",
-            "left": {
-              "kind": "loop",
-              "ref": "duhat/mood-a",
-              "fit": "cover"
-            },
-            "right": {
-              "kind": "loop",
-              "ref": "duhat/mood-b",
-              "fit": "cover"
-            }
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "duhat/m-sac",
+                "aspect": 1.156,
+                "wpx": 300
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/g-sac",
+                "aspect": 1.4806,
+                "wpx": 560,
+                "cap": "sắc: Pinned, highlighted, amplified.",
+                "capColor": "#111"
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/b-sac",
+                "aspect": 1.8186,
+                "wpx": 411
+              }
+            ],
+            "bg": "#fbfbf2",
+            "gap": 90,
+            "pad": 50
           },
           {
-            "t": "split",
-            "left": {
-              "kind": "loop",
-              "ref": "duhat/mood-c",
-              "fit": "cover"
-            },
-            "right": {
-              "kind": "loop",
-              "ref": "duhat/mood-d",
-              "fit": "cover"
-            }
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "duhat/m-huyen",
+                "aspect": 1.3706,
+                "wpx": 300
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/g-huyen",
+                "aspect": 1.4875,
+                "wpx": 560,
+                "cap": "huyền: Encrypted, hidden, view-once.",
+                "capColor": "#111"
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/b-huyen",
+                "aspect": 1.8186,
+                "wpx": 411
+              }
+            ],
+            "bg": "#fbfbf2",
+            "gap": 90,
+            "pad": 50
           },
           {
-            "t": "split",
-            "left": {
-              "kind": "loop",
-              "ref": "duhat/gear-a",
-              "fit": "cover"
-            },
-            "right": {
-              "kind": "loop",
-              "ref": "duhat/gear-b",
-              "fit": "cover"
-            }
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "duhat/m-nang",
+                "aspect": 0.8397,
+                "wpx": 210
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/g-nang",
+                "aspect": 0.9496,
+                "wpx": 560,
+                "cap": "nặng: Becomes a reminder, a task, a commitment.",
+                "capColor": "#111"
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/b-nang",
+                "aspect": 1.8186,
+                "wpx": 411
+              }
+            ],
+            "bg": "#fbfbf2",
+            "gap": 90,
+            "pad": 50
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "duhat/m-nga",
+                "aspect": 1.8833,
+                "wpx": 330
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/g-nga",
+                "aspect": 0.9074,
+                "wpx": 560,
+                "cap": "ngã: Sharing, content ripples to your circles.",
+                "capColor": "#111"
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/b-nga",
+                "aspect": 1.8186,
+                "wpx": 411
+              }
+            ],
+            "bg": "#fbfbf2",
+            "gap": 90,
+            "pad": 50
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "duhat/m-hoi",
+                "aspect": 0.6967,
+                "wpx": 190
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/g-hoi",
+                "aspect": 1.0,
+                "wpx": 560,
+                "cap": "hỏi: To ask, enquire, AI assistant.",
+                "capColor": "#111"
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/b-hoi",
+                "aspect": 1.8186,
+                "wpx": 411
+              }
+            ],
+            "bg": "#fbfbf2",
+            "gap": 90,
+            "pad": 50
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "duhat/key-stack",
+                "aspect": 0.5628
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/key",
+                "aspect": 1.0
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/keychain",
+                "aspect": 0.5714
+              }
+            ]
+          },
+          {
+            "t": "text",
+            "label": "BRAND ARTIFACTS",
+            "text": "           The tone keys and the vinyl.",
+            "pad": 58,
+            "hvh": 25
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "duhat/vinyl",
+                "aspect": 1.5092
+              }
+            ],
+            "width": 66,
+            "pad": 60
+          },
+          {
+            "t": "text",
+            "label": "VISUAL CUE INSPO",
+            "text": "           We visualize the voice of people through a combination of word and circles: sound waves forming circles, ripples that share the voice. The octaves can be replaced by words and characters.",
+            "pad": 58
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "loop",
+                "ref": "duhat/cue-a",
+                "aspect": 1.0
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/cue-img",
+                "aspect": 1.7778
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/cue-b",
+                "aspect": 1.0
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/cue-c",
+                "aspect": 0.7509
+              }
+            ]
+          },
+          {
+            "t": "text",
+            "label": "MOODBOARD",
+            "text": "           ",
+            "pad": 58,
+            "hvh": 15
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "loop",
+                "ref": "duhat/mood-c",
+                "aspect": 1.7778
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/mood-g",
+                "aspect": 1.7797
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/mood-a",
+                "aspect": 1.0
+              }
+            ]
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "loop",
+                "ref": "duhat/mood-d",
+                "aspect": 1.7778
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/mood-b",
+                "aspect": 0.8
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/mood-f",
+                "aspect": 1.6333
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/mood-e",
+                "aspect": 1.0
+              }
+            ]
+          },
+          {
+            "t": "text",
+            "label": "ADAPTIVE TEXT",
+            "text": "           The text beside forms a circle on its own, reacting to the tone of voice and changing shape and size.",
+            "pad": 58
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "loop",
+                "ref": "duhat/adapt-a",
+                "aspect": 1.8824
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/adapt-c",
+                "aspect": 1.7778,
+                "wpx": 512
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/adapt-d",
+                "aspect": 1.8824
+              }
+            ]
+          },
+          {
+            "t": "text",
+            "label": "ADAPTIVE TEXT",
+            "text": "           Another layer of customization differentiates the circles: the typeface. Serif for trusted, business circles. Sans-serif for daily conversation. Decorative display for expressive circles.",
+            "pad": 58
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "duhat/adapt-b",
+                "aspect": 0.9828
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/type-a",
+                "aspect": 1.0309
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/type-b",
+                "aspect": 1.0
+              }
+            ]
+          },
+          {
+            "t": "text",
+            "label": "OVERLAPPING CIRCLE BEHAVIOR",
+            "text": "           Cassette, back and forth, conversing. Circles as gears in a clockwork: sometimes they just click and grind smoothly.",
+            "pad": 58
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "loop",
+                "ref": "duhat/gear-a",
+                "aspect": 0.5625
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/gear-b",
+                "aspect": 0.5625
+              }
+            ],
+            "width": 60,
+            "pad": 60
           }
         ]
       }
