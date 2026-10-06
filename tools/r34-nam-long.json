@@ -4,12 +4,76 @@
  "items": [
   {
    "name": "hero",
-   "src": "image133.png",
+   "src": "image134.png",
+   "kind": "img"
+  },
+  {
+   "name": "idea",
+   "src": "image81.jpg",
    "kind": "img"
   },
   {
    "name": "story",
    "src": "image82.jpg",
+   "kind": "img"
+  },
+  {
+   "name": "s63a",
+   "src": "image108.png",
+   "kind": "img"
+  },
+  {
+   "name": "s63b",
+   "src": "image106.png",
+   "kind": "img"
+  },
+  {
+   "name": "s63c",
+   "src": "image105.png",
+   "kind": "img"
+  },
+  {
+   "name": "sl-a",
+   "src": "image110.png",
+   "kind": "img",
+   "q": 88
+  },
+  {
+   "name": "sl-b",
+   "src": "image111.png",
+   "kind": "img",
+   "q": 88
+  },
+  {
+   "name": "sl-c",
+   "src": "image107.png",
+   "kind": "img",
+   "q": 88
+  },
+  {
+   "name": "sl-d",
+   "src": "image109.png",
+   "kind": "img",
+   "q": 88
+  },
+  {
+   "name": "n-mark",
+   "src": "image120.png",
+   "kind": "img"
+  },
+  {
+   "name": "n-white",
+   "src": "image116.png",
+   "kind": "img"
+  },
+  {
+   "name": "luy",
+   "src": "image119.png",
+   "kind": "img"
+  },
+  {
+   "name": "system",
+   "src": "image117.png",
    "kind": "img"
   },
   {
@@ -19,23 +83,13 @@
    "maxW": 1200
   },
   {
-   "name": "n-white",
-   "src": "image116.png",
-   "kind": "img"
-  },
-  {
-   "name": "n-mark",
-   "src": "image120.png",
-   "kind": "img"
-  },
-  {
-   "name": "system",
-   "src": "image117.png",
-   "kind": "img"
-  },
-  {
    "name": "fund",
    "src": "image173.png",
+   "kind": "img"
+  },
+  {
+   "name": "billboard",
+   "src": "image168.png",
    "kind": "img"
   },
   {
@@ -44,13 +98,13 @@
    "kind": "img"
   },
   {
-   "name": "magazine",
-   "src": "image177.png",
+   "name": "award",
+   "src": "image193.png",
    "kind": "img"
   },
   {
-   "name": "award",
-   "src": "image193.png",
+   "name": "magazine",
+   "src": "image177.png",
    "kind": "img"
   },
   {

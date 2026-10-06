@@ -67,7 +67,7 @@ const assemble = (pieces) => {
 };
 
 const blocks = {
-  hero: (b) => b.loop ? `<section class="tp-hero" style="height:auto;aspect-ratio:${b.aspect}">${loop({ ref: b.loop })}</section>` : `<section class="tp-hero">${img(b.img, document.title.replace(/ \| Anh V$/, '')).replace('loading="lazy" decoding="async"', 'fetchpriority="high"')}</section>`,
+  hero: (b) => b.loop ? `<section class="tp-hero" style="height:auto;aspect-ratio:${b.aspect}">${loop({ ref: b.loop })}</section>` : `<section class="tp-hero"${b.aspect ? ` style="height:auto;aspect-ratio:${b.aspect}"` : ''}>${img(b.img, document.title.replace(/ \| Anh V$/, '')).replace('loading="lazy" decoding="async"', 'fetchpriority="high"')}</section>`,
   text: (b) => `<section class="tp-text tp-pad tp-fade"><span class="tp-label">${esc(b.label)}</span><p class="tp-lead">${esc(b.text.trim())}</p></section>`,
   split: (b) => assemble([...piecesOfCell(b.left), ...piecesOfCell(b.right)]),
   full: (b) => assemble([...piecesOfCell(b.img), ...(b.note ? [text(b.note.body)] : [])]),

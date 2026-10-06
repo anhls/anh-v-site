@@ -2956,7 +2956,8 @@
               "s": 1,
               "ds": 1,
               "k": 0.0492
-            }
+            },
+            "aspect": 1.7778
           },
           {
             "t": "text",
@@ -2966,47 +2967,136 @@
           },
           {
             "t": "full",
+            "aspect": 1.7778,
             "img": {
               "kind": "img",
-              "ref": "nam-long/story",
+              "ref": "nam-long/idea",
               "fit": "cover"
             }
           },
           {
             "t": "text",
             "label": "IDEA",
-            "text": "           Vững gốc, vượt thời: rooted, and lasting beyond time."
+            "text": "           Vững gốc, vượt thời: rooted, and lasting beyond time.",
+            "pad": 58,
+            "hvh": 25
           },
           {
-            "t": "split",
-            "left": {
-              "kind": "loop",
-              "ref": "nam-long/bamboo",
-              "fit": "cover"
-            },
-            "right": {
-              "kind": "img",
-              "ref": "nam-long/n-white",
-              "fit": "contain"
-            }
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "nam-long/story",
+                "aspect": 1.3333
+              }
+            ],
+            "width": 60,
+            "pad": 60
+          },
+          {
+            "t": "text",
+            "label": "BAMBOO",
+            "text": "           Bamboo: slatted, layered, lit.",
+            "pad": 58,
+            "hvh": 25
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "nam-long/s63a",
+                "aspect": 0.6667
+              },
+              {
+                "kind": "img",
+                "ref": "nam-long/s63b",
+                "aspect": 0.6667
+              },
+              {
+                "kind": "img",
+                "ref": "nam-long/s63c",
+                "aspect": 0.6651
+              }
+            ],
+            "gap": 12,
+            "bg": "#7a1d1a",
+            "pad": 40
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "nam-long/sl-a",
+                "aspect": 0.7497
+              },
+              {
+                "kind": "img",
+                "ref": "nam-long/sl-b",
+                "aspect": 0.7717
+              },
+              {
+                "kind": "img",
+                "ref": "nam-long/sl-c",
+                "aspect": 0.7955
+              },
+              {
+                "kind": "img",
+                "ref": "nam-long/sl-d",
+                "aspect": 0.6885
+              }
+            ],
+            "gap": 12,
+            "bg": "#7a1d1a",
+            "pad": 40
           },
           {
             "t": "text",
             "label": "SYMBOL",
             "text": "           A symbol drawn from the bamboo groves of Vietnam and joined with the letter “N”: strong and resilient, bound together as a rampart; growing strongly, never ceasing to multiply.",
-            "pad": 58,
-            "hvh": 25
+            "pad": 58
           },
           {
-            "t": "split",
-            "left": {
-              "kind": "img",
-              "ref": "nam-long/n-mark",
-              "fit": "contain"
-            },
-            "right": {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "nam-long/n-mark",
+                "aspect": 0.8601
+              },
+              {
+                "kind": "img",
+                "ref": "nam-long/n-white",
+                "aspect": 1.0
+              },
+              {
+                "kind": "img",
+                "ref": "nam-long/luy",
+                "aspect": 0.5698
+              }
+            ],
+            "bg": "#7a1d1a",
+            "width": 70,
+            "gap": 40,
+            "pad": 70
+          },
+          {
+            "t": "full",
+            "aspect": 1.7762,
+            "img": {
               "kind": "img",
               "ref": "nam-long/system",
+              "fit": "cover"
+            },
+            "bg": "#7a1d1a"
+          },
+          {
+            "t": "full",
+            "aspect": 1.7778,
+            "img": {
+              "kind": "loop",
+              "ref": "nam-long/bamboo",
               "fit": "cover"
             }
           },
@@ -3048,6 +3138,7 @@
           },
           {
             "t": "full",
+            "aspect": 1.7778,
             "img": {
               "kind": "img",
               "ref": "nam-long/fund",
@@ -3055,52 +3146,80 @@
             }
           },
           {
-            "t": "split",
-            "left": {
+            "t": "full",
+            "aspect": 1.7778,
+            "img": {
               "kind": "img",
-              "ref": "nam-long/booklet",
-              "fit": "cover"
-            },
-            "right": {
-              "kind": "img",
-              "ref": "nam-long/magazine",
+              "ref": "nam-long/billboard",
               "fit": "cover"
             }
           },
           {
-            "t": "split",
-            "left": {
+            "t": "full",
+            "aspect": 1.7778,
+            "img": {
               "kind": "img",
-              "ref": "nam-long/award",
+              "ref": "nam-long/booklet",
               "fit": "cover"
-            },
-            "right": {
+            }
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "nam-long/award",
+                "aspect": 0.9863
+              },
+              {
+                "kind": "img",
+                "ref": "nam-long/magazine",
+                "aspect": 1.5004
+              }
+            ],
+            "width": 90,
+            "pad": 60
+          },
+          {
+            "t": "full",
+            "aspect": 1.7778,
+            "img": {
               "kind": "loop",
               "ref": "nam-long/trophy",
               "fit": "cover"
             }
           },
           {
-            "t": "split",
-            "left": {
+            "t": "full",
+            "aspect": 1.9453,
+            "img": {
               "kind": "img",
               "ref": "nam-long/stage-a",
               "fit": "cover"
-            },
-            "right": {
+            }
+          },
+          {
+            "t": "full",
+            "aspect": 1.8021,
+            "img": {
               "kind": "img",
               "ref": "nam-long/stage-b",
               "fit": "cover"
             }
           },
           {
-            "t": "split",
-            "left": {
+            "t": "full",
+            "aspect": 1.7778,
+            "img": {
               "kind": "img",
               "ref": "nam-long/social-a",
               "fit": "cover"
-            },
-            "right": {
+            }
+          },
+          {
+            "t": "full",
+            "aspect": 2.4199,
+            "img": {
               "kind": "img",
               "ref": "nam-long/social-b",
               "fit": "cover"
@@ -3108,6 +3227,7 @@
           },
           {
             "t": "full",
+            "aspect": 1.7789,
             "img": {
               "kind": "img",
               "ref": "nam-long/closing",

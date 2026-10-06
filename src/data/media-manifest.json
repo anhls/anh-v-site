@@ -5228,25 +5228,25 @@
    "height": 1080
   },
   "alpha": false,
-  "sig": "r34:4305066",
+  "sig": "r34:2311995",
   "files": [
    {
     "file": "nam-long/hero-800.webp",
     "width": 800,
     "height": 450,
-    "bytes": 17942
+    "bytes": 28208
    },
    {
     "file": "nam-long/hero-1600.webp",
     "width": 1600,
     "height": 900,
-    "bytes": 52642
+    "bytes": 65044
    },
    {
     "file": "nam-long/hero-1920.webp",
     "width": 1920,
     "height": 1080,
-    "bytes": 79846
+    "bytes": 82608
    }
   ]
  },
@@ -6351,6 +6351,200 @@
    {
     "file": "duhat/girl-poster.webp",
     "bytes": 75824
+   }
+  ]
+ },
+ "nam-long/idea": {
+  "type": "image",
+  "source": {
+   "width": 1920,
+   "height": 1080
+  },
+  "alpha": false,
+  "sig": "r34:204756",
+  "files": [
+   {
+    "file": "nam-long/idea-800.webp",
+    "width": 800,
+    "height": 450,
+    "bytes": 27000
+   },
+   {
+    "file": "nam-long/idea-1600.webp",
+    "width": 1600,
+    "height": 900,
+    "bytes": 78350
+   },
+   {
+    "file": "nam-long/idea-1920.webp",
+    "width": 1920,
+    "height": 1080,
+    "bytes": 103686
+   }
+  ]
+ },
+ "nam-long/s63a": {
+  "type": "image",
+  "source": {
+   "width": 736,
+   "height": 1104
+  },
+  "alpha": false,
+  "sig": "r34:1030853",
+  "files": [
+   {
+    "file": "nam-long/s63a-736.webp",
+    "width": 736,
+    "height": 1104,
+    "bytes": 48290
+   }
+  ]
+ },
+ "nam-long/s63b": {
+  "type": "image",
+  "source": {
+   "width": 500,
+   "height": 750
+  },
+  "alpha": false,
+  "sig": "r34:556419",
+  "files": [
+   {
+    "file": "nam-long/s63b-500.webp",
+    "width": 500,
+    "height": 750,
+    "bytes": 20010
+   }
+  ]
+ },
+ "nam-long/s63c": {
+  "type": "image",
+  "source": {
+   "width": 560,
+   "height": 842
+  },
+  "alpha": false,
+  "sig": "r34:795227",
+  "files": [
+   {
+    "file": "nam-long/s63c-560.webp",
+    "width": 560,
+    "height": 842,
+    "bytes": 73326
+   }
+  ]
+ },
+ "nam-long/sl-a": {
+  "type": "image",
+  "source": {
+   "width": 563,
+   "height": 751
+  },
+  "alpha": false,
+  "sig": "r34:946306",
+  "files": [
+   {
+    "file": "nam-long/sl-a-563.webp",
+    "width": 563,
+    "height": 751,
+    "bytes": 61670
+   }
+  ]
+ },
+ "nam-long/sl-b": {
+  "type": "image",
+  "source": {
+   "width": 720,
+   "height": 933
+  },
+  "alpha": false,
+  "sig": "r34:1212500",
+  "files": [
+   {
+    "file": "nam-long/sl-b-720.webp",
+    "width": 720,
+    "height": 933,
+    "bytes": 90958
+   }
+  ]
+ },
+ "nam-long/sl-c": {
+  "type": "image",
+  "source": {
+   "width": 564,
+   "height": 709
+  },
+  "alpha": false,
+  "sig": "r34:921548",
+  "files": [
+   {
+    "file": "nam-long/sl-c-564.webp",
+    "width": 564,
+    "height": 709,
+    "bytes": 64642
+   }
+  ]
+ },
+ "nam-long/sl-d": {
+  "type": "image",
+  "source": {
+   "width": 736,
+   "height": 1069
+  },
+  "alpha": false,
+  "sig": "r34:1701789",
+  "files": [
+   {
+    "file": "nam-long/sl-d-736.webp",
+    "width": 736,
+    "height": 1069,
+    "bytes": 92566
+   }
+  ]
+ },
+ "nam-long/luy": {
+  "type": "image",
+  "source": {
+   "width": 771,
+   "height": 1353
+  },
+  "alpha": true,
+  "sig": "r34:7552",
+  "files": [
+   {
+    "file": "nam-long/luy-771.webp",
+    "width": 771,
+    "height": 1353,
+    "bytes": 2404
+   }
+  ]
+ },
+ "nam-long/billboard": {
+  "type": "image",
+  "source": {
+   "width": 1920,
+   "height": 1080
+  },
+  "alpha": false,
+  "sig": "r34:4258555",
+  "files": [
+   {
+    "file": "nam-long/billboard-800.webp",
+    "width": 800,
+    "height": 450,
+    "bytes": 49128
+   },
+   {
+    "file": "nam-long/billboard-1600.webp",
+    "width": 1600,
+    "height": 900,
+    "bytes": 182276
+   },
+   {
+    "file": "nam-long/billboard-1920.webp",
+    "width": 1920,
+    "height": 1080,
+    "bytes": 240720
    }
   ]
  }

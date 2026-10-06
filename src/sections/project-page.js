@@ -69,7 +69,7 @@ const stageItem = (it) => {
 
 const block = {
   // R35: hero with a loop at its own aspect (b.loop = the video ref, b.aspect = w / h; b.img = the still, the same picture the Work page / hand-off uses, sits behind the video until it plays)
-  hero: (b) => b.loop ? `<section class="pj__sec pj__hero pj__hero--loop" style="height:calc(100vw / ${b.aspect})">${img({ ref: b.img, fit: 'cover', alt: document.title.replace(/ \| Anh V$/, '') }, '100vw', true)}${loop({ kind: 'loop', ref: b.loop, fit: 'cover' })}</section>` : `<section class="pj__sec pj__hero">${img({ ref: b.img, fit: 'cover', parallax: b.parallax, alt: document.title.replace(/ \| Anh V$/, '') }, '100vw', true)}</section>`,
+  hero: (b) => b.loop ? `<section class="pj__sec pj__hero pj__hero--loop" style="height:calc(100vw / ${b.aspect})">${img({ ref: b.img, fit: 'cover', alt: document.title.replace(/ \| Anh V$/, '') }, '100vw', true)}${loop({ kind: 'loop', ref: b.loop, fit: 'cover' })}</section>` : `<section class="pj__sec pj__hero"${b.aspect ? ` style="height:calc(100vw / ${b.aspect})"` : ''}>${img({ ref: b.img, fit: 'cover', parallax: b.parallax, alt: document.title.replace(/ \| Anh V$/, '') }, '100vw', true)}</section>`,
   text: (b) => {
     const t = fadeText(b.text);
     const st = [b.hvh ? `height:${b.hvh}vh` : b.hpx ? `height:${uy(b.hpx)}` : '', b.pad ? `--padx:calc(var(--ux) * ${(b.pad / 19.2).toFixed(3)})` : ''].filter(Boolean).join(';');
