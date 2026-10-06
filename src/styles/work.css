@@ -54,9 +54,9 @@ html[data-layout='tall'], html[data-layout='tall'] body { overscroll-behavior: n
 .w2__ln { display: block; overflow: hidden; height: var(--w2-lh); } /* R33e: every line is its own mask */
 .w2__rin { display: block; will-change: transform, opacity; }
 .w2__desc { white-space: normal; width: calc(200 * var(--p)); opacity: var(--w2-desc); }
-.w2__tags[data-pos='side'] { left: calc(var(--hw) * -1 + var(--is-tagsDx) * var(--p)); top: calc(var(--hh) * -1 + var(--is-rowTop) * var(--p) + (25 * var(--p) - var(--w2-lh)) / 2); }
-.w2__year[data-pos='side'] { right: calc(var(--hw) * -1 - var(--is-yearRight) * var(--p)); top: calc(var(--hh) * -1 + var(--is-rowTop) * var(--p) + (25 * var(--p) - var(--w2-lh)) / 2); }
-.w2__desc[data-pos='side'] { left: calc(var(--hw) + var(--is-descLeft) * var(--p)); top: calc(var(--hh) * -1 + var(--is-rowTop) * var(--p) + (25 * var(--p) - var(--w2-lh)) / 2); }
+.w2__tags[data-pos='side'] { left: calc(var(--hw) * -1 + var(--is-tagsDx) * var(--p)); top: calc(var(--w2-infoY, 0px) + (25 * var(--p) - var(--w2-lh)) / 2); }
+.w2__year[data-pos='side'] { right: calc(var(--hw) * -1 - var(--is-yearRight) * var(--p)); top: calc(var(--w2-infoY, 0px) + (25 * var(--p) - var(--w2-lh)) / 2); }
+.w2__desc[data-pos='side'] { left: calc(var(--hw) + var(--is-descLeft) * var(--p)); top: calc(var(--w2-infoY, 0px) + (25 * var(--p) - var(--w2-lh)) / 2); }
 .w2__tags[data-pos='vertical'] { top: calc(-23.5 * var(--p) + (25 * var(--p) - var(--w2-lh)) / 2); left: calc(var(--hw) * -1 + var(--iv-tagsRight) * var(--p)) ; }
 .w2__year[data-pos='vertical'] { top: calc(-23.5 * var(--p) + (25 * var(--p) - var(--w2-lh)) / 2); left: calc(var(--hw) + var(--iv-yearLeft) * var(--p)) ; }
 .w2__desc[data-pos='vertical'] { top: calc(-23.5 * var(--p) + (25 * var(--p) - var(--w2-lh)) / 2); left: calc(var(--hw) + var(--iv-descLeft) * var(--p)) ; }

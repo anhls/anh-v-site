@@ -173,6 +173,14 @@ export function createV2({ app, projects, reduced }) {
     root.style.setProperty('--hh', `${(ih / 2).toFixed(2)}px`);
     root.style.setProperty('--cx', `${(T.W / 2).toFixed(2)}px`);
     root.style.setProperty('--cy', `${(T.H / 2).toFixed(2)}px`);
+    { // R33g: the side info block's top is fixed from the page top (WORK_INFO.side.top), moved up only to keep minGap off the image, never above the logo
+      const si = WORK_INFO.side, p = innerWidth / 1920, lh = WORK_UI.smallSize * (25 / 14) * p;
+      const rowOff = (25 * p - lh) / 2, imgTop = T.H / 2 - ih / 2;
+      let y = si.top * p;
+      const bottom = y + rowOff + 3 * lh; // (three lines = the tallest column)
+      if (bottom > imgTop - si.minGap * p) y = Math.max((si.logoBottom + si.logoGap) * p, y - (bottom - (imgTop - si.minGap * p)));
+      root.style.setProperty('--w2-infoY', `${(y - T.H / 2).toFixed(2)}px`);
+    }
     fitTitles(iw);
     applyVars();
     smear.cancel();

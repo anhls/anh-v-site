@@ -259,7 +259,7 @@ export const WORK = {
   // angle (radians) the sheet has turned at full strength, camDown / camUp = camera distance in screen heights (smaller = stronger perspective),
   // bowDown / bowUp = a shallow dome, reach = share of the strip's length that bends (1 - reach stays flat in the middle), sym = weight of the
   // leading side, riseSec / settleSec = how fast it grows while the strip moves / eases flat after it stops.
-  cardWarp: { strength: 1.15, riseSec: 1.5, settleSec: 1.4, curl: 0.5, camDown: 1.25, camUp: 1.25, bowDown: 0, bowUp: 0.05, reach: 1, sym: 1 },
+  cardWarp: { strength: 1.15, riseSec: 1.5, settleSec: 1.4, curl: 0.68, camDown: 1.25, camUp: 1.25, bowDown: 0.205, bowUp: 0.205, reach: 1, sym: 1 }, // (R33g: Anh's tuned curl / bow)
   // R33b: Anh's tuned image warp (grid twin: 0 folds, 0 samples outside the buffer at strength 1.6); the phone / tablet pages keep the R24j look below (TALL.frameWarp)
   frameWarp: { strength: 1.6, riseSec: 2.2, settleSec: 1.9, curl: 0.79, camDown: 2.24, camUp: 3.37, bowDown: 0.085, bowUp: 0.315, reach: 0.7, sym: 1, speedRef: 5, speedPow: 1.4, speedKnee: 2, lean: 0.4, leanSign: 1, leanSignDown: -1, leanSignUp: 1, leanMax: 0.45, leanBuf: 0.3 }, // R33: leanSignDown / leanSignUp = the lean's sign per scroll direction (down = wheel down: -1 leans AGAINST the motion; up +1 = toward it, as before); R24i: lean = how far (screen lengths along the strip, at warp amount 1) the cylinder axis moves toward where the images travel on screen; leanSign -1 flips it; leanMax caps the shift; lean 0 = the centred axis of before
   morphSec: 2, morphStagger: 0.45, morphEase: 3, morphLanding: 0.12, dupGap: 40,
@@ -319,7 +319,7 @@ export const WORK_TITLE = { weight: 600, size: 150, tracking: 0, fitFrac: 975 / 
 export const TITLE_SHORT = { 'tcb-priority': 'Techcomba', bitis09: 'Bitis DDTV', sulwhasoo: 'Sulwhasoo', forbes: 'Forbes' }; // (R33f: Similac Virgo fits at tracking 0 and needs none; 'Techcombank' alone is 1079 px, over the 975 limit, so it is cut to the longest piece that fits)
 export const WORK_INFO = {
   fadeIn: 0.12, fadeOut: 0.4, descChars: 90,
-  side: { tagsDx: -1.5, rowTop: -156, yearRight: -281, descLeft: -218, descW: 200 }, // above the image: block top = image top + rowTop; year's right edge = image right + yearRight; description from image right + descLeft
+  side: { tagsDx: -1.5, top: 60.4, minGap: 24, logoBottom: 50, logoGap: 8, yearRight: -281, descLeft: -218, descW: 200 }, // R33g: block top = `top` px from the PAGE top (row box top, px at 1920, not following the image: the design was FHD and ignored the browser chrome); if its bottom would come within `minGap` of the image top it moves up, never above logoBottom + logoGap; year's right edge = image right + yearRight; description from image right + descLeft
   vertical: { tagsRight: -211, yearLeft: 62, descLeft: 162, descW: 200 }, // beside the image: tags' left = image left + tagsRight; year / description from the image's right edge
 };
 export const WORK_RULER = { pitch: 21, extra: 5.5, dot: 3, bar: 34, barW: 2, rulerDimOpacity: 0.1, rulerCentreMin: 0.9, rulerShrinkSec: 0.25, rulerGrowSec: 0.4, side: { x: 962, bottom: 42 }, vertical: { x: 55, y: 531 } };
