@@ -1,0 +1,161 @@
+{
+ "slug": "duhat",
+ "srcDir": "tools/scratch/duhat-src/media",
+ "items": [
+  {
+   "name": "hero",
+   "src": "image59.png",
+   "kind": "img"
+  },
+  {
+   "name": "ring",
+   "src": "image33.gif",
+   "kind": "loop"
+  },
+  {
+   "name": "couple",
+   "src": "image13.png",
+   "kind": "img"
+  },
+  {
+   "name": "words",
+   "src": "image28.png",
+   "kind": "img"
+  },
+  {
+   "name": "t-ngang",
+   "src": "image1.png",
+   "kind": "img",
+   "maxW": 1280,
+   "q": 90
+  },
+  {
+   "name": "t-sac",
+   "src": "image12.png",
+   "kind": "img",
+   "maxW": 1280,
+   "q": 90
+  },
+  {
+   "name": "t-huyen",
+   "src": "image5.png",
+   "kind": "img",
+   "maxW": 1280,
+   "q": 90
+  },
+  {
+   "name": "t-nang",
+   "src": "image2.png",
+   "kind": "img",
+   "maxW": 1280,
+   "q": 90
+  },
+  {
+   "name": "t-hoi",
+   "src": "image4.png",
+   "kind": "img",
+   "maxW": 1280,
+   "q": 90
+  },
+  {
+   "name": "t-nga",
+   "src": "image9.png",
+   "kind": "img",
+   "maxW": 1280,
+   "q": 90
+  },
+  {
+   "name": "circles",
+   "src": "image19.png",
+   "kind": "img"
+  },
+  {
+   "name": "phone-a",
+   "src": "image49.png",
+   "kind": "img"
+  },
+  {
+   "name": "phone-b",
+   "src": "image38.png",
+   "kind": "img"
+  },
+  {
+   "name": "gesture",
+   "src": "image17.gif",
+   "kind": "loop"
+  },
+  {
+   "name": "key-stack",
+   "src": "image25.png",
+   "kind": "img"
+  },
+  {
+   "name": "keychain",
+   "src": "image26.png",
+   "kind": "img"
+  },
+  {
+   "name": "key",
+   "src": "image39.png",
+   "kind": "img"
+  },
+  {
+   "name": "vinyl",
+   "src": "image44.png",
+   "kind": "img"
+  },
+  {
+   "name": "adapt-a",
+   "src": "image57.gif",
+   "kind": "loop"
+  },
+  {
+   "name": "adapt-b",
+   "src": "image48.png",
+   "kind": "img"
+  },
+  {
+   "name": "type-a",
+   "src": "image46.png",
+   "kind": "img"
+  },
+  {
+   "name": "type-b",
+   "src": "image55.png",
+   "kind": "img"
+  },
+  {
+   "name": "mood-a",
+   "src": "image35.gif",
+   "kind": "loop"
+  },
+  {
+   "name": "mood-b",
+   "src": "image61.gif",
+   "kind": "loop",
+   "maxW": 720
+  },
+  {
+   "name": "mood-c",
+   "src": "image43.gif",
+   "kind": "loop"
+  },
+  {
+   "name": "mood-d",
+   "src": "image52.gif",
+   "kind": "loop"
+  },
+  {
+   "name": "gear-a",
+   "src": "image54.gif",
+   "kind": "loop",
+   "maxW": 450
+  },
+  {
+   "name": "gear-b",
+   "src": "image60.gif",
+   "kind": "loop",
+   "maxW": 450
+  }
+ ]
+}

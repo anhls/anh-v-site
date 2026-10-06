@@ -2299,11 +2299,306 @@
           }
         ]
       }
+    },
+    {
+      "slug": "duhat",
+      "index": "",
+      "title": "Duhat",
+      "client": "Vingroup · Duhat",
+      "year": 2026,
+      "live": true,
+      "page": {
+        "title": "Duhat",
+        "blocks": [
+          {
+            "t": "hero",
+            "img": "duhat/hero",
+            "parallax": {
+              "y": 0.25,
+              "s": 1,
+              "ds": 1,
+              "k": 0.0492
+            }
+          },
+          {
+            "t": "text",
+            "label": "ABOUT",
+            "text": "            Every relationship is a circle. Family, friendship, love. We say “vòng tròn” for a reason.\nEach person is their own circle: whole, but not the same.",
+            "hvh": 50
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "loop",
+              "ref": "duhat/ring",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "duhat/couple",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "text",
+            "label": "INSIGHT",
+            "text": "           Vietnamese is the only major language where a single stroke changes meaning entirely. The mark is the soul of the word."
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "img",
+              "ref": "duhat/words",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "text",
+            "label": "TONES",
+            "text": "           Six tones, six circles. Each dấu gives the circle its own form, colour and gesture.",
+            "pad": 58,
+            "hvh": 25
+          },
+          {
+            "t": "threeup",
+            "cells": [
+              {
+                "kind": "img",
+                "ref": "duhat/t-ngang",
+                "fit": "cover",
+                "w": 100,
+                "aspect": 1.7778,
+                "h": null,
+                "caption": "ngang"
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/t-sac",
+                "fit": "cover",
+                "w": 100,
+                "aspect": 1.7778,
+                "h": null,
+                "caption": "sắc"
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/t-huyen",
+                "fit": "cover",
+                "w": 100,
+                "aspect": 1.7778,
+                "h": null,
+                "caption": "huyền"
+              }
+            ]
+          },
+          {
+            "t": "threeup",
+            "cells": [
+              {
+                "kind": "img",
+                "ref": "duhat/t-nang",
+                "fit": "cover",
+                "w": 100,
+                "aspect": 1.7778,
+                "h": null,
+                "caption": "nặng"
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/t-hoi",
+                "fit": "cover",
+                "w": 100,
+                "aspect": 1.7778,
+                "h": null,
+                "caption": "hỏi"
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/t-nga",
+                "fit": "cover",
+                "w": 100,
+                "aspect": 1.7778,
+                "h": null,
+                "caption": "ngã"
+              }
+            ]
+          },
+          {
+            "t": "details",
+            "title": [
+              "Duhat",
+              "Art Direction"
+            ],
+            "heading": "Project Details",
+            "rows": [
+              [
+                "Client",
+                [
+                  "Vingroup",
+                  "Duhat"
+                ]
+              ],
+              [
+                "Year",
+                [
+                  "2026"
+                ]
+              ],
+              [
+                "Role",
+                [
+                  "Art Director"
+                ]
+              ]
+            ],
+            "body": "Duhat is an art treatment for a visual identity built from the Vietnamese diacritic, the “dấu”, and the circle.\nEvery tone becomes a gesture and a pattern: a shape you perform on content, so each conversation draws a circle of its own.\nThe treatment covers the tone circles, the way two circles overlap into a co-authored pattern, adaptive type, brand artifacts and motion."
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "img",
+              "ref": "duhat/circles",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "duhat/phone-a",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "duhat/phone-b",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "text",
+            "label": "MISC",
+            "text": "           Each dấu is a gesture you perform on content, not just a shape.",
+            "pad": 58,
+            "hvh": 25
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "loop",
+              "ref": "duhat/gesture",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "duhat/key-stack",
+              "fit": "contain"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "duhat/keychain",
+              "fit": "contain"
+            }
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "duhat/key",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "duhat/vinyl",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "text",
+            "label": "ADAPTIVE",
+            "text": "           Type adapts to the circle: serif for trusted, business circles, sans-serif for daily conversation, display for expressive ones.",
+            "pad": 58,
+            "hvh": 25
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "loop",
+              "ref": "duhat/adapt-a",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "duhat/adapt-b",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "duhat/type-a",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "duhat/type-b",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "loop",
+              "ref": "duhat/mood-a",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "loop",
+              "ref": "duhat/mood-b",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "loop",
+              "ref": "duhat/mood-c",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "loop",
+              "ref": "duhat/mood-d",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "loop",
+              "ref": "duhat/gear-a",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "loop",
+              "ref": "duhat/gear-b",
+              "fit": "cover"
+            }
+          }
+        ]
+      }
     }
   ],
   "moreProjects": {
     "label": "More Projects",
     "items": [
+      {
+        "name": "Duhat",
+        "slug": "duhat",
+        "image": "/media/duhat/hero-1600.webp"
+      },
       {
         "name": "Forbes Vanguard",
         "slug": "forbes",

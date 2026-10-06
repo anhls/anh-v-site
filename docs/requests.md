@@ -297,7 +297,7 @@ Checks (quick mode): 200 seeds on the homepage (1920x1080, 2560x1440, 1440x900) 
 
 ## R33j [done] (archived in docs/archive/requests-R33j.md)
 
-## R34 (NEW PROJECTS "Duhat" then "Nam Long": a project page + Work v2 entry each, built from Anh's pitch decks, not 1:1 copies; Part 2 = Nam Long, at the end of this request) (use Sonnet 5.5, quick mode; branch `work-v2`: commit there, never merge to main)
+## R34 [Part 1 Duhat done 2026-10-07, Part 2 Nam Long open] (NEW PROJECTS "Duhat" then "Nam Long": a project page + Work v2 entry each, built from Anh's pitch decks, not 1:1 copies; Part 2 = Nam Long, at the end of this request) (use Sonnet 5.5, quick mode; branch `work-v2`: commit there, never merge to main)
 
 Anh's brief: turn his client pitch deck "Duhat Art Direction" (Vingroup x Duhat, "Art Treatment 07. 2026") into a portfolio project in the same style as the existing ones (Similac / Bitis / Forbes pages, the same block renderer and the same media pipeline). It is an ITERATION of the deck into a portfolio piece: pictures and moving pieces curated, short captions only, no slide chrome, no slide numbers, no deck footers. Language: English captions (Vietnamese words like "Bỏ dấu cho Tròn", "dấu", the six tone names, are kept as they are).
 
