@@ -110,7 +110,11 @@ export function createV2({ app, projects, reduced }) {
   const measureSwitch = lineHover(switchEl);
   const smear = createSmear({ host: root, cfg: WORK_SMEAR, reduced });
   let mode = 'side';
-  slots[1].slot.style.filter = 'url(#w2-vblur)'; // R33c: the units' filter is attached for the whole visit (never toggled): no layer is made or dropped while it blurs. The tens has none while it stands still.
+  // R33c: the units' filter is attached for the whole visit (never toggled while it blurs): no layer is made or dropped while it blurs. The tens has none while it stands still.
+  // R33h: with counterBlurPx 0 (the default) or reduced motion NO filter is attached at all (no node, no layer, no stdDeviation writes); the ?tune slider switches it on live.
+  const blurOn = () => !reduced && WORK_COUNTER.counterBlurPx > 0;
+  let blurWas = false;
+  const syncBlur = () => { const on = blurOn(); if (on === blurWas) return; blurWas = on; slots[1].slot.style.filter = on ? 'url(#w2-vblur)' : 'none'; slots[1].slot.style.willChange = on ? 'filter' : ''; slots[0].slot.style.willChange = on ? 'filter' : ''; if (!on) { slots[0].filtered = false; slots[0].slot.style.filter = 'none'; } };
 
   // ---- titles: ONE size (WORK_TITLE.size x the window scale) for every project; a title that is wider than fitFrac of the image is replaced by its placeholder (TITLE_SHORT in timeline.js)
   const cv = document.createElement('canvas').getContext('2d');
@@ -294,7 +298,7 @@ export function createV2({ app, projects, reduced }) {
         const v = moves ? d0 + fr : d0; // the drum position in digits (the middle turn is offset by 10)
         if (Math.abs(v - sl.last) > 0.0005 || Number.isNaN(sl.last)) { sl.last = v; sl.drum.style.transform = `translate3d(0,${(-((v + 10) / 30) * 100).toFixed(4)}%,0)`; }
       }
-      if (j === 0) { const mv0 = moves; if (mv0 !== slots[0].filtered) { slots[0].filtered = mv0; slots[0].slot.style.filter = mv0 ? 'url(#w2-vblur)' : 'none'; } } // the tens: blurred only while it turns
+      if (j === 0) { const mv0 = moves; const f0 = mv0 && blurWas; if (f0 !== slots[0].filtered) { slots[0].filtered = f0; slots[0].slot.style.filter = f0 ? 'url(#w2-vblur)' : 'none'; } } // the tens: blurred only while it turns
     }
     // R33f: the "/N" STAYS where it is (as on huyml.co): a fixed place to the right of the widest possible two-digit numeral, top level with the numeral top; it never moves with the digits
     if (M.seam && Number.isNaN(lastTotalX)) { let w = 0; for (let d = 0; d < 10; d++) w = Math.max(w, M.inkR[d]); lastTotalX = M.seam + w + M.gap; totalEl.style.transform = `translate3d(${lastTotalX.toFixed(2)}px,0,0)`; totalEl.style.top = `${M.totalTop.toFixed(2)}px`; }
@@ -345,8 +349,8 @@ export function createV2({ app, projects, reduced }) {
     // ---- counter (odometer): the project number; the filter is stable, only its blur changes (quantised)
     if (s.idxHead !== lastIdx && stopped) { lastIdx = s.idxHead; srEl.textContent = `Project ${String(s.idxHead + 1).padStart(2, '0')} of ${N}`; }
     setCounter(dt, s.kNum, stopped);
-    const cb = reduced ? 0 : Math.round(bp * WORK_COUNTER.counterBlurPx * 4) / 4;
-    if (cb !== lastBlur) { lastBlur = cb; blurNode.setAttribute('stdDeviation', `0 ${cb}`); }
+    syncBlur();
+    if (blurWas) { const cb = Math.round(bp * WORK_COUNTER.counterBlurPx * 4) / 4; if (cb !== lastBlur) { lastBlur = cb; blurNode.setAttribute('stdDeviation', `0 ${cb}`); } }
     numEl.style.opacity = reduced ? String(1 - bp) : '1';
     // ---- scroll line: x = frac(strip position / N) x the page size, eased after the strip; the second instance rolls in from the other edge
     if (lineI.length) {

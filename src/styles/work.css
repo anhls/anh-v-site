@@ -71,7 +71,7 @@ html[data-layout='tall'], html[data-layout='tall'] body { overscroll-behavior: n
 .w2__counter { position: absolute; left: calc(45 * var(--p)); bottom: calc(29 * var(--p)); display: flex; align-items: baseline; color: var(--w2-c); }
 .w2__label { opacity: var(--w2-dim); width: calc(132 * var(--p)); flex: none; position: relative; top: calc(-4.5 * var(--p)); } /* R33f: a fixed width, so the numeral does not move with the size of the small text */
 .w2__num { position: relative; display: flex; font-size: calc(var(--w2-num, 100) * var(--p)); font-weight: 200; line-height: 0.74; letter-spacing: 0; height: 0.74em; }
-.w2__slot { position: relative; display: block; width: 0.7em; height: 0.74em; overflow: hidden; clip-path: inset(0 0 1.5px 0); will-change: filter; } /* R33d: one digit tall, masked; the TENS is right-aligned and the UNITS left-aligned on their shared seam */
+.w2__slot { position: relative; display: block; width: 0.7em; height: 0.74em; overflow: hidden; clip-path: inset(0 0 1.5px 0); } /* R33d: one digit tall, masked; the TENS is right-aligned and the UNITS left-aligned on their shared seam */
 .w2__col { position: absolute; left: 0; top: 0; width: 100%; will-change: transform; }
 .w2__wrapcol { display: none; }
 .w2__col span { display: block; height: 0.74em; }

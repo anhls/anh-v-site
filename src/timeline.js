@@ -343,7 +343,7 @@ export const WORK_LINE = { scrollLineOn: 1, scrollLineOpacity: 0.12, scrollLineF
 // effect on the side pictures (0 = centre only); pixelSpill = px (at 1920) the displaced picture may draw past its edge; clickSec = ease-out on a press / drag / strip move;
 // warpCap = how strongly the scroll warp fades it (1 = gone at full warp).
 export const WORK_PTR = { on: 1, pixelGrid: 32, pixelBrush: 0.12, pixelStrength: 0.04, pixelRelax: 0.9, pixelVelMax: 2.5, pixelRgb: 0.01, pixelSideMul: 1, pixelSpill: 40, clickSec: 0.15, warpCap: 1 };
-export const WORK_COUNTER = { size: 100, counterSettleSec: 0.35, counterBlurPx: 10, counterMaxSteps: 12, counterOvershoot: 0 };
+export const WORK_COUNTER = { size: 100, counterSettleSec: 0.35, counterBlurPx: 0, counterMaxSteps: 12, counterOvershoot: 0 };
 // R32 copy and links (Anh rewrites the text here). hideNav: the nav links are not drawn on the Work page desktop (the logo stays).
 export const WORK_UI = { color: '#eae8e5', dimOpacity: 0.1, descOpacity: 0.5, smallSize: 10.5, tracking: 0.05, counterTracking: -0.02, copy: { side: 'Feeling vertical? Flip it', vertical: 'Feeling sideways? Flip it' }, label: 'Selected Work', reachLabel: 'Reach out', reachEmail: 'anhlsls1@gmail.com', hideNav: true };
 // Cards per project (R23b, the same rules as BAND_LIMITS on the homepage): count and total area (px2 at 1920) of the cards along one

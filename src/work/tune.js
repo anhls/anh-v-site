@@ -57,6 +57,13 @@ const RELOAD = [
 export function mountWorkTune({ relayout }) {
   const store = tuneStore('work', ['WORK_LIMITS', 'DEPTH', 'HOVER', 'WORK.seed', 'BAND_RULES']);
   const defaults = { v2: V2_SLIDERS.map(([o]) => ({ ...o })), copy: { ...WORK_UI.copy }, WORK: { ...WORK }, TRANSITION: { ...TRANSITION }, SCROLL: { ...SCROLL }, cardWarp: { ...WORK.cardWarp }, frameWarp: { ...WORK.frameWarp }, TALL: { ...TALL }, tallWarp: { ...TALL.frameWarp }, TABLET: { ...TABLET } };
+  // R33h: every object the panel can change, under the names timeline.js exports them (WORK carries cardWarp / frameWarp, TALL carries frameWarp; WORK_UI carries copy). "Copy values" writes all of
+  // them, "Copy changed only" the leaves that differ from this snapshot (taken before the stored slider values are applied = the timeline.js defaults, plus the URL overrides of the card shares).
+  const EXPORT = { WORK, WORK_LIMITS, SCROLL, TRANSITION, TALL, TABLET, WORK_V2, WORK_UI, WORK_TITLE, WORK_INFO, WORK_RULER, WORK_TEXT, WORK_COUNTER, WORK_SMEAR, WORK_LINE, WORK_PTR, CARD_HOVER, DEPTH, BAND_RULES };
+  const plain = (o) => JSON.parse(JSON.stringify(o)); // (functions such as SCROLL.easing drop out)
+  const snapshot = plain(EXPORT);
+  const diffOf = (cur, def, out = {}) => { for (const k of Object.keys(cur)) { const a = cur[k], b = def?.[k]; if (a && typeof a === 'object' && !Array.isArray(a)) { const sub = diffOf(a, b || {}); if (Object.keys(sub).length) out[k] = sub; } else if (JSON.stringify(a) !== JSON.stringify(b)) out[k] = a; } return out; };
+  const applyDeep = (target, src) => { for (const k of Object.keys(src)) { if (src[k] && typeof src[k] === 'object' && !Array.isArray(src[k]) && target[k] && typeof target[k] === 'object') applyDeep(target[k], src[k]); else if (typeof src[k] !== 'function') target[k] = src[k]; } };
   const box = document.createElement('div');
   box.style.cssText = 'position:fixed;top:12px;right:12px;z-index:99999;width:290px;max-height:calc(100vh - 24px);overflow:auto;padding:12px 14px;background:rgba(20,20,20,.92);color:#fff;font:12px/1.35 system-ui,sans-serif;border-radius:8px';
   const head = document.createElement('div');
@@ -69,7 +76,7 @@ export function mountWorkTune({ relayout }) {
   box.setAttribute('data-tune-box', '');
   const groups = tuneGroups(content, 'work', store, tuneDoc); // R22h: Active / Settled + the descriptions; R33c: + Legacy (hidden)
   legacySwitch(content, 'work', store);
-  const readouts = [];
+  const readouts = [], copyRows = [];
   const add = (group, obj, [key, label, min, max, step], onInput) => {
     const id = `${group}.${key}`;
     const row = document.createElement('label');
@@ -77,7 +84,7 @@ export function mountWorkTune({ relayout }) {
     row.innerHTML = `<span style="display:flex;justify-content:space-between"><span>${label}</span><span data-v>${obj[key]}</span></span><input type="range" min="${min}" max="${max}" step="${step}" value="${obj[key]}" style="width:100%">`;
     const input = row.querySelector('input'), v = row.querySelector('[data-v]');
     input.addEventListener('input', () => { obj[key] = parseFloat(input.value); v.textContent = obj[key]; store.set(id, obj[key]); onInput?.(); });
-    readouts.push({ obj, key, input, v });
+    readouts.push({ obj, key, input, v, def: obj[key], label: row.firstElementChild.firstElementChild });
     groups.add(id, row);
     return id;
   };
@@ -91,7 +98,7 @@ export function mountWorkTune({ relayout }) {
     Object.keys(EASES).forEach((k) => { const o = document.createElement('option'); o.value = k; o.textContent = k === 'circ' ? 'circ (the old curve)' : k; sel.append(o); });
     sel.value = WORK.easeType;
     sel.addEventListener('change', () => { WORK.easeType = sel.value; store.set('WORK.easeType', sel.value); });
-    readouts.push({ obj: WORK, key: 'easeType', input: sel, v: { textContent: '' } });
+    readouts.push({ obj: WORK, key: 'easeType', input: sel, v: { textContent: '' }, def: WORK.easeType, label: row.firstElementChild });
     groups.add('WORK.easeType', row);
     defs['WORK.easeType'] = [WORK, 'easeType'];
   }
@@ -105,7 +112,7 @@ export function mountWorkTune({ relayout }) {
     const apply = (v) => { WORK.focusAfterMorph = v === 'input' ? 'input' : Number(v); };
     sel.value = String(WORK.focusAfterMorph);
     sel.addEventListener('change', () => { apply(sel.value); store.set('WORK.focusAfterMorph', WORK.focusAfterMorph); });
-    readouts.push({ obj: WORK, key: 'focusAfterMorph', input: sel, v: { textContent: '' } });
+    readouts.push({ obj: WORK, key: 'focusAfterMorph', input: sel, v: { textContent: '' }, def: WORK.focusAfterMorph, label: row.firstElementChild });
     groups.add('WORK.focusAfterMorph', row);
     defs['WORK.focusAfterMorph'] = [WORK, 'focusAfterMorph'];
   }
@@ -131,6 +138,7 @@ export function mountWorkTune({ relayout }) {
       row.innerHTML = `<span style="display:block">${label}</span><input type="text" style="width:100%" value="${WORK_UI.copy[k]}">`;
       const inp = row.querySelector('input');
       inp.addEventListener('input', () => { WORK_UI.copy[k] = inp.value; relayout(); });
+      copyRows.push({ k, inp, def: WORK_UI.copy[k], label: row.firstElementChild });
       groups.add(`WORK_UI.copy.${k}`, row);
     }
   }
@@ -166,16 +174,40 @@ export function mountWorkTune({ relayout }) {
   row.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-top:8px';
   const btn = (text, fn) => { const b = document.createElement('button'); b.textContent = text; b.style.cssText = 'padding:6px;cursor:pointer;width:100%'; b.onclick = fn; row.append(b); return b; };
   btn('Apply (reload)', () => { const u = new URL(location.href); u.searchParams.set('dark', CARD_HOVER.darkShare); u.searchParams.set('front', DEPTH.frontShare); u.searchParams.set('wlimits', JSON.stringify(WORK_LIMITS)); u.searchParams.set('pairov', BAND_RULES.pairOverlapMax); location.href = u.href; });
-  const copy = btn('Copy values', async () => { await navigator.clipboard.writeText(JSON.stringify({ WORK, WORK_LIMITS, SCROLL: { gainCap: SCROLL.gainCap, gainFrom: SCROLL.gainFrom, gainTo: SCROLL.gainTo, gainDecay: SCROLL.gainDecay }, darkShare: CARD_HOVER.darkShare, frontShare: DEPTH.frontShare }, null, 2)); copy.textContent = 'Copied'; setTimeout(() => { copy.textContent = 'Copy values'; }, 1200); });
-  btn('Reset to defaults', () => {
+  const copyText = (b, label, text) => async () => { await navigator.clipboard.writeText(text()); b.textContent = 'Copied'; setTimeout(() => { b.textContent = label; }, 1200); };
+  const fullJson = () => JSON.stringify(plain(EXPORT), null, 2);
+  const changedJson = () => JSON.stringify(diffOf(plain(EXPORT), snapshot), null, 2);
+  const copy = btn('Copy values', () => copyText(copy, 'Copy values', fullJson)());
+  const copyChanged = btn('Copy changed only', () => copyText(copyChanged, 'Copy changed only', changedJson)());
+  const resetBtn = btn('Reset to defaults', () => {
     Object.assign(WORK, defaults.WORK); Object.assign(SCROLL, defaults.SCROLL); Object.assign(TRANSITION, defaults.TRANSITION); Object.assign(WORK.cardWarp, defaults.cardWarp); Object.assign(WORK.frameWarp, defaults.frameWarp); Object.assign(TALL, defaults.TALL); Object.assign(TALL.frameWarp, defaults.tallWarp); Object.assign(TABLET, defaults.TABLET); V2_SLIDERS.forEach(([o], i) => Object.assign(o, defaults.v2[i])); Object.assign(WORK_UI.copy, defaults.copy);
     store.clear();
     groups.reset();
     readouts.forEach((r) => { r.input.value = r.obj[r.key]; r.v.textContent = r.obj[r.key]; });
     relayout();
+    copyRows.forEach((r) => { r.inp.value = r.def; });
+    refreshMarks();
     msg.textContent = 'Reset to the defaults in timeline.js';
   });
   content.append(row, msg);
+  // R33h: a control that differs from its default gets a dot before its label, and the header counts them ("N changed") with a reset next to it.
+  const changedCount = document.createElement('span'); changedCount.style.cssText = 'opacity:.85;font-size:11px;white-space:nowrap';
+  const headReset = document.createElement('button'); headReset.textContent = 'reset'; headReset.style.cssText = 'all:unset;cursor:pointer;text-decoration:underline;font-size:11px;opacity:.85;margin-left:6px';
+  const tagMark = (el, on) => { if (!el) return; const t = el.getAttribute('data-orig') ?? el.textContent; if (!el.hasAttribute('data-orig')) el.setAttribute('data-orig', t); el.textContent = on ? `● ${t}` : t; el.style.color = on ? '#ffb347' : ''; };
+  const refreshMarks = () => {
+    let n = 0;
+    readouts.forEach((r) => { const ch = String(r.obj[r.key]) !== String(r.def); if (ch) n++; tagMark(r.label, ch); });
+    copyRows.forEach((r) => { const ch = WORK_UI.copy[r.k] !== r.def; if (ch) n++; tagMark(r.label, ch); });
+    changedCount.textContent = n ? `${n} changed` : '';
+    headReset.style.display = n ? '' : 'none';
+    return n;
+  };
+  const headRight = document.createElement('span'); headRight.style.cssText = 'display:flex;align-items:center;gap:6px';
+  headRight.append(changedCount, headReset); head.insertBefore(headRight, collapseBtn);
+  headReset.addEventListener('click', () => resetBtn.click());
+  box.addEventListener('input', () => setTimeout(refreshMarks, 0)); box.addEventListener('change', () => setTimeout(refreshMarks, 0));
+  // dev hook for the round-trip test: window.__tune.apply(json) puts a pasted export back into the live objects
+  window.__tune = { full: fullJson, changed: changedJson, count: refreshMarks, apply: (json) => { applyDeep(EXPORT, typeof json === 'string' ? JSON.parse(json) : json); readouts.forEach((r) => { r.input.value = r.obj[r.key]; r.v.textContent = r.obj[r.key]; }); copyRows.forEach((r) => { r.inp.value = WORK_UI.copy[r.k]; }); relayout(); refreshMarks(); } };
   document.body.append(box);
   makeCollapse(box, [content], collapseBtn);
   // the values kept from the last visit
@@ -187,4 +219,5 @@ export function mountWorkTune({ relayout }) {
     relayout();
     msg.textContent = `Re-applied ${ids.length} saved values (Reset to defaults clears them)`;
   }
+  refreshMarks();
 }
