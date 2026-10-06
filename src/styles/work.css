@@ -50,9 +50,10 @@ html[data-layout='tall'], html[data-layout='tall'] body { overscroll-behavior: n
 .w2__titles, .w2__infos { position: absolute; inset: 0; }
 .w2__title { position: absolute; left: 0; top: 0; display: block; text-align: center; white-space: nowrap; font-weight: 600; line-height: 1; letter-spacing: var(--w2-track, 0.05em); color: var(--w2-c); opacity: 0; font-kerning: normal; text-rendering: geometricPrecision; will-change: opacity; }
 .w2__info { position: absolute; left: var(--cx, 50%); top: var(--cy, 50%); width: 0; height: 0; will-change: filter, opacity; }
-.w2__tags, .w2__year, .w2__desc { position: absolute; white-space: nowrap; overflow: hidden; } /* R33d: each block is the mask of its own roll */
+.w2__tags, .w2__year, .w2__desc { position: absolute; white-space: nowrap; } /* R33d: each block is the mask of its own roll */
+.w2__ln { display: block; overflow: hidden; height: calc(25 * var(--p)); } /* R33e: every line is its own mask */
 .w2__rin { display: block; will-change: transform, opacity; }
-.w2__desc { white-space: normal; width: calc(200 * var(--p)); opacity: var(--w2-desc); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.w2__desc { white-space: normal; width: calc(200 * var(--p)); opacity: var(--w2-desc); }
 .w2__tags[data-pos='side'] { left: calc(var(--hw) * -1 + var(--is-tagsDx) * var(--p)); top: calc(var(--hh) * -1 + var(--is-rowTop) * var(--p)); }
 .w2__year[data-pos='side'] { right: calc(var(--hw) * -1 - var(--is-yearRight) * var(--p)); top: calc(var(--hh) * -1 + var(--is-rowTop) * var(--p)); }
 .w2__desc[data-pos='side'] { left: calc(var(--hw) + var(--is-descLeft) * var(--p)); top: calc(var(--hh) * -1 + var(--is-rowTop) * var(--p)); }

@@ -248,6 +248,10 @@ Object.assign(TUNE_DOCS, {
 });
 // R32 / R33 Work page v2 (desktop)
 Object.assign(TUNE_DOCS, {
+  'WORK_V2.rollLineStagger': 'The info text rolls line by line: delay between one line and the next inside a column (s). The three columns roll together.',
+  'WORK_V2.rollMinSec': 'When you scroll fast the info text rolls out and in quickly: this is the roll time at full speed (s). Slow scrolling uses the full 0.4 s nav-link roll.',
+  'WORK_V2.rollSpeedRef': 'The strip speed (screen lengths per second) at which the info roll is as quick as it gets.',
+  'WORK_V2.rollSpeedPow': 'How the roll time falls between slow and fast scrolling (1 = straight, higher = only a really hard flick gets the fast roll).',
   'WORK_TITLE.size': 'Size of the project title in pt (px at 1920x1080; it scales with the window). Every project uses this one size; a title that does not fit is replaced by its short placeholder (TITLE_SHORT in timeline.js).',
   'WORK_TITLE.tracking': 'Letter spacing of the title (em; 0.05 = the design tool 50).',
   'WORK_TITLE.fitFrac': 'Widest a title may be, as a share of the image width. Longer titles use their placeholder.',
@@ -266,6 +270,8 @@ Object.assign(TUNE_DOCS, {
   'WORK_LINE.scrollLineOver': '1 = the line is drawn over the pictures, 0 = behind them (the default).',
   'WORK_SMEAR.enterSec': 'How long the title takes to form at scroll stop (s): it streaks in from the lower-left corner and wobbles until it is sharp.',
   'WORK_SMEAR.enterPow': 'Shape of that formation: higher = it comes together faster at the start and settles slowly.',
+  'WORK_SMEAR.enterAlphaPow':'How quickly the title becomes solid while it forms: 1 = together with the wobble fading, lower = readable earlier.',
+  'WORK_SMEAR.leaveAlphaPow':'How long the letters stay solid while they streak toward the upper-right: lower = they stay readable longer, 1 = they fade together with the distortion.',
   'WORK_SMEAR.leaveSec': 'How long the title takes to blow out toward the upper-right and fade when the strip starts to move (s).',
   'WORK_SMEAR.noiseScale': 'Size of the wobble in the title while it forms (higher = smaller, busier waves).',
   'WORK_SMEAR.noiseAmount': 'How strongly the title wobbles and shears while it forms.',

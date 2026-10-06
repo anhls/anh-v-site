@@ -27,6 +27,7 @@ uniform float uNoiseScale;
 uniform float uNoiseAmt;
 uniform float uPull;
 uniform float uAlpha;
+uniform vec2 uAlphaPow;   // x enter, y leave: the alpha is pow(p, this), so the distortion can lead and the letters stay readable longer
 out vec4 o;
 vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
 vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -86,7 +87,7 @@ void main() {
     uv = clamp(uv, 0.0, 1.0);                                                  // the edge texels streak toward the corner
   }
   vec4 c = texture(uTex, vec2(uv.x, 1.0 - uv.y));
-  o = c * (uAlpha * k);
+  o = c * (uAlpha * pow(k, uProgress < 0.5 ? uAlphaPow.x : uAlphaPow.y));
 }`;
 
 const ease = (x, pow) => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), pow);
@@ -110,7 +111,7 @@ export function createSmear({ host, cfg, reduced }) {
     const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
     prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS)); gl.bindAttribLocation(prog, 0, 'a'); gl.linkProgram(prog);
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { gl = null; canvas = null; lost = true; return false; }
-    loc = Object.fromEntries(['uTex', 'uRes', 'uDpr', 'uAnchor', 'uTexSize', 'uTexAnchor', 'uProgress', 'uTime', 'uNoiseScale', 'uNoiseAmt', 'uPull', 'uAlpha'].map((k) => [k, gl.getUniformLocation(prog, k)]));
+    loc = Object.fromEntries(['uTex', 'uRes', 'uDpr', 'uAnchor', 'uTexSize', 'uTexAnchor', 'uProgress', 'uTime', 'uNoiseScale', 'uNoiseAmt', 'uPull', 'uAlpha', 'uAlphaPow'].map((k) => [k, gl.getUniformLocation(prog, k)]));
     vao = gl.createVertexArray(); gl.bindVertexArray(vao);
     const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1]), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
@@ -165,10 +166,10 @@ export function createSmear({ host, cfg, reduced }) {
     gl.uniform1i(loc.uTex, 0); gl.uniform2f(loc.uRes, innerWidth, innerHeight); gl.uniform1f(loc.uDpr, d);
     gl.uniform2f(loc.uAnchor, r.x, r.baseline); gl.uniform2f(loc.uTexSize, r.tx.w, r.tx.h); gl.uniform2f(loc.uTexAnchor, r.tx.ax, r.tx.ay);
     gl.uniform1f(loc.uProgress, u); gl.uniform1f(loc.uTime, time + r.seed);
-    gl.uniform1f(loc.uNoiseScale, cfg.noiseScale); gl.uniform1f(loc.uNoiseAmt, cfg.noiseAmount); gl.uniform1f(loc.uPull, cfg.pull); gl.uniform1f(loc.uAlpha, r.alpha);
+    gl.uniform1f(loc.uNoiseScale, cfg.noiseScale); gl.uniform1f(loc.uNoiseAmt, cfg.noiseAmount); gl.uniform1f(loc.uPull, cfg.pull); gl.uniform1f(loc.uAlpha, r.alpha); gl.uniform2f(loc.uAlphaPow, cfg.enterAlphaPow, cfg.leaveAlphaPow);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   };
-  const drawCss = (u) => { run.el.style.opacity = String(fold(u) * run.alpha); };
+  const drawCss = (u) => { run.el.style.opacity = String(Math.pow(fold(u), u < 0.5 ? cfg.enterAlphaPow : cfg.leaveAlphaPow) * run.alpha); };
 
   const finish = (instant, hidden) => {
     cancelAnimationFrame(raf); raf = 0;

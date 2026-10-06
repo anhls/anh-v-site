@@ -790,7 +790,7 @@ const tick = (_time, deltaMs) => {
     else if (inertia) kHead = Math.round((inertia.from + (inertia.D !== undefined ? inertia.D : inertia.v0 * inertia.F)) / ptn);
     else kHead = Math.round((S + (lenis.targetScroll - lenis.animatedScroll) * WORK.wheel) / ptn);
     v2s.pos = pos; v2s.idx = idx; v2s.kHead = kHead; v2s.idxHead = ((kHead % N) + N) % N; v2s.kNum = (stopped ? kHead : kCount) + 1;
-    v2s.vertical = morph ? morph.to === 'vertical' : vertical; v2s.morph = !!morph; v2s.dt = dt; v2s.stopped = stopped;
+    v2s.speedL = Math.abs(vel) / Math.max(L.M.viewAlong, 1); v2s.vertical = morph ? morph.to === 'vertical' : vertical; v2s.morph = !!morph; v2s.dt = dt; v2s.stopped = stopped;
     if (!stopped) v2StopAt = 0; else if (!v2StopAt) { v2StopAt = now; if (window.__stopLog) window.__stopLog.push({ at: now, since: now - inputAt }); }
     ui.frame(v2s);
   }

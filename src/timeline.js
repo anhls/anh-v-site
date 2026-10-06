@@ -301,7 +301,9 @@ export const WORK = {
 //   frameW (vw) / frameH (vh): the image is frameW of the window width, its height from frameW x frameH's ratio, and never taller than frameH of the window height
 //   (so a window wider than 16:9 shrinks the image instead of running it into the info block above it). gapSide (vw) / gapVert (vh) = the space between two images.
 //   focusScale 1 = the centred image keeps its size at rest (the reference); focusNeighbour 0 = the neighbours stay at the measured gap (R22 pushed them 6 % of a pitch away).
-export const WORK_V2 = { frameW: 1055 / 19.2, frameH: 556 / 10.8, gapSide: 57 / 19.2, gapVert: 75 / 10.8, focusScale: 1, focusNeighbour: 0, hoverOn: 1, hoverScale: 1.04, hoverSec: 0.6, hoverClickSec: 0.15, modeRollPx: 18, modeRollSec: 0.4, modeRollBounce: 0.2, modeRollStagger: 0.06, modeRollInAt: 0.55 };
+export const WORK_V2 = { frameW: 1055 / 19.2, frameH: 556 / 10.8, gapSide: 57 / 19.2, gapVert: 75 / 10.8, focusScale: 1, focusNeighbour: 0, hoverOn: 1, hoverScale: 1.04, hoverSec: 0.6, hoverClickSec: 0.15, modeRollPx: 18, modeRollSec: 0.4, modeRollBounce: 0.2, modeRollStagger: 0.06, modeRollInAt: 0.55, rollLineStagger: 0.06, rollMinSec: 0.25, rollSpeedRef: 1.5, rollSpeedPow: 1 };
+// R33e: the roll goes line by line inside a column (rollLineStagger, columns in parallel); on a scroll between projects the roll duration follows the strip speed: the full nav roll (modeRollSec) when slow,
+// rollMinSec at rollSpeedRef screen lengths / s and above (rollSpeedPow = the curve); the stagger shrinks with it.
 // R33d: the info blocks (tags, year, description) roll out and in when the mode switches, like the nav link hover: modeRollPx up on a spring (modeRollSec / modeRollBounce = SPRING.linkRoll), one block after
 // the other (modeRollStagger), the roll-in starts at modeRollInAt of the toggle morph.
 // R33: hoverScale = how much the CENTRE image grows under a fine pointer (the neighbours are pushed out by exactly the growth, so the gaps stay), hoverSec = the soft ease, hoverClickSec = ease back to 1 when a click starts the project transition.
@@ -330,7 +332,7 @@ export const WORK_RULER = { pitch: 21, extra: 5.5, dot: 3, bar: 34, barW: 2, rul
 // enter (u 0 -> 0.5), eased with power enterPow (higher = it forms faster at the start); leaveSec = the leave (the title blows out toward the top-right while fading); noiseScale /
 // noiseAmount = the simplex wobble of the sample position; pull = the corner pull strength (1 = as the reference). titleOutSec is only the plain fade of the fallbacks.
 export const WORK_TEXT = { textBlurPx: 8, textBlurInSec: 0.2, textBlurOutSec: 1.3, swapHoldMs: 60, scrollStopSec: 0.15, scrollStopSpeed: 0.05, titleOutSec: 0.2 };
-export const WORK_SMEAR = { enterSec: 0.6, enterPow: 3.5, leaveSec: 0.35, noiseScale: 5, noiseAmount: 0.35, pull: 1 };
+export const WORK_SMEAR = { enterSec: 0.6, enterPow: 3.5, leaveSec: 0.7, enterAlphaPow: 1, leaveAlphaPow: 0.5, noiseScale: 5, noiseAmount: 0.35, pull: 1 };
 // R33d scroll line (after angusemmerson.com): ONE thin line, full height (side mode) / full width (vertical mode), behind the pictures, that travels once across the page per loop of the list
 // (x = frac(strip position / project count) x width) and EASES after the strip (scrollLineFollowSec, ease out; it stops that long after the strip). Two instances (x and x - width) so it rolls
 // off one edge and in from the other without a reset. scrollLineGap = how much wider than the page its loop is (the share of the page width it spends outside the screen before it comes in from the other side). scrollLineOver 1 = over the pictures. scrollLineDrag is NOT built (see status.md).

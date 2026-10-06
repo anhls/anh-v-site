@@ -34,7 +34,7 @@ export function createV2({ app, projects, reduced }) {
   // ONE title and ONE info block at their fixed place; the content swaps to the project the strip is heading to (R33c: at scroll stop)
   root.innerHTML = `
     <div class="w2__titles" aria-hidden="true"><span class="w2__title" data-fx=""></span></div>
-    <div class="w2__infos" aria-hidden="true"><div class="w2__info"><div class="w2__tags" data-pos="side"><span class="w2__rin"></span></div><div class="w2__year" data-pos="side"><span class="w2__rin"></span></div><div class="w2__desc" data-pos="side"><span class="w2__rin"></span></div></div></div>
+    <div class="w2__infos" aria-hidden="true"><div class="w2__info"><div class="w2__tags" data-pos="side"></div><div class="w2__year" data-pos="side"></div><div class="w2__desc" data-pos="side"></div></div></div>
     <div class="w2__ruler" aria-hidden="true">${Array.from({ length: 9 }, () => '<i></i>').join('')}</div>
     <div class="w2__counter" role="status" aria-live="polite"><span class="w2__label">${esc(WORK_UI.label)}</span><span class="w2__num" aria-hidden="true"><span class="w2__slot w2__tens"><span class="w2__col"></span><span class="w2__col w2__wrapcol"></span></span><span class="w2__slot w2__units"><span class="w2__col"></span><span class="w2__col w2__wrapcol"></span></span></span><span class="w2__total" aria-hidden="true">/${String(NC).padStart(2, '0')}</span><span class="w2__sr"></span></div>
     <svg class="w2__defs" width="0" height="0" aria-hidden="true"><filter id="w2-vblur" x="-10%" y="-30%" width="120%" height="160%"><feGaussianBlur stdDeviation="0 0"/></filter></svg>
@@ -43,14 +43,57 @@ export function createV2({ app, projects, reduced }) {
   app.append(root);
   const titleEl = root.querySelector('.w2__title'), infoEl = root.querySelector('.w2__info');
   const tagsEl = root.querySelector('.w2__tags'), yearEl = root.querySelector('.w2__year'), descEl = root.querySelector('.w2__desc');
-  const blocks = [tagsEl, yearEl, descEl].map((el) => ({ el, inner: el.querySelector('.w2__rin'), t: { y: 0 }, springs: { y: [0, 0, 1] }, layer: null }));
-  // R33d: when the mode switches, each info block ROLLS out of its place and in at the new one, like the nav link hover (the label moves modeRollPx up on SPRING.linkRoll, masked by its own box).
-  // The three blocks go one after the other (modeRollStagger). setMode() of a page without a morph (first paint, no GL) places them at once.
-  const rollSpring = springFromBounce(WORK_V2.modeRollSec, WORK_V2.modeRollBounce);
-  blocks.forEach((bk) => { bk.springs.y = rollSpring.slice(); bk.layer = springLayer({ target: bk.t, springs: bk.springs, apply: (v) => { const k = Math.min(1, Math.abs(v.y) / Math.max(WORK_V2.modeRollPx, 1)); bk.inner.style.transform = v.y ? `translate3d(0,${v.y.toFixed(2)}px,0)` : ''; bk.inner.style.opacity = v.y ? String(1 - k) : '1'; } }); });
-  let roll = null; // { to, t, inAt, swapped[], outDone[] }
-  const placeBlock = (bk, m) => { bk.el.dataset.pos = m; };
-  const settleRoll = () => { if (!roll) return; const to = roll.to; roll = null; blocks.forEach((bk) => { placeBlock(bk, to); bk.t.y = 0; bk.layer.snap(); bk.inner.style.transition = ''; bk.inner.style.opacity = '1'; }); };
+  // R33e: the three info columns (roles, year, description) are made of LINES; every line is its own mask (a clip box) and rolls like the nav link hover: modeRollPx up on a spring
+  // (SPRING.linkRoll: modeRollSec / modeRollBounce), fading inside its mask. The roles are one line each; the description is split into its real rendered lines (measured with the words in
+  // place, after the font is in; re-split on a re-layout). Rolls go line by line inside a column (rollLineStagger), the three columns run in parallel. Two users: the mode switch
+  // (out at the click, in at modeRollInAt of the morph) and the scroll between projects (out when the strip heads to another project, in at scroll stop; the roll duration follows the
+  // scroll speed).
+  const cols = [tagsEl, yearEl, descEl].map((el) => ({ el, lines: [] }));
+  const sched = []; let clock = 0, lineState = 'in', rollOutEnd = 0, modeRoll = null, lastDur = 0;
+  const RPX = () => WORK_V2.modeRollPx * (T.W / 1920);
+  const at = (delay, fn) => sched.push({ at: clock + delay, fn });
+  const makeLine = (col, html, y0) => {
+    const ln = document.createElement('span'); ln.className = 'w2__ln';
+    const inner = document.createElement('span'); inner.className = 'w2__rin'; inner.innerHTML = html; ln.append(inner); col.el.append(ln);
+    const L = { ln, inner, t: { y: y0 }, springs: { y: springFromBounce(WORK_V2.modeRollSec, WORK_V2.modeRollBounce) }, layer: null, dead: false };
+    L.layer = springLayer({ target: L.t, springs: L.springs, apply: (v) => { const k = Math.min(1, Math.abs(v.y) / Math.max(RPX(), 1)); inner.style.transform = v.y ? `translate3d(0,${v.y.toFixed(2)}px,0)` : ''; inner.style.opacity = v.y ? String(1 - k) : '1'; } });
+    return L;
+  };
+  const buildCol = (col, htmls) => {
+    col.lines.forEach((L) => { L.dead = true; L.layer.destroy(); });
+    col.el.textContent = '';
+    const y0 = reduced || lineState === 'in' ? 0 : RPX(); // new lines wait below their mask while the old text is out
+    col.lines = htmls.map((h) => makeLine(col, h, y0));
+  };
+  const splitDesc = (text) => { // the description in its real rendered lines (words laid out in the column, grouped by their top)
+    if (!text) return [];
+    descEl.textContent = '';
+    const spans = text.split(' ').map((w) => { const sp = document.createElement('span'); sp.textContent = `${w} `; descEl.append(sp); return sp; });
+    const out = []; let top = null, cur = '';
+    spans.forEach((sp) => { const t = sp.offsetTop; if (top === null || Math.abs(t - top) > 4) { if (cur) out.push(cur.trim()); cur = ''; top = t; } cur += sp.textContent; });
+    if (cur) out.push(cur.trim());
+    descEl.textContent = '';
+    return out.slice(0, 3);
+  };
+  // the duration of a roll from the strip speed (screen lengths / s): slow = the full nav roll, fast = rollMinSec; the line stagger shrinks with it
+  const rollDur = (speedL) => { const full = WORK_V2.modeRollSec; if (speedL == null) return full; const k = Math.min(1, Math.pow(Math.max(speedL, 0) / Math.max(WORK_V2.rollSpeedRef, 0.01), WORK_V2.rollSpeedPow)); return full + (WORK_V2.rollMinSec - full) * k; };
+  const rollLines = (kind, dur, only) => {
+    lastDur = dur; lineState = kind;
+    if (reduced) return;
+    const stag = (WORK_V2.rollLineStagger * dur) / Math.max(WORK_V2.modeRollSec, 0.01); let longest = 0;
+    cols.forEach((col, ci) => { if (only && !only.includes(ci)) return; longest = Math.max(longest, col.lines.length); col.lines.forEach((L, j) => at(j * stag, () => {
+      if (L.dead) return;
+      L.springs.y.splice(0, 3, ...springFromBounce(dur, WORK_V2.modeRollBounce));
+      if (kind === 'out') L.t.y = -RPX(); else { L.t.y = RPX(); L.layer.snap(); L.t.y = 0; }
+    })); });
+    if (kind === 'out') rollOutEnd = clock + Math.max(longest - 1, 0) * stag + dur * 0.7;
+  };
+  const placeCol = (col, m) => { col.el.dataset.pos = m; };
+  const settleRoll = () => { // the mode roll ends where it should: the columns in the new layout, every line in place
+    if (!modeRoll) return; const to = modeRoll.to; modeRoll = null;
+    cols.forEach((col) => { placeCol(col, to); col.el.style.opacity = ''; col.el.style.transition = ''; col.lines.forEach((L) => { L.t.y = 0; L.layer.snap(); }); });
+    lineState = 'in';
+  };
   const dots = [...root.querySelectorAll('.w2__ruler i')];
   const switchEl = root.querySelector('.w2__switch'), swText = root.querySelector('.w2__swtext');
   const numEl = root.querySelector('.w2__num'), totalEl = root.querySelector('.w2__total'), counterEl = root.querySelector('.w2__counter');
@@ -106,8 +149,9 @@ export function createV2({ app, projects, reduced }) {
   const setInfo = (idx) => {
     shown = idx;
     const inf = infos[idx];
-    blocks[0].inner.innerHTML = inf.tags.map(esc).join('<br>'); blocks[1].inner.textContent = inf.year; blocks[2].inner.textContent = inf.desc;
-    tagsEl.style.display = inf.tags.length ? '' : 'none'; yearEl.style.display = inf.year ? '' : 'none'; descEl.style.display = inf.desc ? '' : 'none';
+    cols.forEach((col, ci) => { col.el.style.display = [inf.tags.length, inf.year, inf.desc][ci] ? '' : 'none'; });
+    buildCol(cols[0], inf.tags.map(esc)); buildCol(cols[1], inf.year ? [esc(inf.year)] : []);
+    buildCol(cols[2], splitDesc(inf.desc).map(esc));
   };
   const setTitle = (idx) => {
     titleShown = idx;
@@ -167,7 +211,7 @@ export function createV2({ app, projects, reduced }) {
   const setMode = (m) => {
     mode = m;
     root.dataset.mode = m;
-    if (!roll) blocks.forEach((bk) => placeBlock(bk, m));
+    if (!modeRoll) cols.forEach((col) => placeCol(col, m));
     swText.textContent = WORK_UI.copy[m === 'vertical' ? 'vertical' : 'side'];
     const next = m === 'vertical' ? 'side' : 'vertical';
     switchEl.setAttribute('aria-label', `${swText.textContent} (switch to ${next} scroll)`);
@@ -248,26 +292,18 @@ export function createV2({ app, projects, reduced }) {
     const dt = Math.min(s.dt, 0.1);
     const mt = s.morph ? 0 : 1;
     mv = reduced ? mt : mv + (mt - mv) * Math.min(1, dt / 0.18);
-    if (roll) { // the info blocks roll out, swap their layout, roll in (reduced motion / no GL: a 0.2 s cross-fade)
-      roll.t += dt;
-      const R = WORK_V2.modeRollPx * (T.W / 1920);
-      blocks.forEach((bk, i) => {
-        const outAt = i * WORK_V2.modeRollStagger, inAt = roll.inAt + i * WORK_V2.modeRollStagger;
-        if (!roll.out[i] && roll.t >= outAt) { roll.out[i] = true; if (roll.fade) { bk.inner.style.transition = 'opacity 0.2s'; bk.inner.style.opacity = '0'; } else { bk.springs.y.splice(0, 3, ...springFromBounce(WORK_V2.modeRollSec, WORK_V2.modeRollBounce)); bk.t.y = -R; } }
-        if (!roll.swapped[i] && roll.t >= inAt) {
-          roll.swapped[i] = true; placeBlock(bk, roll.to);
-          if (roll.fade) bk.inner.style.opacity = '1'; else { bk.t.y = R; bk.layer.snap(); bk.t.y = 0; } // appears 18 px below, rises into place
-        }
-      });
-      if (roll.swapped.every(Boolean) && roll.t >= roll.inAt + 2 * WORK_V2.modeRollStagger + 0.6) settleRoll();
-    }
+    clock += dt; // the line roll scheduler
+    for (let i = sched.length - 1; i >= 0; i--) if (sched[i].at <= clock) { const f = sched.splice(i, 1)[0].fn; f(); }
     const stopped = s.stopped && !s.morph, active = s.idxHead, T_ = WORK_TEXT;
     // ---- info: blur ONLY (opacity stays 1; reduced motion fades instead)
     const inSec = reduced ? 0.2 : T_.textBlurInSec, outSec = reduced ? 0.2 : T_.textBlurOutSec;
     const want = stopped && shown === active;
+    // ---- the info lines roll out when the strip heads for ANOTHER project (the blur above keeps running), swap while out, and roll in at the scroll stop (the roll speed follows the scroll speed)
+    if (!reduced && !modeRoll && lineState === 'in' && active !== shown) rollLines('out', rollDur(s.speedL));
+    if (!reduced && !modeRoll && lineState === 'out' && stopped && shown === active) rollLines('in', rollDur(s.speedL));
     if (!want) { bp = Math.min(1, bp + dt / Math.max(inSec, 0.01)); outFrom = bp; outT = 0; }
     else { outT = Math.min(1, outT + dt / Math.max(outSec, 0.01)); bp = outFrom * (1 - (reduced ? outT : ease(outT))); }
-    if (stopped && shown !== active) { hold = bp >= 0.999 ? hold + dt : 0; if (hold >= T_.swapHoldMs / 1000) { setInfo(active); hold = 0; } } else hold = 0;
+    if (stopped && shown !== active) { hold = bp >= 0.999 && (reduced || (lineState === 'out' && clock >= rollOutEnd)) ? hold + dt : 0; if (hold >= T_.swapHoldMs / 1000) { setInfo(active); hold = 0; if (!reduced) rollLines('in', rollDur(s.speedL)); } } else hold = 0;
     const q = reduced ? Math.round(bp * 20) : Math.round(bp * T_.textBlurPx * 2) / 2; // 0.5 px steps (reduced: 5 % opacity steps)
     if (q !== lastQ) {
       lastQ = q;
@@ -328,11 +364,13 @@ export function createV2({ app, projects, reduced }) {
       if (Math.abs(o - rj.a) > 0.002 || Number.isNaN(rj.a)) { rj.a = o; dots[j].style.opacity = o.toFixed(3); }
     }
   };
-  const rollMode = (to, morphSec) => { // called when the toggle morph starts: the roll-in comes at modeRollInAt of the morph (the new text is in place when the strip lands)
+  const rollMode = (to, morphSec) => { // called when the toggle morph starts: lines roll out at once, the new layout rolls in at modeRollInAt of the morph (the new text is in place when the strip lands)
     settleRoll();
-    if (to === blocks[0].el.dataset.pos) return;
-    const fade = reduced || !!window.__w2NoRoll;
-    roll = { to, t: 0, inAt: fade ? 0.2 : Math.max(0.3, morphSec * WORK_V2.modeRollInAt), out: [false, false, false], swapped: [false, false, false], fade };
+    if (to === cols[0].el.dataset.pos) return;
+    const mine = (modeRoll = { to }), fade = reduced || !!window.__w2NoRoll, inAt = fade ? 0.2 : Math.max(0.3, morphSec * WORK_V2.modeRollInAt);
+    if (fade) { cols.forEach((col) => { col.el.style.transition = 'opacity 0.2s'; col.el.style.opacity = '0'; }); at(inAt, () => { if (modeRoll !== mine) return; cols.forEach((col) => { placeCol(col, to); col.el.style.opacity = '1'; }); at(0.3, () => { if (modeRoll === mine) settleRoll(); }); }); return; }
+    rollLines('out', WORK_V2.modeRollSec);
+    at(inAt, () => { if (modeRoll !== mine) return; cols.forEach((col) => placeCol(col, to)); rollLines('in', WORK_V2.modeRollSec); at(WORK_V2.modeRollSec + 0.3, () => { if (modeRoll === mine) { modeRoll = null; lineState = 'in'; } }); });
   };
-  return { root, lineEl, get lineState() { return { x: lineX, vert: lineVert, step: lineStep, last: [...lineLast] }; }, switchEl, layout, frame, setMode, rollMode, settleRoll, el: root, titles: T, infos, smear, scrubTitle(idx, t) { setTitle(idx); const size = T.size[idx], text = T.shown[idx]; const g = domGeometry(); const u = t < 0 ? 1 + t : 0.5 * (1 - Math.pow(1 - Math.min(1, t / WORK_SMEAR.enterSec), WORK_SMEAR.enterPow)); smear.scrub({ el: titleEl, text, size, weight: WORK_TITLE.weight, family: '"Clash Display", system-ui, sans-serif', color: WORK_UI.color, tracking: WORK_TITLE.tracking, x: g.x, baseline: g.baseline }, u); }, get roll() { return { R: D, V: DV }; }, get counterMetrics() { return { ...M, adv: [...M.adv], inkR: [...M.inkR] }; }, get state() { return { bp, g, titleOp, titleShown, shown, titleBusy }; } };
+  return { root, lineEl, get rollInfo() { return { lineState, lastDur, cols: cols.map((c) => c.lines.length), y: cols.map((c) => c.lines.map((L) => +L.t.y.toFixed(1))) }; }, get lineState() { return { x: lineX, vert: lineVert, step: lineStep, last: [...lineLast] }; }, switchEl, layout, frame, setMode, rollMode, settleRoll, el: root, titles: T, infos, smear, scrubTitle(idx, t, leaveT) { setTitle(idx); const size = T.size[idx], text = T.shown[idx]; const g = domGeometry(); const u = leaveT !== undefined ? 0.5 + 0.5 * Math.pow(Math.min(1, leaveT / WORK_SMEAR.leaveSec), 2) : 0.5 * (1 - Math.pow(1 - Math.min(1, t / WORK_SMEAR.enterSec), WORK_SMEAR.enterPow)); smear.scrub({ el: titleEl, text, size, weight: WORK_TITLE.weight, family: '"Clash Display", system-ui, sans-serif', color: WORK_UI.color, tracking: WORK_TITLE.tracking, x: g.x, baseline: g.baseline }, u); }, get roll() { return { R: D, V: DV }; }, get counterMetrics() { return { ...M, adv: [...M.adv], inkR: [...M.inkR] }; }, get state() { return { bp, g, titleOp, titleShown, shown, titleBusy }; } };
 }
