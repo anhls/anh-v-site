@@ -495,16 +495,20 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     const targetCards = Math.tanh((vel * BEND.sensitivity) / BEND.speedRef);
     const steps = Math.max(1, Math.ceil(dt / 0.004));
     const h = dt / steps;
-    const spring = (st, B, target = targetCards) => {
+    // R33j: the Work images' spring overshot through zero at every settle (amt 0.65 -> -0.07 -> +0.009 ...), and each sign change swapped the up / down camera, bow and lean sets = the flip-flop.
+    // With clampZero a settle (target 0) stops AT zero instead of crossing it: the rise and the peak are unchanged, the sign never changes by itself.
+    const spring = (st, B, target = targetCards, clampZero = false, z = zeta) => {
       const wn = (Math.abs(target) > Math.abs(st.x) ? B.riseSpeed : B.settleSpeed) ?? B.returnSpeed;
       for (let s = 0; s < steps; s++) {
-        st.v += (wn * wn * (target - st.x) - 2 * zeta * wn * st.v) * h;
+        const x0 = st.x;
+        st.v += (wn * wn * (target - st.x) - 2 * z * wn * st.v) * h;
         st.x += st.v * h;
+        if (clampZero && x0 !== 0 && Math.sign(st.x) !== Math.sign(x0) && Math.sign(target) !== -Math.sign(x0)) { st.x = 0; st.v = 0; }
       }
       if (Math.abs(st.x) < 0.0005 && Math.abs(st.v) < 0.002 && target === 0) { st.x = 0; st.v = 0; }
     };
     spring(bend, BEND);
-    if (layers) spring(bendI, layers.bend, layers.target ? layers.target(velImg) : targetCards); // R24j: the Work images have their own speed curve (work/speed-curve.js)
+    if (layers) spring(bendI, layers.bend, layers.target ? layers.target(velImg) : targetCards, 1); // R24j: the Work images have their own speed curve (work/speed-curve.js)
     grainSpeed += (Math.min(Math.abs(vel) / BEND.speedRef, 1) - grainSpeed) * (1 - Math.exp(-dt / 0.15));
     const bendNow = bend.x !== 0 || bendI.x !== 0;
 
