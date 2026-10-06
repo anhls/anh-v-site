@@ -1,0 +1,88 @@
+{
+ "slug": "nam-long",
+ "srcDir": "tools/scratch/namlong-src/media",
+ "items": [
+  {
+   "name": "hero",
+   "src": "image133.png",
+   "kind": "img"
+  },
+  {
+   "name": "story",
+   "src": "image82.jpg",
+   "kind": "img"
+  },
+  {
+   "name": "bamboo",
+   "src": "image126.gif",
+   "kind": "loop",
+   "maxW": 1200
+  },
+  {
+   "name": "n-white",
+   "src": "image116.png",
+   "kind": "img"
+  },
+  {
+   "name": "n-mark",
+   "src": "image120.png",
+   "kind": "img"
+  },
+  {
+   "name": "system",
+   "src": "image117.png",
+   "kind": "img"
+  },
+  {
+   "name": "fund",
+   "src": "image173.png",
+   "kind": "img"
+  },
+  {
+   "name": "booklet",
+   "src": "image156.png",
+   "kind": "img"
+  },
+  {
+   "name": "magazine",
+   "src": "image177.png",
+   "kind": "img"
+  },
+  {
+   "name": "award",
+   "src": "image193.png",
+   "kind": "img"
+  },
+  {
+   "name": "trophy",
+   "src": "image197.gif",
+   "kind": "loop",
+   "maxW": 1440
+  },
+  {
+   "name": "stage-a",
+   "src": "image200.png",
+   "kind": "img"
+  },
+  {
+   "name": "stage-b",
+   "src": "image204.png",
+   "kind": "img"
+  },
+  {
+   "name": "social-a",
+   "src": "image248.png",
+   "kind": "img"
+  },
+  {
+   "name": "social-b",
+   "src": "image249.png",
+   "kind": "img"
+  },
+  {
+   "name": "closing",
+   "src": "image246.png",
+   "kind": "img"
+  }
+ ]
+}

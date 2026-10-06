@@ -2369,7 +2369,8 @@
                 "w": 100,
                 "aspect": 1.7778,
                 "h": null,
-                "caption": "ngang"
+                "caption": "ngang",
+                "capColor": "#111"
               },
               {
                 "kind": "img",
@@ -2378,7 +2379,8 @@
                 "w": 100,
                 "aspect": 1.7778,
                 "h": null,
-                "caption": "sắc"
+                "caption": "sắc",
+                "capColor": "#111"
               },
               {
                 "kind": "img",
@@ -2387,7 +2389,8 @@
                 "w": 100,
                 "aspect": 1.7778,
                 "h": null,
-                "caption": "huyền"
+                "caption": "huyền",
+                "capColor": "#fff"
               }
             ]
           },
@@ -2401,7 +2404,8 @@
                 "w": 100,
                 "aspect": 1.7778,
                 "h": null,
-                "caption": "nặng"
+                "caption": "nặng",
+                "capColor": "#111"
               },
               {
                 "kind": "img",
@@ -2410,7 +2414,8 @@
                 "w": 100,
                 "aspect": 1.7778,
                 "h": null,
-                "caption": "hỏi"
+                "caption": "hỏi",
+                "capColor": "#fff"
               },
               {
                 "kind": "img",
@@ -2419,7 +2424,8 @@
                 "w": 100,
                 "aspect": 1.7778,
                 "h": null,
-                "caption": "ngã"
+                "caption": "ngã",
+                "capColor": "#fff"
               }
             ]
           },
@@ -2589,11 +2595,195 @@
           }
         ]
       }
+    },
+    {
+      "slug": "nam-long",
+      "index": "",
+      "title": "Nam Long",
+      "client": "Nam Long",
+      "year": 2024,
+      "live": true,
+      "page": {
+        "title": "Nam Long",
+        "blocks": [
+          {
+            "t": "hero",
+            "img": "nam-long/hero",
+            "parallax": {
+              "y": 0.25,
+              "s": 1,
+              "ds": 1,
+              "k": 0.0492
+            }
+          },
+          {
+            "t": "text",
+            "label": "ABOUT",
+            "text": "            Estates of Evergrowing Values. Vững gốc, vượt thời.\nFor 30 years Nam Long has built affordable homes for Vietnamese families. Now it looks to the next generations: values that keep growing, deepening, rising and lasting.",
+            "hvh": 50
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "img",
+              "ref": "nam-long/story",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "text",
+            "label": "IDEA",
+            "text": "           Vững gốc, vượt thời: rooted, and lasting beyond time."
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "loop",
+              "ref": "nam-long/bamboo",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "nam-long/n-white",
+              "fit": "contain"
+            }
+          },
+          {
+            "t": "text",
+            "label": "SYMBOL",
+            "text": "           A symbol drawn from the bamboo groves of Vietnam and joined with the letter “N”: strong and resilient, bound together as a rampart; growing strongly, never ceasing to multiply.",
+            "pad": 58,
+            "hvh": 25
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "nam-long/n-mark",
+              "fit": "contain"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "nam-long/system",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "details",
+            "title": [
+              "Nam Long",
+              "Brand Reboot"
+            ],
+            "heading": "Project Details",
+            "rows": [
+              [
+                "Client",
+                [
+                  "Nam Long"
+                ]
+              ],
+              [
+                "Year",
+                [
+                  "2024"
+                ]
+              ],
+              [
+                "Role",
+                [
+                  "Art Director"
+                ]
+              ]
+            ],
+            "body": "Nam Long Brand Reboot is a repositioning proposal: a campaign idea, “Estates of Evergrowing Values”, and the visual system that carries it.\nThe system grows from the bamboo grove and the letter N, a pattern and an icon that run across print, stage, film and social.\nPresented as an art treatment: the key visual, the layout system and how the idea would live in the activations."
+          },
+          {
+            "t": "text",
+            "label": "ACTIVATIONS",
+            "text": "           One idea, many executions: a CSR fund, a scholarship, an architecture award and a concert, each wearing the same bamboo.",
+            "pad": 58,
+            "hvh": 25
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "img",
+              "ref": "nam-long/fund",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "nam-long/booklet",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "nam-long/magazine",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "nam-long/award",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "loop",
+              "ref": "nam-long/trophy",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "nam-long/stage-a",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "nam-long/stage-b",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "nam-long/social-a",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "nam-long/social-b",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "img",
+              "ref": "nam-long/closing",
+              "fit": "cover"
+            }
+          }
+        ]
+      }
     }
   ],
   "moreProjects": {
     "label": "More Projects",
     "items": [
+      {
+        "name": "Nam Long",
+        "slug": "nam-long",
+        "image": "/media/nam-long/hero-1600.webp"
+      },
       {
         "name": "Duhat",
         "slug": "duhat",

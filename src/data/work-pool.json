@@ -423,6 +423,132 @@
   "selected": false
  },
  {
+  "slug": "nam-long",
+  "key": "nam-long/award",
+  "hash": 2348476870,
+  "w": 1010,
+  "h": 1024,
+  "lum": 199,
+  "selected": false
+ },
+ {
+  "slug": "nam-long",
+  "key": "nam-long/booklet",
+  "hash": 654586221,
+  "w": 1920,
+  "h": 1080,
+  "lum": 48,
+  "selected": false
+ },
+ {
+  "slug": "nam-long",
+  "key": "nam-long/closing",
+  "hash": 1116173172,
+  "w": 1352,
+  "h": 760,
+  "lum": 123,
+  "selected": false
+ },
+ {
+  "slug": "nam-long",
+  "key": "nam-long/fund",
+  "hash": 1959087646,
+  "w": 1920,
+  "h": 1080,
+  "lum": 117,
+  "selected": false
+ },
+ {
+  "slug": "nam-long",
+  "key": "nam-long/hero",
+  "hash": 691542697,
+  "w": 1920,
+  "h": 1080,
+  "lum": 139,
+  "selected": false
+ },
+ {
+  "slug": "nam-long",
+  "key": "nam-long/magazine",
+  "hash": 2760466035,
+  "w": 2048,
+  "h": 1365,
+  "lum": 50,
+  "selected": false
+ },
+ {
+  "slug": "nam-long",
+  "key": "nam-long/n-mark",
+  "hash": 742535101,
+  "w": 1168,
+  "h": 1358,
+  "lum": 110,
+  "selected": false
+ },
+ {
+  "slug": "nam-long",
+  "key": "nam-long/n-white",
+  "hash": 1038254225,
+  "w": 2048,
+  "h": 2048,
+  "lum": 164,
+  "selected": false
+ },
+ {
+  "slug": "nam-long",
+  "key": "nam-long/social-a",
+  "hash": 2742313396,
+  "w": 1920,
+  "h": 1080,
+  "lum": 84,
+  "selected": false
+ },
+ {
+  "slug": "nam-long",
+  "key": "nam-long/social-b",
+  "hash": 2792646253,
+  "w": 1677,
+  "h": 693,
+  "lum": 84,
+  "selected": false
+ },
+ {
+  "slug": "nam-long",
+  "key": "nam-long/stage-a",
+  "hash": 3708329923,
+  "w": 1920,
+  "h": 987,
+  "lum": 60,
+  "selected": false
+ },
+ {
+  "slug": "nam-long",
+  "key": "nam-long/stage-b",
+  "hash": 3725107542,
+  "w": 1521,
+  "h": 844,
+  "lum": 86,
+  "selected": false
+ },
+ {
+  "slug": "nam-long",
+  "key": "nam-long/story",
+  "hash": 729589698,
+  "w": 1920,
+  "h": 1440,
+  "lum": 116,
+  "selected": false
+ },
+ {
+  "slug": "nam-long",
+  "key": "nam-long/system",
+  "hash": 3644460556,
+  "w": 2048,
+  "h": 1153,
+  "lum": 167,
+  "selected": false
+ },
+ {
   "slug": "bitis09",
   "key": "selected-work/card-img-01",
   "hash": 1736532873,

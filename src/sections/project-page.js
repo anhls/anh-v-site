@@ -83,7 +83,7 @@ const block = {
   // Pinned horizontal scroller (live: TCB "Key Visual Exploration"): a sticky 100vh stage inside a tall section; every layer slides on its own
   // linear tx(scroll) between `from` and `to` while the page scroll goes from `start` to `end` px into the section.
   scroller: (b) => `<section class="pj__scroller" data-start="${b.start}" data-end="${b.end}" style="height:${uy(b.hpx)}"><div class="pj__pin">${b.layers.map((l) => `<div class="pj__layer${l.z ? ' pj__layer--top' : ''}" data-from="${l.from}" data-to="${l.to}" style="${cssText(l.css)}">${(l.items || []).map(stageItem).join('')}</div>`).join('')}</div></section>`,
-  threeup: (b) => `<section class="pj__sec pj__three">${b.cells.map((c) => `<div class="pj__cell pj__cell--3">${img(c, '33vw')}${c.caption ? `<p class="pj__small pj__cap">${esc(c.caption)}</p>` : ''}</div>`).join('')}</section>`,
+  threeup: (b) => `<section class="pj__sec pj__three">${b.cells.map((c) => `<div class="pj__cell pj__cell--3">${img(c, '33vw')}${c.caption ? `<p class="pj__small pj__cap"${c.capColor ? ` style="color:${esc(c.capColor)}"` : ''}>${esc(c.caption)}</p>` : ''}</div>`).join('')}</section>`,
 };
 
 // cubic-bezier(0.4, 0, 0.2, 1), same approximation as the Framer component
