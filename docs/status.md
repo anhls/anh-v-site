@@ -461,3 +461,7 @@ Newest at the bottom. Keep each entry to 8 lines or fewer: what changed, compare
 - Round trip (tools/scratch/r33h-test.mjs, dev hook window.__tune.apply / full / changed): changed WORK_COUNTER.counterBlurPx 6, WORK_UI.smallSize 12, WORK_LINE.scrollLineOn 0 -> "changed only" held exactly those 3; Reset -> 0 changed; apply(pasted changed) -> the full export is byte-identical to before the reset, 3 changed again; 0 console errors.
 - (3) A control that differs from its default shows a dot and an orange label; the header shows "N changed" with a small "reset" link (same as the bottom button). Not tested by eye (checked through the counts); the dark / front share and the card limits count as changed only against the URL values.
 - Gates: compare 542/542 at 1920 and 2560, layout:check OK, build OK.
+
+## 2026-10-06 Tuned defaults from Anh's changed-only export (branch `work-v2`)
+- WORK_V2.hoverScale 1.04 -> 1.01; WORK_UI.dimOpacity 0.1 -> 0.25; WORK_TITLE.size 150 -> 120 (more full titles now fit before TITLE_SHORT is used); WORK_TEXT.textBlurPx 8 -> 5; WORK_PTR pixelGrid 32 -> 38, pixelBrush 0.12 -> 0.31, pixelRelax 0.9 -> 0.94, pixelRgb 0.01 -> 0.034.
+- Gates: compare 542/542 at 1920 and 2560, layout:check OK, build OK.
