@@ -258,6 +258,7 @@ Object.assign(TUNE_DOCS, {
   'WORK_TITLE.baseDy': 'Where the title sits: distance of its baseline below the image centre (px at 1920 for the 556 px image; it scales with the image).',
   'WORK_TITLE.dx': 'Shifts the title sideways (px at 1920, scales with the image).',
   'WORK_UI.smallSize': 'Size of all small text (roles, year, description, label, /N, switch, Reach out) in pt at 1920.',
+  'WORK_UI.counterTracking':'Space between the two counter digits (em of the numeral; negative = tighter, as huyml.co).',
   'WORK_UI.tracking': 'Letter spacing of the small text and the title (em; 0.05 = the design tool 50).',
   'WORK_UI.dimOpacity': 'Opacity of the dim texts: the Selected Work label, Reach out, the /N and the flip switch (it comes to full on hover).',
   'WORK_UI.descOpacity': 'Opacity of the project description.',

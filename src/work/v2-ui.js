@@ -133,7 +133,7 @@ export function createV2({ app, projects, reduced }) {
   let lastIw = 0, lastIh = 0;
   const applyVars = () => { // the numbers of WORK_INFO / WORK_RULER as CSS custom properties (re-applied on every layout so ?tune takes effect)
     root.style.setProperty('--w2-c', WORK_UI.color); root.style.setProperty('--w2-dim', String(WORK_UI.dimOpacity)); root.style.setProperty('--w2-desc', String(WORK_UI.descOpacity));
-    root.style.setProperty('--w2-small', String(WORK_UI.smallSize)); root.style.setProperty('--w2-track', `${WORK_UI.tracking}em`); root.style.setProperty('--w2-num', String(WORK_COUNTER.size));
+    root.style.setProperty('--w2-small', String(WORK_UI.smallSize)); root.style.setProperty('--w2-track', `${WORK_UI.tracking}em`); root.style.setProperty('--w2-ttrack', `${WORK_TITLE.tracking}em`); root.style.setProperty('--w2-ctrack', `${WORK_UI.counterTracking}em`); root.style.setProperty('--w2-num', String(WORK_COUNTER.size));
     lineEl.style.setProperty('--w2-c', WORK_UI.color);
     const set = (n, o) => Object.entries(o).forEach(([k, v]) => root.style.setProperty(`--${n}-${k}`, String(v)));
     set('is', WORK_INFO.side); set('iv', WORK_INFO.vertical);
@@ -195,6 +195,16 @@ export function createV2({ app, projects, reduced }) {
     mk.remove();
     const rg = document.createRange(); rg.selectNodeContents(titleEl.firstChild);
     return { x: rg.getBoundingClientRect().left, baseline };
+  };
+  let titleFadeFrames = 0, titleLeaveStarts = 0;
+  const leaveTitle = () => { // the strip moves and the title is plain DOM text: the shader leave from the formed state
+    const size = T.size[titleShown], text = T.shown[titleShown];
+    const g = domGeometry();
+    titleBusy = true;
+    const ok = smear.leaveFromRest({ el: titleEl, text, size, weight: WORK_TITLE.weight, family: '"Clash Display", system-ui, sans-serif', color: WORK_UI.color, tracking: WORK_TITLE.tracking, x: g.x, baseline: g.baseline,
+      done: () => { titleOp = 1; titleBusy = false; }, aborted: () => { titleOp = 0; titleBusy = false; } });
+    if (!ok) titleBusy = false; else titleLeaveStarts++;
+    return ok;
   };
   const playTitle = () => {
     const size = T.size[titleShown], text = T.shown[titleShown];
@@ -278,12 +288,8 @@ export function createV2({ app, projects, reduced }) {
       }
       if (j === 0) { const mv0 = moves; if (mv0 !== slots[0].filtered) { slots[0].filtered = mv0; slots[0].slot.style.filter = mv0 ? 'url(#w2-vblur)' : 'none'; } } // the tens: blurred only while it turns
     }
-    // "/N" follows the right edge of the units digit (eased between the two digits with the roll)
-    if (M.seam) {
-      const u0 = +a[1], u1 = +b2[1], iw = M.inkR[u0] + (M.inkR[u1] - M.inkR[u0]) * (wrap ? Math.round(fr) : fr);
-      const tx = M.seam + iw + M.gap;
-      if (Math.abs(tx - lastTotalX) > 0.05 || Number.isNaN(lastTotalX)) { lastTotalX = tx; totalEl.style.transform = `translate3d(${tx.toFixed(2)}px,0,0)`; totalEl.style.top = `${M.totalTop.toFixed(2)}px`; }
-    }
+    // R33f: the "/N" STAYS where it is (as on huyml.co): a fixed place to the right of the widest possible two-digit numeral, top level with the numeral top; it never moves with the digits
+    if (M.seam && Number.isNaN(lastTotalX)) { let w = 0; for (let d = 0; d < 10; d++) w = Math.max(w, M.inkR[d]); lastTotalX = M.seam + w + M.gap; totalEl.style.transform = `translate3d(${lastTotalX.toFixed(2)}px,0,0)`; totalEl.style.top = `${M.totalTop.toFixed(2)}px`; }
   };
 
   // one call per tick. s = { idx (nearest project), idxHead (the project the strip is heading to), kNum (unwrapped number of the target: nearest while moving, the heading one after the stop),
@@ -314,7 +320,12 @@ export function createV2({ app, projects, reduced }) {
     const smearOn = smear.gl || (!reduced && !smear.lost);
     if (window.__titleScrub) { /* dev: the contact sheet drives the title by hand */ } else if (!stopped) {
       if (smear.playing) smear.abort();
-      else if (titleOp > 0) { titleOp = Math.max(0, titleOp - dt / Math.max(T_.titleOutSec, 0.01)); titleEl.style.opacity = titleOp.toFixed(3); }
+      else if (titleOp > 0.001) {
+        if (!reduced && !fxOff && smearOn && leaveTitle()) { /* the shader leave from the formed title */ }
+        else { titleOp = Math.max(0, titleOp - dt / Math.max(T_.titleOutSec, 0.01)); titleEl.style.opacity = titleOp.toFixed(3); titleFadeFrames++; } // the plain fade: reduced motion, ?fx=0, ?gl=0, a lost context only
+      }
+    } else if (smear.playing) {
+      if (smear.leaving && titleShown === active) smear.resume(); // stopped before the leave ended: the enter goes on from where it got to
     } else if (!titleBusy) {
       if (titleShown !== active || titleOp < 0.95) {
         if (reduced || !smearOn || fxOff) { // plain fade: out, swap while hidden, in
@@ -372,5 +383,5 @@ export function createV2({ app, projects, reduced }) {
     rollLines('out', WORK_V2.modeRollSec);
     at(inAt, () => { if (modeRoll !== mine) return; cols.forEach((col) => placeCol(col, to)); rollLines('in', WORK_V2.modeRollSec); at(WORK_V2.modeRollSec + 0.3, () => { if (modeRoll === mine) { modeRoll = null; lineState = 'in'; } }); });
   };
-  return { root, lineEl, get rollInfo() { return { lineState, lastDur, cols: cols.map((c) => c.lines.length), y: cols.map((c) => c.lines.map((L) => +L.t.y.toFixed(1))) }; }, get lineState() { return { x: lineX, vert: lineVert, step: lineStep, last: [...lineLast] }; }, switchEl, layout, frame, setMode, rollMode, settleRoll, el: root, titles: T, infos, smear, scrubTitle(idx, t, leaveT) { setTitle(idx); const size = T.size[idx], text = T.shown[idx]; const g = domGeometry(); const u = leaveT !== undefined ? 0.5 + 0.5 * Math.pow(Math.min(1, leaveT / WORK_SMEAR.leaveSec), 2) : 0.5 * (1 - Math.pow(1 - Math.min(1, t / WORK_SMEAR.enterSec), WORK_SMEAR.enterPow)); smear.scrub({ el: titleEl, text, size, weight: WORK_TITLE.weight, family: '"Clash Display", system-ui, sans-serif', color: WORK_UI.color, tracking: WORK_TITLE.tracking, x: g.x, baseline: g.baseline }, u); }, get roll() { return { R: D, V: DV }; }, get counterMetrics() { return { ...M, adv: [...M.adv], inkR: [...M.inkR] }; }, get state() { return { bp, g, titleOp, titleShown, shown, titleBusy }; } };
+  return { root, lineEl, get titleStats() { return { fadeFrames: titleFadeFrames, leaveStarts: titleLeaveStarts }; }, get rollInfo() { return { lineState, lastDur, cols: cols.map((c) => c.lines.length), y: cols.map((c) => c.lines.map((L) => +L.t.y.toFixed(1))) }; }, get lineState() { return { x: lineX, vert: lineVert, step: lineStep, last: [...lineLast] }; }, switchEl, layout, frame, setMode, rollMode, settleRoll, el: root, titles: T, infos, smear, scrubTitle(idx, t, leaveT) { setTitle(idx); const size = T.size[idx], text = T.shown[idx]; const g = domGeometry(); const u = leaveT !== undefined ? 0.5 + 0.5 * Math.pow(Math.min(1, leaveT / WORK_SMEAR.leaveSec), 2) : 0.5 * (1 - Math.pow(1 - Math.min(1, t / WORK_SMEAR.enterSec), WORK_SMEAR.enterPow)); smear.scrub({ el: titleEl, text, size, weight: WORK_TITLE.weight, family: '"Clash Display", system-ui, sans-serif', color: WORK_UI.color, tracking: WORK_TITLE.tracking, x: g.x, baseline: g.baseline }, u); }, get roll() { return { R: D, V: DV }; }, get counterMetrics() { return { ...M, adv: [...M.adv], inkR: [...M.inkR] }; }, get state() { return { bp, g, titleOp, titleShown, shown, titleBusy }; } };
 }

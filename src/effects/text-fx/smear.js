@@ -202,6 +202,26 @@ export function createSmear({ host, cfg, reduced }) {
       else { o.el.style.visibility = ''; run.el = o.el; }
       raf = requestAnimationFrame(frame);
     },
+    // R33f: the strip starts to move while the title stands as plain DOM text: the overlay takes over at u = 0.5 (p = 1: pixel-identical to the DOM text, the DOM text is hidden) and the
+    // LEAVE plays from there, so the title ALWAYS leaves with the shader, never with a plain fade. o as for play().
+    leaveFromRest(o) {
+      if (run) finish();
+      const glOk = ensure();
+      if (!glOk) return false;
+      const now = performance.now();
+      run = { ...snapAnchor({ ...o }), gl: true, mode: 'leave', t0: now, tStart: now, u: 0.5, u0: 0.5, leaveSec: Math.max(cfg.leaveSec, 0.05), seed: Math.random() * 50, alpha: o.alpha ?? 1 };
+      run.tx = makeTexture(run); canvas.style.visibility = 'visible'; o.el.style.visibility = 'hidden';
+      const mine = run; setTimeout(() => { if (run === mine && run.mode === 'leave') finish(true, true); }, (run.leaveSec + 0.3) * 1000);
+      raf = requestAnimationFrame(frame);
+      return true;
+    },
+    // R33f: the strip stopped before the leave ended: the ENTER continues from where the leave got to (one scrubbed value: the same p, no restart from zero, no flash)
+    resume() {
+      if (!run || run.mode !== 'leave') return false;
+      const p = Math.min(1, Math.max(0, fold(run.u))), x = 1 - Math.pow(1 - p, 1 / Math.max(cfg.enterPow, 0.01));
+      run.mode = 'enter'; run.t0 = performance.now() - x * Math.max(cfg.enterSec, 0.01) * 1000; run.u = 0.5 * p;
+      return true;
+    },
     // new input: the LEAVE plays from the CURRENT folded value (one scrubbed value: a reversal mid-way continues from where it is; no stacking, no flash)
     abort() {
       if (!run) return false;
