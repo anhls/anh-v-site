@@ -319,10 +319,10 @@ export const WORK_TITLE = { weight: 600, size: 120, tracking: 0, fitFrac: 975 / 
 export const TITLE_SHORT = { 'tcb-priority': 'Techcomba', bitis09: 'Bitis DDTV', sulwhasoo: 'Sulwhasoo', forbes: 'Forbes' }; // (R33f: Similac Virgo fits at tracking 0 and needs none; 'Techcombank' alone is 1079 px, over the 975 limit, so it is cut to the longest piece that fits)
 export const WORK_INFO = {
   fadeIn: 0.12, fadeOut: 0.4, descChars: 90,
-  side: { tagsDx: -1.5, top: 60.4, minGap: 24, logoBottom: 50, logoGap: 8, yearRight: -281, descLeft: -218, descW: 200 }, // R33g: block top = `top` px from the PAGE top (row box top, px at 1920, not following the image: the design was FHD and ignored the browser chrome); if its bottom would come within `minGap` of the image top it moves up, never above logoBottom + logoGap; year's right edge = image right + yearRight; description from image right + descLeft
+  side: { tagsDx: -1.5, top: 81, minGap: 24, logoBottom: 50, logoGap: 8, yearRight: -281, descLeft: -218, descW: 200 }, // R33g: block top = `top` px from the PAGE top (row box top, px at 1920, not following the image: the design was FHD and ignored the browser chrome); if its bottom would come within `minGap` of the image top it moves up, never above logoBottom + logoGap; year's right edge = image right + yearRight; description from image right + descLeft
   vertical: { tagsRight: -211, yearLeft: 62, descLeft: 162, descW: 200 }, // beside the image: tags' left = image left + tagsRight; year / description from the image's right edge
 };
-export const WORK_RULER = { pitch: 21, extra: 5.5, dot: 3, bar: 34, barW: 2, rulerDimOpacity: 0.1, rulerCentreMin: 0.9, rulerShrinkSec: 0.25, rulerGrowSec: 0.4, side: { x: 962, bottom: 42 }, vertical: { x: 55, y: 531 } };
+export const WORK_RULER = { pitch: 21, extra: 5.5, dot: 3, bar: 25, barW: 2, rulerDimOpacity: 0.25, rulerCentreMin: 0.9, rulerShrinkSec: 0.25, rulerGrowSec: 0.4, side: { x: 962, bottom: 42 }, vertical: { x: 55, y: 531 } };
 // R33 text field: the title / info / counter sit at their reference place (they do not follow the strip). While the strip moves the text blurs out (textBlurPx, to opacity 0 over
 // textOutSec); its content swaps while hidden; when the next image is in focus (the strip rests and is centred for textDelay s) it refocuses in place over textInSec (the title also
 // rises titleRise px at 1920). Counter: an odometer; it rolls with the strip at most counterMaxSteps numbers per second, settles over counterSettleSec (counterOvershoot = most it passes

@@ -465,3 +465,8 @@ Newest at the bottom. Keep each entry to 8 lines or fewer: what changed, compare
 ## 2026-10-06 Tuned defaults from Anh's changed-only export (branch `work-v2`)
 - WORK_V2.hoverScale 1.04 -> 1.01; WORK_UI.dimOpacity 0.1 -> 0.25; WORK_TITLE.size 150 -> 120 (more full titles now fit before TITLE_SHORT is used); WORK_TEXT.textBlurPx 8 -> 5; WORK_PTR pixelGrid 32 -> 38, pixelBrush 0.12 -> 0.31, pixelRelax 0.9 -> 0.94, pixelRgb 0.01 -> 0.034.
 - Gates: compare 542/542 at 1920 and 2560, layout:check OK, build OK.
+
+## 2026-10-06 R33h ADDITIONS (tuned defaults from Anh's changed-only exports, branch `work-v2`)
+- Export 1 (commit 1c3a35c): WORK_V2.hoverScale 1.04 -> 1.01; WORK_UI.dimOpacity 0.1 -> 0.25; WORK_TITLE.size 150 -> 120; WORK_TEXT.textBlurPx 8 -> 5; WORK_PTR pixelGrid 32 -> 38, pixelBrush 0.12 -> 0.31, pixelRelax 0.9 -> 0.94, pixelRgb 0.01 -> 0.034.
+- Export 2: WORK_INFO.side.top 60.4 -> 81 (first-line cap top now about 89.6 px at 1920; the minGap / logo-floor rule still applies, so short windows move the block up earlier); WORK_RULER.bar 34 -> 25; WORK_RULER.rulerDimOpacity 0.1 -> 0.25.
+- Gates after both: compare 542/542 at 1920 and 2560, layout:check OK, build OK. Not re-measured: the window-size table of R33g and which titles now fit at size 120.
