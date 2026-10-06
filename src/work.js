@@ -4,7 +4,7 @@ import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import data from './data/data.json';
 import pool from './data/work-pool.json';
-import { WORK, WORK_V2, WORK_UI, WORK_TEXT, WORK_SMEAR, WORK_LINE, WORK_PTR, BEND, WARP, CARDS, CARD_HOVER, DEPTH, SCROLL, INDEX, TRANSITION, TALL, TABLET } from './timeline.js';
+import { WORK, WORK_V2, WORK_UI, WORK_TEXT, WORK_SMEAR, WORK_LINE, WORK_PTR, WORK_COUNTER, BEND, WARP, CARDS, CARD_HOVER, DEPTH, SCROLL, INDEX, TRANSITION, TALL, TABLET } from './timeline.js';
 import { createV2 } from './work/v2-ui.js';
 import { createPointerFx } from './work/pointer-fx.js';
 import { isTall, isLiteLandscape } from './util/layout-mode.js';
@@ -775,7 +775,7 @@ const tick = (_time, deltaMs) => {
   // the counter: the unwrapped nearest project, with hysteresis (another project must be clearly nearer before it changes)
   const pitchNow = (morph ? LB : L).pitch;
   const pos = (morph ? sB : S) / pitchNow;
-  if (morph || Math.abs(pos - kCount) > 0.58) kCount = Math.round(pos);
+  if (morph || Math.abs(pos - kCount) > 0.5 + WORK_COUNTER.counterHysteresis) kCount = Math.round(pos);
   const idx = ((kCount % N) + N) % N;
   if (idx !== lastIdx) { lastIdx = idx; clearTimeout(preT); preT = setTimeout(() => preloadHeader(projects[idx].slug, heroRef(projects[idx])), 700); /* R25: the centred project's header image is fetched once it rests */ if (!ui) countEl.textContent = `${String(idx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`; }
 

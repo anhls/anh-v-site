@@ -268,20 +268,23 @@ export function createV2({ app, projects, reduced }) {
   let lastTotalX = NaN;
   // The counter position D = an unwrapped project number (float). Between two numbers the units drum turns ONE digit; a step over several numbers passes every one of them; the step from
   // the last number to 1 (the wrap) is one direct roll. A spring (counterSettleSec, overshoot counterOvershoot) with a speed cap brings it onto the target.
+  let lastTarget = 0;
   const setCounter = (dt, target, stopped) => {
+    lastTarget = target;
     if (!Dinit) { D = target; Dinit = true; }
     const C = WORK_COUNTER;
     if (reduced) { if (bp >= 0.999) { D = target; DV = 0; } } else {
       const lag = C.counterMaxSteps * 3; // (never skips a number below this; only a runaway lag of 3 s of rolling is cut)
       if (Math.abs(target - D) > lag) D = target - Math.sign(target - D) * lag;
-      const cap = stopped ? Math.max(C.counterMaxSteps, Math.abs(target - D) / 0.5) : C.counterMaxSteps;
-      const w = 6 / Math.max(C.counterSettleSec, 0.05), z = C.counterOvershoot > 0 ? 0.8 : 1, steps = Math.max(1, Math.ceil(dt / 0.004)), h = dt / steps;
+      // R33i: a velocity-slew controller instead of the old spring + clamp (the clamp snapped D onto the target whenever the target flipped behind a moving drum = the visible jump). The wanted speed
+      // is the slowest of: the cap, the settle curve (w x error) and the braking curve (sqrt(2 a error), so it can stop on the target); the real speed follows it by at most counterMaxAccel numbers / s^2,
+      // so a reversal slows to zero and rolls back, and D and DV are continuous (no frame moves more than counterMaxSpeed / 60 numbers).
+      const cap = Math.min(C.counterMaxSpeed, stopped ? Math.max(C.counterMaxSteps, Math.abs(target - D) / 0.5) : C.counterMaxSteps);
+      const w = 6 / Math.max(C.counterSettleSec, 0.05), a = Math.max(C.counterMaxAccel, 1), steps = Math.max(1, Math.ceil(dt / 0.004)), h = dt / steps;
       for (let q = 0; q < steps; q++) {
-        DV += (w * w * (target - D) - 2 * z * w * DV) * h;
-        DV = Math.max(-cap, Math.min(cap, DV));
+        const err = target - D, vdes = Math.sign(err) * Math.min(cap, w * Math.abs(err), Math.sqrt(2 * a * Math.abs(err)));
+        DV += Math.max(-a * h, Math.min(a * h, vdes - DV));
         D += DV * h;
-        const over = (D - target) * Math.sign(DV);
-        if (over > C.counterOvershoot) { D = target + Math.sign(DV) * C.counterOvershoot; DV *= 0.5; }
       }
       if (Math.abs(target - D) < 0.0005 && Math.abs(DV) < 0.01) { D = target; DV = 0; }
     }
@@ -395,5 +398,5 @@ export function createV2({ app, projects, reduced }) {
     rollLines('out', WORK_V2.modeRollSec);
     at(inAt, () => { if (modeRoll !== mine) return; cols.forEach((col) => placeCol(col, to)); rollLines('in', WORK_V2.modeRollSec); at(WORK_V2.modeRollSec + 0.3, () => { if (modeRoll === mine) { modeRoll = null; lineState = 'in'; } }); });
   };
-  return { root, lineEl, get titleStats() { return { fadeFrames: titleFadeFrames, leaveStarts: titleLeaveStarts }; }, get rollInfo() { return { lineState, lastDur, cols: cols.map((c) => c.lines.length), y: cols.map((c) => c.lines.map((L) => +L.t.y.toFixed(1))) }; }, get lineState() { return { x: lineX, vert: lineVert, step: lineStep, last: [...lineLast] }; }, switchEl, layout, frame, setMode, rollMode, settleRoll, el: root, titles: T, infos, smear, scrubTitle(idx, t, leaveT) { setTitle(idx); const size = T.size[idx], text = T.shown[idx]; const g = domGeometry(); const u = leaveT !== undefined ? 0.5 + 0.5 * Math.pow(Math.min(1, leaveT / WORK_SMEAR.leaveSec), 2) : 0.5 * (1 - Math.pow(1 - Math.min(1, t / WORK_SMEAR.enterSec), WORK_SMEAR.enterPow)); smear.scrub({ el: titleEl, text, size, weight: WORK_TITLE.weight, family: '"Clash Display", system-ui, sans-serif', color: WORK_UI.color, tracking: WORK_TITLE.tracking, x: g.x, baseline: g.baseline }, u); }, get roll() { return { R: D, V: DV }; }, get counterMetrics() { return { ...M, adv: [...M.adv], inkR: [...M.inkR] }; }, get state() { return { bp, g, titleOp, titleShown, shown, titleBusy }; } };
+  return { root, lineEl, get counterState() { return { D, DV, target: lastTarget }; }, get titleStats() { return { fadeFrames: titleFadeFrames, leaveStarts: titleLeaveStarts }; }, get rollInfo() { return { lineState, lastDur, cols: cols.map((c) => c.lines.length), y: cols.map((c) => c.lines.map((L) => +L.t.y.toFixed(1))) }; }, get lineState() { return { x: lineX, vert: lineVert, step: lineStep, last: [...lineLast] }; }, switchEl, layout, frame, setMode, rollMode, settleRoll, el: root, titles: T, infos, smear, scrubTitle(idx, t, leaveT) { setTitle(idx); const size = T.size[idx], text = T.shown[idx]; const g = domGeometry(); const u = leaveT !== undefined ? 0.5 + 0.5 * Math.pow(Math.min(1, leaveT / WORK_SMEAR.leaveSec), 2) : 0.5 * (1 - Math.pow(1 - Math.min(1, t / WORK_SMEAR.enterSec), WORK_SMEAR.enterPow)); smear.scrub({ el: titleEl, text, size, weight: WORK_TITLE.weight, family: '"Clash Display", system-ui, sans-serif', color: WORK_UI.color, tracking: WORK_TITLE.tracking, x: g.x, baseline: g.baseline }, u); }, get roll() { return { R: D, V: DV }; }, get counterMetrics() { return { ...M, adv: [...M.adv], inkR: [...M.inkR] }; }, get state() { return { bp, g, titleOp, titleShown, shown, titleBusy }; } };
 }
