@@ -361,6 +361,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
 
   // --- bend state: ONE spring for every card (x = signed 0..1 strength), per-card depth weight applied when drawing ---------
   const bend = { x: 0, v: 0, speed: 0 };
+  let leanPrev = 0, leanPrevAmt = 0;
   const bendI = { x: 0, v: 0, amt: 0 }; // the main images' own spring (Work page)
   let lastT = 0;
   let shift = 0; // R24i: the image pass's axis shift now (screen lengths; read by diag / the checks)
@@ -440,7 +441,12 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
          Math.max(-1, Math.min(1, bendI.amt || 0)), lm = WP.leanMax ?? 0.45;
       const am = Math.max(-1, Math.min(1, bendI.amt || 0)), mAl = axis ? fb.mx / W : fb.my / H, mCr = axis ? fb.my / H : fb.mx / W;
       shift = limitLean(am, Math.max(-lm, Math.min(lm, sh)), { curl: WP.curl * (WP.shapeK ?? 1), camA: WARP_DIR > 0 ? WP.camDown : WP.camUp, camB: WARP_DIR > 0 ? WP.camUp : WP.camDown, reach: WP.reach, bowA: WARP_DIR > 0 ? WP.bowDown : WP.bowUp, bowB: WARP_DIR > 0 ? WP.bowUp : WP.bowDown, sym: WP.sym }, mAl, mCr); // never past what the buffer holds (no blank edge, no fold)
+      // R33j (2): the buffer limit shrinks the allowed lean as the warp grows and gives it back as the warp decays, so on the way out the lean DIPPED (0.18 -> 0.04) and then grew again (-> 0.17) while the
+      // warp was falling = the flip-flop of the settle. While |amt| falls the lean may no longer grow (same sign): it holds, then follows the wanted lean down.
+      if (Math.abs(am) < leanPrevAmt - 1e-5 && Math.sign(shift) === Math.sign(leanPrev) && Math.abs(shift) > Math.abs(leanPrev)) shift = leanPrev;
+      leanPrev = shift; leanPrevAmt = Math.abs(am);
       gl.uniform1f(Pu.uShift, shift);
+      bendI.shift = shift; bendI.shiftReq = sh; // (read by tools/scratch/r33j-*.mjs)
     }
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     gl.enable(gl.BLEND);
@@ -540,7 +546,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     if (layers) {
       const amtI = import.meta.env.DEV && holdAmt !== null ? holdAmt : WARP_DIR * bendI.x * (Math.max(layers.warp.strengthUp, layers.warp.strengthDown) > 0 ? 1 : 0); // (dev: api.holdWarp pins the image warp amount for the pixel comparison tests)
       bendI.amt = amtI;
-      if (Math.abs(amtI) <= 0.0015) shift = 0; // (no image pass this frame: the axis is centred)
+      if (Math.abs(amtI) <= 0.0015) { shift = 0; leanPrev = 0; leanPrevAmt = 0; } // (no image pass this frame: the axis is centred)
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.viewport(0, 0, canvas.width, canvas.height);
       gl.clear(gl.COLOR_BUFFER_BIT);
