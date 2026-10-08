@@ -31,6 +31,7 @@ void main() {
   vec2 q = p;
   float aS = a * (side > 0.0 ? (uAmt > 0.0 ? 1.0 : uSym) : (uAmt < 0.0 ? 1.0 : uSym));
   float e = abs(p.y);
+  float vis = 1.0;
   if (aS > 0.00001 && e > y0) {
     float away = uAmt > 0.0 ? 1.0 : -1.0;
     float cam = uAmt > 0.0 ? uShape.y : uShape.z;
@@ -45,7 +46,10 @@ void main() {
     if (fh < e) {
       float zt = away * R * (1.0 - cos(hi)) + bow * p.x * p.x * sh * sh;
       q.x = p.x * (cam + min(zt, 0.4 * cam)) / cam;
-      q.y = side * min(y0 + R * hi + (e - fh) * 10.0, 1.1);
+      q.y = side * (y0 + R * hi);
+      // R36: past the curl's silhouette the sheet is gone (the old lookup packed the rest of the strip into ~10x squashed bands): draw nothing,
+      // with the edge softened over ~1.5 device px
+      vis = 1.0 - smoothstep(0.0, 1.5 / (uAxis > 0.5 ? uRes.x : uRes.y), e - fh);
     } else {
       for (int i = 0; i < 18; i++) {
         float m = 0.5 * (lo + hi);
@@ -66,6 +70,7 @@ void main() {
   vec2 uv = vec2((src.x + uMargin.x) / (1.0 + 2.0 * uMargin.x), (src.y + uMargin.y) / (1.0 + 2.0 * uMargin.y));
   vec4 c = vec4(0.0);
   if (uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0) c = texture(uScene, vec2(uv.x, 1.0 - uv.y));
+  c *= vis;
   float n = h(gl_FragCoord.xy + uSeed) - 0.5;
   c.rgb = clamp(c.rgb + n * uGrain * c.a, 0.0, 1.0);
   o = c;

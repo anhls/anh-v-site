@@ -301,6 +301,20 @@ Checks (quick mode): 200 seeds on the homepage (1920x1080, 2560x1440, 1440x900) 
 
 ## R35 [done] (archived in docs/archive/requests-R35.md)
 
+## R36 [done] (bug fix, Work page): squashed image bands below the curl of the main-image warp (use Sonnet 5.5, full checks, small scope)
+
+Bug (Anh's recording, 2026-10-08, vertical mode, scrolling up, bottom of the screen): under each curved image, thin FLAT bands of the next images (squashed, straight-edged, narrower than the curved image) show up stacked, with black gaps between them. Cowork found the cause; confirm it before fixing.
+Cause: `src/work/frame-warp-shader.js`, `FRAME_POST_FRAG`, the branch past the curl's silhouette (`if (fh < e)`): `q.y = side * min(y0 + R * hi + (e - fh) * 10.0, 1.1);` fills the screen past the horizon with the rest of the strip squashed about 10x. On the homepage frame this only stretches one picture, but the Work strip holds several images in a row, so 3 to 4 of them get packed into thin bands. The x stretch is clamped there (`min(zt, 0.4 * cam)`), so the bands come out rectangular instead of following the dome. The black gaps are where that lookup runs past the buffer (uv > 1).
+1. Fix in `FRAME_POST_FRAG` ONLY: past the silhouette, draw nothing (transparent, so the black page shows), the way a real sheet curled past its edge would look. Soften the edge over about 1 to 2 device px (a smoothstep on `e - fh`) so the silhouette does not alias. Do not change the sheet's shape anywhere before the silhouette.
+2. Do NOT touch `src/effects/warp-shader.js` (cards, homepage) or the homepage frame warp in this request. It has the same line; just note in status.md whether the bug shows there too, for Anh to decide.
+3. Lite modes (tall, tablet landscape) use the same shader: check them too, same fix, no separate path.
+Checks (full):
+- Scripted fling in BOTH modes (side and vertical) and BOTH directions, at the peak warp amount, 1920x1080 and 2560x1440: screenshots of the curl edge before and after, saved in tools/scratch/r36-shots/. After: no flat bands, no repeated images past the curl, only black there.
+- At rest (warp 0): pixel-identical to before (0 px diff), seam 0.00 px, counter order unchanged.
+- The warp rise and settle look the same (same amounts in the ?perf diag before and after).
+- compare 542/542 at 1920 and 2560, `?gl=0` smoke, 0 console errors.
+Report: status.md entry (what changed, the before/after shot paths, whether the homepage / card warp shows the same bands). Commit.
+
 ## R27 (type motion TOOLKIT): paragraph line reveal + label smear reveal, one shared system, built but applied NOWHERE yet (use Sonnet 5.5, no time budget, Anh runs it at home)
 
 Reference: two screen recordings Anh made of another site (not ours; the iOS "Lens / pause / heart" overlays in them are not part of the effect). Anh places them in the repo as docs/reference/text-fx-paragraph.mov (3.5 s, 60 fps, a bio paragraph) and docs/reference/text-fx-label.mov (2.7 s, 60 fps, a name + index label). If they are missing, use the numbers below (read by Cowork from 10 fps / 60 fps frames, good to about +-0.1 s). Do NOT copy the other site's font: in the paragraph recording the typeface visibly swaps at about 0.6 s (a web font loading late); ours must wait for fonts before measuring and splitting.
