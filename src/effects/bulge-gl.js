@@ -12,7 +12,8 @@ export function createBulge(parent, box, image) {
   const canvas = document.createElement('canvas');
   canvas.className = 'px__bulge';
   canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
-  const gl = canvas.getContext('webgl2', { alpha: true, antialias: true, premultipliedAlpha: false });
+  let gl;
+  try { gl = canvas.getContext('webgl2', { alpha: true, antialias: true, premultipliedAlpha: false }); } catch { return null; }
   if (!gl) return null;
   let dead = false, texture, program, vertex, index, vs, fs;
   const dispose = () => {

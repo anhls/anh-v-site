@@ -315,7 +315,7 @@ Checks (full):
 - compare 542/542 at 1920 and 2560, `?gl=0` smoke, 0 console errors.
 Report: status.md entry (what changed, the before/after shot paths, whether the homepage / card warp shows the same bands). Commit.
 
-## R37 (Work page, project open / close): pillow bulge + the reference's timing + push off screen (use Sonnet 5.5, full checks)
+## R37 [done] (Work page, project open / close): pillow bulge + the reference's timing + push off screen (use Sonnet 5.5, full checks)
 Codex / other agents: build from docs/codex/R37-R38.md (self-contained brief with the assumptions and traps; it wins where the two differ).
 
 Reference: Dribbble "Header slider idea" by Hrvoje Grubisic (https://dribbble.com/shots/14465269-Header-slider-idea, 800x600 mp4, the click at about 5.85 s). Cowork's frame reads: the clicked card grows from its slot to full screen in about 0.35 s and is flat and settled by about 0.4 s; while it grows its edges bow OUTWARD like a pillow (sides and top / bottom, most in the middle of each edge), the bulge peaks around the middle of the move, the box passes the screen edges slightly and settles back flat; the neighbouring cards are shoved off screen (not faded); closing plays the same move in reverse (the image shrinks back into its slot while bulging, the neighbours slide back in).
