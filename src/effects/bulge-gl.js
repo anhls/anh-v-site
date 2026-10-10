@@ -66,7 +66,7 @@ export function createBulge(parent, box, image) {
       natural = [im.naturalWidth, im.naturalHeight];
     };
     setTexture(image); parent.append(canvas);
-    return { canvas, dispose, setTexture, draw(b, ib = b, bulge = 0, handoff = 0) {
+    return { canvas, dispose, setTexture, draw(b, ib = b, bulge = 0, handoff = 0, pageHandoff = false) {
       if (dead) return;
       const dpr = Math.min(devicePixelRatio || 1, innerWidth > 2560 ? BEND.dprCapLarge : BEND.dprCap);
       const w = Math.round(innerWidth * dpr), h = Math.round(innerHeight * dpr);
@@ -77,7 +77,7 @@ export function createBulge(parent, box, image) {
       gl.drawElements(gl.TRIANGLES, ids.length, gl.UNSIGNED_SHORT, 0);
       // Brief overlap hides the browser / GPU resampling difference before the exact DOM hand-off.
       const mix = Math.max(0, Math.min(1, handoff));
-      canvas.style.opacity = 1 - mix; box.style.visibility = mix > 0 ? '' : 'hidden';
+      canvas.style.opacity = 1 - mix; box.style.visibility = mix > 0 && !pageHandoff ? '' : 'hidden';
     } };
   } catch { dispose(); return null; }
 }

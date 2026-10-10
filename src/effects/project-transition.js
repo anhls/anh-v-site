@@ -163,7 +163,7 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
     box.style.left = `${bx}px`; box.style.top = `${by}px`; box.style.width = `${lerp(A.w, B.w, e)}px`; box.style.height = `${lerp(A.h, B.h, e)}px`;
     const ix = lerp(A.x - A.x, BI.x - B.x, e), iy = lerp(0, BI.y - B.y, e);
     im.style.left = `${ix}px`; im.style.top = `${iy}px`; im.style.width = `${lerp(A.w, BI.w, e)}px`; im.style.height = `${lerp(A.h, BI.h, e)}px`;
-    bulge?.draw({ x: bx, y: by, w: lerp(A.w, B.w, e), h: lerp(A.h, B.h, e) }, { x: bx + ix, y: by + iy, w: lerp(A.w, BI.w, e), h: lerp(A.h, BI.h, e) }, T.bulgeAmp * pillowBump(1 - prog.t), (prog.t - (1 - T.bulgeHandoff)) / T.bulgeHandoff);
+    bulge?.draw({ x: bx, y: by, w: lerp(A.w, B.w, e), h: lerp(A.h, B.h, e) }, { x: bx + ix, y: by + iy, w: lerp(A.w, BI.w, e), h: lerp(A.h, BI.h, e) }, T.bulgeAmp * pillowBump(1 - prog.t), (prog.t - (1 - T.bulgeHandoff)) / T.bulgeHandoff, true);
   };
   let flyMarked = false;
   const tl = gsap.timeline({ onComplete: () => { onPush?.(0, 0); pm('back:shrink-end'); tailEnd(); } });
