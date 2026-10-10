@@ -344,6 +344,9 @@ Anh wants to compare the site in light mode himself. It is a hidden preview, not
 4. Report for Anh: screenshots of each page in both themes at 1920x1080 (and the tall home at 390x844), saved in tools/scratch/r38-shots/, plus a list of everything that reads badly in light mode and what a real light version would need (logo / wordmark files, GIFs or videos with black backgrounds, the hero trail, the cursor, captions, the menu).
 Checks: dark (no param, nothing stored) is pixel-identical to before on every page (0 px diff); compare 542/542 at 1920 and 2560; seam 0.00 px; no flash on load in either theme (screenshot the first paint); `?gl=0` smoke in both themes; 0 console errors. Report in status.md. Commit.
 
+## R37b (Work page open / close): make the motion match the reference (in-out growth, early and bigger bulge, rounded corners)
+Codex / other agents: build from docs/codex/R37b.md (self-contained brief with the reference video docs/reference/r37-dribbble.mp4, the fixes to Cowork's R37 spec, assumptions and safeguards; it wins where the two differ). Branch codex/r37-r38, push after every commit.
+
 ## R27 (type motion TOOLKIT): paragraph line reveal + label smear reveal, one shared system, built but applied NOWHERE yet (use Sonnet 5.5, no time budget, Anh runs it at home)
 
 Reference: two screen recordings Anh made of another site (not ours; the iOS "Lens / pause / heart" overlays in them are not part of the effect). Anh places them in the repo as docs/reference/text-fx-paragraph.mov (3.5 s, 60 fps, a bio paragraph) and docs/reference/text-fx-label.mov (2.7 s, 60 fps, a name + index label). If they are missing, use the numbers below (read by Cowork from 10 fps / 60 fps frames, good to about +-0.1 s). Do NOT copy the other site's font: in the paragraph recording the typeface visibly swaps at about 0.6 s (a web font loading late); ours must wait for fonts before measuring and splitting.
