@@ -334,7 +334,7 @@ Checks (full):
 - At rest: pixel-identical to before (0 px diff), seam 0.00 px, counter order unchanged; compare 542/542 at 1920 and 2560; `?gl=0` smoke; reduced motion; 0 console errors.
 Report: status.md entry (final numbers vs the start values, hand-off diff numbers, frame times, the shot paths). Commit.
 
-## R38 (light mode PREVIEW toggle, for Anh only): see if a light site reads better (use Sonnet 5.5, after R37 is committed)
+## R38 [done] (light mode PREVIEW toggle, for Anh only): see if a light site reads better (use Sonnet 5.5, after R37 is committed)
 Codex / other agents: build from docs/codex/R37-R38.md (self-contained brief with the assumptions and traps; it wins where the two differ).
 
 Anh wants to compare the site in light mode himself. It is a hidden preview, not a visitor feature: dark stays the default and the dark site must not change at all.
