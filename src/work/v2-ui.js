@@ -26,6 +26,13 @@ export function projectInfo(p, maxChars = WORK_INFO.descChars) {
 }
 
 export function createV2({ app, projects, reduced }) {
+  let lightInk;
+  const refreshThemeInk = () => {
+    lightInk = document.documentElement.dataset.theme === 'light'
+      ? getComputedStyle(document.documentElement).getPropertyValue('--fg').trim() : null;
+  };
+  refreshThemeInk();
+  const themeInk = () => lightInk || WORK_UI.color;
   const N = projects.length;
   const NC = Number(new URLSearchParams(location.search).get('n')) || N; // the number the counter counts to (dev: ?n=12 tests the two-digit carry with the real five projects)
   const infos = projects.map((p) => projectInfo(p));
@@ -136,9 +143,9 @@ export function createV2({ app, projects, reduced }) {
   };
   let lastIw = 0, lastIh = 0;
   const applyVars = () => { // the numbers of WORK_INFO / WORK_RULER as CSS custom properties (re-applied on every layout so ?tune takes effect)
-    root.style.setProperty('--w2-c', WORK_UI.color); root.style.setProperty('--w2-dim', String(WORK_UI.dimOpacity)); root.style.setProperty('--w2-desc', String(WORK_UI.descOpacity));
+    root.style.setProperty('--w2-c', themeInk()); root.style.setProperty('--w2-dim', String(WORK_UI.dimOpacity)); root.style.setProperty('--w2-desc', String(WORK_UI.descOpacity));
     root.style.setProperty('--w2-small', String(WORK_UI.smallSize)); root.style.setProperty('--w2-track', `${WORK_UI.tracking}em`); root.style.setProperty('--w2-ttrack', `${WORK_TITLE.tracking}em`); root.style.setProperty('--w2-ctrack', `${WORK_UI.counterTracking}em`); root.style.setProperty('--w2-num', String(WORK_COUNTER.size));
-    lineEl.style.setProperty('--w2-c', WORK_UI.color);
+    lineEl.style.setProperty('--w2-c', themeInk());
     const set = (n, o) => Object.entries(o).forEach(([k, v]) => root.style.setProperty(`--${n}-${k}`, String(v)));
     set('is', WORK_INFO.side); set('iv', WORK_INFO.vertical);
     root.style.setProperty('--rd-dot', String(WORK_RULER.dot)); root.style.setProperty('--rd-bar', String(WORK_RULER.bar));
@@ -213,7 +220,7 @@ export function createV2({ app, projects, reduced }) {
     const size = T.size[titleShown], text = T.shown[titleShown];
     const g = domGeometry();
     titleBusy = true;
-    const ok = smear.leaveFromRest({ el: titleEl, text, size, weight: WORK_TITLE.weight, family: '"Clash Display", system-ui, sans-serif', color: WORK_UI.color, tracking: WORK_TITLE.tracking, x: g.x, baseline: g.baseline,
+    const ok = smear.leaveFromRest({ el: titleEl, text, size, weight: WORK_TITLE.weight, family: '"Clash Display", system-ui, sans-serif', color: themeInk(), tracking: WORK_TITLE.tracking, x: g.x, baseline: g.baseline,
       done: () => { titleOp = 1; titleBusy = false; }, aborted: () => { titleOp = 0; titleBusy = false; } });
     if (!ok) titleBusy = false; else titleLeaveStarts++;
     return ok;
@@ -223,7 +230,7 @@ export function createV2({ app, projects, reduced }) {
     cv.font = `${WORK_TITLE.weight} ${size}px "Clash Display"`;
     const g = domGeometry();
     titleBusy = true;
-    smear.play({ el: titleEl, text, size, weight: WORK_TITLE.weight, family: '"Clash Display", system-ui, sans-serif', color: WORK_UI.color, tracking: WORK_TITLE.tracking, x: g.x, baseline: g.baseline,
+    smear.play({ el: titleEl, text, size, weight: WORK_TITLE.weight, family: '"Clash Display", system-ui, sans-serif', color: themeInk(), tracking: WORK_TITLE.tracking, x: g.x, baseline: g.baseline,
       done: () => { titleOp = 1; titleBusy = false; }, aborted: () => { titleOp = 0; titleBusy = false; } });
   };
 
@@ -398,5 +405,9 @@ export function createV2({ app, projects, reduced }) {
     rollLines('out', WORK_V2.modeRollSec);
     at(inAt, () => { if (modeRoll !== mine) return; cols.forEach((col) => placeCol(col, to)); rollLines('in', WORK_V2.modeRollSec); at(WORK_V2.modeRollSec + 0.3, () => { if (modeRoll === mine) { modeRoll = null; lineState = 'in'; } }); });
   };
-  return { root, lineEl, get counterState() { return { D, DV, target: lastTarget }; }, get titleStats() { return { fadeFrames: titleFadeFrames, leaveStarts: titleLeaveStarts }; }, get rollInfo() { return { lineState, lastDur, cols: cols.map((c) => c.lines.length), y: cols.map((c) => c.lines.map((L) => +L.t.y.toFixed(1))) }; }, get lineState() { return { x: lineX, vert: lineVert, step: lineStep, last: [...lineLast] }; }, switchEl, layout, frame, setMode, rollMode, settleRoll, el: root, titles: T, infos, smear, scrubTitle(idx, t, leaveT) { setTitle(idx); const size = T.size[idx], text = T.shown[idx]; const g = domGeometry(); const u = leaveT !== undefined ? 0.5 + 0.5 * Math.pow(Math.min(1, leaveT / WORK_SMEAR.leaveSec), 2) : 0.5 * (1 - Math.pow(1 - Math.min(1, t / WORK_SMEAR.enterSec), WORK_SMEAR.enterPow)); smear.scrub({ el: titleEl, text, size, weight: WORK_TITLE.weight, family: '"Clash Display", system-ui, sans-serif', color: WORK_UI.color, tracking: WORK_TITLE.tracking, x: g.x, baseline: g.baseline }, u); }, get roll() { return { R: D, V: DV }; }, get counterMetrics() { return { ...M, adv: [...M.adv], inkR: [...M.inkR] }; }, get state() { return { bp, g, titleOp, titleShown, shown, titleBusy }; } };
+  document.addEventListener('anhv-theme', () => {
+    refreshThemeInk(); applyVars(); smear.cancel();
+    if (titleShown >= 0) { titleEl.style.visibility = ''; titleEl.style.opacity = String(titleOp); }
+  });
+  return { root, lineEl, get counterState() { return { D, DV, target: lastTarget }; }, get titleStats() { return { fadeFrames: titleFadeFrames, leaveStarts: titleLeaveStarts }; }, get rollInfo() { return { lineState, lastDur, cols: cols.map((c) => c.lines.length), y: cols.map((c) => c.lines.map((L) => +L.t.y.toFixed(1))) }; }, get lineState() { return { x: lineX, vert: lineVert, step: lineStep, last: [...lineLast] }; }, switchEl, layout, frame, setMode, rollMode, settleRoll, el: root, titles: T, infos, smear, scrubTitle(idx, t, leaveT) { setTitle(idx); const size = T.size[idx], text = T.shown[idx]; const g = domGeometry(); const u = leaveT !== undefined ? 0.5 + 0.5 * Math.pow(Math.min(1, leaveT / WORK_SMEAR.leaveSec), 2) : 0.5 * (1 - Math.pow(1 - Math.min(1, t / WORK_SMEAR.enterSec), WORK_SMEAR.enterPow)); smear.scrub({ el: titleEl, text, size, weight: WORK_TITLE.weight, family: '"Clash Display", system-ui, sans-serif', color: themeInk(), tracking: WORK_TITLE.tracking, x: g.x, baseline: g.baseline }, u); }, get roll() { return { R: D, V: DV }; }, get counterMetrics() { return { ...M, adv: [...M.adv], inkR: [...M.inkR] }; }, get state() { return { bp, g, titleOp, titleShown, shown, titleBusy }; } };
 }

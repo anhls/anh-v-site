@@ -66,7 +66,7 @@ if (project?.page) {
     let r = null; try { r = JSON.parse(sessionStorage.getItem('pxb') || 'null'); } catch { /* */ }
     if (!r || r.slug !== slug || r.origin !== 'work') return;
     e.preventDefault();
-    const f = document.createElement('div'); f.style.cssText = 'position:fixed;inset:0;z-index:8;background:#000;opacity:0;pointer-events:auto'; document.body.append(f);
+    const f = document.createElement('div'); f.style.cssText = 'position:fixed;inset:0;z-index:8;background:var(--bg);opacity:0;pointer-events:auto'; document.body.append(f);
     gsap.to(f, { opacity: 1, duration: 0.25, ease: 'sine.inOut', onComplete: () => { location.href = '/work/'; } });
   });
   // Dev only: ?tune opens the wheel-acceleration panel (a build-time constant, nothing ships).

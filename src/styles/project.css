@@ -1,6 +1,6 @@
 /* Project pages (R19). Measured on live at 1920x1080. Sizes in --ux / --uy (1 = 1vw / 1vh up to 1920x1080, then fixed); media in vw / vh. */
-body { background: #000; color: #fff; font-family: var(--font-display); }
-.pj__sec { position: relative; display: flex; width: 100%; height: 100vh; overflow: hidden; background: #000; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-display); }
+.pj__sec { position: relative; display: flex; width: 100%; height: 100vh; overflow: hidden; background: var(--bg); }
 .pj__cell { position: relative; flex: 1 1 50%; min-width: 0; height: 100%; overflow: hidden; display: flex; align-items: center; justify-content: center; }
 .pj__img { display: block; width: 100%; height: 100%; }
 .pj__img--cover { object-fit: cover; }
@@ -11,7 +11,7 @@ body { background: #000; color: #fff; font-family: var(--font-display); }
 .pj__full .pj__img { height: var(--tall, 100vh); flex: none; }
 
 /* Text blocks: ScrollFadeText 64px / 64px, weight 500, -0.01em; label 12px at top 13 left 29 inside the 60px padding */
-.pj__text { background: #000; padding: calc(var(--ux) * 3.125) var(--padx, calc(var(--ux) * 3.125)); }
+.pj__text { background: var(--bg); padding: calc(var(--ux) * 3.125) var(--padx, calc(var(--ux) * 3.125)); }
 .pj__text--fixed { display: flex; align-items: center; }
 .pj__text--fixed .pj__inner { width: 100%; }
 .pj__inner { position: relative; }
@@ -27,7 +27,7 @@ body { background: #000; color: #fff; font-family: var(--font-display); }
 .pj__small strong, .pj__note strong { font-weight: 700; } /* bold runs stay inside the 50 % container (live: opacity .5 on the wrapper, strong is white 700) */
 
 /* Details: 60px padding, two 1fr columns with no gap; rows 52px apart; paragraph 66px under the last row */
-.pj__details { display: grid; grid-template-columns: 1fr 1fr; padding: calc(var(--ux) * 3.125); background: #000; align-items: start; }
+.pj__details { display: grid; grid-template-columns: 1fr 1fr; padding: calc(var(--ux) * 3.125); background: var(--bg); align-items: start; }
 .pj__dl { display: grid; gap: calc(var(--ux) * 0.52); }
 .pj__rows { margin-top: calc(var(--ux) * 2.604); padding-top: calc(var(--ux) * 0.83); display: grid; gap: calc(var(--ux) * 1.875); }
 .pj__row { display: grid; grid-template-columns: 1fr 1fr; }
@@ -81,7 +81,7 @@ body { background: #000; color: #fff; font-family: var(--font-display); }
 .pj__full > .pj__img[style*="--hpx"] { height: var(--hpx); }
 
 /* R21: free-layout stage (items placed with css), pinned scroller. */
-.pj__stage { position: relative; width: 100%; overflow: hidden; background: #000; }
+.pj__stage { position: relative; width: 100%; overflow: hidden; background: var(--bg); }
 .pj__stage--visible { overflow: visible; }
 .pj__si { position: absolute; }
 .pj__si > .pj__img { width: 100%; height: 100%; }
@@ -90,7 +90,7 @@ body { background: #000; color: #fff; font-family: var(--font-display); }
 .pj__sg { position: absolute; display: flex; flex-direction: column; justify-content: center; }
 .pj__sg > .pj__si { position: static; }
 .pj__sg > .pj__st { width: 100%; }
-.pj__scroller { position: relative; width: 100%; background: #000; }
+.pj__scroller { position: relative; width: 100%; background: var(--bg); }
 .pj__pin { position: sticky; top: 0; height: 100vh; overflow: hidden; }
 .pj__layer { position: absolute; will-change: transform; }
 .pj__layer--top { z-index: 1; }
@@ -101,7 +101,7 @@ body { background: #000; color: #fff; font-family: var(--font-display); }
 .pj__scroller--plain .pj__layer > .pj__si { height: calc(var(--uy) * 56); }
 
 /* R35: loop hero at its own aspect (the still behind it fills the same box); row block: items at their own aspect ratios, one shared height, no crop */
-.pj__hero--loop { background: #000; }
+.pj__hero--loop { background: var(--bg); }
 .pj__hero--loop > .pj__img { position: absolute; inset: 0; }
 .pj__rowblk { height: auto; align-items: center; justify-content: center; gap: var(--rg, 0px); padding-inline: calc((100% - var(--rw, 100%)) / 2); }
 .pj__ritem { position: relative; min-width: 0; overflow: hidden; }

@@ -46,7 +46,7 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
   root.className = 'px';
   root.setAttribute('aria-hidden', 'true');
   root.style.cssText = 'position:fixed;inset:0;z-index:8;pointer-events:auto;overflow:hidden';
-  root.innerHTML = `<div class="px__bg" style="position:absolute;inset:0;background:#000;opacity:0"></div>
+  root.innerHTML = `<div class="px__bg" style="position:absolute;inset:0;background:var(--bg);opacity:0"></div>
     <div class="px__box" style="position:absolute;overflow:hidden;left:${rect.x}px;top:${rect.y}px;width:${rect.w}px;height:${rect.h}px">
       <img class="px__a" alt="" draggable="false" src="${startSrc}" style="position:absolute;left:${rel.x}px;top:${rel.y}px;width:${rel.w}px;height:${rel.h}px;object-fit:cover;display:block">
       <img class="px__b" alt="" draggable="false" style="position:absolute;left:${rel.x}px;top:${rel.y}px;width:${rel.w}px;height:${rel.h}px;object-fit:cover;display:block;opacity:0">

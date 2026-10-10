@@ -2,12 +2,45 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      /* Private preview: apply the stored theme before any stylesheet can paint. */
+      (function () {
+        var root = document.documentElement, key = 'anhv-theme', theme = 'dark';
+        var query = new URLSearchParams(location.search).get('theme');
+        try {
+          if (query === 'reset') localStorage.removeItem(key);
+          else if (query === 'light' || query === 'dark') localStorage.setItem(key, query);
+          var stored = localStorage.getItem(key);
+          if (stored === 'light' || stored === 'dark') theme = stored;
+        } catch (e) {}
+        if (query === 'light' || query === 'dark') theme = query;
+        if (query === 'reset') theme = 'dark';
+        root.dataset.theme = theme;
+        function sync() {
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (!meta) { meta = document.createElement('meta'); meta.name = 'theme-color'; document.head.appendChild(meta); }
+          meta.content = getComputedStyle(root).getPropertyValue('--bg').trim();
+        }
+        window.__anhvThemeSync = sync;
+        document.addEventListener('keydown', function (e) {
+          var el = e.target;
+          if (!e.shiftKey || e.ctrlKey || e.metaKey || e.altKey || e.repeat || e.defaultPrevented || e.key.toLowerCase() !== 'l') return;
+          if (el && (el.closest('input, textarea, select') || el.isContentEditable)) return;
+          var next = root.dataset.theme === 'light' ? 'dark' : 'light';
+          root.dataset.theme = next;
+          try { localStorage.setItem(key, next); } catch (err) {}
+          sync(); document.dispatchEvent(new CustomEvent('anhv-theme', { detail: next }));
+          e.preventDefault();
+        });
+      })();
+    </script>
+    <link rel="stylesheet" href="/src/styles/base.css" />
+    <script>window.__anhvThemeSync(); delete window.__anhvThemeSync;</script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="description" content="Forbes Vanguard branding concept, Secure the Past, Define the Next: art direction, 3D and motion by Anh V." />
     <link rel="icon" href="data:," />
     <title>Forbes Vanguard | Anh V</title>
     <link rel="canonical" href="https://www.anh-v.com/work/forbes.html" />
-    <meta name="theme-color" content="#000000" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Anh V" />
     <meta property="og:title" content="Forbes Vanguard | Anh V" />
@@ -21,7 +54,7 @@
     <link rel="preload" href="/fonts/ClashDisplay-Variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/media/brand/wordmark.svg" as="image" type="image/svg+xml" />
     <link rel="preload" as="image" type="image/webp" imagesrcset="/media/forbes/hero-800.webp 800w, /media/forbes/hero-1600.webp 1600w, /media/forbes/hero-1800.webp 1800w" imagesizes="100vw" />
-      <style>html { background: #000; }</style>
+      <style>html { background: var(--bg); }</style>
   </head>
   <body data-project="forbes">
     <script>
@@ -31,7 +64,7 @@
           var d = JSON.parse(sessionStorage.getItem('pxt') || 'null'); sessionStorage.removeItem('pxt');
           if (!d || Date.now() - d.t > 15000 || location.pathname.indexOf('/' + d.slug + '.html') < 0) return;
           window.__pxt = d;
-          document.body.insertAdjacentHTML('afterbegin', '<div id="pxt" aria-hidden="true" style="position:fixed;inset:0;z-index:8;background:#000;overflow:hidden"><img alt="" decoding="sync" src="' + d.src + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block"></div>');
+          document.body.insertAdjacentHTML('afterbegin', '<div id="pxt" aria-hidden="true" style="position:fixed;inset:0;z-index:8;background:var(--bg);overflow:hidden"><img alt="" decoding="sync" src="' + d.src + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block"></div>');
         } catch (e) {}
       })();
     </script>

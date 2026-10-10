@@ -1,7 +1,7 @@
 /* Work page (R23 / R23b). The stage is fixed; the page's own scroll only feeds Lenis (infinite mode), nothing visible moves with it. */
-.work-page { background: #000; }
+.work-page { background: var(--bg); }
 .work__spacer { height: 400vh; }
-.work { position: fixed; inset: 0; overflow: hidden; background: #000; }
+.work { position: fixed; inset: 0; overflow: hidden; background: var(--bg); }
 .work .sw__gl { z-index: 1; } /* the homepage card canvas (cards-gl.js) */
 .work__stage { position: absolute; inset: 0; transition: opacity 0.2s ease; }
 .work__stage.is-switching { opacity: 0; }
@@ -26,7 +26,7 @@
    (the anchors share .work's stacking context, z up to about 21). Always fully visible; the difference blend keeps them readable. */
 /* The focused project's name: the homepage project index title (base.css .index__band / .index__title: same band, size, weight, leading,
    tracking), rising per character as the focus builds (work.js). Above the canvas and the cards, below the nav. */
-.work__name { position: fixed; left: 0; right: 0; top: var(--index-top); height: calc(var(--index-size) * 0.8); overflow: hidden; z-index: 5; pointer-events: none; color: #fff; }
+.work__name { position: fixed; left: 0; right: 0; top: var(--index-top); height: calc(var(--index-size) * 0.8); overflow: hidden; z-index: 5; pointer-events: none; color: var(--ink); }
 .work__title { position: absolute; inset: 0; display: block; text-align: center; white-space: nowrap; font-size: var(--index-size); font-weight: 500; line-height: 0.8; letter-spacing: -0.01em; visibility: hidden; }
 .work__char { display: inline-block; will-change: transform; }
 /* R22e: hold and drag the strip (desktop mouse): grab, grabbing while held (also over the cards and images) */

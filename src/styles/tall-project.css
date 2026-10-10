@@ -1,8 +1,8 @@
 /* R24a Part 4: a project page in the TALL mode (src/sections/project-page-tall.js): one column, full width, swipe rows, readable text. */
 html[data-layout='tall'], html[data-layout='tall'] body { overscroll-behavior-y: none; }
 html[data-layout='tall'] .nav { display: none; }
-.tp { background: #000; color: #fff; }
-.tp-hero { position: relative; width: 100%; height: 100vh; height: 100svh; overflow: hidden; background: #000; }
+.tp { background: var(--bg); color: var(--ink); }
+.tp-hero { position: relative; width: 100%; height: 100vh; height: 100svh; overflow: hidden; background: var(--bg); }
 .tp-hero .tp-media { width: 100%; height: 100%; object-fit: cover; }
 .tp-media { display: block; width: 100%; height: auto; background: #0a0a0a; }
 .tp-block { margin: 0; }

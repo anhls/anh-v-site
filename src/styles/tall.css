@@ -3,7 +3,7 @@
 
 /* ---- the hero-only home */
 html.tall-home, html.tall-home body { height: 100%; overflow: hidden; overscroll-behavior: none; }
-.thero { position: fixed; inset: 0; height: 100vh; height: 100svh; background: #000; overflow: hidden; touch-action: none; }
+.thero { position: fixed; inset: 0; height: 100vh; height: 100svh; background: var(--bg); overflow: hidden; touch-action: none; }
 .thero__video, .thero__poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; }
 .thero__poster { z-index: 0; }
 .thero__video { z-index: 1; }
@@ -19,7 +19,7 @@ html.tall-home, html.tall-home body { height: 100%; overflow: hidden; overscroll
 .tmenu__btn span:last-child { top: 28px; transform: translateY(-3.5px); }
 .tmenu-open .tmenu__btn span:first-child { transform: translateY(0) rotate(45deg); top: 24px; }
 .tmenu-open .tmenu__btn span:last-child { transform: translateY(0) rotate(-45deg); top: 24px; }
-.tmenu { position: fixed; inset: 0; z-index: 50; background: #000; color: var(--fg); padding: calc(88px + var(--safe-t)) calc(24px + var(--safe-r)) calc(32px + var(--safe-b)) calc(24px + var(--safe-l)); display: flex; flex-direction: column; transform: translateY(-100%); transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); overscroll-behavior: none; overflow-y: auto; }
+.tmenu { position: fixed; inset: 0; z-index: 50; background: var(--bg); color: var(--fg); padding: calc(88px + var(--safe-t)) calc(24px + var(--safe-r)) calc(32px + var(--safe-b)) calc(24px + var(--safe-l)); display: flex; flex-direction: column; transform: translateY(-100%); transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); overscroll-behavior: none; overflow-y: auto; }
 .tmenu[hidden] { display: none; }
 .tmenu.is-open { transform: none; }
 .tmenu__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
