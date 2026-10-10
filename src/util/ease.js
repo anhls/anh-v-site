@@ -3,6 +3,7 @@
 // ends with zero slope (the overshoot helper needs that) and exactly on 1; softness 0 is the pure curve untouched.
 const SOFT_END = 0.25;
 export const EASES = {
+  expoOut: (t) => t >= 1 ? 1 : 1 - Math.pow(2, -10 * t),
   circ: (t) => (t < 0.5 ? (1 - Math.sqrt(1 - (2 * t) ** 2)) / 2 : (Math.sqrt(1 - (-2 * t + 2) ** 2) + 1) / 2),
   sine: (t) => -(Math.cos(Math.PI * t) - 1) / 2,
   quad: (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2),

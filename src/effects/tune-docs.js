@@ -2,6 +2,11 @@
 // pages). A plain id -> one sentence map: the id is what the panel stores the value under ('GROUP.key'), the sentence says what the parameter is, its unit and
 // what up / down does. Edit the text here; a parameter without an entry shows its label only. Never imported by the production build (the panels are dev-only).
 export const TUNE_DOCS = {
+  'TRANSITION.workSec': 'Work open and reverse duration in seconds; homepage timing is separate.',
+  'TRANSITION.workPushSec': 'Seconds for Work neighbours and cards to clear the viewport.',
+  'TRANSITION.bulgeAmp': 'Outward edge bow as a share of the shorter box side.',
+  'TRANSITION.bulgePeakAt': 'Time share at which the pillow reaches its greatest bow.',
+  'TRANSITION.bulgeOvershoot': 'Box progress passes its destination by this share before settling.', 
   'BAND0.maxA': 'Total card area; over it the extra cards are dropped.',
   'BAND0.maxN': 'Over this the extra cards are dropped (seeded hash).',
   'BAND0.minA': 'Total card area; under it the band is topped up with duplicates.',

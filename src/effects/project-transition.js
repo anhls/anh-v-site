@@ -1,3 +1,5 @@
+import { createBulge, pillowBump } from './bulge-gl.js';
+import { withOvershoot } from '../util/overshoot.js';
 import { gsap } from 'gsap';
 import { TRANSITION as T } from '../timeline.js';
 import { EASES } from '../util/ease.js';
@@ -32,12 +34,13 @@ addEventListener('pageshow', (e) => { if (e.persisted) location.reload(); });
 let running = false;
 // rect = { x, y, w, h } (viewport px) of the picture on screen; startSrc = the file it shows now; crossfade = the start picture is not the header image
 // (homepage frame); onPush(p) = the push-away progress 0..1 (Work page: work.js moves the cards); fromWork = { mode, projectIndex } for the way back; imgRect = where the start picture's own box is (the homepage still is a little larger than the frame it is clipped by); fade = elements that fade out with the rest (Work counter / toggle); onStart / onEnd for the caller (Lenis stop etc.).
-export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc, crossfade = false, fade = [], onStart, onPush, fromWork }) {
+export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc, startImage, crossfade = false, fade = [], onStart, onPush, fromWork }) {
   if (running) return;
   running = true;
   onStart?.();
   const W = innerWidth, H = innerHeight;
   const hdr = preloadHeader(slug, ref);
+  const sec = fromWork ? T.workSec : T.sec, pushSec = fromWork ? T.workPushSec : T.pushSec;
   const rel = { x: imgRect.x - rect.x, y: imgRect.y - rect.y, w: imgRect.w, h: imgRect.h }; // the start picture's box in the clip box's coordinates
   const root = document.createElement('div');
   root.className = 'px';
@@ -50,26 +53,32 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
     </div>`;
   document.body.append(root);
   const bg = root.querySelector('.px__bg'), box = root.querySelector('.px__box'), a = root.querySelector('.px__a'), b = root.querySelector('.px__b');
+  let bulge = fromWork && !isTall() ? createBulge(root, box, startImage) : null;
+  bulge?.draw(rect);
   const headerFile = () => hdr.currentSrc || hdr.src;
   const swapToFull = () => { // the header's own file: the sharpening swap (Work: same picture) or the crossfade target (homepage frame)
     if (!(hdr.complete && hdr.naturalWidth)) return false;
     (crossfade ? b : a).src = headerFile();
+    bulge?.setTexture(hdr);
     return true;
   };
   let swapped = swapToFull();
-  if (!swapped) hdr.addEventListener('load', () => { swapped = swapToFull(); }, { once: true });
+  const headerReady = () => { swapped = swapToFull(); };
+  if (!swapped) hdr.addEventListener('load', headerReady, { once: true });
   const prog = { p: 0 };
-  const ease = EASES.circ;
+  const ease = fromWork ? EASES[T.workEase] : EASES.circ;
+  const moveEase = fromWork ? withOvershoot(ease, T.bulgeOvershoot, T.bulgeWindow) : ease;
   const tl = gsap.timeline({ onComplete: () => finish() });
   tl.to(prog, {
-    p: 1, duration: T.sec, ease: 'none',
+    p: 1, duration: sec, ease: 'none',
     onUpdate: () => {
-      const e = ease(prog.p);
+      const e = moveEase(prog.p);
       box.style.left = `${rect.x * (1 - e)}px`; box.style.top = `${rect.y * (1 - e)}px`;
       box.style.width = `${rect.w + (W - rect.w) * e}px`; box.style.height = `${rect.h + (H - rect.h) * e}px`;
       const L = `${rel.x * (1 - e)}px`, Tp = `${rel.y * (1 - e)}px`, Wd = `${rel.w + (W - rel.w) * e}px`, Ht = `${rel.h + (H - rel.h) * e}px`;
       for (const im of [a, b]) { im.style.left = L; im.style.top = Tp; im.style.width = Wd; im.style.height = Ht; }
-      if (onPush) { const u = Math.min(1, (prog.p * T.sec) / Math.max(T.pushSec, 0.01)); onPush(ease(u), u); }
+      bulge?.draw({ x: rect.x * (1 - e), y: rect.y * (1 - e), w: rect.w + (W - rect.w) * e, h: rect.h + (H - rect.h) * e }, undefined, T.bulgeAmp * pillowBump(prog.p), (prog.p - (1 - T.bulgeHandoff)) / T.bulgeHandoff);
+      if (onPush) { const u = Math.min(1, (prog.p * sec) / Math.max(pushSec, 0.01)); onPush(ease(u), u); }
       if (crossfade) { const q = Math.min(1, Math.max(0, (prog.p - T.crossFrom) / Math.max(T.crossTo - T.crossFrom, 0.01))); const s = q * q * (3 - 2 * q); b.style.opacity = s; a.style.opacity = 1 - s * (b.complete ? 1 : 0); }
     },
   }, 0);
@@ -78,6 +87,8 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
   if (fade.length) tl.to(fade, { opacity: 0, duration: Math.min(T.fadeSec, 0.3), ease: 'none' }, 0);
   if (import.meta.env.DEV) { window.__pxTl = tl; if (window.__pxFreeze) tl.pause(); } // dev checks: freeze at the first frame
   const finish = () => {
+    hdr.removeEventListener('load', headerReady);
+    bulge?.dispose(); bulge = null;
     pm('fwd:end');
     try { sessionStorage.setItem('pxt', JSON.stringify({ slug, src: headerFile(), t: Date.now(), wm: document.querySelector('a.wordmark')?.classList.contains('is-link') ? 1 : 0 })); } catch { /* private window: the page just loads */ }
     if (fromWork) { try { sessionStorage.setItem('pxb', JSON.stringify({ slug, src: headerFile(), origin: 'work', blackMax: T.blackMax, mode: fromWork.mode, projectIndex: fromWork.projectIndex, t: Date.now() })); } catch { /* plain load on the way back */ } } else { try { sessionStorage.removeItem('pxb'); } catch { /* */ } }
@@ -130,7 +141,8 @@ export function clearBack() { try { sessionStorage.removeItem('pxb'); } catch { 
 export function playBack({ rec, target, onPush, fade = [], done }) {
   const root = document.getElementById('pxb');
   const L = rec.leave, W = innerWidth, H = innerHeight;
-  const finish = () => { root?.remove(); clearBack(); pm('back:swap'); done?.(); };
+  let bulge = null, cleanup = () => {};
+  const finish = () => { cleanup(); bulge?.dispose(); root?.remove(); clearBack(); pm('back:swap'); done?.(); };
   if (!root) { finish(); return null; }
   if (!root.querySelector('.px__box')) { // the header had scrolled out: nothing to match, the black fades out over 0.4 s
     const bgOnly = root.querySelector('.px__bg') || root;
@@ -139,7 +151,11 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
   }
   const box = root.querySelector('.px__box'), im = root.querySelector('img'), bg = root.querySelector('.px__bg');
   const B = { x: L.sec[0], y: L.sec[1], w: L.sec[2], h: L.sec[3] }, BI = { x: L.img[0], y: L.img[1], w: L.img[2], h: L.img[3] };
-  const A = target, ease = EASES.circ, bgMax = rec.blackMax ?? 1;
+  const A = target, ease = EASES[T.workEase], bgMax = rec.blackMax ?? 1;
+  const moveEase = withOvershoot(ease, T.bulgeOvershoot, T.bulgeWindow);
+  if (!isTall()) bulge = createBulge(root, box, im);
+  const ready = () => { if (!isTall() && prog.t < 1 && !bulge) bulge = createBulge(root, box, im); };
+  im.addEventListener("load", ready, { once: true });
   const lerp = (a, b, e) => a + (b - a) * e;
   const prog = { t: 0 };
   const place = (e) => {
@@ -147,22 +163,24 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
     box.style.left = `${bx}px`; box.style.top = `${by}px`; box.style.width = `${lerp(A.w, B.w, e)}px`; box.style.height = `${lerp(A.h, B.h, e)}px`;
     const ix = lerp(A.x - A.x, BI.x - B.x, e), iy = lerp(0, BI.y - B.y, e);
     im.style.left = `${ix}px`; im.style.top = `${iy}px`; im.style.width = `${lerp(A.w, BI.w, e)}px`; im.style.height = `${lerp(A.h, BI.h, e)}px`;
+    bulge?.draw({ x: bx, y: by, w: lerp(A.w, B.w, e), h: lerp(A.h, B.h, e) }, { x: bx + ix, y: by + iy, w: lerp(A.w, BI.w, e), h: lerp(A.h, BI.h, e) }, T.bulgeAmp * pillowBump(1 - prog.t), (prog.t - (1 - T.bulgeHandoff)) / T.bulgeHandoff);
   };
   let flyMarked = false;
   const tl = gsap.timeline({ onComplete: () => { onPush?.(0, 0); pm('back:shrink-end'); tailEnd(); } });
   tl.to(prog, {
-    t: 1, duration: T.sec, ease: 'none',
+    t: 1, duration: T.workSec, ease: 'none',
     onUpdate: () => {
       const u = 1 - prog.t; // forward progress
-      place(ease(u));
-      { const up = Math.min(1, (u * T.sec) / Math.max(T.pushSec, 0.01)); if (up < 1 && !flyMarked) { flyMarked = true; pm('back:fly-start'); } onPush?.(ease(up), up); }
-      bg.style.opacity = bgMax * sineIO(Math.min(1, (u * T.sec) / Math.max(T.fadeSec, 0.01))); // the forward black layer, time-reversed
+      place(moveEase(u));
+      { const up = Math.min(1, (u * T.workSec) / Math.max(T.workPushSec, 0.01)); if (up < 1 && !flyMarked) { flyMarked = true; pm('back:fly-start'); } onPush?.(ease(up), up); }
+      bg.style.opacity = bgMax * sineIO(Math.min(1, (u * T.workSec) / Math.max(T.fadeSec, 0.01))); // the forward black layer, time-reversed
     },
   }, 0);
-  if (fade.length) { gsap.set(fade, { opacity: 0 }); tl.to(fade, { opacity: 1, duration: Math.min(T.fadeSec, 0.3), ease: 'none' }, T.sec - Math.min(T.fadeSec, 0.3)); }
+  if (fade.length) { gsap.set(fade, { opacity: 0 }); tl.to(fade, { opacity: 1, duration: Math.min(T.fadeSec, 0.3), ease: 'none' }, T.workSec - Math.min(T.fadeSec, 0.3)); }
   // the overlay goes only once the canvas has drawn the image in that box: two frames after the last step
   const tailEnd = () => requestAnimationFrame(() => requestAnimationFrame(() => { if (import.meta.env.DEV && window.__pxBackHold) { window.__pxBackGo = finish; return; } finish(); }));
   const stop = () => { if (tl.progress() < 1) tl.progress(1); };
+  cleanup = () => { im.removeEventListener('load', ready); for (const ev of ['wheel', 'keydown', 'pointerdown', 'touchstart']) removeEventListener(ev, stop, true); };
   for (const ev of ['wheel', 'keydown', 'pointerdown', 'touchstart']) addEventListener(ev, stop, { capture: true, once: true, passive: true });
   if (import.meta.env.DEV) { window.__pxBackTl = tl; if (window.__pxBackFreeze) tl.pause(); }
   return tl;
