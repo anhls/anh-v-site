@@ -107,7 +107,11 @@ const ease = bezier(0.4, 0, 0.2, 1);
 const PAR = { k: 0.0298, e: 200 }; // parallax scale rate constants (see buildProjectPage)
 const FADE = { start: 0.1, end: 0.6 }; // ScrollFadeText (direction down, animation from end): raw scroll progress window
 
+// R42: returns a dispose() that removes every observer / listener this builder added (the Work page builds a project in place and tears it down on back).
 export function buildProjectPage(root, page, lenis) {
+  const offs = [];
+  const on = (t, ev, fn) => { t.addEventListener(ev, fn); offs.push(() => t.removeEventListener(ev, fn)); };
+  const watch = (io) => { offs.push(() => io.disconnect()); return io; };
   root.innerHTML = page.blocks.map((b) => block[b.t](b)).join('') + '<div class="footer pj__footer"></div>';
   const hero = root.querySelector('.pj__hero');
   hero?.style.setProperty('--flight-end', FLIGHT.zEnd);
@@ -125,14 +129,14 @@ export function buildProjectPage(root, page, lenis) {
     el.style.setProperty('--f', (1 - ease(1 - p)).toFixed(4));
   };
   fades.forEach(setF);
-  const fadeIo = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) live.add(e.target); else { live.delete(e.target); setF(e.target); } }), { rootMargin: '10% 0px' });
+  const fadeIo = watch(new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) live.add(e.target); else { live.delete(e.target); setF(e.target); } }), { rootMargin: '10% 0px' }));
   fades.forEach((f) => fadeIo.observe(f));
-  lenis.on('scroll', () => live.forEach(setF));
-  window.addEventListener('resize', () => fades.forEach(setF));
+  offs.push(lenis.on('scroll', () => live.forEach(setF)));
+  on(window, 'resize', () => fades.forEach(setF));
 
   // Growing block (live: Similac's 150 px strip turns into a 960 px block the moment it is within 10 % of a screen below the viewport, and stays).
   root.querySelectorAll('[data-grow]').forEach((sec) => {
-    const io = new IntersectionObserver((es) => { if (es[0].isIntersecting) { io.disconnect(); sec.style.height = sec.dataset.grow; window.dispatchEvent(new Event('resize')); /* ScrollTrigger (footer / wordmark) re-measures the longer page */ } }, { rootMargin: '0px 0px 10% 0px' });
+    const io = watch(new IntersectionObserver((es) => { if (es[0].isIntersecting) { io.disconnect(); sec.style.height = sec.dataset.grow; window.dispatchEvent(new Event('resize')); /* ScrollTrigger (footer / wordmark) re-measures the longer page */ } }, { rootMargin: '0px 0px 10% 0px' }));
     io.observe(sec);
   });
 
@@ -144,20 +148,20 @@ export function buildProjectPage(root, page, lenis) {
   const place = (el, sy) => { el.style.transform = `translate3d(0, ${(el.dataset.y * sy).toFixed(2)}px, 0) scale(${(+el.dataset.s + el.dataset.ds * (el.dataset.k ? el.dataset.k / (window.innerHeight + PAR.e) : rate) * sy).toFixed(5)})`; };
   if (!reduce && pars.length) {
     const byMask = new Map(pars.map((el) => [el.parentElement, el]));
-    const parIo = new IntersectionObserver((es) => es.forEach((e) => {
+    const parIo = watch(new IntersectionObserver((es) => es.forEach((e) => {
       const el = byMask.get(e.target);
       if (e.isIntersecting) { seen.add(el); el.style.willChange = 'transform'; place(el, window.scrollY); } else { seen.delete(el); el.style.willChange = ''; }
-    }));
+    })));
     byMask.forEach((_, mask) => parIo.observe(mask)); // the mask decides what is on screen
-    lenis.on('scroll', () => { const sy = window.scrollY; seen.forEach((el) => place(el, sy)); });
-    window.addEventListener('resize', () => { rate = PAR.k / (window.innerHeight + PAR.e); seen.forEach((el) => place(el, window.scrollY)); });
+    offs.push(lenis.on('scroll', () => { const sy = window.scrollY; seen.forEach((el) => place(el, sy)); }));
+    on(window, 'resize', () => { rate = PAR.k / (window.innerHeight + PAR.e); seen.forEach((el) => place(el, window.scrollY)); });
   } else pars.forEach((el) => { el.style.transform = `scale(${el.dataset.s})`; }); // reduced motion: the start pose, no movement
 
   // Pinned horizontal scrollers: transform only, only while the section is near the screen; reduced motion = a plain horizontally scrolling row.
   root.querySelectorAll('.pj__scroller').forEach((sec) => {
     const layers = [...sec.querySelectorAll('.pj__layer')];
     if (reduce) { sec.classList.add('pj__scroller--plain'); return; }
-    let top = 0, kx = 1, ky = 1, on = false;
+    let top = 0, kx = 1, ky = 1, near = false;
     const measure = () => { top = sec.getBoundingClientRect().top + window.scrollY; kx = Math.min(window.innerWidth, 1920) / 1920; ky = Math.min(window.innerHeight, 1080) / 1080; };
     const start = +sec.dataset.start, end = +sec.dataset.end;
     const update = () => {
@@ -165,13 +169,13 @@ export function buildProjectPage(root, page, lenis) {
       layers.forEach((l) => { l.style.transform = `translate3d(${((+l.dataset.from + u * (+l.dataset.to - +l.dataset.from)) * kx).toFixed(2)}px,0,0)`; });
     };
     measure(); update();
-    new IntersectionObserver((es) => { on = es[0].isIntersecting; if (on) { measure(); update(); } }, { rootMargin: '20% 0px' }).observe(sec);
-    lenis.on('scroll', () => { if (on) update(); });
-    window.addEventListener('resize', () => { measure(); update(); });
+    watch(new IntersectionObserver((es) => { near = es[0].isIntersecting; if (near) { measure(); update(); } }, { rootMargin: '20% 0px' })).observe(sec);
+    offs.push(lenis.on('scroll', () => { if (near) update(); }));
+    on(window, 'resize', () => { measure(); update(); });
   });
 
   // Videos: source chosen and loaded on first approach, played only while on screen (still poster with reduced motion).
-  const vidIo = new IntersectionObserver((es) => es.forEach((e) => {
+  const vidIo = watch(new IntersectionObserver((es) => es.forEach((e) => {
     const v = e.target;
     if (e.isIntersecting) {
       if (!v.dataset.ready) {
@@ -181,21 +185,23 @@ export function buildProjectPage(root, page, lenis) {
       }
       if (!reduce) v.play().catch(() => {});
     } else v.pause();
-  }), { rootMargin: '30% 0px' });
+  }), { rootMargin: '30% 0px' }));
+  offs.push(() => root.querySelectorAll('video').forEach((v) => { v.pause(); v.removeAttribute('src'); v.load(); }));
   root.querySelectorAll('video[data-mp4]').forEach((v) => vidIo.observe(v));
 
   // YouTube: a still until it is clicked; the player (youtube-nocookie) is created only then.
   root.querySelectorAll('.pj__yt').forEach((sec) => {
     const im = sec.querySelector('img');
-    const io = new IntersectionObserver((es) => {
+    const io = watch(new IntersectionObserver((es) => {
       if (!es[0].isIntersecting) return;
       io.disconnect();
       im.onerror = () => { im.onerror = null; im.src = im.dataset.fallback; };
       im.src = im.dataset.src;
-    }, { rootMargin: '80% 0px' });
+    }, { rootMargin: '80% 0px' }));
     io.observe(sec);
     sec.querySelector('button').addEventListener('click', () => {
       sec.innerHTML = `<iframe class="pj__frame" src="https://www.youtube-nocookie.com/embed/${sec.dataset.yt}?autoplay=1&rel=0&modestbranding=1" title="${sec.dataset.title}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
     });
   });
+  return () => offs.splice(0).forEach((f) => f());
 }

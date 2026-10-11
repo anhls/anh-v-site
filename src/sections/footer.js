@@ -8,31 +8,36 @@ import { backToTop } from '../effects/back-to-top.js';
 // The big AV wordmark returning here is the nav wordmark (src/effects/nav.js), not part of this footer.
 // The dot-to-line hover, shared with the More Projects "See more work" link: the 1px line (.footer__line inside the link)
 // grows across the text on pointer enter and shrinks back on leave.
-export function lineHover(link) {
+export function lineHover(link, offs = []) {
   const line = link.querySelector('.footer__line');
   let min = 0.011; // 1px of the text width
   const measure = () => { min = 1 / link.offsetWidth; };
   measure();
   window.addEventListener('resize', measure);
+  offs.push(() => window.removeEventListener('resize', measure));
   const target = { r: 0 };
-  springLayer({
+  const layer = springLayer({
     target,
     springs: { r: springFromBounce(SPRING.linkRoll.duration, SPRING.linkRoll.bounce) },
     apply: (v) => { line.style.transform = `scaleX(${Math.max(min, v.r)})`; },
   });
   link.addEventListener('pointerenter', (e) => { if (e.pointerType !== 'touch') target.r = 1; }); // R22j: a tap is not a hover
   link.addEventListener('pointerleave', () => { target.r = 0; });
+  offs.push(() => layer.destroy());
   return measure;
 }
 
+// R42: returns a dispose() (resize listener, spring layer) for the in-place project page.
 export function buildFooter(root, data, lenis) {
+  const offs = [];
   const footer = root.querySelector('.footer');
-  if (!footer) return;
+  if (!footer) return () => {};
   footer.innerHTML = `<a class="footer__top" href="#top"><span class="footer__text">${data.topLabel}</span><span class="footer__line"></span></a>`;
   const link = footer.querySelector('.footer__top');
-  lineHover(link);
+  lineHover(link, offs);
   link.addEventListener('click', (e) => {
     e.preventDefault();
     backToTop(lenis);
   });
+  return () => offs.splice(0).forEach((f) => f());
 }
