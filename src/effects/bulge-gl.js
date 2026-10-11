@@ -14,7 +14,7 @@ export function createBulge(parent, box, image) {
   canvas.className = 'px__bulge';
   canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
   let gl;
-  try { gl = canvas.getContext('webgl2', { alpha: true, antialias: true, premultipliedAlpha: false }); } catch { return null; }
+  try { gl = canvas.getContext('webgl2', { alpha: true, antialias: false, premultipliedAlpha: false }); } catch { return null; }
   if (!gl) return null;
   let dead = false, texture, program, vertex, index, vs, fs;
   const dispose = () => {
@@ -52,13 +52,11 @@ export function createBulge(parent, box, image) {
       out vec4 color;
       void main() {
         vec4 sampleColor = texture(picture, (tex - .5) / (1. + zoom) + .5);
-        float alpha = 1.;
-        if (radius > 0.) {
-          vec2 q = abs((local - .5) * box.zw) - box.zw * .5 + radius;
-          float distance = length(max(q, 0.)) + min(max(q.x, q.y), 0.) - radius;
-          float aa = max(fwidth(distance), pixel);
-          alpha = 1. - smoothstep(-aa * .5, aa * .5, distance);
-        }
+        vec2 q = abs((local - .5) * box.zw) - box.zw * .5 + radius;
+        float distance = length(max(q, 0.)) + min(max(q.x, q.y), 0.) - radius;
+        float aa = max(fwidth(distance), pixel);
+        // Fade inside the mesh: straight-alpha canvas MSAA otherwise darkens its outer edge.
+        float alpha = 1. - smoothstep(-aa, 0., distance);
         color = vec4(sampleColor.rgb, sampleColor.a * alpha);
       }`);
     program = gl.createProgram(); gl.attachShader(program, vs); gl.attachShader(program, fs); gl.linkProgram(program);
