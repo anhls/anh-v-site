@@ -353,6 +353,9 @@ Codex / other agents: read AGENTS.md, then build from docs/codex/R37c.md (refere
 ## R37d (Work page open / close): one continuous motion (landing flows into the rebound, no stop), no click hitch, measured motion curve
 Codex / other agents: read AGENTS.md, then build from docs/codex/R37d.md (it wins where the two differ). Do R37d BEFORE R39; stop after R37d for Anh's eye check. Branch codex/r37-r38, push after every commit.
 
+## R37e (Work page open / close): option B: the project page carries on the zoom (monotonic, across the page change), idle prepare, .html hand-off fix
+Codex / other agents: read AGENTS.md, then build from docs/codex/R37e.md (Anh approved option B; it wins where the two differ). Finishes R37d. Stop after R37e for Anh's eye check, then R39. Branch codex/r37-r38, push after every commit.
+
 ## R39 (hosting): Cloudflare Pages previews per branch, nothing public until launch
 Codex / other agents: read AGENTS.md, then build Part B of docs/codex/R39.md (repo files only; Part A is Anh's Cloudflare dashboard clicks). Production branch is the placeholder `live` on purpose. Push after every commit.
 
