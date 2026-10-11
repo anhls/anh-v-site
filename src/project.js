@@ -20,6 +20,9 @@ const slug = document.body.dataset.project;
 const project = data.projects.find((p) => p.slug === slug);
 const tall = isTall(); // R24a: the TALL mode (phones, tablet portrait): one column, a burger menu, no R25 hand-off, no desktop scroll effects
 
+// Keep first-paint flight light: build blocks, observers, videos and footer only after settle.
+if (window.__pxtFlightDone) await window.__pxtFlightDone;
+
 if (project?.page) {
   const lenis = new Lenis({ duration: SCROLL.duration, easing: SCROLL.easing });
   gsap.ticker.add((time) => lenis.raf(time * 1000));

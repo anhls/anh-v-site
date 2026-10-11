@@ -2,6 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <style>
+      @view-transition { navigation: auto; }
+      ::view-transition-group(root) { animation: none; }
+      ::view-transition-old(root) { animation: none; opacity: 1; }
+      ::view-transition-new(root) { animation: none; opacity: 1; }
+    </style>
     <script>
       /* Private preview: apply the stored theme before any stylesheet can paint. */
       (function () {

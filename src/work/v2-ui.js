@@ -343,14 +343,14 @@ export function createV2({ app, projects, reduced }) {
     if (window.__titleScrub) { /* dev: the contact sheet drives the title by hand */ } else if (!stopped) {
       if (smear.playing) smear.abort();
       else if (titleOp > 0.001) {
-        if (!reduced && !fxOff && smearOn && leaveTitle()) { /* the shader leave from the formed title */ }
+        if (!reduced && !s.transitioning && !fxOff && smearOn && leaveTitle()) { /* the shader leave from the formed title */ }
         else { titleOp = Math.max(0, titleOp - dt / Math.max(T_.titleOutSec, 0.01)); titleEl.style.opacity = titleOp.toFixed(3); titleFadeFrames++; } // the plain fade: reduced motion, ?fx=0, ?gl=0, a lost context only
       }
     } else if (smear.playing) {
       if (smear.leaving && titleShown === active) smear.resume(); // stopped before the leave ended: the enter goes on from where it got to
     } else if (!titleBusy) {
       if (titleShown !== active || titleOp < 0.95) {
-        if (reduced || !smearOn || fxOff) { // plain fade: out, swap while hidden, in
+        if (reduced || s.transitioning || !smearOn || fxOff) { // plain fade: out, swap while hidden, in
           if (titleShown !== active) { titleOp = Math.max(0, titleOp - dt / 0.2); if (titleOp <= 0) setTitle(active); } else titleOp = Math.min(1, titleOp + dt / 0.2);
           titleEl.style.opacity = titleOp.toFixed(3);
         } else { if (titleShown !== active) setTitle(active); titleEl.style.opacity = '0'; playTitle(); }

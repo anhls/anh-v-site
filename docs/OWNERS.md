@@ -5,14 +5,11 @@ The mode adapters own differing policies; the core owns the common strip lifecyc
 
 ## DESKTOP
 
-- `src/effects/bulge-gl.js`
 - `src/effects/caption-hover.js`
 - `src/effects/card-push.js`
 - `src/effects/cards-gl.js`
-- `src/effects/flight-curve.js`
 - `src/effects/frame-gl.js`
 - `src/effects/pointer.js`
-- `src/effects/project-transition.js`
 - `src/effects/springs.js`
 - `src/effects/text-fx/smear.js`
 - `src/effects/trail.js`
@@ -54,6 +51,21 @@ The mode adapters own differing policies; the core owns the common strip lifecyc
 - `src/work/tall.js`
 
 ## SHARED
+
+Transition engine changes go through one agent at a time (R37f: desktop agent).
+
+- `src/effects/bulge-gl.js`
+- `src/effects/flight-curve.js`
+- `src/effects/project-transition.js`
+- `src/effects/transition-policy.js`
+- `work/index.html`
+- `work/bitis09.html`
+- `work/tcb-priority.html`
+- `work/sulwhasoo.html`
+- `work/similac.html`
+- `work/forbes.html`
+- `work/nam-long.html`
+- `work/duhat.html`
 
 - `src/data/cards-gen.js`
 - `src/data/data.json`

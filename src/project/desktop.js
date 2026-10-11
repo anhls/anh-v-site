@@ -2,7 +2,6 @@
 // entries too: without #pxt / a Work record it is inert, preserving the old dispatch.
 import { gsap } from 'gsap';
 import { buildProjectPage } from '../sections/project-page.js';
-import { flightZoom, flightEnd } from '../effects/flight-curve.js';
 
 export const buildDesktopProject = buildProjectPage;
 export function createDesktopNav() {
@@ -21,31 +20,10 @@ export function finishProjectHandoff({app, slug, nav}) {
     const hi = app.querySelector('.pj__hero img');
     const drop = () => { ov.remove(); };
     const ready = hi && (hi.complete && hi.naturalWidth ? hi.decode().catch(() => {}) : new Promise((r) => { hi.addEventListener('load', () => hi.decode().then(r, r), { once: true }); hi.addEventListener('error', r, { once: true }); }));
-    if (window.__pxtFlightDone) {
-      // Match responsive-image density as well as URL: the browser may decode a srcset image at a different raster size.
-      for (const image of ov.querySelectorAll('img')) { image.sizes = hi?.sizes || '100vw'; image.srcset = hi?.srcset || ''; }
-      Promise.all([ready || Promise.resolve(), ...[...ov.querySelectorAll('img')].map(image => image.decode().catch(() => {}))]).then(() => {
-        const flight = window.__pxt.flight;
-        const settle = () => {
-          const remaining = Math.max(innerWidth, innerHeight) * .5 * (devicePixelRatio || 1) * (1 - flightZoom(flight, Date.now()));
-          if (Date.now() < flightEnd(flight)) {
-            // Only blend once the two crops differ by less than one device pixel.
-            ov.style.opacity = Math.min(1, remaining);
-            requestAnimationFrame(settle);
-          } else if (!ov.style.opacity || Number(ov.style.opacity) > .01) {
-            // Slow decode: keep the end pose until ready, then reveal the same header gently.
-            gsap.to(ov, {opacity:0, duration:.12, ease:'none', onComplete:() => requestAnimationFrame(() => requestAnimationFrame(drop))});
-          } else {
-            ov.style.opacity = '0'; requestAnimationFrame(() => requestAnimationFrame(drop));
-          }
-        };
-        settle();
-      });
-    } else {
-      (ready || Promise.resolve()).then(() => requestAnimationFrame(() => requestAnimationFrame(drop)));
-      setTimeout(drop, 6000);
-    }
+    Promise.all([ready || Promise.resolve(), window.__pxtFlightDone || Promise.resolve()])
+      .then(() => requestAnimationFrame(() => requestAnimationFrame(drop)));
   }
+
   // R28: leaving: remember where the header was (for the way back to the Work page) ...
   addEventListener('pagehide', () => {
     try {
@@ -65,7 +43,6 @@ export function finishProjectHandoff({app, slug, nav}) {
     let r = null; try { r = JSON.parse(sessionStorage.getItem('pxb') || 'null'); } catch { /* */ }
     if (!r || r.slug !== slug || r.origin !== 'work') return;
     e.preventDefault();
-    const f = document.createElement('div'); f.style.cssText = 'position:fixed;inset:0;z-index:8;background:var(--bg);opacity:0;pointer-events:auto'; document.body.append(f);
-    gsap.to(f, { opacity: 1, duration: 0.25, ease: 'sine.inOut', onComplete: () => { location.href = '/work/'; } });
+    location.href = '/work/';
   });
 }

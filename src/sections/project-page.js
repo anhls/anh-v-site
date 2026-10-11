@@ -1,3 +1,4 @@
+import { FLIGHT } from '../settings/shared.js';
 import { imgAttrs, videoInfo } from '../util/media.js';
 
 // Builds a project page from data.json (projects[].page.blocks). Block types: hero, text, split, full, youtube, details, threeup.
@@ -108,6 +109,11 @@ const FADE = { start: 0.1, end: 0.6 }; // ScrollFadeText (direction down, animat
 
 export function buildProjectPage(root, page, lenis) {
   root.innerHTML = page.blocks.map((b) => block[b.t](b)).join('') + '<div class="footer pj__footer"></div>';
+  const hero = root.querySelector('.pj__hero');
+  hero?.style.setProperty('--flight-end', FLIGHT.zEnd);
+  if (hero?.classList.contains('pj__hero--loop')) hero.style.height = '100vh';
+  const handoffImage = hero?.querySelector('img');
+  if (window.__pxt?.flight && handoffImage) { handoffImage.removeAttribute('srcset'); handoffImage.src = window.__pxt.src; }
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // Text fade: --f per block = share of the letters lit (0..1), updated only for blocks near the screen.

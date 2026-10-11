@@ -2,6 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <style>
+      @view-transition { navigation: auto; }
+      ::view-transition-group(root) { animation: none; }
+      ::view-transition-old(root) { animation: none; opacity: 1; }
+      ::view-transition-new(root) { animation: none; opacity: 1; }
+    </style>
     <script>
       /* Private preview: apply the stored theme before any stylesheet can paint. */
       (function () {
@@ -42,11 +48,11 @@
           if (!d || Date.now() - d.t > 15000 || !new RegExp('/' + d.slug + '(?:\\.html)?/?$').test(location.pathname)) return;
           window.__pxt = d;
           (document.body || document.documentElement).insertAdjacentHTML('afterbegin', '<div id="pxt" aria-hidden="true" style="position:fixed;inset:0;z-index:8;background:var(--bg);overflow:hidden"><img alt="" decoding="sync" src="' + d.src + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block"></div>');
-          if (d.flight && Number.isFinite(d.flight.t0) && d.flight.tail > 0 && d.flight.zStart > 0 && d.flight.zStart <= 1) {
+          if (d.flight && Number.isFinite(d.flight.t0) && d.flight.tail > 0 && d.flight.zEnd >= 1) {
             // R37e shared curve: keep verbatim with flight-curve.js (verified by the capture check).
             function flightZoom(flight, now) {
   var u = Math.max(0, Math.min(1, (now - flight.t0 - flight.land * 1000) / (flight.tail * 1000)));
-  return flight.zStart + (1 - flight.zStart) * (1 - Math.pow(1 - u, 3));
+  return 1 + (flight.zEnd - 1) * (1 - Math.pow(1 - u, 3));
 }
             if (d.flight.wordmark) {
               var mark = document.createElement('div'), logo = document.createElement('img');
@@ -54,13 +60,11 @@
               logo.src = d.flight.wordmark.src; logo.alt = ''; mark.appendChild(logo); (document.body || document.documentElement).appendChild(mark);
             }
             var overlay = document.getElementById('pxt'), image = overlay.querySelector('img');
-            if (d.flight.image) { image.sizes = d.flight.image.sizes; image.srcset = d.flight.image.srcset; }
-            var edge = image.cloneNode(); overlay.prepend(edge); image.style.zIndex = '1'; image.style.willChange = 'transform'; image.style.cssText += 'mask-image:linear-gradient(to right,transparent,#000 5%,#000 95%,transparent),linear-gradient(to bottom,transparent,#000 5%,#000 95%,transparent);mask-composite:intersect;';
+            image.style.willChange = 'transform';
             window.__pxtFlightDone = new Promise(function (resolve) {
               var frame = 0;
               function paint() {
                 image.style.transform = 'translate3d(0,0,0) scale(' + flightZoom(d.flight, Date.now()) + ')';
-                if (Date.now() >= d.flight.t0 + (d.flight.land + d.flight.tail) * 1000) edge.remove();
                 if (Date.now() >= d.flight.t0 + (d.flight.land + d.flight.tail) * 1000) { resolve(); return; }
                 frame = requestAnimationFrame(paint);
               }

@@ -4,8 +4,9 @@ import { TRANSITION as T } from '../timeline.js';
 import { EASES } from '../util/ease.js';
 import { imgSet } from '../util/media.js';
 import { pm } from '../util/perf-mark.js';
-import { isTall } from '../util/layout-mode.js';
-import { TALL } from '../timeline.js';
+// Policy: enabled gates navigation; bulge gates GL; prepare selects hover/idle/tap;
+// maxDpr caps the flight canvas. Lite defaults remain disabled for R41.
+import { transitionPolicy } from './transition-policy.js';
 
 // R25: open a project from a main image (Work page) or from the homepage frame without a visible page change.
 // A fixed overlay takes the picture's place (same crop), grows to the full screen = the project page's header at scroll 0 (a 100vw x 100vh cover
@@ -13,7 +14,7 @@ import { TALL } from '../timeline.js';
 // work/<slug>.html reads the hand-off from sessionStorage), and project.js removes it once the header's own image is decoded (same file, no swap).
 // Not used (plain page load): reduced motion, ?gl=0, direct links, anything that is not a plain left click.
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-export const transitionOK = () => !reduced && new URLSearchParams(location.search).get('gl') !== '0' && (!isTall() || TALL.transition); // R24a: off in tall mode (a plain page load)
+export const transitionOK = () => !reduced && new URLSearchParams(location.search).get('gl') !== '0' && transitionPolicy().enabled; // R24a: off in tall mode (a plain page load)
 
 const full = new Map(); // slug -> an <img> preloading the header image with the header's own srcset / sizes (so the same file is picked)
 export function preloadHeader(slug, ref) {
@@ -47,7 +48,7 @@ export function prepareIdleTransition(slug, ref, image) {
   }, {timeout:1200});
 }
 export function prepareTransition(slug, ref, image) {
-  if (!transitionOK() || isTall() || !matchMedia('(hover:hover) and (pointer:fine)').matches) return;
+  if (!transitionOK() || (transitionPolicy().prepare === 'hover' && !matchMedia('(hover:hover) and (pointer:fine)').matches)) return;
   clearTimeout(leaveTimer);
   if ((prepared?.slug === slug && !prepared.renderer.dead) || pendingSlug === slug) return;
   disposePrepared(); pendingSlug = slug; const token = prepareToken, hdr = preloadHeader(slug, ref);
@@ -92,7 +93,7 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
   const W = innerWidth, H = innerHeight, t0 = Date.now();
   const hdr = preloadHeader(slug, ref);
   const sec = fromWork ? T.workSec : T.sec, pushSec = fromWork ? T.workPushSec : T.pushSec;
-  const flight = fromWork && !isTall() ? workFlight(rect, {w:W,h:H}, false, t0) : null;
+  const flight = fromWork && transitionPolicy().enabled ? workFlight(rect, {w:W,h:H}, false, t0) : null;
   const rel = { x: imgRect.x - rect.x, y: imgRect.y - rect.y, w: imgRect.w, h: imgRect.h }; // the start picture's box in the clip box's coordinates
   const root = document.createElement('div');
   root.className = 'px';
@@ -105,13 +106,13 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
     </div>`;
   document.body.append(root);
   const bg = root.querySelector('.px__bg'), box = root.querySelector('.px__box'), a = root.querySelector('.px__a'), b = root.querySelector('.px__b');
-  let bulge = fromWork && !isTall() ? (takePrepared(slug, root, box) || createBulge(root, box, startImage)) : null;
+  let bulge = fromWork && transitionPolicy().enabled ? (transitionPolicy().bulge ? takePrepared(slug, root, box) : null) : null;
   bulge?.draw(rect);
   const headerFile = () => hdr.currentSrc || hdr.src;
   const swapToFull = () => { // the header's own file: the sharpening swap (Work: same picture) or the crossfade target (homepage frame)
     if (!(hdr.complete && hdr.naturalWidth)) return false;
     (crossfade ? b : a).src = headerFile();
-    bulge?.setTexture(hdr);
+    if (!fromWork) bulge?.setTexture(hdr);
     return true;
   };
   let swapped = swapToFull();
@@ -121,17 +122,19 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
   const navigateFlight = () => {
     if (navigating) return;
     navigating = true; pm('fwd:navigate');
-    flight.record.image = {srcset:hdr.srcset, sizes:hdr.sizes};
+    // Fixed URL: never let first paint choose a different responsive image.
+    flight.record.image = {src:headerFile()};
     const wm = document.querySelector('a.wordmark');
     if (wm) flight.record.wordmark = {src:wm.querySelector('img')?.getAttribute('src'), style:wm.style.cssText + `position:fixed;left:0;top:0;width:${wm.offsetWidth}px;height:${wm.offsetHeight}px;z-index:9`};
     try {
       sessionStorage.setItem('pxt', JSON.stringify({slug, src:headerFile(), t:Date.now(), flight:flight.record, wm:document.querySelector('a.wordmark')?.classList.contains('is-link') ? 1 : 0}));
-      sessionStorage.setItem('pxb', JSON.stringify({slug, src:headerFile(), origin:'work', blackMax:T.blackMax, mode:fromWork.mode, projectIndex:fromWork.projectIndex, t:Date.now()}));
+      sessionStorage.setItem('pxb', JSON.stringify({slug, src:headerFile(), zEnd:flight.record.zEnd, origin:'work', blackMax:T.blackMax, mode:fromWork.mode, projectIndex:fromWork.projectIndex, t:Date.now()}));
     } catch { /* plain navigation */ }
     location.href = `/work/${slug}.html`;
   };
   const hideFlight = () => { hdr.removeEventListener('load', headerReady); bulge?.dispose(); bulge = null; };
-  if (flight) addEventListener('pagehide', hideFlight, {once:true});
+  // Retain the last painted canvas through pageswap; the browser releases the old document.
+  // Disposing at pagehide can turn the View Transition snapshot black.
   const prog = { p: 0 };
   const ease = fromWork ? EASES.cubic : EASES.circ;
   const duration = flight ? flight.total : sec;
@@ -145,7 +148,7 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
       box.style.width = `${rect.w + (W - rect.w) * e}px`; box.style.height = `${rect.h + (H - rect.h) * e}px`;
       const L = `${rel.x * (1 - e)}px`, Tp = `${rel.y * (1 - e)}px`, Wd = `${rel.w + (W - rel.w) * e}px`, Ht = `${rel.h + (H - rel.h) * e}px`;
       for (const im of [a, b]) { im.style.left = L; im.style.top = Tp; im.style.width = Wd; im.style.height = Ht; }
-      if (state?.content) { a.style.transform = `scale(${1 + state.content.zoom})`; b.src = a.src; b.style.opacity = '1'; a.style.zIndex = '1'; a.style.maskImage = 'linear-gradient(to right,transparent,#000 5%,#000 95%,transparent),linear-gradient(to bottom,transparent,#000 5%,#000 95%,transparent)'; a.style.maskComposite = 'intersect'; }
+      if (state?.content) a.style.transform = `scale(${1 + state.content.zoom})`;
       bulge?.draw({ x: rect.x * (1 - e), y: rect.y * (1 - e), w: rect.w + (W - rect.w) * e, h: rect.h + (H - rect.h) * e }, undefined, state?.bump || 0, flight ? 0 : (prog.p - (1 - T.bulgeHandoff)) / T.bulgeHandoff, false, state?.content);
       if (onPush) { const u = Math.min(1, (prog.p * duration) / Math.max(pushSec, 0.01)); onPush(ease(u), u); }
       if (crossfade) { const q = Math.min(1, Math.max(0, (prog.p - T.crossFrom) / Math.max(T.crossTo - T.crossFrom, 0.01))); const s = q * q * (3 - 2 * q); b.style.opacity = s; a.style.opacity = 1 - s * (b.complete ? 1 : 0); }
@@ -167,7 +170,7 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
     if (flight) removeEventListener('pagehide', hideFlight);
     if (navigating) return;
     try { sessionStorage.setItem('pxt', JSON.stringify({ slug, src: headerFile(), t: Date.now(), ...(flight ? {flight:flight.record} : {}), wm: document.querySelector('a.wordmark')?.classList.contains('is-link') ? 1 : 0 })); } catch { /* private window: the page just loads */ }
-    if (fromWork) { try { sessionStorage.setItem('pxb', JSON.stringify({ slug, src: headerFile(), origin: 'work', blackMax: T.blackMax, mode: fromWork.mode, projectIndex: fromWork.projectIndex, t: Date.now() })); } catch { /* plain load on the way back */ } } else { try { sessionStorage.removeItem('pxb'); } catch { /* */ } }
+    if (fromWork) { try { sessionStorage.setItem('pxb', JSON.stringify({ slug, src: headerFile(), zEnd:flight?.record.zEnd || 1, origin: 'work', blackMax: T.blackMax, mode: fromWork.mode, projectIndex: fromWork.projectIndex, t: Date.now() })); } catch { /* plain load on the way back */ } } else { try { sessionStorage.removeItem('pxb'); } catch { /* */ } }
     if (import.meta.env.DEV && window.__pxHold) { window.__pxGo = () => { location.href = `/work/${slug}.html`; }; return; } // dev checks: hold the last overlay frame
     location.href = `/work/${slug}.html`;
   };
@@ -226,12 +229,14 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
     return gsap.to(bgOnly, { opacity: 0, duration: 0.4, ease: 'sine.inOut', onComplete: finish });
   }
   const box = root.querySelector('.px__box'), im = root.querySelector('img'), bg = root.querySelector('.px__bg');
-  const B = { x: L.sec[0], y: L.sec[1], w: L.sec[2], h: L.sec[3] }, BI = { x: L.img[0], y: L.img[1], w: L.img[2], h: L.img[3] };
+  const B = { x: L.sec[0], y: L.sec[1], w: L.sec[2], h: L.sec[3] };
+  const z = rec.zEnd || 1, iw = L.img[2] / z, ih = L.img[3] / z;
+  const BI = { x: L.img[0] + (L.img[2] - iw) / 2, y: L.img[1] + (L.img[3] - ih) / 2, w: iw, h: ih };
   const flight = workFlight(target, B, true);
   const A = target, ease = EASES.cubic, bgMax = rec.blackMax ?? 1;
   const duration = flight.total;
-  if (!isTall()) bulge = createBulge(root, box, im);
-  const ready = () => { if (!isTall() && prog.t < 1 && !bulge) bulge = createBulge(root, box, im); };
+  // The reverse DOM image is already decoded. No context/shader/upload on its clock.
+  const ready = () => {};
   im.addEventListener("load", ready, { once: true });
   const lerp = (a, b, e) => a + (b - a) * e;
   const prog = { t: 0 };
@@ -242,7 +247,7 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
     im.style.left = `${ix}px`; im.style.top = `${iy}px`; im.style.width = `${lerp(A.w, BI.w, e)}px`; im.style.height = `${lerp(A.h, BI.h, e)}px`;
     bulge?.draw({ x: bx, y: by, w: lerp(A.w, B.w, e), h: lerp(A.h, B.h, e) }, { x: bx + ix, y: by + iy, w: lerp(A.w, BI.w, e), h: lerp(A.h, BI.h, e) }, state.bump, (prog.t - (1 - T.bulgeHandoff)) / T.bulgeHandoff, true, state.content);
   };
-  const under = im.cloneNode(); under.style.zIndex = '0'; box.append(under); im.style.zIndex = '1';
+
   let flyMarked = false;
   const tl = gsap.timeline({ onComplete: () => { onPush?.(0, 0); pm('back:shrink-end'); tailEnd(); } });
   tl.to(prog, {
@@ -250,8 +255,7 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
     onUpdate: () => {
       const u = 1 - prog.t; // forward progress
       const state = flight.sample(u); place(state.size, state);
-      im.style.maskImage = 'linear-gradient(to right,transparent,#000 5%,#000 95%,transparent),linear-gradient(to bottom,transparent,#000 5%,#000 95%,transparent)'; im.style.maskComposite = 'intersect';
-      im.style.transform = `scale(${1 + state.content.zoom})`; under.style.cssText = im.style.cssText; under.style.transform = ''; under.style.maskImage = ''; under.style.zIndex = '0';
+      im.style.transform = `scale(${1 + state.content.zoom})`;
       { const up = Math.min(1, (u * duration) / Math.max(T.workPushSec, 0.01)); if (up < 1 && !flyMarked) { flyMarked = true; pm('back:fly-start'); } onPush?.(ease(up), up); }
       bg.style.opacity = bgMax * sineIO(Math.min(1, (u * duration) / Math.max(T.fadeSec, 0.01))); // the forward black layer, time-reversed
     },

@@ -148,7 +148,8 @@ const shownA = new Uint8Array(n);
 const fsArr = new Float64Array(N).fill(1); // the focus' image scale per project
 const FA = { n, N, kind: Uint8Array.from(items, (it) => (it.kind === 'frame' ? 0 : 1)), proj: Int8Array.from(items, (it) => it.proj), mouse: Float64Array.from(items, (it) => it.mouse), X: px, Y: py, W: bw, H: bh, vertical: false, pitch: 1, scale: 1 };
 let modeMotionAt = 0; // R24h: the last time the strip moved (focus delay, landing measure)
-let loadGate = false; // R31: on the way back only the pictures that show at rest are requested until the transition is over (then the tick and idleLoad take over)
+let loadGate = !!back;
+let transitionBusy = !!back; // R31: on the way back only the pictures that show at rest are requested until the transition is over (then the tick and idleLoad take over)
 const nearArr = new Uint8Array(n); // item within 0.8 of a view length of the centre along the strip: its picture is requested at once; the rest follow when idle (below)
 const activate = (it) => { if (it.active) return; it.active = true; const d = it.img.dataset; if (d.srcset) it.img.srcset = d.srcset; it.img.src = d.src; };
 let gl = null; // the card canvas (created below)
@@ -216,20 +217,22 @@ const syncWarp = () => {
 };
 syncWarp();
 fine = matchMedia('(pointer: fine)').matches && !reduced && mode.allowPointer; // (tablet landscape keeps its hover rules: touch has no fine pointer anyway)
-let glOn = false;
-{
+let glOn = false, rendererPending = false;
+const startRenderer = () => {
   const fallback = () => { glOn = false; root.classList.remove('work--gl'); gl?.destroy?.(); gl = null; };
   gl = createCardsGL({ ...mode.rendererOptions, section: root, els: items.map((it) => it.img), cards: items, bx, by, bw, bh, onLost: fallback, bend: bendP, warp: warpP, near: (i) => items[i].active === true, layers: { isFrame: Uint8Array.from(items, (it) => (it.kind === 'frame' ? 1 : 0)), warp: warpImg, bend: bendImg, target: (v) => frameAmount(v / Math.max(cur().M.viewAlong, 1), warpImg) } });
   if (gl) {
     glOn = true;
     perfP?.then((m) => m.attachGl(gl));
-    root.classList.add('work--gl');
+    rendererPending = !!back;
+    if (!rendererPending) root.classList.add('work--gl');
     gl.resize(W, H);
     gl.setAxis(vertical ? 0 : 1);
-    gl.show(true);
+    gl.show(!rendererPending);
     items.forEach((it, i) => { gl.hd[i] = it.dark && fine ? CARD_HOVER.darkRest : 0; });
   }
-}
+};
+if (!back) startRenderer();
 
 // R24f: the diagnosis the ?perf overlay shows (live while dragging) and the report holds: is GL on, is the warp pass running, the warp amount now / peak, why GL is off
 if (perfOn) window.__tallDiag = () => {
@@ -501,7 +504,7 @@ stage.addEventListener('click', (e) => {
   const it = items.find((q) => q.el === a), i = it.idx, sc = ui ? 1 : gl.hs[i] || 1; // (R33: v2 reads the UNSCALED frame; the hover growth eases back to 1 as the transition starts)
   e.preventDefault();
   const w = bw[i] * sc, h = bh[i] * sc;
-  runProjectTransition({ slug: it.slug, ref: it.ref, rect: { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, startImage: it.img, startSrc: it.img.currentSrc || it.img.src, fade: fadeEls, fromWork: { mode: vertical ? 'vertical' : 'side', projectIndex: it.proj }, onPush: (p, u) => { if (clearMode()) TC.u = u; else if (TRANSITION.pushScale > 0) TP.p = TP.p0 + (TRANSITION.pushScale - TP.p0) * p; }, onStart: () => { pm('fwd:click'); lenis.stop(); nameEl.style.zIndex = '9'; TP.q = it.proj; TP.p0 = fPu.x[it.proj]; TP.p = TP.p0; TP.hold = TRANSITION.pushScale > 0 || clearMode(); if (clearMode()) { TC.u = 0; prepareClear(it.proj); } } }); // (the project name stays above the growing picture and fades with the rest)
+  runProjectTransition({ slug: it.slug, ref: it.ref, rect: { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, startImage: it.img, startSrc: it.img.currentSrc || it.img.src, fade: fadeEls, fromWork: { mode: vertical ? 'vertical' : 'side', projectIndex: it.proj }, onPush: (p, u) => { if (clearMode()) TC.u = u; else if (TRANSITION.pushScale > 0) TP.p = TP.p0 + (TRANSITION.pushScale - TP.p0) * p; }, onStart: () => { transitionBusy = true; loadGate = true; pm('fwd:click'); lenis.stop(); nameEl.style.zIndex = '9'; TP.q = it.proj; TP.p0 = fPu.x[it.proj]; TP.p = TP.p0; TP.hold = TRANSITION.pushScale > 0 || clearMode(); if (clearMode()) { TC.u = 0; prepareClear(it.proj); } } }); // (the project name stays above the growing picture and fades with the rest)
 });
 addEventListener('wheel', () => { inertia = null; }, { capture: true, passive: true });
 addEventListener('wheel', cancelSnap, { capture: true, passive: true });
@@ -646,7 +649,7 @@ const tick = (_time, deltaMs) => {
       nearArr[i] = out.d < L.M.viewAlong * 0.8 ? 1 : 0;
     }
     px[i] = x; py[i] = y; shownA[i] = shown ? 1 : 0;
-    if (nearArr[i] && !it.active && !loadGate) activate(it);
+    if (nearArr[i] && !it.active && !loadGate && !transitionBusy) activate(it);
   }
   // R23f: the focus (the centred project grows, every card is pushed away from the focused image, neighbours move off) is applied to the
   // base positions of this frame; fsArr = the image scale per project
@@ -732,9 +735,9 @@ const tick = (_time, deltaMs) => {
     v2s.pos = pos; v2s.idx = idx; v2s.kHead = kHead; v2s.idxHead = ((kHead % N) + N) % N; v2s.kNum = (stopped ? kHead : kCount) + 1;
     v2s.speedL = Math.abs(vel) / Math.max(L.M.viewAlong, 1); v2s.vertical = morph ? morph.to === 'vertical' : vertical; v2s.morph = !!morph; v2s.dt = dt; v2s.stopped = stopped;
     if (!stopped) v2StopAt = 0; else if (!v2StopAt) { v2StopAt = now; if (window.__stopLog) window.__stopLog.push({ at: now, since: now - inputAt }); }
-    ui.frame(v2s);
+    v2s.transitioning = transitionBusy; ui.frame(v2s);
   }
-  if (ui && glOn) { // R33b: the pixel smear on every picture (only with a fine pointer; cards-gl is null on reduced motion / weak devices / ?gl=0)
+  if (ui && glOn && !transitionBusy) { // R33b: the pixel smear on every picture (only with a fine pointer; cards-gl is null on reduced motion / weak devices / ?gl=0)
     ptrFx ||= createPointerFx(gl, N);
     const hq = ((kCount % N) + N) % N;
     const calm = !morph && !drag && !inertia && !snap && Math.abs(vel) <= 5 && TP.q < 0 && !TC.on;
@@ -747,7 +750,11 @@ const tick = (_time, deltaMs) => {
     if (moving) lastDirty = now;
     if (moving || now - lastDirty < 80) gl.markDirty();
     const drawSpeed = mode.drawSpeed(vel, L.M.viewAlong);
-    gl.draw(0, dt, drawSpeed, scale, vel);
+    if (!transitionBusy) gl.draw(0, dt, drawSpeed, scale, vel);
+    if (rendererPending && items.every((it,i) => !shownA[i] || gl.has(i))) {
+      rendererPending = false; gl.show(true); gl.markDirty(); gl.draw(0, 0, 0, scale, 0);
+      root.classList.add('work--gl');
+    }
     ampHist.push([now, Math.abs(gl.bendImg().amt || 0)]); while (ampHist.length > 40) ampHist.shift();
     swipePeak = mode.perFrame({gl, vel, drag, now, diag, curSwipe, swipePeak});
   }
@@ -755,7 +762,7 @@ const tick = (_time, deltaMs) => {
 };
 gsap.ticker.add(tick);
 // the pictures that are not near yet are requested a moment after load (one at a time, so a scroll never waits for a first upload)
-if (!back) setTimeout(() => items.forEach((it, i) => setTimeout(() => activate(it), i * 15)), 800);
+if (!back) setTimeout(() => items.forEach((it, i) => setTimeout(() => { if (!transitionBusy) activate(it); }, i * 15)), 800);
 // R31: the way back loads the rest after the transition: one picture per slice while the page is idle, the one nearest to the view centre along the strip first
 const idleLoad = () => {
   pm('back:idle-load-start');
@@ -859,13 +866,13 @@ if (back) {
     const m = TRANSITION.clearMargin * scale, show = items.filter((it) => { const i = it.idx, hw = bw[i] * 0.58, hh = bh[i] * 0.58; return !(px[i] + hw < -m || px[i] - hw > W + m || py[i] + hh < -m || py[i] - hh > H + m); }); // R31: the pictures that show at rest (the rule prepareClear uses to pick the cards that move)
     show.forEach(activate);
     const until = (fn, ms) => new Promise((res) => { const t0 = performance.now(); const f = () => (fn() || performance.now() - t0 > ms ? res() : requestAnimationFrame(f)); f(); });
-    await Promise.all([Promise.race([hi.decode().catch(() => {}), until(() => false, 1200)]), until(() => !gl || show.every((it) => gl.has(it.idx)), 1200)]);
+    await hi.decode().catch(() => {}); // same cached file; far images and GL wait until settle
     pm('back:textures');
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     const fi = items.findIndex((it) => it.kind === 'frame' && it.proj === back.projectIndex);
     if (shrink && clearMode()) { TC.u = 0; prepareClear(back.projectIndex); TC.u = 1; } // everything starts off screen
     pm('back:shrink-start');
-    playBack({ rec: back, target: { x: px[fi] - bw[fi] / 2, y: py[fi] - bh[fi] / 2, w: bw[fi], h: bh[fi] }, fade: fadeEls, onPush: (p, u) => { if (TC.on) TC.u = u; else TP.p = p * TRANSITION.pushScale; }, done: () => { TP.q = -1; TP.p = 0; TC.on = false; TC.u = 0; gsap.set(fadeEls, { clearProps: 'opacity' }); loadGate = false; idleLoad(); } });
+    playBack({ rec: back, target: { x: px[fi] - bw[fi] / 2, y: py[fi] - bh[fi] / 2, w: bw[fi], h: bh[fi] }, fade: fadeEls, onPush: (p, u) => { if (TC.on) TC.u = u; else TP.p = p * TRANSITION.pushScale; }, done: () => { transitionBusy = false; requestAnimationFrame(() => { startRenderer(); }); TP.q = -1; TP.p = 0; TC.on = false; TC.u = 0; gsap.set(fadeEls, { clearProps: 'opacity' }); loadGate = false; idleLoad(); } });
   })();
 }
 document.title = 'Work | Anh V';

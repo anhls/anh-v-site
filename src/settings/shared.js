@@ -10,3 +10,5 @@ export const SCROLL = {
 
 // R24a: the menu's Contact item stays hidden until this is set (a mailto: link); Anh has no address yet.
 export const CONTACT = { email: '' };
+
+export const FLIGHT = { zEnd: 1.10 };

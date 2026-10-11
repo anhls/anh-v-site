@@ -1,4 +1,5 @@
 import { BEND, TRANSITION as T } from '../timeline.js';
+import { transitionPolicy } from './transition-policy.js';
 import { flightZoom, flightRecord } from './flight-curve.js';
 
 export const pillowBump = (t) => {
@@ -21,7 +22,7 @@ export function workFlight(start, end, back = false, t0 = Date.now()) {
     const lensU = Math.max(0, Math.min(1, (time - land) / Math.max(.01, T.lensSec)));
     const lens = back && !T.backRebound ? 0 : -T.bulgeAmp * T.reboundAmp * 6.75 * lensU * (1 - lensU) ** 2;
     // Introduce the zoom-out pose during growth, never as a step at full screen.
-    const zoom = time < land ? 1 + (record.zStart - 1) * u * u * (3 - 2 * u) : flightZoom(record, t0 + time * 1000);
+    const zoom = time < land ? 1 : flightZoom(record, t0 + time * 1000);
     return { size, bump: pillowBump(time / T.workSec), content: { lens, zoom: zoom - 1, framed: true } };
   } };
 }
@@ -78,12 +79,6 @@ export function createBulge(parent, box, image, deferTexture = false) {
         float aa = max(fwidth(distance), pixel);
         // Fade inside the mesh: straight-alpha canvas MSAA otherwise darkens its outer edge.
         float alpha = fullScreen ? 1. : 1. - smoothstep(-aa, 0., distance);
-        // Feather the moving crop into the resting crop so edges stay covered without a seam.
-        if (framed) {
-          vec2 at = (local - .5) / (1. + zoom) + .5;
-          vec2 fade = clamp(min(at, 1. - at) / .05, 0., 1.);
-          sampleColor = mix(texture(picture, tex), sampleColor, fade.x * fade.y);
-        }
         color = vec4(sampleColor.rgb, sampleColor.a * alpha);
       }`);
     program = gl.createProgram(); gl.attachShader(program, vs); gl.attachShader(program, fs); gl.linkProgram(program);
@@ -118,7 +113,7 @@ export function createBulge(parent, box, image, deferTexture = false) {
       while (parallel && !gl.getProgramParameter(program, parallel.COMPLETION_STATUS_KHR));
       if (!gl.getProgramParameter(program, gl.LINK_STATUS)) { dispose(); return false; }
       uniforms = readUniforms();
-      const dpr = Math.min(devicePixelRatio || 1, innerWidth > 2560 ? BEND.dprCapLarge : BEND.dprCap);
+      const dpr = Math.min(devicePixelRatio || 1, Math.min(transitionPolicy().maxDpr, innerWidth > 2560 ? BEND.dprCapLarge : BEND.dprCap));
       const ratio = Math.min(1, Math.max(innerWidth * dpr / im.naturalWidth, innerHeight * dpr / im.naturalHeight));
       const width = Math.round(im.naturalWidth * ratio), height = Math.round(im.naturalHeight * ratio);
       natural = [width, height];
@@ -144,7 +139,7 @@ export function createBulge(parent, box, image, deferTexture = false) {
       box.style.visibility = ''; box = nextBox; parent.append(canvas); canvas.style.visibility = '';
     }, draw(b, ib = b, bump = 0, handoff = 0, pageHandoff = false, content = null) {
       if (dead) return;
-      const dpr = Math.min(devicePixelRatio || 1, innerWidth > 2560 ? BEND.dprCapLarge : BEND.dprCap);
+      const dpr = Math.min(devicePixelRatio || 1, Math.min(transitionPolicy().maxDpr, innerWidth > 2560 ? BEND.dprCapLarge : BEND.dprCap));
       const w = Math.round(innerWidth * dpr), h = Math.round(innerHeight * dpr);
       if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
       gl.viewport(0, 0, w, h); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
