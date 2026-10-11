@@ -1,4 +1,4 @@
-import { createBulge, pillowBump, workFlight } from './bulge-gl.js';
+import { createBulge, workFlight } from './bulge-gl.js';
 import { gsap } from 'gsap';
 import { TRANSITION as T } from '../timeline.js';
 import { EASES } from '../util/ease.js';
@@ -31,38 +31,46 @@ export function preloadHeader(slug, ref) {
 addEventListener('pageshow', (e) => { if (e.persisted) location.reload(); });
 
 // Work hover owns at most one hidden, warmed transition renderer.
-let prepared = null, prepareTimer = 0, leaveTimer = 0, prepareToken = 0;
+let prepared = null, prepareTimer = 0, leaveTimer = 0, prepareToken = 0, pendingSlug = null, idleTask = 0;
 export function disposePrepared() {
-  prepareToken++; clearTimeout(prepareTimer); clearTimeout(leaveTimer);
+  prepareToken++; pendingSlug = null; clearTimeout(prepareTimer); clearTimeout(leaveTimer);
+  if (idleTask) { (window.cancelIdleCallback || clearTimeout)(idleTask); idleTask = 0; }
   prepared?.renderer.dispose(); prepared?.host.remove(); prepared = null;
 }
 export function leavePrepared() {
   clearTimeout(leaveTimer); leaveTimer = setTimeout(disposePrepared, T.hoverDisposeMs);
 }
+export function prepareIdleTransition(slug, ref, image) {
+  if (idleTask) (window.cancelIdleCallback || clearTimeout)(idleTask);
+  idleTask = (window.requestIdleCallback || ((f) => setTimeout(f, 80)))(() => {
+    idleTask = 0; prepareTransition(slug, ref, image);
+  }, {timeout:1200});
+}
 export function prepareTransition(slug, ref, image) {
   if (!transitionOK() || isTall() || !matchMedia('(hover:hover) and (pointer:fine)').matches) return;
   clearTimeout(leaveTimer);
-  if (prepared?.slug === slug && !prepared.renderer.dead) return;
-  disposePrepared(); const token = prepareToken, hdr = preloadHeader(slug, ref);
+  if ((prepared?.slug === slug && !prepared.renderer.dead) || pendingSlug === slug) return;
+  disposePrepared(); pendingSlug = slug; const token = prepareToken, hdr = preloadHeader(slug, ref);
   prepareTimer = setTimeout(async () => {
     try { await hdr.decode(); } catch { /* use the decoded Work picture */ }
     if (token !== prepareToken || running) return;
     const source = hdr.complete && hdr.naturalWidth ? hdr : image;
     const host = document.createElement('div'), placeholder = document.createElement('div');
     host.style.cssText = 'position:fixed;inset:0;visibility:hidden;pointer-events:none'; host.append(placeholder); document.body.append(host);
+    pm('fwd:prepare-start');
     const renderer = createBulge(host, placeholder, source, true);
-    if (!renderer) { host.remove(); return; }
+    if (!renderer) { pendingSlug = null; host.remove(); return; }
     renderer.canvas.style.visibility = 'hidden';
     const entry = { slug, host, renderer, ready: false }; prepared = entry;
     try { if (!await renderer.prepareTexture(source) || prepared !== entry) return; } catch { if (prepared === entry) disposePrepared(); return; }
     renderer.draw({x:0,y:0,w:innerWidth,h:innerHeight});
     await new Promise(requestAnimationFrame);
     if (prepared !== entry || renderer.dead) return;
-    entry.ready = true; renderer.canvas.dataset.prepared = 'ready'; pm('fwd:prepared');
+    pendingSlug = null; entry.ready = true; renderer.canvas.dataset.prepared = 'ready'; pm('fwd:prepared');
   }, T.hoverPrepareMs);
 }
 function takePrepared(slug, root, box) {
-  clearTimeout(prepareTimer); clearTimeout(leaveTimer); prepareToken++;
+  clearTimeout(prepareTimer); clearTimeout(leaveTimer); prepareToken++; pendingSlug = null;
   const hit = prepared; prepared = null;
   if (!hit) return null;
   if (hit.slug !== slug || !hit.ready || hit.renderer.dead) { hit.renderer.dispose(); hit.host.remove(); return null; }
@@ -77,10 +85,10 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
   if (running) return;
   running = true;
   onStart?.();
-  const W = innerWidth, H = innerHeight;
+  const W = innerWidth, H = innerHeight, t0 = Date.now();
   const hdr = preloadHeader(slug, ref);
   const sec = fromWork ? T.workSec : T.sec, pushSec = fromWork ? T.workPushSec : T.pushSec;
-  const flight = fromWork && !isTall() ? workFlight(rect, {w:W,h:H}) : null;
+  const flight = fromWork && !isTall() ? workFlight(rect, {w:W,h:H}, false, t0) : null;
   const rel = { x: imgRect.x - rect.x, y: imgRect.y - rect.y, w: imgRect.w, h: imgRect.h }; // the start picture's box in the clip box's coordinates
   const root = document.createElement('div');
   root.className = 'px';
@@ -109,8 +117,10 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
   const navigateFlight = () => {
     if (navigating) return;
     navigating = true; pm('fwd:navigate');
+    const wm = document.querySelector('a.wordmark');
+    if (wm) flight.record.wordmark = {src:wm.querySelector('img')?.getAttribute('src'), style:wm.style.cssText};
     try {
-      sessionStorage.setItem('pxt', JSON.stringify({slug, src:headerFile(), t:Date.now(), wm:document.querySelector('a.wordmark')?.classList.contains('is-link') ? 1 : 0}));
+      sessionStorage.setItem('pxt', JSON.stringify({slug, src:headerFile(), t:Date.now(), flight:flight.record, wm:document.querySelector('a.wordmark')?.classList.contains('is-link') ? 1 : 0}));
       sessionStorage.setItem('pxb', JSON.stringify({slug, src:headerFile(), origin:'work', blackMax:T.blackMax, mode:fromWork.mode, projectIndex:fromWork.projectIndex, t:Date.now()}));
     } catch { /* plain navigation */ }
     location.href = `/work/${slug}.html`;
@@ -124,16 +134,18 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
   tl.to(prog, {
     p: 1, duration, ease: 'none',
     onUpdate: () => {
+      if (flight && !(import.meta.env.DEV && window.__pxFreeze)) prog.p = Math.max(0, Math.min(1, (Date.now() - t0) / (duration * 1000)));
       const state = flight?.sample(prog.p), e = state ? state.size : ease(prog.p);
       box.style.left = `${rect.x * (1 - e)}px`; box.style.top = `${rect.y * (1 - e)}px`;
       box.style.width = `${rect.w + (W - rect.w) * e}px`; box.style.height = `${rect.h + (H - rect.h) * e}px`;
       const L = `${rel.x * (1 - e)}px`, Tp = `${rel.y * (1 - e)}px`, Wd = `${rel.w + (W - rel.w) * e}px`, Ht = `${rel.h + (H - rel.h) * e}px`;
       for (const im of [a, b]) { im.style.left = L; im.style.top = Tp; im.style.width = Wd; im.style.height = Ht; }
-      bulge?.draw({ x: rect.x * (1 - e), y: rect.y * (1 - e), w: rect.w + (W - rect.w) * e, h: rect.h + (H - rect.h) * e }, undefined, state?.bump || 0, (prog.p - (1 - T.bulgeHandoff)) / T.bulgeHandoff, false, state?.content);
+      if (state?.content) { a.style.transform = `scale(${1 + state.content.zoom})`; b.src = a.src; b.style.opacity = '1'; a.style.zIndex = '1'; }
+      bulge?.draw({ x: rect.x * (1 - e), y: rect.y * (1 - e), w: rect.w + (W - rect.w) * e, h: rect.h + (H - rect.h) * e }, undefined, state?.bump || 0, flight ? 0 : (prog.p - (1 - T.bulgeHandoff)) / T.bulgeHandoff, false, state?.content);
       if (onPush) { const u = Math.min(1, (prog.p * duration) / Math.max(pushSec, 0.01)); onPush(ease(u), u); }
       if (crossfade) { const q = Math.min(1, Math.max(0, (prog.p - T.crossFrom) / Math.max(T.crossTo - T.crossFrom, 0.01))); const s = q * q * (3 - 2 * q); b.style.opacity = s; a.style.opacity = 1 - s * (b.complete ? 1 : 0); }
-      if (state?.content && prog.p > 1 - T.bulgeHandoff && !(import.meta.env.DEV && window.__pxHold)) {
-        const displacement = Math.max(W,H) * .5 * (Math.abs(state.content.zoom) + 2 * Math.abs(state.content.lens)) * (devicePixelRatio || 1);
+      if (state?.content && prog.p * duration > flight.land + T.lensSec * .5 && !(import.meta.env.DEV && window.__pxHold)) {
+        const displacement = Math.max(W,H) * .5 * (2 * Math.abs(state.content.lens)) * (devicePixelRatio || 1);
         if (displacement < T.navigationMaxPx) navigateFlight();
       }
     },
@@ -144,11 +156,12 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
   if (import.meta.env.DEV) { window.__pxTl = tl; if (window.__pxFreeze) tl.pause(); } // dev checks: freeze at the first frame
   const finish = () => {
     hdr.removeEventListener('load', headerReady);
-    bulge?.dispose(); bulge = null;
     pm('fwd:end');
+    if (flight && navigating) return;
+    bulge?.dispose(); bulge = null;
     if (flight) removeEventListener('pagehide', hideFlight);
     if (navigating) return;
-    try { sessionStorage.setItem('pxt', JSON.stringify({ slug, src: headerFile(), t: Date.now(), wm: document.querySelector('a.wordmark')?.classList.contains('is-link') ? 1 : 0 })); } catch { /* private window: the page just loads */ }
+    try { sessionStorage.setItem('pxt', JSON.stringify({ slug, src: headerFile(), t: Date.now(), ...(flight ? {flight:flight.record} : {}), wm: document.querySelector('a.wordmark')?.classList.contains('is-link') ? 1 : 0 })); } catch { /* private window: the page just loads */ }
     if (fromWork) { try { sessionStorage.setItem('pxb', JSON.stringify({ slug, src: headerFile(), origin: 'work', blackMax: T.blackMax, mode: fromWork.mode, projectIndex: fromWork.projectIndex, t: Date.now() })); } catch { /* plain load on the way back */ } } else { try { sessionStorage.removeItem('pxb'); } catch { /* */ } }
     if (import.meta.env.DEV && window.__pxHold) { window.__pxGo = () => { location.href = `/work/${slug}.html`; }; return; } // dev checks: hold the last overlay frame
     location.href = `/work/${slug}.html`;
@@ -224,6 +237,7 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
     im.style.left = `${ix}px`; im.style.top = `${iy}px`; im.style.width = `${lerp(A.w, BI.w, e)}px`; im.style.height = `${lerp(A.h, BI.h, e)}px`;
     bulge?.draw({ x: bx, y: by, w: lerp(A.w, B.w, e), h: lerp(A.h, B.h, e) }, { x: bx + ix, y: by + iy, w: lerp(A.w, BI.w, e), h: lerp(A.h, BI.h, e) }, state.bump, (prog.t - (1 - T.bulgeHandoff)) / T.bulgeHandoff, true, state.content);
   };
+  const under = im.cloneNode(); under.style.zIndex = '0'; box.append(under); im.style.zIndex = '1';
   let flyMarked = false;
   const tl = gsap.timeline({ onComplete: () => { onPush?.(0, 0); pm('back:shrink-end'); tailEnd(); } });
   tl.to(prog, {
@@ -231,6 +245,7 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
     onUpdate: () => {
       const u = 1 - prog.t; // forward progress
       const state = flight.sample(u); place(state.size, state);
+      im.style.transform = `scale(${1 + state.content.zoom})`; under.style.cssText = im.style.cssText; under.style.transform = ''; under.style.zIndex = '0';
       { const up = Math.min(1, (u * duration) / Math.max(T.workPushSec, 0.01)); if (up < 1 && !flyMarked) { flyMarked = true; pm('back:fly-start'); } onPush?.(ease(up), up); }
       bg.style.opacity = bgMax * sineIO(Math.min(1, (u * duration) / Math.max(T.fadeSec, 0.01))); // the forward black layer, time-reversed
     },

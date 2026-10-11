@@ -1,4 +1,5 @@
 import { BEND, TRANSITION as T } from '../timeline.js';
+import { flightZoom, flightRecord } from './flight-curve.js';
 
 export const pillowBump = (t) => {
   const end = Math.max(0.02, Math.min(1, T.bulgeEndAt));
@@ -7,28 +8,19 @@ export const pillowBump = (t) => {
   return Math.sin(Math.PI / 2 * (t < peak ? t / peak : (end - t) / (end - peak))) ** 2;
 };
 
-// One flight clock. At full-screen crossing, uniform texture scale inherits the box's speed.
-export function workFlight(start, end, back = false) {
-  const noRebound = back && !T.backRebound;
-  const total = T.workSec + (noRebound ? 0 : Math.max(0, T.reboundSec));
-  const land = Math.min(total, Math.max(0.01, T.workSec * T.workLandAt));
-  const tail = Math.max(0.01, total - land), carry = Math.max(0.01, Math.min(2, T.workCarry));
-  const scaleSpeed = carry / land * Math.max(0, Math.min(1 - start.w / end.w, 1 - start.h / end.h));
-  return { total, land, sample(p) {
+// The same forward trajectory is sampled in reverse on return. Wall clock survives navigation.
+export function workFlight(start, end, back = false, t0 = Date.now()) {
+  const record = flightRecord(t0, T), land = record.land;
+  const total = land + record.tail, carry = Math.max(0.01, Math.min(2, T.workCarry));
+  return { total, land, record, sample(p) {
     p = Math.max(0, Math.min(1, p));
-    if (noRebound) return { size: p * p * (3 - 2 * p), bump: pillowBump(p), content: null };
-    const time = p * total;
-    if (time < land) {
-      const u = time / land;
-      return { size: (3 - carry) * u * u + (carry - 2) * u * u * u,
-        bump: pillowBump(time / T.workSec), content: null };
-    }
-    const u = Math.min(1, (time - land) / tail);
-    const pulse = Math.sin(Math.PI * u) ** 2;
-    const content = { lens: -T.bulgeAmp * T.reboundAmp * pulse,
-      zoom: T.reboundZoom * pulse + scaleSpeed * tail / (2 * Math.PI) * Math.sin(2 * Math.PI * u) * (1 - u) ** 2 };
-    if (u >= 1) { content.lens = 0; content.zoom = 0; }
-    return { size: 1, bump: 0, content };
+    const time = p * total, u = Math.min(1, time / land);
+    const size = (3 - carry) * u * u + (carry - 2) * u * u * u;
+    const lensU = Math.max(0, Math.min(1, (time - land) / Math.max(.01, T.lensSec)));
+    const lens = back && !T.backRebound ? 0 : -T.bulgeAmp * T.reboundAmp * 6.75 * lensU * (1 - lensU) ** 2;
+    // Introduce the zoom-out pose during growth, never as a step at full screen.
+    const zoom = time < land ? 1 + (record.zStart - 1) * u * u * (3 - 2 * u) : flightZoom(record, t0 + time * 1000);
+    return { size, bump: pillowBump(time / T.workSec), content: { lens, zoom: zoom - 1, framed: true } };
   } };
 }
 
@@ -55,11 +47,11 @@ export function createBulge(parent, box, image, deferTexture = false) {
   try {
     const shader = (type, source) => {
       const s = gl.createShader(type); gl.shaderSource(s, source); gl.compileShader(s);
-      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { gl.deleteShader(s); throw new Error('Bulge shader'); }
+      if (!deferTexture && !gl.getShaderParameter(s, gl.COMPILE_STATUS)) { gl.deleteShader(s); throw new Error('Bulge shader'); }
       return s;
     };
     vs = shader(gl.VERTEX_SHADER, `#version 300 es
-      in vec2 uv; uniform vec4 box; uniform vec4 imageBox; uniform vec2 viewport; uniform vec2 natural; uniform float bulge; out vec2 tex; out vec2 local;
+      layout(location=0) in vec2 uv; uniform vec4 box; uniform vec4 imageBox; uniform vec2 viewport; uniform vec2 natural; uniform float bulge; out vec2 tex; out vec2 local;
       void main() {
         local = uv;
         vec2 q = uv * 2. - 1.;
@@ -73,7 +65,7 @@ export function createBulge(parent, box, image, deferTexture = false) {
     fs = shader(gl.FRAGMENT_SHADER, `#version 300 es
       precision highp float;
       in vec2 tex; in vec2 local; uniform sampler2D picture;
-      uniform vec4 box; uniform float radius; uniform float zoom; uniform float pixel; uniform float lens; uniform bool fullScreen;
+      uniform vec4 box; uniform float radius; uniform float zoom; uniform float pixel; uniform float lens; uniform bool fullScreen; uniform bool framed;
       out vec4 color;
       void main() {
         vec2 qLens = local * 2. - 1.;
@@ -84,22 +76,27 @@ export function createBulge(parent, box, image, deferTexture = false) {
         float aa = max(fwidth(distance), pixel);
         // Fade inside the mesh: straight-alpha canvas MSAA otherwise darkens its outer edge.
         float alpha = fullScreen ? 1. : 1. - smoothstep(-aa, 0., distance);
+        // The resting crop underneath covers every edge while the inner crop zooms in.
+        if (framed && max(abs(local.x - .5), abs(local.y - .5)) * 2. > 1. + zoom) {
+          sampleColor = texture(picture, tex);
+        }
         color = vec4(sampleColor.rgb, sampleColor.a * alpha);
       }`);
     program = gl.createProgram(); gl.attachShader(program, vs); gl.attachShader(program, fs); gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error('Bulge program');
+    if (!deferTexture && !gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error('Bulge program');
     gl.useProgram(program);
     const n = T.bulgeGrid, points = [], ids = [];
     for (let y = 0; y <= n; y++) for (let x = 0; x <= n; x++) points.push(x / n, y / n);
     for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const i = y * (n + 1) + x; ids.push(i, i + 1, i + n + 1, i + 1, i + n + 2, i + n + 1); }
     vertex = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vertex); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(points), gl.STATIC_DRAW);
-    const attr = gl.getAttribLocation(program, 'uv'); gl.enableVertexAttribArray(attr); gl.vertexAttribPointer(attr, 2, gl.FLOAT, false, 0, 0);
+    const attr = 0; gl.enableVertexAttribArray(attr); gl.vertexAttribPointer(attr, 2, gl.FLOAT, false, 0, 0);
     index = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(ids), gl.STATIC_DRAW);
     texture = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    const uniforms = Object.fromEntries(['box', 'imageBox', 'viewport', 'natural', 'bulge', 'radius', 'zoom', 'pixel', 'lens', 'fullScreen'].map(k => [k, gl.getUniformLocation(program, k)]));
+    const readUniforms = () => Object.fromEntries(['box', 'imageBox', 'viewport', 'natural', 'bulge', 'radius', 'zoom', 'pixel', 'lens', 'fullScreen', 'framed'].map(k => [k, gl.getUniformLocation(program, k)]));
+    let uniforms = deferTexture ? null : readUniforms();
     let natural, textureKey;
     const setTexture = (im, decoded = null) => {
       if (dead || !im.complete || !im.naturalWidth) return;
@@ -112,17 +109,27 @@ export function createBulge(parent, box, image, deferTexture = false) {
     if (!deferTexture) setTexture(image); parent.append(canvas);
     return { canvas, dispose, setTexture, async prepareTexture(im) {
       if (dead || !im.complete || !im.naturalWidth) return false;
-      natural = [im.naturalWidth, im.naturalHeight];
+      const parallel = gl.getExtension('KHR_parallel_shader_compile');
+      do { await new Promise(requestAnimationFrame); if (dead) return false; }
+      while (parallel && !gl.getProgramParameter(program, parallel.COMPLETION_STATUS_KHR));
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) { dispose(); return false; }
+      uniforms = readUniforms();
+      const dpr = Math.min(devicePixelRatio || 1, innerWidth > 2560 ? BEND.dprCapLarge : BEND.dprCap);
+      const ratio = Math.min(1, Math.max(innerWidth * dpr / im.naturalWidth, innerHeight * dpr / im.naturalHeight));
+      const width = Math.round(im.naturalWidth * ratio), height = Math.round(im.naturalHeight * ratio);
+      natural = [width, height];
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, natural[0], natural[1], 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-      for (let y = 0; y < natural[1]; y += T.hoverUploadRows) {
-        await new Promise(requestAnimationFrame);
-        if (dead) return false;
-        const strip = await createImageBitmap(im, 0, y, natural[0], Math.min(T.hoverUploadRows, natural[1] - y));
-        if (dead) { strip.close(); return false; }
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, y, gl.RGBA, gl.UNSIGNED_BYTE, strip); strip.close();
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      for (let y = 0; y < height; y += T.hoverUploadRows) {
+          await new Promise(requestAnimationFrame);
+          if (dead) return false;
+          const rows = Math.min(T.hoverUploadRows, height - y);
+          const sourceY = Math.round(y * im.naturalHeight / height), sourceEnd = Math.round((y + rows) * im.naturalHeight / height);
+          const strip = await createImageBitmap(im, 0, sourceY, im.naturalWidth, sourceEnd - sourceY, {resizeWidth:width, resizeHeight:rows, resizeQuality:'high'});
+          if (dead) { strip.close(); return false; }
+          gl.bindTexture(gl.TEXTURE_2D, texture);
+          gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, y, gl.RGBA, gl.UNSIGNED_BYTE, strip); strip.close();
       }
       if (dead) return false;
       gl.generateMipmap(gl.TEXTURE_2D);
@@ -140,9 +147,10 @@ export function createBulge(parent, box, image, deferTexture = false) {
       gl.uniform4f(uniforms.box, b.x, b.y, b.w, b.h); gl.uniform4f(uniforms.imageBox, ib.x, ib.y, ib.w, ib.h);
       gl.uniform2f(uniforms.viewport, innerWidth, innerHeight); gl.uniform2fv(uniforms.natural, natural); gl.uniform1f(uniforms.bulge, T.bulgeAmp * bump);
       gl.uniform1f(uniforms.radius, T.cornerAmp * Math.min(b.w, b.h) * bump);
-      gl.uniform1f(uniforms.zoom, T.zoomAmp * bump + (content?.zoom || 0));
+      gl.uniform1f(uniforms.zoom, content?.framed ? content.zoom : T.zoomAmp * bump + (content?.zoom || 0));
       gl.uniform1f(uniforms.lens, content?.lens || 0);
-      gl.uniform1i(uniforms.fullScreen, content ? 1 : 0);
+      gl.uniform1i(uniforms.fullScreen, content && b.w >= innerWidth - .01 && b.h >= innerHeight - .01 ? 1 : 0);
+      gl.uniform1i(uniforms.framed, content?.framed ? 1 : 0);
       gl.uniform1f(uniforms.pixel, 1 / dpr);
       gl.drawElements(gl.TRIANGLES, ids.length, gl.UNSIGNED_SHORT, 0);
       // Brief overlap hides the browser / GPU resampling difference before the exact DOM hand-off.

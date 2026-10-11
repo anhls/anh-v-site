@@ -62,9 +62,33 @@
       (function () {
         try {
           var d = JSON.parse(sessionStorage.getItem('pxt') || 'null'); sessionStorage.removeItem('pxt');
-          if (!d || Date.now() - d.t > 15000 || location.pathname.indexOf('/' + d.slug + '.html') < 0) return;
+          if (!d || Date.now() - d.t > 15000 || !new RegExp('/' + d.slug + '(?:\\.html)?/?$').test(location.pathname)) return;
           window.__pxt = d;
           document.body.insertAdjacentHTML('afterbegin', '<div id="pxt" aria-hidden="true" style="position:fixed;inset:0;z-index:8;background:var(--bg);overflow:hidden"><img alt="" decoding="sync" src="' + d.src + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block"></div>');
+          if (d.flight && Number.isFinite(d.flight.t0) && d.flight.tail > 0 && d.flight.zStart > 0 && d.flight.zStart <= 1) {
+            // R37e shared curve: keep verbatim with flight-curve.js (verified by the capture check).
+            function flightZoom(flight, now) {
+  var u = Math.max(0, Math.min(1, (now - flight.t0 - flight.land * 1000) / (flight.tail * 1000)));
+  return flight.zStart + (1 - flight.zStart) * (1 - Math.pow(1 - u, 3));
+}
+            if (d.flight.wordmark) {
+              var mark = document.createElement('div'), logo = document.createElement('img');
+              mark.id = 'pxt-wordmark'; mark.className = 'wordmark'; mark.style.cssText = d.flight.wordmark.style;
+              logo.src = d.flight.wordmark.src; logo.alt = ''; mark.appendChild(logo); document.body.appendChild(mark);
+            }
+            var overlay = document.getElementById('pxt'), image = overlay.querySelector('img');
+            var edge = image.cloneNode(); overlay.prepend(edge); image.style.zIndex = '1';
+            window.__pxtFlightDone = new Promise(function (resolve) {
+              var frame = 0;
+              function paint() {
+                image.style.transform = 'scale(' + flightZoom(d.flight, Date.now()) + ')';
+                if (Date.now() >= d.flight.t0 + (d.flight.land + d.flight.tail) * 1000) { resolve(); return; }
+                frame = requestAnimationFrame(paint);
+              }
+              paint();
+              addEventListener('pagehide', function () { cancelAnimationFrame(frame); resolve(); }, {once:true});
+            });
+          }
         } catch (e) {}
       })();
     </script>

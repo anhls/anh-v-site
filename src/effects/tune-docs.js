@@ -3,8 +3,9 @@
 // what up / down does. Edit the text here; a parameter without an entry shows its label only. Never imported by the production build (the panels are dev-only).
 export const TUNE_DOCS = {
   'TRANSITION.reboundAmp': 'Inward texture lens strength relative to peak outward bow; outline stays full screen.',
-  'TRANSITION.reboundSec': 'Extra full-screen content rebound time after the Work move; zero disables it.',
-  'TRANSITION.reboundZoom': 'Small content zoom pulse that returns exactly to the original crop before navigation.',
+  'TRANSITION.lensSec': 'Seconds for the inward lens to rise and flatten on Work before navigation.',
+  'TRANSITION.zoomTailSec': 'Seconds of monotonic zoom after full-screen crossing, shared with the project page.',
+  'TRANSITION.zStart': 'Slightly zoomed-out full-screen pose; the shared zoom ends at exactly 1.',
   'TRANSITION.backRebound': 'Play the reversed full-screen rebound before shrinking back into Work.',
   'TRANSITION.workCarry': 'Speed retained when the growing box reaches full screen; its motion continues as content scale.',
   'TRANSITION.workLandAt': 'Full-screen crossing as a share of workSec; content carries the landing speed into the remaining flight.',

@@ -36,6 +36,7 @@ if (project?.page) {
   if (tall) (await import('./sections/project-page-tall.js')).buildProjectPageTall(app, project.page, lenis); else buildProjectPage(app, project.page, lenis);
   buildFooter(app, data.footer, lenis); // same footer + back-to-top as home
   initNav(data.hero.wordmark, lenis, tall ? { gateFrame: false, small: { x: 5, y: 3.4, width: 28 } } : { gateFrame: false, startSmall: !!window.__pxt?.wm }); // after the footer exists: the big wordmark returns when it is reached
+  document.getElementById('pxt-wordmark')?.remove();
   ScrollTrigger.refresh();
   // R25: the hand-off overlay (inline script in the page) goes once the header's own picture is decoded: same file, same crop, so nothing changes on screen
   const ov = document.getElementById('pxt');
@@ -43,8 +44,12 @@ if (project?.page) {
     const hi = app.querySelector('.pj__hero img');
     const drop = () => { ov.remove(); };
     const ready = hi && (hi.complete && hi.naturalWidth ? hi.decode().catch(() => {}) : new Promise((r) => { hi.addEventListener('load', () => hi.decode().then(r, r), { once: true }); hi.addEventListener('error', r, { once: true }); }));
-    (ready || Promise.resolve()).then(() => requestAnimationFrame(() => requestAnimationFrame(drop)));
-    setTimeout(drop, 6000);
+    if (window.__pxtFlightDone) {
+      Promise.all([ready || Promise.resolve(), window.__pxtFlightDone]).then(() => requestAnimationFrame(() => requestAnimationFrame(drop)));
+    } else {
+      (ready || Promise.resolve()).then(() => requestAnimationFrame(() => requestAnimationFrame(drop)));
+      setTimeout(drop, 6000);
+    }
   }
   document.title = project.page.title;
   // R28: leaving: remember where the header was (for the way back to the Work page) ...
