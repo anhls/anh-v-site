@@ -584,7 +584,7 @@ Newest at the bottom. Keep each entry to 8 lines or fewer: what changed, compare
   Still off: hovering can hitch, the bend still slows before moving again, and the project header appears late.
   Your decision: review this unfinished version; option B would let the project page finish the bend and needs your approval.
   Questions/choices, attempts and visual gate (partly for open and return): docs/codex/R37d-notes.md; keep approved 0.6+0.3s gesture, full screen0.51s, carry0.8; no project-page changes or R39 implementation.
-  Branch codex/r37-r38; commits08d038a (planning), pending WIP checkpoint; Pushed:08d038a. Three hover fixes still fail (40.7–46.8ms); motion guard fails open4/return5 samples; stop as WIP.
+  Branch codex/r37-r38; commits08d038a (planning), e0b8fc2 (implementation), receipt commit `WIP R37d: record pushed review checkpoint`; Pushed:e0b8fc2 (includes planning). Three hover fixes still fail (40.7–46.8ms); motion guard fails open4/return5 samples; stop as WIP.
   Build/compare542/542 both sizes, homepage0, endpoint0 DPR1/2, fallbacks/loss/double-click/wheel,20+20 cleanup cycles pass;0 errors. Warm first5 frames11.9/4.7/2.0/7.0/6.6ms; header gap269.5ms; earlier whole-page rest proof remains unverified (script issue).
   Every changed file: docs/requests.md, docs/codex/{R37d,R39,R37d-notes}.md, docs/status.md, src/effects/{bulge-gl,project-transition,tune-docs}.js, src/timeline.js, src/work.js, src/work/tune.js; own scratch inventory in notes. Known 404 difference9 edge pixels/max1 retained.
   Exact undo: `git switch work-v2`.
