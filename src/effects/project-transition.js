@@ -1,8 +1,7 @@
-import { createBulge, pillowBump, reboundShape } from './bulge-gl.js';
-import { withOvershoot } from '../util/overshoot.js';
+import { createBulge, pillowBump, workFlight } from './bulge-gl.js';
 import { gsap } from 'gsap';
 import { TRANSITION as T } from '../timeline.js';
-import { EASES, heldCubic } from '../util/ease.js';
+import { EASES } from '../util/ease.js';
 import { imgSet } from '../util/media.js';
 import { pm } from '../util/perf-mark.js';
 import { isTall } from '../util/layout-mode.js';
@@ -31,6 +30,46 @@ export function preloadHeader(slug, ref) {
 // back / forward can restore this page from the cache with the overlay still on it: start clean
 addEventListener('pageshow', (e) => { if (e.persisted) location.reload(); });
 
+// Work hover owns at most one hidden, warmed transition renderer.
+let prepared = null, prepareTimer = 0, leaveTimer = 0, prepareToken = 0;
+export function disposePrepared() {
+  prepareToken++; clearTimeout(prepareTimer); clearTimeout(leaveTimer);
+  prepared?.renderer.dispose(); prepared?.host.remove(); prepared = null;
+}
+export function leavePrepared() {
+  clearTimeout(leaveTimer); leaveTimer = setTimeout(disposePrepared, T.hoverDisposeMs);
+}
+export function prepareTransition(slug, ref, image) {
+  if (!transitionOK() || isTall() || !matchMedia('(hover:hover) and (pointer:fine)').matches) return;
+  clearTimeout(leaveTimer);
+  if (prepared?.slug === slug && !prepared.renderer.dead) return;
+  disposePrepared(); const token = prepareToken, hdr = preloadHeader(slug, ref);
+  prepareTimer = setTimeout(async () => {
+    try { await hdr.decode(); } catch { /* use the decoded Work picture */ }
+    if (token !== prepareToken || running) return;
+    const source = hdr.complete && hdr.naturalWidth ? hdr : image;
+    const host = document.createElement('div'), placeholder = document.createElement('div');
+    host.style.cssText = 'position:fixed;inset:0;visibility:hidden;pointer-events:none'; host.append(placeholder); document.body.append(host);
+    const renderer = createBulge(host, placeholder, source, true);
+    if (!renderer) { host.remove(); return; }
+    renderer.canvas.style.visibility = 'hidden';
+    const entry = { slug, host, renderer, ready: false }; prepared = entry;
+    try { if (!await renderer.prepareTexture(source) || prepared !== entry) return; } catch { if (prepared === entry) disposePrepared(); return; }
+    renderer.draw({x:0,y:0,w:innerWidth,h:innerHeight});
+    await new Promise(requestAnimationFrame);
+    if (prepared !== entry || renderer.dead) return;
+    entry.ready = true; renderer.canvas.dataset.prepared = 'ready'; pm('fwd:prepared');
+  }, T.hoverPrepareMs);
+}
+function takePrepared(slug, root, box) {
+  clearTimeout(prepareTimer); clearTimeout(leaveTimer); prepareToken++;
+  const hit = prepared; prepared = null;
+  if (!hit) return null;
+  if (hit.slug !== slug || !hit.ready || hit.renderer.dead) { hit.renderer.dispose(); hit.host.remove(); return null; }
+  hit.renderer.adopt(root, box); hit.host.remove(); pm('fwd:prepared-used'); return hit.renderer;
+}
+addEventListener('pagehide', disposePrepared);
+
 let running = false;
 // rect = { x, y, w, h } (viewport px) of the picture on screen; startSrc = the file it shows now; crossfade = the start picture is not the header image
 // (homepage frame); onPush(p) = the push-away progress 0..1 (Work page: work.js moves the cards); fromWork = { mode, projectIndex } for the way back; imgRect = where the start picture's own box is (the homepage still is a little larger than the frame it is clipped by); fade = elements that fade out with the rest (Work counter / toggle); onStart / onEnd for the caller (Lenis stop etc.).
@@ -41,7 +80,7 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
   const W = innerWidth, H = innerHeight;
   const hdr = preloadHeader(slug, ref);
   const sec = fromWork ? T.workSec : T.sec, pushSec = fromWork ? T.workPushSec : T.pushSec;
-  const reboundSec = fromWork && !isTall() ? Math.max(0, T.reboundSec) : 0;
+  const flight = fromWork && !isTall() ? workFlight(rect, {w:W,h:H}) : null;
   const rel = { x: imgRect.x - rect.x, y: imgRect.y - rect.y, w: imgRect.w, h: imgRect.h }; // the start picture's box in the clip box's coordinates
   const root = document.createElement('div');
   root.className = 'px';
@@ -54,7 +93,7 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
     </div>`;
   document.body.append(root);
   const bg = root.querySelector('.px__bg'), box = root.querySelector('.px__box'), a = root.querySelector('.px__a'), b = root.querySelector('.px__b');
-  let bulge = fromWork && !isTall() ? createBulge(root, box, startImage) : null;
+  let bulge = fromWork && !isTall() ? (takePrepared(slug, root, box) || createBulge(root, box, startImage)) : null;
   bulge?.draw(rect);
   const headerFile = () => hdr.currentSrc || hdr.src;
   const swapToFull = () => { // the header's own file: the sharpening swap (Work: same picture) or the crossfade target (homepage frame)
@@ -66,29 +105,39 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
   let swapped = swapToFull();
   const headerReady = () => { swapped = swapToFull(); };
   if (!swapped) hdr.addEventListener('load', headerReady, { once: true });
+  let navigating = false;
+  const navigateFlight = () => {
+    if (navigating) return;
+    navigating = true; pm('fwd:navigate');
+    try {
+      sessionStorage.setItem('pxt', JSON.stringify({slug, src:headerFile(), t:Date.now(), wm:document.querySelector('a.wordmark')?.classList.contains('is-link') ? 1 : 0}));
+      sessionStorage.setItem('pxb', JSON.stringify({slug, src:headerFile(), origin:'work', blackMax:T.blackMax, mode:fromWork.mode, projectIndex:fromWork.projectIndex, t:Date.now()}));
+    } catch { /* plain navigation */ }
+    location.href = `/work/${slug}.html`;
+  };
+  const hideFlight = () => { hdr.removeEventListener('load', headerReady); bulge?.dispose(); bulge = null; };
+  if (flight) addEventListener('pagehide', hideFlight, {once:true});
   const prog = { p: 0 };
   const ease = fromWork ? EASES.cubic : EASES.circ;
-  const moveEase = fromWork ? withOvershoot(heldCubic(T.workLandAt), T.bulgeOvershoot, T.bulgeWindow) : ease;
+  const duration = flight ? flight.total : sec;
   const tl = gsap.timeline({ onComplete: () => finish() });
   tl.to(prog, {
-    p: 1, duration: sec, ease: 'none',
+    p: 1, duration, ease: 'none',
     onUpdate: () => {
-      const e = moveEase(prog.p);
+      const state = flight?.sample(prog.p), e = state ? state.size : ease(prog.p);
       box.style.left = `${rect.x * (1 - e)}px`; box.style.top = `${rect.y * (1 - e)}px`;
       box.style.width = `${rect.w + (W - rect.w) * e}px`; box.style.height = `${rect.h + (H - rect.h) * e}px`;
       const L = `${rel.x * (1 - e)}px`, Tp = `${rel.y * (1 - e)}px`, Wd = `${rel.w + (W - rel.w) * e}px`, Ht = `${rel.h + (H - rel.h) * e}px`;
       for (const im of [a, b]) { im.style.left = L; im.style.top = Tp; im.style.width = Wd; im.style.height = Ht; }
-      bulge?.draw({ x: rect.x * (1 - e), y: rect.y * (1 - e), w: rect.w + (W - rect.w) * e, h: rect.h + (H - rect.h) * e }, undefined, pillowBump(prog.p), reboundSec > 0 ? 0 : (prog.p - (1 - T.bulgeHandoff)) / T.bulgeHandoff);
-      if (onPush) { const u = Math.min(1, (prog.p * sec) / Math.max(pushSec, 0.01)); onPush(ease(u), u); }
+      bulge?.draw({ x: rect.x * (1 - e), y: rect.y * (1 - e), w: rect.w + (W - rect.w) * e, h: rect.h + (H - rect.h) * e }, undefined, state?.bump || 0, (prog.p - (1 - T.bulgeHandoff)) / T.bulgeHandoff, false, state?.content);
+      if (onPush) { const u = Math.min(1, (prog.p * duration) / Math.max(pushSec, 0.01)); onPush(ease(u), u); }
       if (crossfade) { const q = Math.min(1, Math.max(0, (prog.p - T.crossFrom) / Math.max(T.crossTo - T.crossFrom, 0.01))); const s = q * q * (3 - 2 * q); b.style.opacity = s; a.style.opacity = 1 - s * (b.complete ? 1 : 0); }
+      if (state?.content && prog.p > 1 - T.bulgeHandoff && !(import.meta.env.DEV && window.__pxHold)) {
+        const displacement = Math.max(W,H) * .5 * (Math.abs(state.content.zoom) + 2 * Math.abs(state.content.lens)) * (devicePixelRatio || 1);
+        if (displacement < T.navigationMaxPx) navigateFlight();
+      }
     },
   }, 0);
-  if (reboundSec > 0) {
-    const rebound = { p: 0 }, fullBox = { x: 0, y: 0, w: W, h: H };
-    tl.to(rebound, { p: 1, duration: reboundSec, ease: 'none', onUpdate: () => {
-      bulge?.draw(fullBox, undefined, 0, (rebound.p - (1 - T.bulgeHandoff)) / T.bulgeHandoff, false, reboundShape(rebound.p));
-    } }, sec);
-  }
   const bgMax = fromWork ? T.blackMax : 1; // R30: on the Work page path the clearing push does the job, the black layer only goes as far as blackMax
   if (bgMax > 0) tl.to(bg, { opacity: bgMax, duration: T.fadeSec, ease: 'sine.inOut' }, 0);
   if (fade.length) tl.to(fade, { opacity: 0, duration: Math.min(T.fadeSec, 0.3), ease: 'none' }, 0);
@@ -97,6 +146,8 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
     hdr.removeEventListener('load', headerReady);
     bulge?.dispose(); bulge = null;
     pm('fwd:end');
+    if (flight) removeEventListener('pagehide', hideFlight);
+    if (navigating) return;
     try { sessionStorage.setItem('pxt', JSON.stringify({ slug, src: headerFile(), t: Date.now(), wm: document.querySelector('a.wordmark')?.classList.contains('is-link') ? 1 : 0 })); } catch { /* private window: the page just loads */ }
     if (fromWork) { try { sessionStorage.setItem('pxb', JSON.stringify({ slug, src: headerFile(), origin: 'work', blackMax: T.blackMax, mode: fromWork.mode, projectIndex: fromWork.projectIndex, t: Date.now() })); } catch { /* plain load on the way back */ } } else { try { sessionStorage.removeItem('pxb'); } catch { /* */ } }
     if (import.meta.env.DEV && window.__pxHold) { window.__pxGo = () => { location.href = `/work/${slug}.html`; }; return; } // dev checks: hold the last overlay frame
@@ -158,40 +209,33 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
   }
   const box = root.querySelector('.px__box'), im = root.querySelector('img'), bg = root.querySelector('.px__bg');
   const B = { x: L.sec[0], y: L.sec[1], w: L.sec[2], h: L.sec[3] }, BI = { x: L.img[0], y: L.img[1], w: L.img[2], h: L.img[3] };
-  const reboundSec = T.backRebound && !isTall() ? Math.max(0, T.reboundSec) : 0;
+  const flight = workFlight(target, B, true);
   const A = target, ease = EASES.cubic, bgMax = rec.blackMax ?? 1;
-  const moveEase = withOvershoot(heldCubic(T.workLandAt), T.bulgeOvershoot, T.bulgeWindow);
+  const duration = flight.total;
   if (!isTall()) bulge = createBulge(root, box, im);
   const ready = () => { if (!isTall() && prog.t < 1 && !bulge) bulge = createBulge(root, box, im); };
   im.addEventListener("load", ready, { once: true });
   const lerp = (a, b, e) => a + (b - a) * e;
   const prog = { t: 0 };
-  const place = (e) => {
+  const place = (e, state) => {
     const bx = lerp(A.x, B.x, e), by = lerp(A.y, B.y, e);
     box.style.left = `${bx}px`; box.style.top = `${by}px`; box.style.width = `${lerp(A.w, B.w, e)}px`; box.style.height = `${lerp(A.h, B.h, e)}px`;
     const ix = lerp(A.x - A.x, BI.x - B.x, e), iy = lerp(0, BI.y - B.y, e);
     im.style.left = `${ix}px`; im.style.top = `${iy}px`; im.style.width = `${lerp(A.w, BI.w, e)}px`; im.style.height = `${lerp(A.h, BI.h, e)}px`;
-    bulge?.draw({ x: bx, y: by, w: lerp(A.w, B.w, e), h: lerp(A.h, B.h, e) }, { x: bx + ix, y: by + iy, w: lerp(A.w, BI.w, e), h: lerp(A.h, BI.h, e) }, pillowBump(1 - prog.t), (prog.t - (1 - T.bulgeHandoff)) / T.bulgeHandoff, true);
+    bulge?.draw({ x: bx, y: by, w: lerp(A.w, B.w, e), h: lerp(A.h, B.h, e) }, { x: bx + ix, y: by + iy, w: lerp(A.w, BI.w, e), h: lerp(A.h, BI.h, e) }, state.bump, (prog.t - (1 - T.bulgeHandoff)) / T.bulgeHandoff, true, state.content);
   };
   let flyMarked = false;
   const tl = gsap.timeline({ onComplete: () => { onPush?.(0, 0); pm('back:shrink-end'); tailEnd(); } });
-  if (reboundSec > 0) {
-    const rebound = { p: 0 };
-    tl.to(rebound, { p: 1, duration: reboundSec, ease: 'none', onUpdate: () => {
-      place(1);
-      bulge?.draw(B, BI, 0, 0, false, reboundShape(1 - rebound.p));
-    } }, 0);
-  }
   tl.to(prog, {
-    t: 1, duration: T.workSec, ease: 'none',
+    t: 1, duration, ease: 'none',
     onUpdate: () => {
       const u = 1 - prog.t; // forward progress
-      place(moveEase(u));
-      { const up = Math.min(1, (u * T.workSec) / Math.max(T.workPushSec, 0.01)); if (up < 1 && !flyMarked) { flyMarked = true; pm('back:fly-start'); } onPush?.(ease(up), up); }
-      bg.style.opacity = bgMax * sineIO(Math.min(1, (u * T.workSec) / Math.max(T.fadeSec, 0.01))); // the forward black layer, time-reversed
+      const state = flight.sample(u); place(state.size, state);
+      { const up = Math.min(1, (u * duration) / Math.max(T.workPushSec, 0.01)); if (up < 1 && !flyMarked) { flyMarked = true; pm('back:fly-start'); } onPush?.(ease(up), up); }
+      bg.style.opacity = bgMax * sineIO(Math.min(1, (u * duration) / Math.max(T.fadeSec, 0.01))); // the forward black layer, time-reversed
     },
-  }, reboundSec);
-  if (fade.length) { gsap.set(fade, { opacity: 0 }); tl.to(fade, { opacity: 1, duration: Math.min(T.fadeSec, 0.3), ease: 'none' }, reboundSec + T.workSec - Math.min(T.fadeSec, 0.3)); }
+  }, 0);
+  if (fade.length) { gsap.set(fade, { opacity: 0 }); tl.to(fade, { opacity: 1, duration: Math.min(T.fadeSec, 0.3), ease: 'none' }, duration - Math.min(T.fadeSec, 0.3)); }
   // the overlay goes only once the canvas has drawn the image in that box: two frames after the last step
   const tailEnd = () => requestAnimationFrame(() => requestAnimationFrame(() => { if (import.meta.env.DEV && window.__pxBackHold) { window.__pxBackGo = finish; return; } finish(); }));
   const stop = () => { if (tl.progress() < 1) tl.progress(1); };

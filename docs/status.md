@@ -579,3 +579,12 @@ Newest at the bottom. Keep each entry to 8 lines or fewer: what changed, compare
   Branch codex/r37-r38; commits84f6817 (planning),7d36d04 (renderer), final `R37c: finish inward rebound with visual validation`; Pushed:7d36d04 (implementation); final record pushed immediately after commit. Move0.6/land0.51/push0.51s; rebound0.3s, multiplier0.6 (start0.15), peak0.2, zoom0.025, back1.
   Build and cached compare542/542 both sizes; six home frames0; endpoint max0 both sizes/DPR1/2; rebound0 transparent pixels; fallbacks/interruption/context-loss pass;20 cycles0 resources;0 page errors; RTX4080 4x median6.9ms.
   Changed: src/effects/{bulge-gl,project-transition,tune-docs}.js, src/timeline.js, src/work/tune.js, docs/status.md, docs/codex/R37c-notes.md; planning docs/requests.md, docs/codex/R37c.md, docs/reference/r37c-reference-rebound.png; own scratch helpers/output inventoried in notes. Exact undo: `git switch work-v2`.
+
+- 2026-10-11 What you will see now: the opening carries into the bend, and a warmed click starts faster; this is saved for review.
+  Still off: hovering can hitch, the bend still slows before moving again, and the project header appears late.
+  Your decision: review this unfinished version; option B would let the project page finish the bend and needs your approval.
+  Questions/choices, attempts and visual gate (partly for open and return): docs/codex/R37d-notes.md; keep approved 0.6+0.3s gesture, full screen0.51s, carry0.8; no project-page changes or R39 implementation.
+  Branch codex/r37-r38; commits08d038a (planning), pending WIP checkpoint; Pushed:08d038a. Three hover fixes still fail (40.7–46.8ms); motion guard fails open4/return5 samples; stop as WIP.
+  Build/compare542/542 both sizes, homepage0, endpoint0 DPR1/2, fallbacks/loss/double-click/wheel,20+20 cleanup cycles pass;0 errors. Warm first5 frames11.9/4.7/2.0/7.0/6.6ms; header gap269.5ms; earlier whole-page rest proof remains unverified (script issue).
+  Every changed file: docs/requests.md, docs/codex/{R37d,R39,R37d-notes}.md, docs/status.md, src/effects/{bulge-gl,project-transition,tune-docs}.js, src/timeline.js, src/work.js, src/work/tune.js; own scratch inventory in notes. Known 404 difference9 edge pixels/max1 retained.
+  Exact undo: `git switch work-v2`.

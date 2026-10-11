@@ -7,22 +7,39 @@ export const pillowBump = (t) => {
   return Math.sin(Math.PI / 2 * (t < peak ? t / peak : (end - t) / (end - peak))) ** 2;
 };
 
-// One early lobe, exact zero value and slope at either end; shared by open and its reversal.
-export const reboundShape = (t) => {
-  if (t <= 0 || t >= 1) return { lens: 0, zoom: 0 };
-  const peak = Math.max(0.01, Math.min(0.99, T.reboundPeakAt));
-  const lobe = Math.sin(Math.PI / 2 * (t < peak ? t / peak : (1 - t) / (1 - peak))) ** 2;
-  return { lens: -T.bulgeAmp * T.reboundAmp * lobe, zoom: T.reboundZoom * Math.sin(Math.PI * t) ** 2 };
-};
+// One flight clock. At full-screen crossing, uniform texture scale inherits the box's speed.
+export function workFlight(start, end, back = false) {
+  const noRebound = back && !T.backRebound;
+  const total = T.workSec + (noRebound ? 0 : Math.max(0, T.reboundSec));
+  const land = Math.min(total, Math.max(0.01, T.workSec * T.workLandAt));
+  const tail = Math.max(0.01, total - land), carry = Math.max(0.01, Math.min(2, T.workCarry));
+  const scaleSpeed = carry / land * Math.max(0, Math.min(1 - start.w / end.w, 1 - start.h / end.h));
+  return { total, land, sample(p) {
+    p = Math.max(0, Math.min(1, p));
+    if (noRebound) return { size: p * p * (3 - 2 * p), bump: pillowBump(p), content: null };
+    const time = p * total;
+    if (time < land) {
+      const u = time / land;
+      return { size: (3 - carry) * u * u + (carry - 2) * u * u * u,
+        bump: pillowBump(time / T.workSec), content: null };
+    }
+    const u = Math.min(1, (time - land) / tail);
+    const pulse = Math.sin(Math.PI * u) ** 2;
+    const content = { lens: -T.bulgeAmp * T.reboundAmp * pulse,
+      zoom: T.reboundZoom * pulse + scaleSpeed * tail / (2 * Math.PI) * Math.sin(2 * Math.PI * u) * (1 - u) ** 2 };
+    if (u >= 1) { content.lens = 0; content.zoom = 0; }
+    return { size: 1, bump: 0, content };
+  } };
+}
 
 // A printed sheet: UVs stay attached to the grid while its four edges bow outward.
-export function createBulge(parent, box, image) {
+export function createBulge(parent, box, image, deferTexture = false) {
   if (!image?.complete || !image.naturalWidth) return null;
   const canvas = document.createElement('canvas');
   canvas.className = 'px__bulge';
   canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
   let gl;
-  try { gl = canvas.getContext('webgl2', { alpha: true, antialias: false, premultipliedAlpha: false }); } catch { return null; }
+  try { gl = canvas.getContext('webgl2', { alpha: true, antialias: false, depth: false, stencil: false, premultipliedAlpha: false }); } catch { return null; }
   if (!gl) return null;
   let dead = false, texture, program, vertex, index, vs, fs;
   const dispose = () => {
@@ -83,14 +100,38 @@ export function createBulge(parent, box, image) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     const uniforms = Object.fromEntries(['box', 'imageBox', 'viewport', 'natural', 'bulge', 'radius', 'zoom', 'pixel', 'lens', 'fullScreen'].map(k => [k, gl.getUniformLocation(program, k)]));
-    let natural;
-    const setTexture = (im) => {
+    let natural, textureKey;
+    const setTexture = (im, decoded = null) => {
       if (dead || !im.complete || !im.naturalWidth) return;
-      gl.bindTexture(gl.TEXTURE_2D, texture); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im); gl.generateMipmap(gl.TEXTURE_2D);
+      const key = im.currentSrc || im.src;
+      if (key === textureKey) return;
+      textureKey = key;
+      gl.bindTexture(gl.TEXTURE_2D, texture); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, decoded || im); gl.generateMipmap(gl.TEXTURE_2D);
       natural = [im.naturalWidth, im.naturalHeight];
     };
-    setTexture(image); parent.append(canvas);
-    return { canvas, dispose, setTexture, draw(b, ib = b, bump = 0, handoff = 0, pageHandoff = false, content = null) {
+    if (!deferTexture) setTexture(image); parent.append(canvas);
+    return { canvas, dispose, setTexture, async prepareTexture(im) {
+      if (dead || !im.complete || !im.naturalWidth) return false;
+      natural = [im.naturalWidth, im.naturalHeight];
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, natural[0], natural[1], 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      for (let y = 0; y < natural[1]; y += T.hoverUploadRows) {
+        await new Promise(requestAnimationFrame);
+        if (dead) return false;
+        const strip = await createImageBitmap(im, 0, y, natural[0], Math.min(T.hoverUploadRows, natural[1] - y));
+        if (dead) { strip.close(); return false; }
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, y, gl.RGBA, gl.UNSIGNED_BYTE, strip); strip.close();
+      }
+      if (dead) return false;
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      textureKey = im.currentSrc || im.src;
+      return true;
+    }, get dead() { return dead; }, adopt(parent, nextBox) {
+      box.style.visibility = ''; box = nextBox; parent.append(canvas); canvas.style.visibility = '';
+    }, draw(b, ib = b, bump = 0, handoff = 0, pageHandoff = false, content = null) {
       if (dead) return;
       const dpr = Math.min(devicePixelRatio || 1, innerWidth > 2560 ? BEND.dprCapLarge : BEND.dprCap);
       const w = Math.round(innerWidth * dpr), h = Math.round(innerHeight * dpr);

@@ -15,7 +15,7 @@ import { createCardsGL } from './effects/cards-gl.js';
 import { imgAttrs } from './util/media.js';
 import { installScrollGain } from './util/scroll-gain.js';
 import { watchDpr } from './util/dpr.js';
-import { preloadHeader, runProjectTransition, transitionOK, readBack, playBack } from './effects/project-transition.js';
+import { prepareTransition, leavePrepared, disposePrepared, preloadHeader, runProjectTransition, transitionOK, readBack, playBack } from './effects/project-transition.js';
 import { perfOn, pm } from './util/perf-mark.js';
 import { applyFocus } from './work/focus.js';
 import { frameAmount, FRAME_STRENGTH_REF } from './work/speed-curve.js';
@@ -528,6 +528,7 @@ addEventListener('pointermove', (e) => {
   drag.last = pos;
   drag.total += Math.abs(dpos);
   if (drag.total > drag.thr) {
+    if (!dragMoved) disposePrepared();
     dragMoved = true;
     root.classList.add('is-dragging');
     if (!drag.captured && drag.mouse) { try { document.documentElement.setPointerCapture(drag.id); drag.captured = true; } catch { /* not capturable */ } } // from here the move / up come even outside the window
@@ -546,7 +547,8 @@ document.documentElement.addEventListener('lostpointercapture', (e) => { if (dra
 document.addEventListener('visibilitychange', () => { if (document.hidden) endDrag(); });
 addEventListener('click', (e) => { if (dragMoved) { e.preventDefault(); e.stopPropagation(); dragMoved = false; } }, { capture: true });
 // R25: a click on a main image grows that picture into the project page's header (cards keep a plain page load)
-items.forEach((it) => { if (it.kind === 'frame') it.el.addEventListener('pointerenter', () => preloadHeader(it.slug, it.ref)); });
+items.forEach((it) => { if (it.kind === 'frame') { it.el.addEventListener('pointerenter', () => { preloadHeader(it.slug, it.ref); if (glOn) prepareTransition(it.slug, it.ref, it.img); }); it.el.addEventListener('pointerleave', leavePrepared); } });
+addEventListener('wheel', disposePrepared, {passive:true});
 stage.addEventListener('click', (e) => {
   const a = e.target.closest('a.work__frame');
   if (!a || !glOn || morph || !transitionOK() || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
