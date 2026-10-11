@@ -22,6 +22,26 @@ export const TALL = {
   // R24d: the frame-time guard: while the strip moves, a median over guardMs or a p95 over guardP95 steps the warp down: (a) the warp buffer x0.75, (b) x0.5, (c) warp off. Never back up in a visit.
   guard: true, guardMs: 20, guardP95: 30, guardFrames: 30,
 };
+// R41 Part A: the project open / close transition on phones and tablets (lite modes). Field names follow R37f's TRANSITION_POLICY; `enabled` stays
+// false until Part B wires it into the engine. Values are the starting budget for a phone (desktop: grid 32, DPR cap 2):
+//   enabled: master switch (false = plain page load). bulge: run the GL bulge pass; false = the DOM flight only (a plain scaling picture).
+//   bulgeWeak: bulge on devices util/device.js weakDevice() flags (false: they get the DOM flight). grid: bulge mesh cells per side (desktop 32).
+//   maxDpr: backing-store DPR cap for the one prepared renderer (a phone at 3x would be 2.25x the pixels of 2x). uploadRows: texture upload slice height
+//   per task (desktop 64; smaller so no slice exceeds ~4 ms on a phone). prepare: 'idle' = the centred image once the strip has rested idleMs, 'tap' =
+//   on touchstart as the fallback (never hover). maxPrepared: one renderer at a time, a second is never built. disposeOn: events that free it.
+//   lowPower: 'plain' = no transition when the browser reports Save-Data / the reduced-motion setting (and, where known, battery saver: see notes).
+//   viewport: 'tap' = size the flight from the layout viewport captured at tap (the address bar may resize mid-motion).
+export const TRANSITION_POLICY_LITE = {
+  enabled: false,
+  bulge: true, bulgeWeak: false, grid: 20, maxDpr: 1.5, uploadRows: 32,
+  prepare: 'idle', idleMs: 600, tapFallback: true, maxPrepared: 1,
+  disposeOn: ['scroll', 'drag', 'pagehide', 'hidden', 'resize'],
+  lowPower: 'plain', reducedMotion: 'plain', viewport: 'tap',
+  // tap gate (src/work/mode-lite.js tapGate): a tap opens only when the strip was at rest at touchdown, the finger did not drag (the core's own touch threshold, 10 px, sets dragMoved),
+  // the press was shorter than maxPressMs, the image is the centred one (its centre within centreTol of the viewport centre, share of the
+  // viewport along the strip) and the last open was more than lockMs ago.
+  maxPressMs: 500, centreTol: 0.25, lockMs: 700,
+};
 // the tall image warp: the wide image warp with the strength scaled (read live: ?tune)
 TALL.frameWarp = { ...WORK.frameWarp, strength: 1.39 * TALL.warpStrength, curl: 0.5, camDown: 1.25, camUp: 1.25, bowDown: 0, bowUp: 0.06, reach: 1, riseSec: 0.5, leanBuf: 0.15, leanSignDown: 1 }; // (R33: the phone / tablet pages keep the lean toward the motion in both directions) // (R24i: leanBuf = extra offscreen overscan along the strip for the axis lean, in screen lengths; the lean is capped by what it holds)
 // R24e: tablet LANDSCAPE (R24b's test: layout-store.js isTabletAspect): the wide-style strip, no cards (cards: 0), the image `frameH` of the viewport height (width from the desktop ratio, at most 90 % of the width)

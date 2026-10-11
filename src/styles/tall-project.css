@@ -3,7 +3,7 @@ html[data-layout='tall'], html[data-layout='tall'] body { overscroll-behavior-y:
 html[data-layout='tall'] .nav { display: none; }
 .tp { background: var(--bg); color: var(--ink); }
 .tp-hero { position: relative; width: 100%; height: 100vh; height: 100svh; overflow: hidden; background: var(--bg); }
-.tp-hero .tp-media { width: 100%; height: 100%; object-fit: cover; }
+.tp-hero .tp-media { width: 100%; height: 100%; object-fit: cover; transform: scale(var(--flight-z, 1.1)); transform-origin: 50% 50%; } /* R41: the header rests at FLIGHT.zEnd (set from JS); the hero's overflow clips it, scale >= 1 always covers */
 .tp-media { display: block; width: 100%; height: auto; background: #0a0a0a; }
 .tp-block { margin: 0; }
 .tp-pad { padding: 0 max(20px, env(safe-area-inset-left)) 0 max(20px, env(safe-area-inset-right)); max-width: calc(34em + 40px); margin-inline: auto; }
