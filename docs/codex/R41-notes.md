@@ -13,8 +13,10 @@ Your decision: none yet. Part B starts when Cowork has merged R37f into work-v2.
 ## Checks (tier: FINAL for Part A)
 - desktop compare 542/542 at 1920x1080 and 2560x1440.
 - owners (lite): 4 lite files + shared.js (NOTE shared) + 2 docs. (`npm run owners` fails in this clone: no local work-v2 branch; checked with `git diff --name-only origin/work-v2`.)
-- vite build ok; clean-clone build and Cloudflare preview: see "Pushed" line below.
+- vite build ok; clean-clone build (git clone + npm ci + npm run build of 68f5c38): ok. Cloudflare preview build: not checked (no access from here).
 - Skipped: tall screenshots of the Work strip, home and menu (no strip / home / menu code touched), motion curves (no motion code changed).
 
 ## Looks right? (header only)
 1) looks like the reference: partly (no reference video of the phone landing exists yet; the rest state matches the desktop's 1.10 zoom). 2) Biggest difference: none visible in the static header. 3) Part B compares the flight's last frame with this rest frame.
+
+Pushed: 68f5c38 (Part A). Undo: git revert 68f5c38 (or revert the range 29f3e06..68f5c38).
