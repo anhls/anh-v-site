@@ -34,6 +34,47 @@
         });
       })();
     </script>
+    <script>
+      /* R25: hand-off from the Work page / homepage: paint the enlarged picture from the first frame (removed by src/project.js once the header image is ready) */
+      window.__paintPxt = function () {
+        try {
+          var d = JSON.parse(sessionStorage.getItem('pxt') || 'null'); sessionStorage.removeItem('pxt');
+          if (!d || Date.now() - d.t > 15000 || !new RegExp('/' + d.slug + '(?:\\.html)?/?$').test(location.pathname)) return;
+          window.__pxt = d;
+          (document.body || document.documentElement).insertAdjacentHTML('afterbegin', '<div id="pxt" aria-hidden="true" style="position:fixed;inset:0;z-index:8;background:var(--bg);overflow:hidden"><img alt="" decoding="sync" src="' + d.src + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block"></div>');
+          if (d.flight && Number.isFinite(d.flight.t0) && d.flight.tail > 0 && d.flight.zStart > 0 && d.flight.zStart <= 1) {
+            // R37e shared curve: keep verbatim with flight-curve.js (verified by the capture check).
+            function flightZoom(flight, now) {
+  var u = Math.max(0, Math.min(1, (now - flight.t0 - flight.land * 1000) / (flight.tail * 1000)));
+  return flight.zStart + (1 - flight.zStart) * (1 - Math.pow(1 - u, 3));
+}
+            if (d.flight.wordmark) {
+              var mark = document.createElement('div'), logo = document.createElement('img');
+              mark.id = 'pxt-wordmark'; mark.className = 'wordmark'; mark.style.cssText = d.flight.wordmark.style;
+              logo.src = d.flight.wordmark.src; logo.alt = ''; mark.appendChild(logo); (document.body || document.documentElement).appendChild(mark);
+            }
+            var overlay = document.getElementById('pxt'), image = overlay.querySelector('img');
+            if (d.flight.image) { image.sizes = d.flight.image.sizes; image.srcset = d.flight.image.srcset; }
+            var edge = image.cloneNode(); overlay.prepend(edge); image.style.zIndex = '1'; image.style.willChange = 'transform'; image.style.cssText += 'mask-image:linear-gradient(to right,transparent,#000 5%,#000 95%,transparent),linear-gradient(to bottom,transparent,#000 5%,#000 95%,transparent);mask-composite:intersect;';
+            window.__pxtFlightDone = new Promise(function (resolve) {
+              var frame = 0;
+              function paint() {
+                image.style.transform = 'translate3d(0,0,0) scale(' + flightZoom(d.flight, Date.now()) + ')';
+                if (Date.now() >= d.flight.t0 + (d.flight.land + d.flight.tail) * 1000) edge.remove();
+                if (Date.now() >= d.flight.t0 + (d.flight.land + d.flight.tail) * 1000) { resolve(); return; }
+                frame = requestAnimationFrame(paint);
+              }
+              paint();
+              addEventListener('pagehide', function () { cancelAnimationFrame(frame); resolve(); }, {once:true});
+            });
+          }
+        } catch (e) {}
+      };
+      try {
+        var early = JSON.parse(sessionStorage.getItem('pxt') || 'null');
+        if (early && early.flight) { window.__paintPxt(); delete window.__paintPxt; }
+      } catch (e) {}
+    </script>
     <link rel="stylesheet" href="/src/styles/base.css" />
     <script>window.__anhvThemeSync(); delete window.__anhvThemeSync;</script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -57,41 +98,7 @@
       <style>html { background: var(--bg); }</style>
   </head>
   <body data-project="similac">
-    <script>
-      /* R25: hand-off from the Work page / homepage: paint the enlarged picture from the first frame (removed by src/project.js once the header image is ready) */
-      (function () {
-        try {
-          var d = JSON.parse(sessionStorage.getItem('pxt') || 'null'); sessionStorage.removeItem('pxt');
-          if (!d || Date.now() - d.t > 15000 || !new RegExp('/' + d.slug + '(?:\\.html)?/?$').test(location.pathname)) return;
-          window.__pxt = d;
-          document.body.insertAdjacentHTML('afterbegin', '<div id="pxt" aria-hidden="true" style="position:fixed;inset:0;z-index:8;background:var(--bg);overflow:hidden"><img alt="" decoding="sync" src="' + d.src + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block"></div>');
-          if (d.flight && Number.isFinite(d.flight.t0) && d.flight.tail > 0 && d.flight.zStart > 0 && d.flight.zStart <= 1) {
-            // R37e shared curve: keep verbatim with flight-curve.js (verified by the capture check).
-            function flightZoom(flight, now) {
-  var u = Math.max(0, Math.min(1, (now - flight.t0 - flight.land * 1000) / (flight.tail * 1000)));
-  return flight.zStart + (1 - flight.zStart) * (1 - Math.pow(1 - u, 3));
-}
-            if (d.flight.wordmark) {
-              var mark = document.createElement('div'), logo = document.createElement('img');
-              mark.id = 'pxt-wordmark'; mark.className = 'wordmark'; mark.style.cssText = d.flight.wordmark.style;
-              logo.src = d.flight.wordmark.src; logo.alt = ''; mark.appendChild(logo); document.body.appendChild(mark);
-            }
-            var overlay = document.getElementById('pxt'), image = overlay.querySelector('img');
-            var edge = image.cloneNode(); overlay.prepend(edge); image.style.zIndex = '1';
-            window.__pxtFlightDone = new Promise(function (resolve) {
-              var frame = 0;
-              function paint() {
-                image.style.transform = 'scale(' + flightZoom(d.flight, Date.now()) + ')';
-                if (Date.now() >= d.flight.t0 + (d.flight.land + d.flight.tail) * 1000) { resolve(); return; }
-                frame = requestAnimationFrame(paint);
-              }
-              paint();
-              addEventListener('pagehide', function () { cancelAnimationFrame(frame); resolve(); }, {once:true});
-            });
-          }
-        } catch (e) {}
-      })();
-    </script>
+    <script>if (window.__paintPxt) { window.__paintPxt(); delete window.__paintPxt; }</script>
     <a class="skip" href="#app">Skip to content</a>
     <main id="app" tabindex="-1"></main>
     <script type="module" src="/src/project.js"></script>

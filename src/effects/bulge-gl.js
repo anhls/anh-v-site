@@ -10,7 +10,9 @@ export const pillowBump = (t) => {
 
 // The same forward trajectory is sampled in reverse on return. Wall clock survives navigation.
 export function workFlight(start, end, back = false, t0 = Date.now()) {
-  const record = flightRecord(t0, T), land = record.land;
+  const record = flightRecord(t0, T);
+  if (back) record.tail = T.backZoomSec;
+  const land = record.land;
   const total = land + record.tail, carry = Math.max(0.01, Math.min(2, T.workCarry));
   return { total, land, record, sample(p) {
     p = Math.max(0, Math.min(1, p));
@@ -76,9 +78,11 @@ export function createBulge(parent, box, image, deferTexture = false) {
         float aa = max(fwidth(distance), pixel);
         // Fade inside the mesh: straight-alpha canvas MSAA otherwise darkens its outer edge.
         float alpha = fullScreen ? 1. : 1. - smoothstep(-aa, 0., distance);
-        // The resting crop underneath covers every edge while the inner crop zooms in.
-        if (framed && max(abs(local.x - .5), abs(local.y - .5)) * 2. > 1. + zoom) {
-          sampleColor = texture(picture, tex);
+        // Feather the moving crop into the resting crop so edges stay covered without a seam.
+        if (framed) {
+          vec2 at = (local - .5) / (1. + zoom) + .5;
+          vec2 fade = clamp(min(at, 1. - at) / .05, 0., 1.);
+          sampleColor = mix(texture(picture, tex), sampleColor, fade.x * fade.y);
         }
         color = vec4(sampleColor.rgb, sampleColor.a * alpha);
       }`);

@@ -593,7 +593,7 @@ Newest at the bottom. Keep each entry to 8 lines or fewer: what changed, compare
   Still off: final motion, return and interruption checks are in progress; this is a checkpoint, not completion.
   Your decision: keep edge coverage and preserve Duhat's shorter video header, as confirmed; final eye review follows validation.
   Questions/choices and every changed file: docs/codex/R37e-notes.md; shared clock, legacy homepage path, video exception, coverage layer, measured preparation cost. Start0.97→1/tail0.65s, land0.51/lens0.22s.
-  Branch codex/r37-r38; planning36e1652; WIP checkpoint pending; Pushed:36e1652. R39 not started.
+  Branch codex/r37-r38; planning36e1652; WIPa4c412c, second WIP checkpoint pending; Pushed:a4c412c (includes planning). R39 not started.
   Build/compare542/542 both sizes pass; direct rest7 pages0; path forms/shared copies pass. Real idle/hover14.1ms;4x41.8ms; warm click1.4/6.4ms handler. Full capture/endpoint/fallback/cleanup verification pending.
   Changed files and own scratch artifacts inventoried in notes; no packages/layout/media edits. Accepted404 difference9 edge pixels/max1 remains.
   Exact undo: `git switch work-v2`.

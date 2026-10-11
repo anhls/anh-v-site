@@ -54,7 +54,11 @@ export function prepareTransition(slug, ref, image) {
   prepareTimer = setTimeout(async () => {
     try { await hdr.decode(); } catch { /* use the decoded Work picture */ }
     if (token !== prepareToken || running) return;
-    const source = hdr.complete && hdr.naturalWidth ? hdr : image;
+    const selected = hdr.complete && hdr.naturalWidth ? hdr : image;
+    // Bitmap crop coordinates use source pixels, not srcset's density-corrected naturalWidth.
+    const source = new Image(); source.decoding = 'async'; source.src = selected.currentSrc || selected.src;
+    try { await source.decode(); } catch { pendingSlug = null; return; }
+    if (token !== prepareToken || running) return;
     const host = document.createElement('div'), placeholder = document.createElement('div');
     host.style.cssText = 'position:fixed;inset:0;visibility:hidden;pointer-events:none'; host.append(placeholder); document.body.append(host);
     pm('fwd:prepare-start');
@@ -117,8 +121,9 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
   const navigateFlight = () => {
     if (navigating) return;
     navigating = true; pm('fwd:navigate');
+    flight.record.image = {srcset:hdr.srcset, sizes:hdr.sizes};
     const wm = document.querySelector('a.wordmark');
-    if (wm) flight.record.wordmark = {src:wm.querySelector('img')?.getAttribute('src'), style:wm.style.cssText};
+    if (wm) flight.record.wordmark = {src:wm.querySelector('img')?.getAttribute('src'), style:wm.style.cssText + `position:fixed;left:0;top:0;width:${wm.offsetWidth}px;height:${wm.offsetHeight}px;z-index:9`};
     try {
       sessionStorage.setItem('pxt', JSON.stringify({slug, src:headerFile(), t:Date.now(), flight:flight.record, wm:document.querySelector('a.wordmark')?.classList.contains('is-link') ? 1 : 0}));
       sessionStorage.setItem('pxb', JSON.stringify({slug, src:headerFile(), origin:'work', blackMax:T.blackMax, mode:fromWork.mode, projectIndex:fromWork.projectIndex, t:Date.now()}));
@@ -140,7 +145,7 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
       box.style.width = `${rect.w + (W - rect.w) * e}px`; box.style.height = `${rect.h + (H - rect.h) * e}px`;
       const L = `${rel.x * (1 - e)}px`, Tp = `${rel.y * (1 - e)}px`, Wd = `${rel.w + (W - rel.w) * e}px`, Ht = `${rel.h + (H - rel.h) * e}px`;
       for (const im of [a, b]) { im.style.left = L; im.style.top = Tp; im.style.width = Wd; im.style.height = Ht; }
-      if (state?.content) { a.style.transform = `scale(${1 + state.content.zoom})`; b.src = a.src; b.style.opacity = '1'; a.style.zIndex = '1'; }
+      if (state?.content) { a.style.transform = `scale(${1 + state.content.zoom})`; b.src = a.src; b.style.opacity = '1'; a.style.zIndex = '1'; a.style.maskImage = 'linear-gradient(to right,transparent,#000 5%,#000 95%,transparent),linear-gradient(to bottom,transparent,#000 5%,#000 95%,transparent)'; a.style.maskComposite = 'intersect'; }
       bulge?.draw({ x: rect.x * (1 - e), y: rect.y * (1 - e), w: rect.w + (W - rect.w) * e, h: rect.h + (H - rect.h) * e }, undefined, state?.bump || 0, flight ? 0 : (prog.p - (1 - T.bulgeHandoff)) / T.bulgeHandoff, false, state?.content);
       if (onPush) { const u = Math.min(1, (prog.p * duration) / Math.max(pushSec, 0.01)); onPush(ease(u), u); }
       if (crossfade) { const q = Math.min(1, Math.max(0, (prog.p - T.crossFrom) / Math.max(T.crossTo - T.crossFrom, 0.01))); const s = q * q * (3 - 2 * q); b.style.opacity = s; a.style.opacity = 1 - s * (b.complete ? 1 : 0); }
@@ -245,7 +250,8 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
     onUpdate: () => {
       const u = 1 - prog.t; // forward progress
       const state = flight.sample(u); place(state.size, state);
-      im.style.transform = `scale(${1 + state.content.zoom})`; under.style.cssText = im.style.cssText; under.style.transform = ''; under.style.zIndex = '0';
+      im.style.maskImage = 'linear-gradient(to right,transparent,#000 5%,#000 95%,transparent),linear-gradient(to bottom,transparent,#000 5%,#000 95%,transparent)'; im.style.maskComposite = 'intersect';
+      im.style.transform = `scale(${1 + state.content.zoom})`; under.style.cssText = im.style.cssText; under.style.transform = ''; under.style.maskImage = ''; under.style.zIndex = '0';
       { const up = Math.min(1, (u * duration) / Math.max(T.workPushSec, 0.01)); if (up < 1 && !flyMarked) { flyMarked = true; pm('back:fly-start'); } onPush?.(ease(up), up); }
       bg.style.opacity = bgMax * sineIO(Math.min(1, (u * duration) / Math.max(T.fadeSec, 0.01))); // the forward black layer, time-reversed
     },

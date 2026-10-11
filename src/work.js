@@ -779,7 +779,13 @@ const tick = (_time, deltaMs) => {
   const pos = (morph ? sB : S) / pitchNow;
   if (morph || Math.abs(pos - kCount) > 0.5 + WORK_COUNTER.counterHysteresis) kCount = Math.round(pos);
   const idx = ((kCount % N) + N) % N;
-  if (idx !== lastIdx) { lastIdx = idx; clearTimeout(preT); preT = setTimeout(() => { const it = items.find(it => it.kind === 'frame' && it.slug === projects[idx].slug); preloadHeader(projects[idx].slug, heroRef(projects[idx])); if (glOn && it && !TC.on && !arrivalHold) prepareIdleTransition(it.slug, it.ref, it.img); }, 1800); /* R25: the centred project's header image is fetched once it rests */ if (!ui) countEl.textContent = `${String(idx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`; }
+  if (idx !== lastIdx) { lastIdx = idx; clearTimeout(preT); preT = setTimeout(function warmCentre() {
+    if (TC.on || arrivalHold) return;
+    if (drag || morph || snap || inertia || performance.now() - lastWheel < 300) { preT = setTimeout(warmCentre, 300); return; }
+    const it = items.find(it => it.kind === 'frame' && it.slug === projects[idx].slug);
+    preloadHeader(projects[idx].slug, heroRef(projects[idx]));
+    if (glOn && it) prepareIdleTransition(it.slug, it.ref, it.img);
+  }, 1800); /* R25: the centred project's header image is fetched once it rests */ if (!ui) countEl.textContent = `${String(idx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`; }
 
   if (ui) { // R32 / R33c: the text field, counter and ruler. SCROLL STOP = no input for scrollStopSec (a coasting drag counts as moving until it is slower than scrollStopSpeed), the strip may still
     // be gliding / snapping to its image: the project it is HEADING to is then the active one.

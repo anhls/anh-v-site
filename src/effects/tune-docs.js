@@ -5,6 +5,7 @@ export const TUNE_DOCS = {
   'TRANSITION.reboundAmp': 'Inward texture lens strength relative to peak outward bow; outline stays full screen.',
   'TRANSITION.lensSec': 'Seconds for the inward lens to rise and flatten on Work before navigation.',
   'TRANSITION.zoomTailSec': 'Seconds of monotonic zoom after full-screen crossing, shared with the project page.',
+  'TRANSITION.backZoomSec': 'Seconds for the monotonic zoom-out on return before it carries into shrink.',
   'TRANSITION.zStart': 'Slightly zoomed-out full-screen pose; the shared zoom ends at exactly 1.',
   'TRANSITION.backRebound': 'Play the reversed full-screen rebound before shrinking back into Work.',
   'TRANSITION.workCarry': 'Speed retained when the growing box reaches full screen; its motion continues as content scale.',

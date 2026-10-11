@@ -9,6 +9,7 @@ import { installScrollGain } from './util/scroll-gain.js';
 import { initNav } from './effects/nav.js';
 import { buildFooter } from './sections/footer.js';
 import { buildProjectPage } from './sections/project-page.js';
+import { flightZoom, flightEnd } from './effects/flight-curve.js';
 import { isTall } from './util/layout-mode.js';
 
 // Project pages: Lenis smooth scroll (same settings as home), the shared nav + wordmark, and the blocks from data.json (projects[].page).
@@ -45,7 +46,25 @@ if (project?.page) {
     const drop = () => { ov.remove(); };
     const ready = hi && (hi.complete && hi.naturalWidth ? hi.decode().catch(() => {}) : new Promise((r) => { hi.addEventListener('load', () => hi.decode().then(r, r), { once: true }); hi.addEventListener('error', r, { once: true }); }));
     if (window.__pxtFlightDone) {
-      Promise.all([ready || Promise.resolve(), window.__pxtFlightDone]).then(() => requestAnimationFrame(() => requestAnimationFrame(drop)));
+      // Match responsive-image density as well as URL: the browser may decode a srcset image at a different raster size.
+      for (const image of ov.querySelectorAll('img')) { image.sizes = hi?.sizes || '100vw'; image.srcset = hi?.srcset || ''; }
+      Promise.all([ready || Promise.resolve(), ...[...ov.querySelectorAll('img')].map(image => image.decode().catch(() => {}))]).then(() => {
+        const flight = window.__pxt.flight;
+        const settle = () => {
+          const remaining = Math.max(innerWidth, innerHeight) * .5 * (devicePixelRatio || 1) * (1 - flightZoom(flight, Date.now()));
+          if (Date.now() < flightEnd(flight)) {
+            // Only blend once the two crops differ by less than one device pixel.
+            ov.style.opacity = Math.min(1, remaining);
+            requestAnimationFrame(settle);
+          } else if (!ov.style.opacity || Number(ov.style.opacity) > .01) {
+            // Slow decode: keep the end pose until ready, then reveal the same header gently.
+            gsap.to(ov, {opacity:0, duration:.12, ease:'none', onComplete:() => requestAnimationFrame(() => requestAnimationFrame(drop))});
+          } else {
+            ov.style.opacity = '0'; requestAnimationFrame(() => requestAnimationFrame(drop));
+          }
+        };
+        settle();
+      });
     } else {
       (ready || Promise.resolve()).then(() => requestAnimationFrame(() => requestAnimationFrame(drop)));
       setTimeout(drop, 6000);
