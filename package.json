@@ -12,6 +12,7 @@
     "layout:check": "node tools/layout-check.mjs && node tools/layout-check-tall.mjs && node tools/layout-check-tablet.mjs",
     "preview": "vite preview",
     "compare": "node tools/compare.mjs",
+    "owners": "node tools/owners-check.mjs",
     "lh": "node tools/lh.mjs",
     "media": "node tools/media.mjs"
   },
