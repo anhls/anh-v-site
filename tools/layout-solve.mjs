@@ -8,7 +8,7 @@
 // Incremental: a project whose inputs hash is unchanged keeps its stored cards (locked); a changed project keeps the stored positions of the cards it already had
 // and places only the new ones. Same inputs = same file, byte for byte.
 import fs from 'node:fs';
-import { installShims } from './scratch/r29-shim.mjs';
+import { installShims } from './lib/node-shims.mjs';
 installShims();
 const C = await import('../src/work/cards.js'); const ST = await import('../src/work/states.js'); const T = await import('../src/timeline.js'); const O = await import('../src/data/overlap.js');
 const LS = await import('../src/work/layout-store.js'); const { solveMode } = await import('./lib/solve-core.mjs');
@@ -207,6 +207,6 @@ if (anyViolation === 0) {
   fs.writeFileSync(OUT, JSON.stringify(sortKeys(result)) + '\n');
   log(`wrote ${OUT} (${(fs.statSync(OUT).size / 1024).toFixed(1)} kB) in ${((Date.now() - t0) / 1000).toFixed(0)} s`);
 } else log(`NOT written: ${anyViolation} violations left`);
-fs.writeFileSync('tools/scratch/layout-report.json', JSON.stringify({ work: report, home: homeReport }, null, 1));
+fs.mkdirSync('tools/scratch', { recursive: true }); fs.writeFileSync('tools/scratch/layout-report.json', JSON.stringify({ work: report, home: homeReport }, null, 1));
 console.log(pcDark.map((l) => `${l[0].slug}: ${l.length} cards, dark ${l.filter((c) => c.dark).length}, light ${l.filter((c) => !c.dark).length}`).join(' | '));
 process.exit(anyViolation === 0 ? 0 : 1);

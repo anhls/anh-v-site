@@ -87,3 +87,10 @@ Read first: CLAUDE.md (house rules), docs/requests.md (open work: the first item
 - Time budget: aim for ~20-30 minutes per request. Past ~45 minutes, write where you are, commit WIP, push, and report instead of
   continuing to iterate. A brief may set its own budget.
 - Same-value retries: at most 2 trial edits of the same number, then calculate it from measurements or report (as in CLAUDE.md).
+
+## 10. Clean-clone rule
+- tools/scratch/ is ignored by git. NOTHING the build, the site or a tracked tool imports may live there: shared code goes in
+  tools/lib/ (tracked). (Found 2026-10-11: the layout checks imported tools/scratch/r29-shim.mjs, so every Cloudflare / fresh-clone
+  build failed while local builds passed.)
+- Every request's FINAL tier includes: build from a clean clone (`git clone` of your branch into a temp folder, `npm ci`, `npm run build`)
+  and, after pushing, confirm the Cloudflare preview build succeeded (or say you could not check).

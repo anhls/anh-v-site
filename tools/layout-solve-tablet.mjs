@@ -3,7 +3,7 @@
 // card; the build gate (tools/layout-check-tablet.mjs) then fails on a stale file or a missing project. `npm run layout:tablet`, `-- --sizes 1024x768`.
 // Cards on the tablet (TABLET.cards > 0) need their own solve (the R29 method) and are not supported here yet: the Work page falls back to its load-time pass in that case.
 import fs from 'node:fs';
-import { installShims } from './scratch/r29-shim.mjs';
+import { installShims } from './lib/node-shims.mjs';
 installShims();
 const T = await import('../src/timeline.js'); const LS = await import('../src/work/layout-store.js'); const TL = await import('../src/work/tall.js');
 const argv = process.argv.slice(2);

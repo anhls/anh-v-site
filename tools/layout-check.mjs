@@ -4,7 +4,7 @@
 // rule in every state of LAYOUT_STATES with the REAL focus push; clusters over maxDarkPerCluster dark cards; the light-share floor (a project whose forced-dark
 // duplicates alone break it is reported, not failed); the dark run rule along the strip. The homepage layouts are checked the same way (section "home").
 import fs from 'node:fs';
-import { installShims } from './scratch/r29-shim.mjs';
+import { installShims } from './lib/node-shims.mjs';
 installShims();
 const C = await import('../src/work/cards.js'); const ST = await import('../src/work/states.js'); const T = await import('../src/timeline.js'); const O = await import('../src/data/overlap.js'); const LS = await import('../src/work/layout-store.js');
 const BR = T.BAND_RULES;

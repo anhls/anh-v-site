@@ -2,7 +2,7 @@
 // Since R24e the tablet strip has no cards (TABLET.cards = 0): every stored size must have one entry per project with the hash of today's frame metrics and no card, so a
 // changed frame rule (TABLET.frameH, the desktop image ratio, the gap) or a missing project / size fails the build until `npm run layout:tablet` is run again.
 import fs from 'node:fs';
-import { installShims } from './scratch/r29-shim.mjs';
+import { installShims } from './lib/node-shims.mjs';
 installShims();
 const T = await import('../src/timeline.js'); const LS = await import('../src/work/layout-store.js'); const TL = await import('../src/work/tall.js');
 const OUT = 'src/data/layouts-tablet.json', fail = [];

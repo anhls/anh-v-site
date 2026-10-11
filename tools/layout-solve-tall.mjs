@@ -3,7 +3,7 @@
 // only, TALL_STATES), TALL.cardsMax cards per project. Output: src/data/layouts-tall.json (the wide src/data/layouts.json is never touched).
 // `npm run layout:tall` (all sizes), `-- --sizes 390x844`, `--iters N`. Same inputs = same file.
 import fs from 'node:fs';
-import { installShims } from './scratch/r29-shim.mjs';
+import { installShims } from './lib/node-shims.mjs';
 installShims();
 const C = await import('../src/work/cards.js'); const ST = await import('../src/work/states.js'); const T = await import('../src/timeline.js'); const O = await import('../src/data/overlap.js');
 const LS = await import('../src/work/layout-store.js'); const TL = await import('../src/work/tall.js'); const { solveMode } = await import('./lib/solve-core.mjs');

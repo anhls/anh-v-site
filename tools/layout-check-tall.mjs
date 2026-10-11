@@ -2,7 +2,7 @@
 // npm run build). Fails (exit 1) when a size has no layout, a project's hash is out of date (its cards / metrics / rules changed), a card is outside its band or side, or a
 // pair overlaps beyond BAND_RULES.pairOverlapMax in the tall states (rest), or the dark rules need another undark step.
 import fs from 'node:fs';
-import { installShims } from './scratch/r29-shim.mjs';
+import { installShims } from './lib/node-shims.mjs';
 installShims();
 const C = await import('../src/work/cards.js'); const ST = await import('../src/work/states.js'); const T = await import('../src/timeline.js'); const O = await import('../src/data/overlap.js');
 const LS = await import('../src/work/layout-store.js'); const TL = await import('../src/work/tall.js');
