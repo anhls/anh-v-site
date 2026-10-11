@@ -620,3 +620,9 @@ Build and compare passed (542/542 both sizes); homepage/tall identity passes. Th
 Branch desktop/next; Pushed: ac49e50, 574b6d8; report commit = HEAD. Commit messages and every changed file: docs/codex/R37f-notes.md.
 Normal navigation gap ~34–50 ms; 4× CPU ~78–103 ms at navigation, plus 135 ms setup after settle; clean clone not run after stop; Cloudflare confirmation unavailable.
 Undo everything: `git switch work-v2`.
+
+- 2026-10-11 (Cowork) What you will see now: on desktop no ghost and no black flash, the header rests zoomed in; on phones the header rests zoomed in.
+  Still off: the page-change hold, no bend on the way back, no animation on a second click after back (docs/codex/FLAGS.md R37f).
+  Your decision: none; next is R42 (open projects inside the same page), then R41 Part B on phones.
+  Merged into work-v2: R37f (desktop/next, WIP signed off with flags) + R41 Part A (mobile/next), merge commit; the duplicate FLIGHT export from the two branches resolved. Build OK.
+
