@@ -1,6 +1,6 @@
 # R37b motion and validation — 2026-10-11
 
-Built on codex/r37-r38 after planning/reference commit cc3a3ab. Renderer checkpoint f61dfb7 is pushed. Undo all branch work by running `git switch work-v2`.
+Built on codex/r37-r38 after planning/reference commit cc3a3ab. Renderer checkpoint f61dfb7 and final dc40420 are pushed. Undo all branch work by running `git switch work-v2`.
 
 Final values: workSec 0.4; workLandAt 0.85 (planner 0.7); workPushSec 0.34 (planner 0.28); bulgeAmp 0.13; bulgePeakAt 0.25; bulgeEndAt 0.7; cornerAmp 0.08; zoomAmp 0.04; bulgeOvershoot 0.03; bulgeWindow 0.15 (late settling only). Grid and 50ms DOM overlap unchanged. ExpoOut remains available; Work uses held cubic in-out. Open and return evaluate the same size/shape curves with opposite time. Bow now measures the full current short-side share, without the old division by two. Rounding and zoom use the same early bump, with transparent straight-alpha output and a derivative/device-pixel antialias band inside the mesh. Canvas MSAA is disabled: on a straight-alpha canvas its coverage produced a dark outer fringe; the shader now smooths the full perimeter. A white-texture/light-background pixel check passes with zero dark-fringe pixels. No idle renderer was added.
 
