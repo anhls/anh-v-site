@@ -24,13 +24,13 @@ export function createPageSwap() {
     return modP;
   };
 
-  function open({ slug, ref, flight, begin, image }) {
+  function open({ slug, ref, flight, begin, image, push = true }) {
     if (!mod || !ctl || state !== 'work') return false;
     let v;
     try { v = pre?.slug === slug ? pre.view : mod.createProjectView({ slug, tall, onBack: () => back(true) }); } catch { return false; }
     if (pre?.slug === slug) pre = null; else dropPre();
     if (!v) return false;
-    try { history.pushState({ pj: slug }, '', `/work/${slug}.html`); } catch { return false; }
+    if (push) { try { history.pushState({ pj: slug }, '', `/work/${slug}.html`); } catch { return false; } } // (forward / back through history: the URL is already there)
     view = v; slugNow = slug; refNow = ref; imageNow = image; state = 'opening'; wantBack = false;
     const wmSmall = !!document.querySelector('body > a.wordmark.is-link');
     mod.warmHead(slug);
@@ -102,7 +102,7 @@ export function createPageSwap() {
     if (!slug) { if (state === 'project' || state === 'opening') back(); return; }
     if (state === 'work' && mod && ctl) {
       const ref = ctl.refOf(slug);
-      if (!ref || !open({ slug, ref, flight: null, begin: () => ctl.begin(slug), image: ctl.imageOf(slug) })) location.reload();
+      if (!ref || !open({ slug, ref, flight: null, begin: () => ctl.begin(slug), image: ctl.imageOf(slug), push: false })) location.reload();
     } else if (state === 'work') location.reload();
   });
 
