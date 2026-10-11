@@ -94,3 +94,13 @@ Read first: CLAUDE.md (house rules), docs/requests.md (open work: the first item
   build failed while local builds passed.)
 - Every request's FINAL tier includes: build from a clean clone (`git clone` of your branch into a temp folder, `npm ci`, `npm run build`)
   and, after pushing, confirm the Cloudflare preview build succeeded (or say you could not check).
+
+## 11. Parallel work
+- Use docs/OWNERS.md: desktop and lite agents stay mostly in their own files. Run `npm run owners -- --side desktop` (or `lite`)
+  before each commit. Its warnings are advisory. Keep shared edits small and list them in the request notes.
+- Each side protects the other: desktop runs a tall smoke test at 390x844 (home, menu, one project); lite runs desktop compare
+  at 1920x1080 and 2560x1440 (542/542 each). Use the request's final tier before handing back a finished branch.
+- Cowork merges into work-v2 often, one branch at a time. Builders never merge into or push work-v2. R24c rotation mode switching
+  starts only after both sides have been merged.
+- Separate dev ports: desktop 5199 (default), lite 5200. Use `PORT=5200 npx vite` in POSIX shells, or
+  `$env:PORT=5200; npx vite` in PowerShell. Compare the matching server with `npm run compare -- --port 5200`.

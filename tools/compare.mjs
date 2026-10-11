@@ -10,6 +10,7 @@
 //   --cards                                            also compare the Selected Work cards (off since R13c: they differ from live by design)
 //   other options: --points 0,15,..  --settle 2000 (max ms to wait for values to stop changing)  --dump file.json
 //                  --local http://localhost:5199/  --live https://www.anh-v.com/  (--width/--height still work for one size)
+//                  --port 5200 (or PORT env; 5199 by default)
 // Needs: npm i -D playwright-core (uses your installed Google Chrome, no browser download).
 // Live selectors are Framer class names from the current publish; if Anh republishes Framer they may change
 // (then run with --refresh-live).
@@ -20,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 
 const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
 const flag = (k) => process.argv.includes('--' + k);
-const LOCAL = arg('local', 'http://localhost:5199/');
+const LOCAL = arg('local', `http://localhost:${arg('port', process.env.PORT || 5199)}/`);
 const LIVE = arg('live', 'https://www.anh-v.com/');
 const POINTS = arg('points', '0,15,30,45,60,75,90,140,150,157,165,178,189,200,213,220,250,270,290,310,330,345,370,395,420,445,470,500,535,560,600,630').split(',').map(Number);
 const SETTLE = +arg('settle', 2000);
