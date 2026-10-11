@@ -18,12 +18,13 @@ Your decision: open the branch preview and complete the hosted review below.
 - Output: 722 files; largest `media/tcb-priority/b14a.webp`, 5,221,462 bytes (4.98 MiB); no file exceeds 25 MiB. `dist/_headers` exactly matches `public/_headers`.
 - `npm run compare -- --sizes 1920x1080,2560x1440 --port 5200`: 542/542 at each size, zero mismatches.
 - Playwright console smoke on port 5200: zero page errors / console errors on desktop home, Work, Bitis09, Duhat, light Work and GL-disabled Work; phone 390x844 home/menu, Work and Bitis09.
-- Clean-clone build: pending the first checkpoint commit.
+- Clean-clone build of `bbc0bff`: passed (`git clone --no-hardlinks --single-branch --branch codex/r39-hosting . tools/scratch/r39-clean-clone`, then `npm ci`, `npm run build` inside the clone). Install took 8 seconds, 42 packages, zero vulnerabilities; Vite built 123 modules in 1.40 seconds after all layout gates passed. The local npm reported unapproved install scripts for `esbuild` / `ffmpeg-static`; no approval or package change was made. This does not verify their Cloudflare install/download logs.
 - Five unrelated source edits appeared during validation (`src/effects/nav.js`, `src/sections/footer.js`, `src/sections/project-page-tall.js`, `src/sections/project-page.js`, `src/util/scroll-gain.js`). They were not made or staged by this task. Clean-clone validation will isolate committed hosting changes from them.
 
 ## Hosted checks and launch follow-up
 
 - Unauthenticated `curl.exe -sS -I --max-time 20 https://codex-r39-hosting.anh-v-site.pages.dev/work/duhat.html`: HTTP 302 to Cloudflare Access login. Access refuses an unauthenticated origin-page request.
+- After the checkpoint push, the same HEAD request to `/nope` also returned Access HTTP 302. The origin 404 remains unverified.
 - Preview build success, build duration, final log lines, and cloud install behaviour of `ffmpeg-static` / `sharp`: unverified (no authenticated dashboard access).
 - Origin `X-Robots-Tag: noindex`, custom cache headers, `.html` redirect status, `/nope` status/body, and same-origin open/back hand-offs: unverified behind Access. Login response headers do not prove origin headers.
 - Same as local: unverified; an authenticated preview comparison was not possible.
@@ -33,5 +34,6 @@ Your decision: open the branch preview and complete the hosted review below.
 
 ## Commits and undo
 
-- Checkpoint: `WIP R39: add Node pin, cache rules and hosting guide` (hash and push recorded after committing).
+- `bbc0bff` — `WIP R39: add Node pin, cache rules and hosting guide`. Pushed: `bbc0bff`.
+- Final: `R39: finish Part B hosting configuration`; push outcome and exact final hash are reported in the hand-off. Repository work is complete; hosted verification remains explicitly pending Anh's login, so the whole hosting request is not claimed verified.
 - Undo this branch's use: `git switch work-v2`. No reset, merge, or history rewrite is needed.
