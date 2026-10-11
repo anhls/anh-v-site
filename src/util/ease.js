@@ -50,3 +50,14 @@ export const forceOf = (peakSpeed, W) => {
   return u * u * (3 - 2 * u);
 };
 export const moveForce = (distPx, scale, curve, sec, W) => forceOf((Math.abs(distPx) / Math.max(scale, 1e-6) * maxSlope(curve)) / Math.max(sec, 0.05), W);
+
+// Work project expansion: finish the cubic move early, then hold for the settling overshoot.
+const heldCubics = new Map();
+export const heldCubic = (landAt) => {
+  const end = Math.max(0.01, Math.min(1, landAt));
+  if (!heldCubics.has(end)) {
+    if (heldCubics.size > 64) heldCubics.clear();
+    heldCubics.set(end, t => t <= 0 ? 0 : t >= end ? 1 : EASES.cubic(t / end));
+  }
+  return heldCubics.get(end);
+};

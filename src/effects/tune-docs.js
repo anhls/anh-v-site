@@ -2,6 +2,10 @@
 // pages). A plain id -> one sentence map: the id is what the panel stores the value under ('GROUP.key'), the sentence says what the parameter is, its unit and
 // what up / down does. Edit the text here; a parameter without an entry shows its label only. Never imported by the production build (the panels are dev-only).
 export const TUNE_DOCS = {
+  'TRANSITION.workLandAt': 'Cubic expansion finishes at this time share; remaining time settles the overshoot.',
+  'TRANSITION.bulgeEndAt': 'Bow, rounding and zoom are zero from this time share onward.',
+  'TRANSITION.cornerAmp': 'Peak rounded-mask radius as a share of the current short side.',
+  'TRANSITION.zoomAmp': 'Peak texture magnification; zero disables it.',
   'TRANSITION.workSec': 'Work open and reverse duration in seconds; homepage timing is separate.',
   'TRANSITION.workPushSec': 'Seconds for Work neighbours and cards to clear the viewport.',
   'TRANSITION.bulgeAmp': 'Outward edge bow as a share of the shorter box side.',

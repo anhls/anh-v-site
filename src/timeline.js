@@ -38,7 +38,7 @@ const span = (start, length) => (typeof start === 'number' ? [+start.toFixed(2),
 // (the frame shows its own still, not the header image).
 // R28: pushSec = the first part of the move in which the cards and the two neighbours move away from the image (Work page; the same numbers play
 // in reverse on the way back), pushScale = how far (1 = the focus push at full progress, 0 = off), pushFar = the far cards' share (focusPushOthers).
-export const TRANSITION = { workSec: 0.4, workPushSec: 0.4, workEase: "expoOut", bulgeAmp: 0.06, bulgePeakAt: 0.5, bulgeOvershoot: 0.03, bulgeWindow: 0.5, bulgeHandoff: 0.125, bulgeGrid: 32, sec: 0.9, fadeSec: 0.5, crossFrom: 0.3, crossTo: 0.85, pushSec: 0.6, pushScale: 1, pushFar: 0.6,
+export const TRANSITION = { workSec: 0.4, workPushSec: 0.34, workLandAt: 0.85, workEase: "cubic", bulgeAmp: 0.13, bulgePeakAt: 0.25, bulgeEndAt: 0.7, cornerAmp: 0.08, zoomAmp: 0.04, bulgeOvershoot: 0.03, bulgeWindow: 0.15, bulgeHandoff: 0.125, bulgeGrid: 32, sec: 0.9, fadeSec: 0.5, crossFrom: 0.3, crossTo: 0.85, pushSec: 0.6, pushScale: 1, pushFar: 0.6,
   // R30: the clearing push (Work page): with pushClear 1 every card and the neighbouring images travel straight away from the clicked image until they are
   // fully off screen (+ clearMargin px at 1920) by the end of pushSec, near items first (clearStagger = the share of pushSec the far ones start later), so
   // the black layer is not needed (blackMax = how dark it gets on the Work page path). pushClear 0 + blackMax 1 = the R28 transition.

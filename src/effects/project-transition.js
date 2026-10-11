@@ -2,7 +2,7 @@ import { createBulge, pillowBump } from './bulge-gl.js';
 import { withOvershoot } from '../util/overshoot.js';
 import { gsap } from 'gsap';
 import { TRANSITION as T } from '../timeline.js';
-import { EASES } from '../util/ease.js';
+import { EASES, heldCubic } from '../util/ease.js';
 import { imgSet } from '../util/media.js';
 import { pm } from '../util/perf-mark.js';
 import { isTall } from '../util/layout-mode.js';
@@ -66,8 +66,8 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
   const headerReady = () => { swapped = swapToFull(); };
   if (!swapped) hdr.addEventListener('load', headerReady, { once: true });
   const prog = { p: 0 };
-  const ease = fromWork ? EASES[T.workEase] : EASES.circ;
-  const moveEase = fromWork ? withOvershoot(ease, T.bulgeOvershoot, T.bulgeWindow) : ease;
+  const ease = fromWork ? EASES.cubic : EASES.circ;
+  const moveEase = fromWork ? withOvershoot(heldCubic(T.workLandAt), T.bulgeOvershoot, T.bulgeWindow) : ease;
   const tl = gsap.timeline({ onComplete: () => finish() });
   tl.to(prog, {
     p: 1, duration: sec, ease: 'none',
@@ -77,7 +77,7 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
       box.style.width = `${rect.w + (W - rect.w) * e}px`; box.style.height = `${rect.h + (H - rect.h) * e}px`;
       const L = `${rel.x * (1 - e)}px`, Tp = `${rel.y * (1 - e)}px`, Wd = `${rel.w + (W - rel.w) * e}px`, Ht = `${rel.h + (H - rel.h) * e}px`;
       for (const im of [a, b]) { im.style.left = L; im.style.top = Tp; im.style.width = Wd; im.style.height = Ht; }
-      bulge?.draw({ x: rect.x * (1 - e), y: rect.y * (1 - e), w: rect.w + (W - rect.w) * e, h: rect.h + (H - rect.h) * e }, undefined, T.bulgeAmp * pillowBump(prog.p), (prog.p - (1 - T.bulgeHandoff)) / T.bulgeHandoff);
+      bulge?.draw({ x: rect.x * (1 - e), y: rect.y * (1 - e), w: rect.w + (W - rect.w) * e, h: rect.h + (H - rect.h) * e }, undefined, pillowBump(prog.p), (prog.p - (1 - T.bulgeHandoff)) / T.bulgeHandoff);
       if (onPush) { const u = Math.min(1, (prog.p * sec) / Math.max(pushSec, 0.01)); onPush(ease(u), u); }
       if (crossfade) { const q = Math.min(1, Math.max(0, (prog.p - T.crossFrom) / Math.max(T.crossTo - T.crossFrom, 0.01))); const s = q * q * (3 - 2 * q); b.style.opacity = s; a.style.opacity = 1 - s * (b.complete ? 1 : 0); }
     },
@@ -151,8 +151,8 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
   }
   const box = root.querySelector('.px__box'), im = root.querySelector('img'), bg = root.querySelector('.px__bg');
   const B = { x: L.sec[0], y: L.sec[1], w: L.sec[2], h: L.sec[3] }, BI = { x: L.img[0], y: L.img[1], w: L.img[2], h: L.img[3] };
-  const A = target, ease = EASES[T.workEase], bgMax = rec.blackMax ?? 1;
-  const moveEase = withOvershoot(ease, T.bulgeOvershoot, T.bulgeWindow);
+  const A = target, ease = EASES.cubic, bgMax = rec.blackMax ?? 1;
+  const moveEase = withOvershoot(heldCubic(T.workLandAt), T.bulgeOvershoot, T.bulgeWindow);
   if (!isTall()) bulge = createBulge(root, box, im);
   const ready = () => { if (!isTall() && prog.t < 1 && !bulge) bulge = createBulge(root, box, im); };
   im.addEventListener("load", ready, { once: true });
@@ -163,7 +163,7 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
     box.style.left = `${bx}px`; box.style.top = `${by}px`; box.style.width = `${lerp(A.w, B.w, e)}px`; box.style.height = `${lerp(A.h, B.h, e)}px`;
     const ix = lerp(A.x - A.x, BI.x - B.x, e), iy = lerp(0, BI.y - B.y, e);
     im.style.left = `${ix}px`; im.style.top = `${iy}px`; im.style.width = `${lerp(A.w, BI.w, e)}px`; im.style.height = `${lerp(A.h, BI.h, e)}px`;
-    bulge?.draw({ x: bx, y: by, w: lerp(A.w, B.w, e), h: lerp(A.h, B.h, e) }, { x: bx + ix, y: by + iy, w: lerp(A.w, BI.w, e), h: lerp(A.h, BI.h, e) }, T.bulgeAmp * pillowBump(1 - prog.t), (prog.t - (1 - T.bulgeHandoff)) / T.bulgeHandoff, true);
+    bulge?.draw({ x: bx, y: by, w: lerp(A.w, B.w, e), h: lerp(A.h, B.h, e) }, { x: bx + ix, y: by + iy, w: lerp(A.w, BI.w, e), h: lerp(A.h, BI.h, e) }, pillowBump(1 - prog.t), (prog.t - (1 - T.bulgeHandoff)) / T.bulgeHandoff, true);
   };
   let flyMarked = false;
   const tl = gsap.timeline({ onComplete: () => { onPush?.(0, 0); pm('back:shrink-end'); tailEnd(); } });
