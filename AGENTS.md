@@ -96,7 +96,7 @@ Read first: CLAUDE.md (house rules), docs/requests.md (open work: the first item
   and, after pushing, confirm the Cloudflare preview build succeeded (or say you could not check).
 
 ## 11. Parallel work
-- Use docs/OWNERS.md: desktop and lite agents stay mostly in their own files. Run `npm run owners -- --side desktop` (or `lite`)
+- Use docs/OWNERS.md: desktop-side and lite-side requests stay mostly in their own files (any agent can build either side). Run `npm run owners -- --side desktop` (or `lite`)
   before each commit. Its warnings are advisory. Keep shared edits small and list them in the request notes.
 - Each side protects the other: desktop runs a tall smoke test at 390x844 (home, menu, one project); lite runs desktop compare
   at 1920x1080 and 2560x1440 (542/542 each). Use the request's final tier before handing back a finished branch.
@@ -104,3 +104,16 @@ Read first: CLAUDE.md (house rules), docs/requests.md (open work: the first item
   starts only after both sides have been merged.
 - Separate dev ports: desktop 5199 (default), lite 5200. Use `PORT=5200 npx vite` in POSIX shells, or
   `$env:PORT=5200; npx vite` in PowerShell. Compare the matching server with `npm run compare -- --port 5200`.
+
+## 12. Folders and branches: one agent per folder (learned 2026-10-11)
+- The REQUEST sets the side, not the agent: Codex or Claude Code may build desktop or lite work. Every brief's first lines name
+  `Side: desktop | lite`, `Folder:` and `Branch:`. Use exactly those.
+- Side picks the folder: desktop -> `D:\Portfolio website\anh-v-site`, lite (phone/tablet) -> `D:\Portfolio website\anh-v-site-mobile`.
+  A folder named in the brief wins.
+- Busy note: on start, write `.git/agent-busy` in that folder (one line: agent, request, branch, start time). Delete it when you finish
+  or stop. It is inside .git, so it is never committed or synced. From a worktree, write it in the main folder: `$(git rev-parse --git-common-dir)/agent-busy`.
+- Before starting, read that note. Another agent's note < 2 h old = the folder is in use: do NOT checkout/switch there. Work in your
+  own worktree (`git worktree add tools/scratch/<req>/wt <your-branch>`) or stop and ask Anh. A note >= 2 h old = stale: log it, continue.
+- Never checkout/switch branches in a folder another agent may be using. If the folder is on someone else's branch, use a worktree.
+- Before every commit run `git branch --show-current`; if it is not the brief's branch, stop (do not commit, do not move commits).
+

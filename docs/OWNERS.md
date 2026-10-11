@@ -1,6 +1,6 @@
 # File ownership
 
-One owner per source file. Shared components serve both modes; consult the other side before changing their public contract.
+One owner side per source file (desktop-side or lite-side requests; any agent can build either side). Shared components serve both modes; consult the other side before changing their public contract.
 The mode adapters own differing policies; the core owns the common strip lifecycle.
 
 ## DESKTOP
