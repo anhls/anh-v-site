@@ -63,9 +63,9 @@ export function createPageSwap() {
     const animate = transitionOK(); // (lite with the effect off, reduced motion, ?gl=0: back is instant, same project, same place)
     const shrink = leave.mode === 'shrink';
     if (!animate) {
+      try { v.destroy(); } catch { /* */ }
       ctl.resume({ slug, shrink: false });
-      v.hide();
-      requestAnimationFrame(() => { v.destroy(); ctl.finish(); ctl.fadeEls && gsap.set(ctl.fadeEls, { clearProps: 'opacity' }); view = null; state = 'work'; });
+      requestAnimationFrame(() => { ctl.finish(); view = null; state = 'work'; });
       return;
     }
     const rec = { slug, zEnd: FLIGHT.zEnd, blackMax: T.blackMax, src: v.headerSrc(), leave };
@@ -76,9 +76,8 @@ export function createPageSwap() {
     root.innerHTML = `<div class="px__bg" style="position:absolute;inset:0;background:var(--bg);opacity:${shrink && typeof T.blackMax === 'number' ? T.blackMax : 1}"></div>` +
       (shrink ? `<div class="px__box" style="position:absolute;overflow:hidden;left:${s[0]}px;top:${s[1]}px;width:${s[2]}px;height:${s[3]}px"><img alt="" decoding="sync" src="${rec.src}" style="position:absolute;left:${i[0] - s[0]}px;top:${i[1] - s[1]}px;width:${i[2]}px;height:${i[3]}px;object-fit:cover;display:block"></div>` : '');
     document.body.prepend(root);
+    try { v.destroy(); } catch { /* */ } // before resume: the project's Lenis must not move the window under the strip's new Lenis
     ctl.resume({ slug, shrink });
-    v.hide();
-    setTimeout(() => { try { v.destroy(); } catch { /* */ } }, 0);
     try {
       playBack({ rec, target: ctl.frameRect(slug), fade: ctl.fadeEls, onPush: ctl.backPush, done: () => { ctl.finish(); view = null; state = 'work'; warmNext(); } });
     } catch (e) { root.remove(); ctl.finish(); view = null; state = 'work'; }
