@@ -350,11 +350,14 @@ Codex / other agents: build from docs/codex/R37b.md (self-contained brief with t
 ## R37c [done] (Work page open / close): longer move (our image starts bigger) + inverse-inflate rebound after landing + layering check
 Codex / other agents: read AGENTS.md, then build from docs/codex/R37c.md (reference docs/reference/r37-dribbble.mp4 and r37c-reference-rebound.png; it wins where the two differ). Branch codex/r37-r38, push after every commit.
 
-## R37d (Work page open / close): one continuous motion (landing flows into the rebound, no stop), no click hitch, measured motion curve
+## R37d [done] (superseded by R37e) (Work page open / close): one continuous motion (landing flows into the rebound, no stop), no click hitch, measured motion curve
 Codex / other agents: read AGENTS.md, then build from docs/codex/R37d.md (it wins where the two differ). Do R37d BEFORE R39; stop after R37d for Anh's eye check. Branch codex/r37-r38, push after every commit.
 
-## R37e (Work page open / close): option B: the project page carries on the zoom (monotonic, across the page change), idle prepare, .html hand-off fix
+## R37e [done] (signed off by Anh 2026-10-11 with flags to revisit, see docs/codex/FLAGS.md) (Work page open / close): option B: the project page carries on the zoom (monotonic, across the page change), idle prepare, .html hand-off fix
 Codex / other agents: read AGENTS.md, then build from docs/codex/R37e.md (Anh approved option B; it wins where the two differ). Finishes R37d. Stop after R37e for Anh's eye check, then R39. Branch codex/r37-r38, push after every commit.
+
+## R40 (structure): separate the code by mode (desktop / phone+tablet) for parallel agents, no visible change
+Codex or Claude Code (ONE agent, alone): read AGENTS.md, then docs/codex/R40.md. Branch refactor/r40-mode-split from work-v2. After R40 is merged, the desktop and phone/tablet agents work in parallel.
 
 ## R39 (hosting): Cloudflare Pages previews per branch, nothing public until launch
 Codex / other agents: read AGENTS.md, then build Part B of docs/codex/R39.md (repo files only; Part A is Anh's Cloudflare dashboard clicks). Production branch is the placeholder `live` on purpose. Push after every commit.

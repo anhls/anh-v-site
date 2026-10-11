@@ -597,3 +597,8 @@ Newest at the bottom. Keep each entry to 8 lines or fewer: what changed, compare
   Build/compare542/542 both sizes, home0, direct rest7 pages0, composited endpoint≤1 level/<0.0047%, fallbacks/loss/input/20+20 cleanup/Fast3G/history pass;0 errors. Native idle/hover14.0/14.1ms;4x41.8/41.7ms; warm first5 5.8/6.8/7.1/6.9/6.9ms.60/144Hz clock matches; commit gap43–49ms and motion gate fail.
   Every changed file: docs/requests.md, docs/codex/{R37e,R37e-notes}.md, docs/status.md; src/effects/{flight-curve,bulge-gl,project-transition,tune-docs}.js, src/{timeline,work,project}.js, src/work/tune.js; work/{bitis09,similac,duhat,nam-long,forbes,sulwhasoo,tcb-priority}.html; own scratch inventory in notes. Known404 difference9 pixels/max1 retained.
   Exact undo: `git switch work-v2`.
+
+- 2026-10-11 (Cowork) What you will see now: the R37 to R37e Work transition and the R38 light preview are on the main line (work-v2).
+  Still off: the flags in docs/codex/FLAGS.md (bend strength, page-change hold, motion test), to check by eye later.
+  Your decision: none now; next is R40 (split the code by desktop / phone+tablet, no visible change), then parallel agents.
+  Anh signed off R37e with flags; R37d superseded. work-v2 fast-forwarded to codex/r37-r38 (no merge commit). R39 still open.
