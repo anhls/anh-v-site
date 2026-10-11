@@ -589,11 +589,11 @@ Newest at the bottom. Keep each entry to 8 lines or fewer: what changed, compare
   Every changed file: docs/requests.md, docs/codex/{R37d,R39,R37d-notes}.md, docs/status.md, src/effects/{bulge-gl,project-transition,tune-docs}.js, src/timeline.js, src/work.js, src/work/tune.js; own scratch inventory in notes. Known 404 difference9 edge pixels/max1 retained.
   Exact undo: `git switch work-v2`.
 
-- 2026-10-11 What you will see now: the zoom can continue onto the project page; every image edge stays covered.
-  Still off: final motion, return and interruption checks are in progress; this is a checkpoint, not completion.
-  Your decision: keep edge coverage and preserve Duhat's shorter video header, as confirmed; final eye review follows validation.
-  Questions/choices and every changed file: docs/codex/R37e-notes.md; shared clock, legacy homepage path, video exception, coverage layer, measured preparation cost. Start0.97→1/tail0.65s, land0.51/lens0.22s.
-  Branch codex/r37-r38; planning36e1652; WIPa4c412c, second WIP checkpoint pending; Pushed:a4c412c (includes planning). R39 not started.
-  Build/compare542/542 both sizes pass; direct rest7 pages0; path forms/shared copies pass. Real idle/hover14.1ms;4x41.8ms; warm click1.4/6.4ms handler. Full capture/endpoint/fallback/cleanup verification pending.
-  Changed files and own scratch artifacts inventoried in notes; no packages/layout/media edits. Accepted404 difference9 edge pixels/max1 remains.
+- 2026-10-11 What you will see now: the picture keeps zooming on the project page, with every edge covered and a faster warmed click.
+  Still off: the browser briefly holds the old picture during the page change; measured motion dips still fail the reference test.
+  Your decision: review this unfinished version; R37e and R37d remain open, and R39 has not started. The private preview needs your login.
+  Choices/attempts/visual gate (partly both ways): docs/codex/R37e-notes.md; preserve Duhat's video. Fit zoom0.97→0.9 then1/tail0.65s, lens0.6→0.1 over0.22s, return tail0.3s; land0.51s unchanged.
+  Branch codex/r37-r38; commits36e1652,a4c412c,fb361c5; review-evidence commit `WIP R37e: record review evidence and remaining motion failures`; Pushed:fb361c5 (all implementation); review commit pushed immediately after creation.
+  Build/compare542/542 both sizes, home0, direct rest7 pages0, composited endpoint≤1 level/<0.0047%, fallbacks/loss/input/20+20 cleanup/Fast3G/history pass;0 errors. Native idle/hover14.0/14.1ms;4x41.8/41.7ms; warm first5 5.8/6.8/7.1/6.9/6.9ms.60/144Hz clock matches; commit gap43–49ms and motion gate fail.
+  Every changed file: docs/requests.md, docs/codex/{R37e,R37e-notes}.md, docs/status.md; src/effects/{flight-curve,bulge-gl,project-transition,tune-docs}.js, src/{timeline,work,project}.js, src/work/tune.js; work/{bitis09,similac,duhat,nam-long,forbes,sulwhasoo,tcb-priority}.html; own scratch inventory in notes. Known404 difference9 pixels/max1 retained.
   Exact undo: `git switch work-v2`.
