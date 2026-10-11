@@ -19,9 +19,16 @@ gsap.registerPlugin(ScrollTrigger);
 if (document.documentElement.dataset.layout === 'tall') import('../styles/tall-project.css');
 
 const META = ['meta[name="description"]', 'link[rel="canonical"]', 'meta[property="og:title"]', 'meta[property="og:description"]', 'meta[property="og:url"]', 'meta[property="og:image"]', 'meta[name="twitter:title"]', 'meta[name="twitter:description"]', 'meta[name="twitter:image"]'];
-const metaCache = new Map(); // slug -> Promise<Document | null>: the static page's head (the description / canonical / og tags live there, not in data.json)
+const metaCache = new Map(); // slug -> Promise<{ selector: value } | null>: the static page's head tags (description / canonical / og live there, not in data.json); values only, no Document is kept
 const staticHead = (slug) => {
-  if (!metaCache.has(slug)) metaCache.set(slug, fetch(`/work/${slug}.html`).then((r) => (r.ok ? r.text() : '')).then((t) => (t ? new DOMParser().parseFromString(t, 'text/html') : null)).catch(() => null));
+  if (!metaCache.has(slug)) {
+    metaCache.set(slug, fetch(`/work/${slug}.html`).then((r) => (r.ok ? r.text() : '')).then((t) => {
+      if (!t) return null;
+      const doc = new DOMParser().parseFromString(t, 'text/html'), out = {};
+      for (const sel of META) { const el = doc.head.querySelector(sel); if (el) out[sel] = el.getAttribute(el.tagName === 'LINK' ? 'href' : 'content'); }
+      return out;
+    }).catch(() => null));
+  }
   return metaCache.get(slug);
 };
 export const warmHead = staticHead;
@@ -98,14 +105,14 @@ export function createProjectView({ slug, tall, onBack }) {
       ScrollTrigger.refresh();
       window.dispatchEvent(new Event('resize')); // the builders' fades / parallax / scrollers re-measure in the live flow
       try { el.focus({ preventScroll: true }); } catch { /* */ }
-      staticHead(slug).then((doc) => {
-        if (dead || !doc) return;
+      staticHead(slug).then((tags) => {
+        if (dead || !tags) return;
         for (const sel of META) {
-          const cur = document.head.querySelector(sel), next = doc.head.querySelector(sel);
-          if (!cur || !next) continue;
+          const cur = document.head.querySelector(sel);
+          if (!cur || tags[sel] === undefined) continue;
           const attr = cur.tagName === 'LINK' ? 'href' : 'content';
           saved.meta.push([cur, attr, cur.getAttribute(attr)]);
-          cur.setAttribute(attr, next.getAttribute(attr));
+          cur.setAttribute(attr, tags[sel]);
         }
       });
     },
