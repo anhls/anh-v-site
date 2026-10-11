@@ -1,6 +1,6 @@
 # R37c motion notes — 2026-10-11
 
-Branch codex/r37-r38. Planning/reference commit84f6817 pushed (also included Cowork's standing-rule commit). Exact undo: `git switch work-v2`.
+Branch codex/r37-r38. Planning/reference commit84f6817 pushed (also included Cowork's standing-rule commit). Implementation checkpoint7d36d04 pushed; completion saved as `R37c: finish inward rebound with visual validation`. Exact undo: `git switch work-v2`.
 
 ## Questions resolved before building
 
@@ -39,7 +39,7 @@ What would close it: carrying the reference zoom into the project header would c
 
 ## Checks
 
-Production build passes. Cached dark compare542/542 at1920x1080 and2560x1440. Homepage shared open at three points per size:0 changed pixels. Post-rebound composited endpoint max0 at both sizes/DPR1 and2. Full-screen peak-rebound readPixels:0 nonopaque pixels; phase start/end lens0 zoom0. Context loss mid-move and mid-rebound reveal DOM; double click ignored; wheel during initial reverse rebound completes and removes overlay. gl=0, reduced-motion and unavailable-GL navigation pass. backRebound0 duration0.6s verified. All collected page errors0. No check thresholds changed.
+Production build passes. Cached dark compare542/542 at1920x1080 and2560x1440. Homepage shared open at three points per size:0 changed pixels. Post-rebound composited endpoint max0 at both sizes/DPR1 and2. Full-screen peak-rebound readPixels:0 nonopaque pixels; phase start/end lens0 zoom0. Context loss mid-move and mid-rebound reveal DOM; double click ignored; wheel during initial reverse rebound completes and removes overlay. gl=0, reduced-motion and unavailable-GL navigation pass. backRebound0 duration0.6s verified. All collected page errors0. Existing real-time r30-flow check:0 console/page errors,0 pops/backward steps,all six neighbors outside,return centered and overlay removed. No check thresholds changed.
 
 Twenty actual open/back cycles leave0 transition canvases, contexts or textures. RTX4080/ANGLE D3D11 at4x CPU throttle, including rebound: median6.9ms both sizes; p957.0/7.1ms; initial worst125/131.9ms includes setup. R37b median6.9–7.0ms. Navigation heap changes are not a heap leak proof.
 
