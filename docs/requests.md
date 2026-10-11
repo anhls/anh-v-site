@@ -359,6 +359,12 @@ Codex / other agents: read AGENTS.md, then build from docs/codex/R37e.md (Anh ap
 ## R40 [done] (structure): separate the code by mode (desktop / phone+tablet) for parallel agents, no visible change
 Codex or Claude Code (ONE agent, alone): read AGENTS.md, then docs/codex/R40.md. Branch refactor/r40-mode-split from work-v2. After R40 is merged, the desktop and phone/tablet agents work in parallel.
 
+## R37f (DESKTOP, Codex, desktop/next): no flash, no ghost, no stalls; zoom-in end state (header rests zoomed); engine made mode-agnostic
+Read AGENTS.md, then docs/codex/R37f.md. Parallel with R41.
+
+## R41 (PHONE / TABLET, Claude Code, mobile/next): the project open / close transition on phones and tablets (Part A now, Part B after R37f merges)
+Read CLAUDE.md, AGENTS.md, then docs/codex/R41.md. Parallel with R37f; do not edit the engine this round.
+
 ## R39 (hosting): Cloudflare Pages previews per branch, nothing public until launch
 Codex / other agents: read AGENTS.md, then build Part B of docs/codex/R39.md (repo files only; Part A is Anh's Cloudflare dashboard clicks). Production branch is the placeholder `live` on purpose. Push after every commit.
 
