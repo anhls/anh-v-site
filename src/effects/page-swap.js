@@ -27,14 +27,16 @@ export function createPageSwap() {
   function open({ slug, ref, flight, begin, image }) {
     if (!mod || !ctl || state !== 'work') return false;
     let v;
-    try { v = mod.createProjectView({ slug, tall, onBack: () => back(true) }); } catch { return false; }
+    try { v = pre?.slug === slug ? pre.view : mod.createProjectView({ slug, tall, onBack: () => back(true) }); } catch { return false; }
+    if (pre?.slug === slug) pre = null; else dropPre();
     if (!v) return false;
     try { history.pushState({ pj: slug }, '', `/work/${slug}.html`); } catch { return false; }
     view = v; slugNow = slug; refNow = ref; imageNow = image; state = 'opening'; wantBack = false;
     const wmSmall = !!document.querySelector('body > a.wordmark.is-link');
     mod.warmHead(slug);
     // built a few frames into the flight (never in the click's own frame); the DOM build is one task of a few ms
-    const built = new Promise((res, rej) => setTimeout(() => { try { v.build(); res(); } catch (e) { rej(e); } }, flight ? 60 : 0));
+    // normally built ahead on idle (prebuild); a click before that builds it a few frames into the flight (never in the click's own frame)
+    const built = v.built ? Promise.resolve() : new Promise((res, rej) => setTimeout(() => { try { v.build(); res(); } catch (e) { rej(e); } }, flight ? 60 : 0));
     const land = async () => {
       await built;
       await v.headerReady();
@@ -82,6 +84,17 @@ export function createPageSwap() {
       playBack({ rec, target: ctl.frameRect(slug), fade: ctl.fadeEls, onPush: ctl.backPush, done: () => { ctl.finish(); view = null; state = 'work'; warmNext(); } });
     } catch (e) { root.remove(); ctl.finish(); view = null; state = 'work'; }
   }
+  // the centred project's page, built hidden while the strip rests (one at a time; replaced when another project is centred)
+  let pre = null, preTimer = 0;
+  const dropPre = () => { clearTimeout(preTimer); if (pre) { try { pre.view.destroy(); } catch { /* */ } pre = null; } };
+  const prebuild = (slug) => {
+    if (!mod || state !== 'work' || pre?.slug === slug) return;
+    dropPre();
+    preTimer = setTimeout(() => (window.requestIdleCallback || ((f) => setTimeout(f, 0)))(() => {
+      if (state !== 'work' || pre) return;
+      try { const v = mod.createProjectView({ slug, tall, onBack: () => back(true) }); if (v) { v.build(); pre = { slug, view: v }; (window.requestIdleCallback || ((f) => setTimeout(f, 0)))(() => { if (pre?.view === v) v.prime(); }, { timeout: 1500 }); } } catch { pre = null; }
+    }, { timeout: 1500 }), 120);
+  };
   const warmNext = () => {};
 
   addEventListener('popstate', () => {
@@ -95,7 +108,7 @@ export function createPageSwap() {
 
   return {
     attach(c) { ctl = c; },
-    warm,
+    warm, prebuild, dropPre,
     ready: () => !!mod && !!ctl && state === 'work' && 'pushState' in history,
     open,
     back,

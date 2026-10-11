@@ -41,13 +41,17 @@ export function createProjectView({ slug, tall, onBack }) {
   const el = document.createElement('div');
   el.className = 'pj-root';
   el.setAttribute('tabindex', '-1');
-  el.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100vh;overflow:hidden;visibility:hidden;outline:none';
-  const saved = { title: document.title, meta: [] };
-  let disposeBlocks = null, disposeFooter = null, nav = null, navApi = null, realLenis = null, tick = null, gain = null, shown = false, dead = false;
+  el.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100vh;overflow:hidden;display:none;outline:none'; // (display:none: built ahead on idle, nothing plays or measures until show())
+  const saved = { title: document.title, meta: [] }; // (the Work page's title, restored by destroy())
+  let primed = false, disposeBlocks = null, disposeFooter = null, nav = null, navApi = null, realLenis = null, tick = null, gain = null, shown = false, dead = false;
 
   const api = {
     el, project,
+    built: false,
     build() {
+      if (api.built) return api;
+      api.built = true;
+      const prevTitle = document.title;
       document.title = project.page.title; // (the hero's alt text reads it)
       document.body.append(el);
       disposeBlocks = tall ? buildProjectPageTall(el, project.page, lenis) : buildDesktopProject(el, project.page, lenis);
@@ -55,7 +59,15 @@ export function createProjectView({ slug, tall, onBack }) {
       // the header's own picture decoded before the overlay may go (the static page waits for the same)
       api.heroEl = el.querySelector('.pj__hero, .tp-hero');
       api.heroImg = api.heroEl?.querySelector('img') || null;
+      document.title = prevTitle; // the tab title changes when the page is shown, not when it is built ahead
       return api;
+    },
+    // the one-off style + layout pass of the whole page, paid on idle (before any click) instead of in the landing frame
+    prime() {
+      if (shown || dead || primed) return;
+      primed = true;
+      el.style.display = 'block'; el.style.visibility = 'hidden';
+      void el.offsetHeight;
     },
     headerReady() {
       const hi = api.heroImg;
@@ -67,6 +79,7 @@ export function createProjectView({ slug, tall, onBack }) {
     show({ wmSmall }) {
       if (shown || dead) return;
       shown = true;
+      document.title = project.page.title;
       document.documentElement.classList.add('pj-open');
       el.style.cssText = 'outline:none';
       window.scrollTo(0, 0);

@@ -564,7 +564,7 @@ swap.attach({
   },
 });
 (window.requestIdleCallback || ((f) => setTimeout(f, 1500)))(() => swap.warm(), { timeout: 3000 });
-items.forEach((it) => { if (it.kind === 'frame') it.el.addEventListener('pointerenter', () => swap.warm()); });
+items.forEach((it) => { if (it.kind === 'frame') it.el.addEventListener('pointerenter', () => { swap.warm().then(() => swap.prebuild(it.slug)); }); });
 addEventListener('wheel', () => { if (!paused) inertia = null; }, { capture: true, passive: true });
 addEventListener('wheel', () => { if (!paused) cancelSnap(); }, { capture: true, passive: true });
 addEventListener('touchstart', () => { if (!paused) cancelSnap(); }, { capture: true, passive: true });
@@ -778,7 +778,7 @@ const tick = (_time, deltaMs) => {
     if (drag || morph || snap || inertia || performance.now() - lastWheel < 300) { preT = setTimeout(warmCentre, 300); return; }
     const it = items.find(it => it.kind === 'frame' && it.slug === projects[idx].slug);
     preloadHeader(projects[idx].slug, heroRef(projects[idx]));
-    if (glOn && it) prepareIdleTransition(it.slug, it.ref, it.img);
+    if (glOn && it) { prepareIdleTransition(it.slug, it.ref, it.img); swap.prebuild(it.slug); }
   }, 1800); /* R25: the centred project's header image is fetched once it rests */ if (!ui) countEl.textContent = `${String(idx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`; }
 
   if (ui) { // R32 / R33c: the text field, counter and ruler. SCROLL STOP = no input for scrollStopSec (a coasting drag counts as moving until it is slower than scrollStopSpeed), the strip may still
