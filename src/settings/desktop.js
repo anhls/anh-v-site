@@ -42,7 +42,11 @@ export const TRANSITION = { workSec: 0.4, workPushSec: 0.34, workLandAt: 0.85, w
   // R30: the clearing push (Work page): with pushClear 1 every card and the neighbouring images travel straight away from the clicked image until they are
   // fully off screen (+ clearMargin px at 1920) by the end of pushSec, near items first (clearStagger = the share of pushSec the far ones start later), so
   // the black layer is not needed (blackMax = how dark it gets on the Work page path). pushClear 0 + blackMax 1 = the R28 transition.
-  pushClear: 1, clearMargin: 40, clearStagger: 0.1, blackMax: 0 };
+  pushClear: 1, clearMargin: 40, clearStagger: 0.1, blackMax: 0,
+  // R42c: signed mesh bow before full screen; lens rebound changes only texture.
+  inwardAmp: 0.045, inwardStartAt: 0.45,
+  // Reference back: fast first ~0.25s, then ~0.5s shrinking settle, gentle concave edges.
+  backSec: 0.75, backSizePow: 4.5, backBendAmp: -0.018, backBendEndAt: 0.85, backCornerAmp: 0.003 };
 
 // Springs: [stiffness, damping, mass], Framer / motion units. Layers chase their scroll-mapped target through these
 // (see src/effects/springs.js). Different springs = different lag = the floaty, weighted feel.
