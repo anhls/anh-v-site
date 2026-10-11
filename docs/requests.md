@@ -374,8 +374,8 @@ Codex / other agents: read AGENTS.md, then build Part B of docs/codex/R39.md (re
 ## R42b [done 2026-10-11, see docs/codex/R42-notes.md] (DESKTOP, Claude Code, claude/r42-same-page-nav): back from a project opened mid-scroll lands exactly on its card, no cross-fade
 Read CLAUDE.md, AGENTS.md (section 12: busy note first), then docs/codex/R42b.md. Continue on claude/r42-same-page-nav (R42 is not merged yet). Do this before R41 Part B.
 
-## R42c (DESKTOP, Claude Code, claude/r42c-bend): bend shapes match the reference: visible inward bend on open, gentle inward bend + longer settle on back
-Read CLAUDE.md, AGENTS.md (section 12: busy note first), then docs/codex/R42c.md. New branch claude/r42c-bend from work-v2. Before R41 Part B.
+## R42c (DESKTOP, Codex, codex/r42c-bend): bend shapes match the reference: visible inward bend on open, gentle inward bend + longer settle on back
+Read CLAUDE.md, AGENTS.md (section 12: busy note first), then docs/codex/R42c.md. New branch codex/r42c-bend from work-v2. Before R41 Part B.
 
 ## R27 (type motion TOOLKIT): paragraph line reveal + label smear reveal, one shared system, built but applied NOWHERE yet (use Sonnet 5.5, no time budget, Anh runs it at home)
 
