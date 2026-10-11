@@ -617,6 +617,6 @@ What you will see now: One picture zooms inward without a ghost or black flash; 
 Still off: A short held frame remains at page changes; the way back currently omits the bend.
 Your decision: Review the remaining hold; this is not finished and the request stays open.
 Build and compare passed (542/542 both sizes); homepage/tall identity passes. Three different continuity fixes tried; stop rule applies.
-Branch desktop/next; Pushed: ac49e50. Later WIP commit and every changed file are listed in docs/codex/R37f-notes.md.
-Normal navigation gap ~34–50 ms; 4× CPU ~78–103 ms at navigation, plus 135 ms setup after settle; clean-clone/preview pending.
+Branch desktop/next; Pushed: ac49e50, 574b6d8; report commit = HEAD. Commit messages and every changed file: docs/codex/R37f-notes.md.
+Normal navigation gap ~34–50 ms; 4× CPU ~78–103 ms at navigation, plus 135 ms setup after settle; clean clone not run after stop; Cloudflare confirmation unavailable.
 Undo everything: `git switch work-v2`.

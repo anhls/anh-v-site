@@ -35,7 +35,7 @@ What would close it: maintain compositor motion through the document boundary, t
 - All seven desktop header crops tested at 1920/2560 and DPR 1/2. Duhat exact; other images differ only by resampling, at most 2 levels. Worst changed share ~0.107% at 2560 DPR2; invisible, no doubled image or crop offset.
 - Six real open/back runs (TCB, second Forbes, TCB 4×): zero black frames; no page errors. Browser Back also returns correctly. Reduced motion, ?gl=0 and phone policy fallbacks pass. Duhat retains video at full viewport height.
 - Owners check: one advisory cross-side warning for the explicitly required disabled default in settings/tall.js; shared edits listed here.
-- No theme/404 checks: those paths were not changed. Clean-clone/Cloudflare result remains pending while this WIP is committed.
+- No theme/404 checks: those paths were not changed. Clean-clone validation was not run because the stop rule ended the request before final completion. Cloudflare build confirmation is unverified: the GitHub CLI is unavailable; no hosting settings or credentials were changed.
 
 ## Evidence (ignored local artifacts)
 - [Aligned reference / ours contact sheet](../../tools/scratch/r37f/reference-vs-ours.png)
@@ -53,7 +53,21 @@ What would close it: maintain compositor motion through the document boundary, t
 
 ## Commits / push
 - `ac49e50` — WIP R37f: single zoomed crop and defer reverse renderer setup. Pushed.
-- Next WIP commit records the reference fit, homepage-only tail, and this stop report; push immediately after commit.
+- `574b6d8` — WIP R37f: fit reference and log remaining navigation hold. Pushed.
+- `HEAD` — WIP R37f: record pushed checkpoints and stop status (documentation only; exact hash from `git rev-parse HEAD`, push result in chat).
+
+- [TCB open / normal](../../tools/scratch/r37f/tcb-priority-open-1x.png)
+- [TCB return / normal](../../tools/scratch/r37f/tcb-priority-back-1x.png)
+- [Forbes second open](../../tools/scratch/r37f/forbes-open-1x.png)
+- [Forbes return](../../tools/scratch/r37f/forbes-back-1x.png)
+- [TCB open / 4×](../../tools/scratch/r37f/tcb-priority-open-4x.png)
+- [TCB return / 4×](../../tools/scratch/r37f/tcb-priority-back-4x.png)
+- [Frozen motion data](../../tools/scratch/r37f/motion.json)
+- [Reference curve data](../../tools/scratch/r37f/reference.json)
+- [Reference overview](../../tools/scratch/r37f/reference-sheet.png)
+- [Pinned homepage before](../../tools/scratch/r37f/pinned-before-home.png) / [after](../../tools/scratch/r37f/pinned-after-home.png)
+- [Pinned Work before](../../tools/scratch/r37f/pinned-before-work.png) / [after](../../tools/scratch/r37f/pinned-after-work.png)
+- [Pinned tall menu before](../../tools/scratch/r37f/pinned-before-tall-menu.png) / [after](../../tools/scratch/r37f/pinned-after-tall-menu.png)
 
 ## Every tracked file changed
 - `docs/OWNERS.md`
