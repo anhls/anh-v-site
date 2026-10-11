@@ -630,3 +630,9 @@ Undo everything: `git switch work-v2`.
   Still off: no side-by-side against r37-dribbble.mp4 (no video decoder here): shape judged from our own frames only; first open under 4x CPU throttle has a ~100 ms task at the landing (none at normal speed); Anh's own 144 Hz / phone check is still needed.
   Your decision: Codex R39 shared this folder and switched the branch mid-run; I moved my work to a worktree (details in notes). Do you want one folder per agent from now on?
   Checks: compare 542/542 at 1920 + 2560; 20 open/back cycles: nodes/listeners/heap flat, 3 canvases always, 0 console errors; static pages pixel-identical to the branch start (noise only on video pages); worst frame gap 20.8 ms at normal speed. Pushed: see notes. Undo: git revert the R42 commits.
+
+- 2026-10-11 23:25, Cowork: R39 merged into work-v2; R42b brief written; AGENTS.md section 12 (one agent per folder) added earlier.
+  What you will see now: nothing new on screen yet; hosting cache rules and the Node pin are in the main line.
+  Still off: R42 back from a project opened mid-scroll misses its card and fades across (Anh's recording 23:17): R42b fixes it.
+  Your decision: none now; check R42b when Claude Code finishes, then R42 + R42b merge, then R41 Part B (phone).
+  Flag: public/_headers caches /media and /fonts 30 days without file hashes: a replaced image keeps the old copy up to 30 days (rename on replace, or shorten before launch).

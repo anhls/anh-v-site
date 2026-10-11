@@ -368,8 +368,11 @@ Read CLAUDE.md, AGENTS.md, then docs/codex/R41.md. Parallel with R37f; do not ed
 ## R42 [done 2026-10-11, see docs/codex/R42-notes.md] (ONE agent alone, Claude Code): open projects inside the same page (no document switch): continuous open, reverse bend on back, place kept, works for phone too
 Read CLAUDE.md, AGENTS.md, then docs/codex/R42.md. Branch claude/r42-same-page-nav from work-v2. Nobody else edits src/ while R42 runs (Codex may do R39, which touches no src/ files).
 
-## R39 (hosting): Cloudflare Pages previews per branch, nothing public until launch
+## R39 [done 2026-10-11, merged into work-v2] (hosting): Cloudflare Pages previews per branch, nothing public until launch
 Codex / other agents: read AGENTS.md, then build Part B of docs/codex/R39.md (repo files only; Part A is Anh's Cloudflare dashboard clicks). Production branch is the placeholder `live` on purpose. Push after every commit.
+
+## R42b (DESKTOP, Claude Code, claude/r42-same-page-nav): back from a project opened mid-scroll lands exactly on its card, no cross-fade
+Read CLAUDE.md, AGENTS.md (section 12: busy note first), then docs/codex/R42b.md. Continue on claude/r42-same-page-nav (R42 is not merged yet). Do this before R41 Part B.
 
 ## R27 (type motion TOOLKIT): paragraph line reveal + label smear reveal, one shared system, built but applied NOWHERE yet (use Sonnet 5.5, no time budget, Anh runs it at home)
 

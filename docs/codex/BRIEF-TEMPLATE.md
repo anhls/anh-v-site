@@ -1,6 +1,8 @@
 # <Request id>: <one-line title>
 
-Planner: <who>, <date>. Builder: any agent. AGENTS.md applies. This brief wins over docs/requests.md where they differ.
+Side: desktop | lite · Folder: <D:\Portfolio website\anh-v-site or anh-v-site-mobile> · Branch: <name>
+
+Planner: <who>, <date>. Builder: any agent (AGENTS.md section 12: one agent per folder). AGENTS.md applies. This brief wins over docs/requests.md where they differ.
 
 ## Goal (one sentence, what Anh should SEE)
 
