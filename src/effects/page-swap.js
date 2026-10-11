@@ -32,7 +32,6 @@ export function createPageSwap() {
     if (!v) return false;
     if (push) { try { history.pushState({ pj: slug }, '', `/work/${slug}.html`); } catch { return false; } } // (forward / back through history: the URL is already there)
     view = v; slugNow = slug; refNow = ref; imageNow = image; state = 'opening'; wantBack = false;
-    const wmSmall = !!document.querySelector('body > a.wordmark.is-link');
     mod.warmHead(slug);
     // built a few frames into the flight (never in the click's own frame); the DOM build is one task of a few ms
     // normally built ahead on idle (prebuild); a click before that builds it a few frames into the flight (never in the click's own frame)
@@ -40,6 +39,7 @@ export function createPageSwap() {
     const land = async () => {
       await built;
       await v.headerReady();
+      const wmSmall = !!document.querySelector('body > a.wordmark.is-link'); // read at the landing (the Work wordmark shrinks after the first input): small -> the project's grows to big, no jump
       ctl.pause();
       v.show({ wmSmall });
     };

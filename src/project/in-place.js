@@ -96,14 +96,15 @@ export function createProjectView({ slug, tall, onBack }) {
       gain = installScrollGain(realLenis);
       real = realLenis;
       handlers.forEach((h) => { h.off = real.on(h.ev, h.fn); });
+      ScrollTrigger.refresh();
+      window.dispatchEvent(new Event('resize')); // the builders' fades / parallax / scrollers re-measure in the live flow (before the nav exists: its resize handler snaps the wordmark)
       if (!tall) {
         nav = createDesktopNav();
         const works = nav.querySelector('a[data-link="Works"]');
         works?.addEventListener('click', (e) => { if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); onBack?.(); });
       }
       navApi = initNav(data.hero.wordmark, lenis, tall ? { gateFrame: false, startSmall: wmSmall, small: { x: 5, y: 3.4, width: 28 } } : { gateFrame: false, startSmall: wmSmall });
-      ScrollTrigger.refresh();
-      window.dispatchEvent(new Event('resize')); // the builders' fades / parallax / scrollers re-measure in the live flow
+      ScrollTrigger.refresh(); // (the footer trigger the nav just made)
       try { el.focus({ preventScroll: true }); } catch { /* */ }
       staticHead(slug).then((tags) => {
         if (dead || !tags) return;

@@ -561,6 +561,9 @@ swap.attach({
     gsap.set(fadeEls, { clearProps: 'opacity' }); nameEl.style.zIndex = '';
     gl?.markDirty?.();
     idleLoad();
+    // the next click must animate like the first: the centred project's renderer + page are prepared again (idle, never in a frame that matters)
+    const ci = ((kCount % N) + N) % N, cit = items.find((q) => q.kind === 'frame' && q.proj === ci);
+    if (glOn && cit) setTimeout(() => { if (!paused && !TC.on && TP.q < 0) { prepareIdleTransition(cit.slug, cit.ref, cit.img); swap.prebuild(cit.slug); } }, 400);
   },
 });
 (window.requestIdleCallback || ((f) => setTimeout(f, 1500)))(() => swap.warm(), { timeout: 3000 });
