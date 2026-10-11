@@ -1,5 +1,6 @@
 import '../styles/tall-project.css';
 import { imgAttrs, videoInfo } from '../util/media.js';
+import { FLIGHT } from '../settings/shared.js';
 
 // R24a Part 4: a project page in the TALL mode (phones, tablet portrait): every block stacked in ONE column at the full width, from the same data
 // (data.json projects[].page.blocks) as the desktop page (src/sections/project-page.js, not loaded here). Rules:
@@ -82,6 +83,7 @@ const blocks = {
 export function buildProjectPageTall(root, page, lenis) {
   root.innerHTML = `<div class="tp">${page.blocks.map((b) => (blocks[b.t] ? blocks[b.t](b) : '')).join('')}</div><div class="footer pj__footer"></div>`;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  root.style.setProperty('--flight-z', String(FLIGHT.zEnd)); // R41: the zoomed picture IS the header (same value the transition ends on)
 
   // one simple enter fade per block (class is-in once it is within 12 % of a screen of the viewport); none under reduced motion
   const fades = [...root.querySelectorAll('.tp-fade')];
