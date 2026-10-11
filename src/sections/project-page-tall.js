@@ -80,7 +80,9 @@ const blocks = {
   scroller: (b) => assemble(b.layers.flatMap((l) => (l.items || []).flatMap(piecesOfStageItem))),
 };
 
+// R42: returns a dispose() (observers, video sources) for the in-place Work -> project swap.
 export function buildProjectPageTall(root, page, lenis) {
+  const offs = [];
   root.innerHTML = `<div class="tp">${page.blocks.map((b) => (blocks[b.t] ? blocks[b.t](b) : '')).join('')}</div><div class="footer pj__footer"></div>`;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   root.style.setProperty('--flight-z', String(FLIGHT.zEnd)); // R41: the zoomed picture IS the header (same value the transition ends on)
@@ -91,6 +93,7 @@ export function buildProjectPageTall(root, page, lenis) {
   else {
     const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px' });
     fades.forEach((f) => io.observe(f));
+    offs.push(() => io.disconnect());
   }
 
   // videos: the source is chosen and loaded on first approach, played only while on screen (the poster only with reduced motion or Save-Data)
@@ -102,12 +105,15 @@ export function buildProjectPageTall(root, page, lenis) {
     } else v.pause();
   }), { rootMargin: '30% 0px' });
   root.querySelectorAll('video[data-mp4]').forEach((v) => vidIo.observe(v));
+  offs.push(() => { vidIo.disconnect(); root.querySelectorAll('video').forEach((v) => { v.pause(); v.removeAttribute('src'); v.load(); }); });
 
   // YouTube: a still until it is tapped; the player (youtube-nocookie) is created only then
   root.querySelectorAll('.tp-yt').forEach((sec) => {
     const im = sec.querySelector('img');
     const io = new IntersectionObserver((es) => { if (!es[0].isIntersecting) return; io.disconnect(); im.onerror = () => { im.onerror = null; im.src = im.dataset.fallback; }; im.src = im.dataset.src; }, { rootMargin: '80% 0px' });
     io.observe(sec);
+    offs.push(() => io.disconnect());
     sec.querySelector('button').addEventListener('click', () => { sec.innerHTML = `<iframe class="tp-frame" src="https://www.youtube-nocookie.com/embed/${sec.dataset.yt}?autoplay=1&rel=0&modestbranding=1" title="${sec.dataset.title}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`; });
   });
+  return () => offs.splice(0).forEach((f) => f());
 }

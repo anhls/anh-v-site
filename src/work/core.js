@@ -21,6 +21,7 @@ import { capW, dist } from '../scale.js';
 import { createCardsGL } from '../effects/cards-gl.js';
 import { imgAttrs } from '../util/media.js';
 import { installScrollGain } from '../util/scroll-gain.js';
+import { createPageSwap } from '../effects/page-swap.js';
 import { watchDpr } from '../util/dpr.js';
 import { prepareIdleTransition, prepareTransition, leavePrepared, disposePrepared, preloadHeader, runProjectTransition, transitionOK, readBack, playBack } from '../effects/project-transition.js';
 import { perfOn, pm } from '../util/perf-mark.js';
@@ -66,13 +67,16 @@ const perfP = perfOn ? import('../effects/perf-hud.js').then((m) => { m.mountPer
 if (back) pm('back:arrive');
 let vertical = mode.initialVertical(back, store);
 
-const lenis = new Lenis({ infinite: true, gestureOrientation: 'both', lerp: 0.07, wheelMultiplier: 1 });
+const makeLenis = () => new Lenis({ infinite: true, gestureOrientation: 'both', lerp: 0.07, wheelMultiplier: 1 });
+let lenis = makeLenis(); // (R42: let: a project opened in place destroys it and resume() makes a new one at the saved scroll)
 // R22j: Lenis runs on a clock that never advances more than 100 ms per frame: after a hidden tab or a long freeze its glide carries on from where
 // it was (before, the whole glide finished in one frame: the strip jumped thousands of px when the tab came back)
 let lenisClock = 0, lenisLast = null;
-gsap.ticker.add((time) => { lenisClock += lenisLast === null ? 0 : Math.min(time - lenisLast, 0.1); lenisLast = time; lenis.raf(lenisClock * 1000); });
+const lenisStep = (time) => { lenisClock += lenisLast === null ? 0 : Math.min(time - lenisLast, 0.1); lenisLast = time; lenis.raf(lenisClock * 1000); };
+gsap.ticker.add(lenisStep);
 gsap.ticker.lagSmoothing(0);
-installScrollGain(lenis);
+let scrollGain = installScrollGain(lenis);
+let paused = false; // R42: a project page is open in this document: the strip is paused (no ticker, no input handling), not destroyed
 watchDpr();
 
 // ---- DOM
@@ -463,7 +467,7 @@ const endDrag = (by = 'other') => {
   if (result.entry) curSwipe = result.entry;
 };
 addEventListener('pointerdown', (e) => {
-  if ((e.pointerType === 'mouse' && e.button !== 0) || morph || fading || (drag && e.pointerType !== 'mouse')) return; // R24b: touch and pen share the drag; a second finger is ignored
+  if (paused || (e.pointerType === 'mouse' && e.button !== 0) || morph || fading || (drag && e.pointerType !== 'mouse')) return; // R24b: touch and pen share the drag; a second finger is ignored
   if (e.target.closest?.('.work__toggle, .work__count, .w2__hit, .tmenu__btn, .tmenu, [data-tune-panel]') || e.target.closest?.('div[style*="99999"]')) return;
   dragMoved = false; swipePeak = 0; curSwipe = null;
   drag = { id: e.pointerId, mouse: e.pointerType === 'mouse', thr: e.pointerType === 'mouse' ? 6 : 10, last: axisOf(e), total: 0, captured: false, samples: [[performance.now(), axisOf(e)]] };
@@ -494,22 +498,83 @@ if (perfOn) for (const type of ['pointerdown', 'pointerup', 'pointercancel', 'lo
 addEventListener('blur', endDrag);
 document.documentElement.addEventListener('lostpointercapture', (e) => { if (drag && drag.mouse && e.pointerId === drag.id) endDrag(); }); // R22h: a drag can never stay 'held' after the browser took the pointer back
 document.addEventListener('visibilitychange', () => { if (document.hidden) endDrag(); });
-addEventListener('click', (e) => { if (dragMoved) { e.preventDefault(); e.stopPropagation(); dragMoved = false; } }, { capture: true });
+addEventListener('click', (e) => { if (!paused && dragMoved) { e.preventDefault(); e.stopPropagation(); dragMoved = false; } }, { capture: true });
 // R25: a click on a main image grows that picture into the project page's header (cards keep a plain page load)
 items.forEach((it) => { if (it.kind === 'frame') { it.el.addEventListener('pointerenter', () => { preloadHeader(it.slug, it.ref); if (glOn) prepareTransition(it.slug, it.ref, it.img); }); it.el.addEventListener('pointerleave', leavePrepared); } });
-addEventListener('wheel', disposePrepared, {passive:true});
+addEventListener('wheel', () => { if (!paused) disposePrepared(); }, {passive:true});
+// R42: the project opens INSIDE this document when the page-swap module is loaded (idle after load, or on the first pointer-over); until then, and for
+// reduced motion / ?gl=0 / no WebGL, it is the plain navigation (with the R37f flight where the policy allows).
+const swap = createPageSwap();
+const openStart = (it) => { transitionBusy = true; loadGate = true; gl?.pauseUploads(true); pm('fwd:click'); lenis.stop(); nameEl.style.zIndex = '9'; TP.q = it.proj; TP.p0 = fPu.x[it.proj]; TP.p = TP.p0; TP.hold = TRANSITION.pushScale > 0 || clearMode(); if (clearMode()) { TC.u = 0; prepareClear(it.proj); } }; // (the project name stays above the growing picture and fades with the rest)
 stage.addEventListener('click', (e) => {
   const a = e.target.closest('a.work__frame');
-  if (!a || !glOn || morph || !transitionOK() || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-  const it = items.find((q) => q.el === a), i = it.idx, sc = ui ? 1 : gl.hs[i] || 1; // (R33: v2 reads the UNSCALED frame; the hover growth eases back to 1 as the transition starts)
+  if (paused || !a || morph || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  const it = items.find((q) => q.el === a), i = it.idx;
+  const inPlace = glOn && !reduced && params.get('gl') !== '0' && swap.ready();
+  if (!inPlace && !(glOn && transitionOK())) return;
+  const sc = ui ? 1 : gl.hs[i] || 1; // (R33: v2 reads the UNSCALED frame; the hover growth eases back to 1 as the transition starts)
   e.preventDefault();
   const w = bw[i] * sc, h = bh[i] * sc;
-  runProjectTransition({ slug: it.slug, ref: it.ref, rect: { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, startImage: it.img, startSrc: it.img.currentSrc || it.img.src, fade: fadeEls, fromWork: { mode: vertical ? 'vertical' : 'side', projectIndex: it.proj }, onPush: (p, u) => { if (clearMode()) TC.u = u; else if (TRANSITION.pushScale > 0) TP.p = TP.p0 + (TRANSITION.pushScale - TP.p0) * p; }, onStart: () => { transitionBusy = true; loadGate = true; gl?.pauseUploads(true); pm('fwd:click'); lenis.stop(); nameEl.style.zIndex = '9'; TP.q = it.proj; TP.p0 = fPu.x[it.proj]; TP.p = TP.p0; TP.hold = TRANSITION.pushScale > 0 || clearMode(); if (clearMode()) { TC.u = 0; prepareClear(it.proj); } } }); // (the project name stays above the growing picture and fades with the rest)
+  const flight = transitionOK() ? { slug: it.slug, ref: it.ref, rect: { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, startImage: it.img, startSrc: it.img.currentSrc || it.img.src, fade: fadeEls, fromWork: { mode: vertical ? 'vertical' : 'side', projectIndex: it.proj }, onPush: (p, u) => { if (clearMode()) TC.u = u; else if (TRANSITION.pushScale > 0) TP.p = TP.p0 + (TRANSITION.pushScale - TP.p0) * p; }, onStart: () => openStart(it) } : null;
+  if (inPlace && swap.open({ slug: it.slug, ref: it.ref, flight, begin: () => openStart(it), image: it.img })) return;
+  if (flight) runProjectTransition(flight); else location.href = a.href;
 });
-addEventListener('wheel', () => { inertia = null; }, { capture: true, passive: true });
-addEventListener('wheel', cancelSnap, { capture: true, passive: true });
-addEventListener('touchstart', cancelSnap, { capture: true, passive: true });
-addEventListener('keydown', cancelSnap, { capture: true });
+// ---- R42: what the page-swap router needs from the strip (pause / resume it, where a project's image sits, the push on the way back)
+let savedY = 0, workChrome = [];
+const frameOf = (slug) => items.findIndex((it) => it.kind === 'frame' && it.slug === slug);
+swap.attach({
+  fadeEls,
+  refOf: (slug) => { const p = projects.find((q) => q.slug === slug); return p ? heroRef(p) : null; },
+  imageOf: (slug) => items[frameOf(slug)]?.img,
+  begin: (slug) => { const it = items[frameOf(slug)]; if (it) openStart(it); },
+  pause() {
+    paused = true; savedY = scrollY;
+    clearTimeout(preT); clearTimeout(rt);
+    gsap.ticker.remove(tick); gsap.ticker.remove(lenisStep);
+    scrollGain.destroy(); lenis.destroy();
+    gl?.pauseUploads?.(true);
+    endDrag(); inertia = null; snap = null; disposePrepared();
+    workChrome = [...document.querySelectorAll('body > a.wordmark, body > nav.nav')]; // the project page makes its own nav + wordmark; these come back on resume
+    workChrome.forEach((n) => n.remove());
+    app.style.display = 'none';
+  },
+  resume({ slug, shrink }) {
+    app.style.display = '';
+    [...workChrome].reverse().forEach((n) => document.body.prepend(n)); workChrome = [];
+    window.scrollTo(0, savedY);
+    lenis = makeLenis(); lenisLast = null; scrollGain = installScrollGain(lenis);
+    rawPrev = lenis.animatedScroll; prevVirt = virt;
+    gsap.ticker.add(lenisStep); gsap.ticker.add(tick);
+    paused = false;
+    if (innerWidth !== W || innerHeight !== H) relayout();
+    const fi = frameOf(slug), q = fi >= 0 ? items[fi].proj : 0;
+    // R42b: the strip comes back at its FINAL RESTING place for this project (centred, the place the soft snap would settle on), not at the raw mid-scroll
+    // value it was opened from: the flight then aims at the card where it will really be (a project opened mid-scroll / mid-snap used to cross-fade)
+    { const L = cur(), k = Math.round((S - q * L.pitch) / L.period), St = q * L.pitch + k * L.period; off += St - S; S = St; prevS = St; kCount = Math.round(St / L.pitch); snap = null; inertia = null; snapForce = 0; }
+    transitionBusy = true; loadGate = true; arrivalHold = true; wmScrolled = true; holdFocus();
+    if (shrink) { TP.q = q; TP.p = clearMode() ? 0 : TRANSITION.pushScale; if (clearMode()) { TC.u = 0; prepareClear(q); TC.u = 1; } gsap.set(fadeEls, { opacity: 0 }); }
+    else { TP.q = -1; TP.p = 0; TC.on = false; TC.u = 0; gsap.set(fadeEls, { opacity: 1 }); }
+    gl?.markDirty?.();
+  },
+  frameRect(slug) { const fi = frameOf(slug); place(fi, cur(), S); return { x: out.x - bw[fi] / 2, y: out.y - bh[fi] / 2, w: bw[fi], h: bh[fi] }; }, // (read at the rest place resume() set, before any tick)
+  backPush: (p, u) => { if (TC.on) TC.u = u; else TP.p = p * TRANSITION.pushScale; },
+  finish() {
+    transitionBusy = false; loadGate = false; gl?.pauseUploads?.(false);
+    TP.q = -1; TP.p = 0; TP.hold = false; TC.on = false; TC.u = 0;
+    gsap.set(fadeEls, { clearProps: 'opacity' }); nameEl.style.zIndex = '';
+    gl?.markDirty?.();
+    idleLoad();
+    // the next click must animate like the first: the centred project's renderer + page are prepared again (idle, never in a frame that matters)
+    const ci = ((kCount % N) + N) % N, cit = items.find((q) => q.kind === 'frame' && q.proj === ci);
+    if (glOn && cit) setTimeout(() => { if (!paused && !TC.on && TP.q < 0) { prepareIdleTransition(cit.slug, cit.ref, cit.img); swap.prebuild(cit.slug); } }, 400);
+  },
+});
+(window.requestIdleCallback || ((f) => setTimeout(f, 1500)))(() => swap.warm(), { timeout: 3000 });
+items.forEach((it) => { if (it.kind === 'frame') it.el.addEventListener('pointerenter', () => { swap.warm().then(() => swap.prebuild(it.slug)); }); });
+addEventListener('wheel', () => { if (!paused) inertia = null; }, { capture: true, passive: true });
+addEventListener('wheel', () => { if (!paused) cancelSnap(); }, { capture: true, passive: true });
+addEventListener('touchstart', () => { if (!paused) cancelSnap(); }, { capture: true, passive: true });
+addEventListener('keydown', () => { if (!paused) cancelSnap(); }, { capture: true });
 const navTravel = () => dist(INDEX.travelVh); // how far a title rises (px), like the homepage index rows (a capped distance)
 const updateNames = () => {
   const travel = navTravel();
@@ -719,7 +784,7 @@ const tick = (_time, deltaMs) => {
     if (drag || morph || snap || inertia || performance.now() - lastWheel < 300) { preT = setTimeout(warmCentre, 300); return; }
     const it = items.find(it => it.kind === 'frame' && it.slug === projects[idx].slug);
     preloadHeader(projects[idx].slug, heroRef(projects[idx]));
-    if (glOn && it) prepareIdleTransition(it.slug, it.ref, it.img);
+    if (glOn && it) { prepareIdleTransition(it.slug, it.ref, it.img); swap.prebuild(it.slug); }
   }, 1800); /* R25: the centred project's header image is fetched once it rests */ if (!ui) countEl.textContent = `${String(idx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`; }
 
   if (ui) { // R32 / R33c: the text field, counter and ruler. SCROLL STOP = no input for scrollStopSec (a coasting drag counts as moving until it is slower than scrollStopSpeed), the strip may still
@@ -845,7 +910,7 @@ const relayout = () => {
   off += f * cur().pitch - S;
   if (glOn) gl.resize(W, H);
 };
-addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(relayout, 120); });
+addEventListener('resize', () => { if (paused) return; clearTimeout(rt); rt = setTimeout(relayout, 120); });
 
 commit(vertical ? 'vertical' : 'side');
 // the endless strip passes through 0 at every wrap, so the distance must not drive the wordmark: it reports "scrolled" once and never rest again

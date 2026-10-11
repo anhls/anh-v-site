@@ -34,6 +34,7 @@ export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe,
   // R22j: the wordmark is a link to the homepage (the fixed, transformed box is the <a>; the picture fills it). It takes clicks only in the SMALL
   // state: the big one covers 82vw x 32vh of the hero (captions, cards, the spawner's click area), so it stays click-through; the keyboard
   // reaches it in both. Home: click = the back-to-top transition when scrolled, nothing at the top. Other pages: plain navigation to '/'.
+  const offs = []; // R42: destroy() undoes everything below (the in-place project page tears its nav down on back)
   const img = document.createElement('a');
   img.className = 'wordmark';
   img.href = '/';
@@ -94,25 +95,32 @@ export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe,
 
   state.p = startSmall ? 1 : startBig ? 0 : target(); // R28: startBig = the project page's wordmark was big when it was left, the Work page grows it small. R25: arriving from a project transition, the wordmark was small on the page before: it grows to its big state
   const layer = springLayer({ target: state, springs: { p: SPRING.nav }, apply });
+  offs.push(() => layer.destroy());
   if (startSmall || startBig) state.p = target();
 
   const check = () => { frameFull = isFull(); state.p = target(); };
   // the mask size is written by the scrubbed hero timeline (a little behind the scroll): watch it on the shared ticker, switch only when it flips
   let lastFull = frameFull;
-  gsap.ticker.add(() => { const f = isFull(); if (f !== lastFull) { lastFull = f; check(); } });
+  const watchFull = () => { const f = isFull(); if (f !== lastFull) { lastFull = f; check(); } };
+  gsap.ticker.add(watchFull);
+  offs.push(() => gsap.ticker.remove(watchFull));
   window.addEventListener('scroll', check, { passive: true });
-  if (lenis) lenis.on('scroll', check);
-  window.addEventListener('resize', () => { W = window.innerWidth; H = window.innerHeight; CW = capW(); CH = capH(); layer.snap(); });
+  offs.push(() => window.removeEventListener('scroll', check));
+  if (lenis) offs.push(lenis.on('scroll', check));
+  const onResize = () => { W = window.innerWidth; H = window.innerHeight; CW = capW(); CH = capH(); layer.snap(); };
+  window.addEventListener('resize', onResize);
+  offs.push(() => window.removeEventListener('resize', onResize));
 
   // Big again while the footer is in view (threshold 0: as soon as any of it shows).
   const footer = document.querySelector('.footer');
   if (footer) {
-    ScrollTrigger.create({
+    const st = ScrollTrigger.create({
       trigger: footer,
       start: 'top bottom',
       end: 'bottom top',
       onToggle: (self) => { footerIn = self.isActive; check(); },
     });
+    offs.push(() => st.kill());
   }
 
   // Hover roll: the doubled label slides up 18px on a spring (duration 0.4s, bounce 0.2).
@@ -120,8 +128,10 @@ export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe,
   links.forEach((a) => {
     const roll = a.querySelector('.roll');
     const t = { y: 0 };
-    springLayer({ target: t, springs: { y: rollSpring }, apply: (v) => gsap.set(roll, { y: v.y }) });
+    const rl = springLayer({ target: t, springs: { y: rollSpring }, apply: (v) => gsap.set(roll, { y: v.y }) });
+    offs.push(() => rl.destroy());
     a.addEventListener('mouseenter', () => { if (matchMedia('(hover: hover)').matches) t.y = -ROLL; }); // R22j: a tap is not a hover
     a.addEventListener('mouseleave', () => { t.y = 0; });
   });
+  return { destroy() { offs.splice(0).forEach((f) => f()); img.remove(); } };
 }

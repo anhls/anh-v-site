@@ -11,11 +11,11 @@ const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export function installScrollGain(lenis) {
   const vs = lenis.virtualScroll?.options;
-  if (!vs || reduced) return { gain: () => 1 };
+  if (!vs || reduced) return { gain: () => 1, destroy() {} };
   let last = 0;
   let speed = 0;
   let gain = 1;
-  window.addEventListener('wheel', (e) => {
+  const onWheel = (e) => {
     const now = performance.now();
     const dtRaw = last ? (now - last) / 1000 : 1;
     last = now;
@@ -30,6 +30,7 @@ export function installScrollGain(lenis) {
     const t = Math.min(1, Math.max(0, (speed - SCROLL.gainFrom) / Math.max(SCROLL.gainTo - SCROLL.gainFrom, 1)));
     gain = 1 + (Math.max(SCROLL.gainCap, 1) - 1) * t * t * (3 - 2 * t);
     vs.wheelMultiplier = gain;
-  }, { capture: true, passive: true });
-  return { gain: () => gain, speed: () => speed };
+  };
+  window.addEventListener('wheel', onWheel, { capture: true, passive: true });
+  return { gain: () => gain, speed: () => speed, destroy() { window.removeEventListener('wheel', onWheel, { capture: true }); } };
 }

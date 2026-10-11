@@ -94,7 +94,9 @@ function wordmarkRecord() {
 let running = false;
 // rect = { x, y, w, h } (viewport px) of the picture on screen; startSrc = the file it shows now; crossfade = the start picture is not the header image
 // (homepage frame); onPush(p) = the push-away progress 0..1 (Work page: work.js moves the cards); fromWork = { mode, projectIndex } for the way back; imgRect = where the start picture's own box is (the homepage still is a little larger than the frame it is clipped by); fade = elements that fade out with the rest (Work counter / toggle); onStart / onEnd for the caller (Lenis stop etc.).
-export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc, startImage, crossfade = false, fade = [], onStart, onPush, fromWork }) {
+// R42: inPlace = { show(): Promise (the project page is built in this document: show it, resolve when its header is decoded), done(), fail(err) }: the flight ends by
+// showing the page under the overlay instead of navigating (no hand-off through sessionStorage, no document switch).
+export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc, startImage, crossfade = false, fade = [], onStart, onPush, fromWork, inPlace }) {
   if (running) return;
   running = true;
   onStart?.();
@@ -161,7 +163,7 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
       if (!flight && crossfade) { const q = Math.min(1, Math.max(0, (prog.p - T.crossFrom) / Math.max(T.crossTo - T.crossFrom, 0.01))); const s = q * q * (3 - 2 * q); b.style.opacity = s; a.style.opacity = 1 - s * (b.complete ? 1 : 0); }
       if (state?.content && prog.p * duration > flight.land + T.lensSec * .5 && !(import.meta.env.DEV && window.__pxHold)) {
         const displacement = Math.max(W,H) * .5 * (2 * Math.abs(state.content.lens)) * (devicePixelRatio || 1);
-        if (displacement < T.navigationMaxPx) navigateFlight();
+        if (displacement < T.navigationMaxPx && !inPlace) navigateFlight();
       }
     },
   }, 0);
@@ -172,6 +174,11 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
   const finish = () => {
     hdr.removeEventListener('load', headerReady);
     pm('fwd:end');
+    if (inPlace) {
+      const end = () => { bulge?.dispose(); bulge = null; root.remove(); running = false; pm('fwd:swapped'); inPlace.done?.(); };
+      Promise.resolve().then(() => inPlace.show()).then(() => requestAnimationFrame(() => requestAnimationFrame(end)), (err) => { bulge?.dispose(); bulge = null; root.remove(); running = false; inPlace.fail?.(err); });
+      return;
+    }
     if (flight && navigating) return;
     bulge?.dispose(); bulge = null;
     if (flight) removeEventListener('pagehide', hideFlight);
@@ -225,6 +232,7 @@ export function readBack() {
 export function clearBack() { try { sessionStorage.removeItem('pxb'); } catch { /* */ } }
 
 // rec = the record; target = the centred image's box { x, y, w, h }; onPush(p) per frame; fade = elements that fade in; done() when finished
+// R42: rec.slug set = the prepared renderer of that project (prepareIdleTransition) draws the reverse WITH the bend; none ready = the DOM picture alone.
 export function playBack({ rec, target, onPush, fade = [], done }) {
   const root = document.getElementById('pxb');
   const L = rec.leave, W = innerWidth, H = innerHeight;
@@ -241,6 +249,7 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
   const z = rec.zEnd || 1, iw = L.img[2] / z, ih = L.img[3] / z;
   const BI = { x: L.img[0] + (L.img[2] - iw) / 2, y: L.img[1] + (L.img[3] - ih) / 2, w: iw, h: ih };
   const flight = workFlight(target, B, true);
+  bulge = rec.slug ? takePrepared(rec.slug, root, box) : null;
   const A = target, ease = EASES.cubic, bgMax = rec.blackMax ?? 1;
   const duration = flight.total;
   // Reverse uses the decoded DOM image: no context creation/upload on its clock.
@@ -253,21 +262,21 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
     box.style.left = `${bx}px`; box.style.top = `${by}px`; box.style.width = `${lerp(A.w, B.w, e)}px`; box.style.height = `${lerp(A.h, B.h, e)}px`;
     const ix = lerp(A.x - A.x, BI.x - B.x, e), iy = lerp(0, BI.y - B.y, e);
     im.style.left = `${ix}px`; im.style.top = `${iy}px`; im.style.width = `${lerp(A.w, BI.w, e)}px`; im.style.height = `${lerp(A.h, BI.h, e)}px`;
-    bulge?.draw({ x: bx, y: by, w: lerp(A.w, B.w, e), h: lerp(A.h, B.h, e) }, { x: bx + ix, y: by + iy, w: lerp(A.w, BI.w, e), h: lerp(A.h, BI.h, e) }, state.bump, (prog.t - (1 - T.bulgeHandoff)) / T.bulgeHandoff, true, state.content);
+    // R42b: no cross-fade: the flight ends exactly on the real card (same rect), the last frame hands over by a direct swap (canvas off)
+    bulge?.draw({ x: bx, y: by, w: lerp(A.w, B.w, e), h: lerp(A.h, B.h, e) }, { x: bx + ix, y: by + iy, w: lerp(A.w, BI.w, e), h: lerp(A.h, BI.h, e) }, state.bump, prog.t >= 1 ? 1 : 0, true, state.content);
   };
 
   let flyMarked = false;
   const tl = gsap.timeline({ onComplete: () => { onPush?.(0, 0); pm('back:shrink-end'); tailEnd(); } });
-  tl.to(prog, {
-    t: 1, duration, ease: 'none',
-    onUpdate: () => {
-      const u = 1 - prog.t; // forward progress
-      const state = flight.sample(u); place(state.size, state);
-      im.style.transform = `scale(${1 + state.content.zoom})`;
-      { const up = Math.min(1, (u * duration) / Math.max(T.workPushSec, 0.01)); if (up < 1 && !flyMarked) { flyMarked = true; pm('back:fly-start'); } onPush?.(ease(up), up); }
-      bg.style.opacity = bgMax * sineIO(Math.min(1, (u * duration) / Math.max(T.fadeSec, 0.01))); // the forward black layer, time-reversed
-    },
-  }, 0);
+  const frame = () => {
+    const u = 1 - prog.t; // forward progress
+    const state = flight.sample(u); place(state.size, state);
+    im.style.transform = `scale(${1 + state.content.zoom})`;
+    { const up = Math.min(1, (u * duration) / Math.max(T.workPushSec, 0.01)); if (up < 1 && !flyMarked) { flyMarked = true; pm('back:fly-start'); } onPush?.(ease(up), up); }
+    bg.style.opacity = bgMax * sineIO(Math.min(1, (u * duration) / Math.max(T.fadeSec, 0.01))); // the forward black layer, time-reversed
+  };
+  frame(); // the first frame is already the canvas at the header's place (a prepared renderer still holds its full-screen warm-up draw)
+  tl.to(prog, { t: 1, duration, ease: 'none', onUpdate: frame }, 0);
   if (fade.length) { gsap.set(fade, { opacity: 0 }); tl.to(fade, { opacity: 1, duration: Math.min(T.fadeSec, 0.3), ease: 'none' }, duration - Math.min(T.fadeSec, 0.3)); }
   // the overlay goes only once the canvas has drawn the image in that box: two frames after the last step
   const tailEnd = () => requestAnimationFrame(() => requestAnimationFrame(() => { if (import.meta.env.DEV && window.__pxBackHold) { window.__pxBackGo = finish; return; } finish(); }));

@@ -57,6 +57,8 @@ Transition engine changes go through one agent at a time (R37f: desktop agent).
 - `src/effects/bulge-gl.js`
 - `src/effects/flight-curve.js`
 - `src/effects/project-transition.js`
+- `src/effects/page-swap.js`
+- `src/project/in-place.js`
 - `src/effects/transition-policy.js`
 - `work/index.html`
 - `work/bitis09.html`

@@ -18,6 +18,10 @@ gsap.registerPlugin(ScrollTrigger);
 ScrollTrigger.config({ ignoreMobileResize: true }); // R24a: the mobile address bar must not refresh every trigger
 const slug = document.body.dataset.project;
 const project = data.projects.find((p) => p.slug === slug);
+document.documentElement.classList.add('pj-open');
+// R42: after a reload, history entries made by the Work page's same-document opens belong to a document that is gone; going back onto one lands here with another URL: load that page properly
+const here = location.pathname;
+addEventListener('popstate', () => { if (location.pathname !== here) location.reload(); }); // R42: the project nav rule in project.css is scoped to this class
 const tall = isTall(); // R24a: the TALL mode (phones, tablet portrait): one column, a burger menu, no R25 hand-off, no desktop scroll effects
 
 // Keep first-paint flight light: build blocks, observers, videos and footer only after settle.

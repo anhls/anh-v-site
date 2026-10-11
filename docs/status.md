@@ -625,9 +625,18 @@ Undo everything: `git switch work-v2`.
   Still off: the page-change hold, no bend on the way back, no animation on a second click after back (docs/codex/FLAGS.md R37f).
   Your decision: none; next is R42 (open projects inside the same page), then R41 Part B on phones.
   Merged into work-v2: R37f (desktop/next, WIP signed off with flags) + R41 Part A (mobile/next), merge commit; the duplicate FLIGHT export from the two branches resolved. Build OK.
+- 2026-10-11, R42 (Claude Code, claude/r42-same-page-nav): Work page now opens projects in the same document; details docs/codex/R42-notes.md.
+  What you will see now: click a Work image and the card puffs, grows, lands and settles into the project header in one motion with no page load; back (browser back, mouse back, the Works link) shrinks it WITH the bend into the same project at the same place; click again works every time. Phone / tablet: tap opens the project instantly (effect still off), back returns to the same project.
+  Still off: no side-by-side against r37-dribbble.mp4 (no video decoder here): shape judged from our own frames only; first open under 4x CPU throttle has a ~100 ms task at the landing (none at normal speed); Anh's own 144 Hz / phone check is still needed.
+  Your decision: Codex R39 shared this folder and switched the branch mid-run; I moved my work to a worktree (details in notes). Do you want one folder per agent from now on?
+  Checks: compare 542/542 at 1920 + 2560; 20 open/back cycles: nodes/listeners/heap flat, 3 canvases always, 0 console errors; static pages pixel-identical to the branch start (noise only on video pages); worst frame gap 20.8 ms at normal speed. Pushed: see notes. Undo: git revert the R42 commits.
 
 - 2026-10-11 23:25, Cowork: R39 merged into work-v2; R42b brief written; AGENTS.md section 12 (one agent per folder) added earlier.
   What you will see now: nothing new on screen yet; hosting cache rules and the Node pin are in the main line.
   Still off: R42 back from a project opened mid-scroll misses its card and fades across (Anh's recording 23:17): R42b fixes it.
   Your decision: none now; check R42b when Claude Code finishes, then R42 + R42b merge, then R41 Part B (phone).
   Flag: public/_headers caches /media and /fonts 30 days without file hashes: a replaced image keeps the old copy up to 30 days (rename on replace, or shorten before launch).
+- 2026-10-11, R42b (Claude Code, claude/r42-same-page-nav): back from a project opened mid-scroll / mid-snap now lands exactly on its card, no cross-fade (details docs/codex/R42-notes.md).
+  What you will see now: back always shrinks with the bend straight onto the real card, same as from a resting strip. Still off: no sheet against r37-dribbble.mp4 (no decoder; frames exported for Cowork); real phone / 144 Hz screen not checked. Your decision: none.
+  Cause: the strip resumed at the raw mid-scroll value and the snap then moved the card under the flight. Fix: strip placed at its rest place before the flight, target read there, fade replaced by a direct swap.
+  Checks: last rect vs card max 0.5 px, 0 fading frames, 3 projects x 3 states x 2 back routes x 60 / 144 Hz; compare 542/542; tall smoke ok; max frame gap 20.9 ms.
