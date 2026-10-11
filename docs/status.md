@@ -636,3 +636,7 @@ Undo everything: `git switch work-v2`.
   Still off: R42 back from a project opened mid-scroll misses its card and fades across (Anh's recording 23:17): R42b fixes it.
   Your decision: none now; check R42b when Claude Code finishes, then R42 + R42b merge, then R41 Part B (phone).
   Flag: public/_headers caches /media and /fonts 30 days without file hashes: a replaced image keeps the old copy up to 30 days (rename on replace, or shorten before launch).
+- 2026-10-11, R42b (Claude Code, claude/r42-same-page-nav): back from a project opened mid-scroll / mid-snap now lands exactly on its card, no cross-fade (details docs/codex/R42-notes.md).
+  What you will see now: back always shrinks with the bend straight onto the real card, same as from a resting strip. Still off: no sheet against r37-dribbble.mp4 (no decoder; frames exported for Cowork); real phone / 144 Hz screen not checked. Your decision: none.
+  Cause: the strip resumed at the raw mid-scroll value and the snap then moved the card under the flight. Fix: strip placed at its rest place before the flight, target read there, fade replaced by a direct swap.
+  Checks: last rect vs card max 0.5 px, 0 fading frames, 3 projects x 3 states x 2 back routes x 60 / 144 Hz; compare 542/542; tall smoke ok; max frame gap 20.9 ms.

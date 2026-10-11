@@ -26,3 +26,12 @@ Your decision: see the git note at the bottom.
 
 ## Git note (needs your eye)
 Codex's R39 session works in the same folder `anh-v-site` and switched HEAD to codex/r39-hosting while I was editing; my first WIP commit landed on that branch (unpushed). I cherry-picked it onto claude/r42-same-page-nav in a worktree (tools/scratch/r42/wt) and added a `git revert` of it on codex/r39-hosting (a623a1a + a01f5d5, net zero, not pushed). Cowork may prefer to drop those two local commits when Codex pushes.
+
+## R42b (back from a project opened mid-scroll)
+What you will see now: back always ends with the bending card shrinking straight onto its real card, whether the project was opened from a resting strip, mid-scroll or mid-snap. No fade, no double image.
+Still off: no side-by-side with r37-dribbble.mp4 (no decoder here): our 177 back frames (mid-scroll case, 960x540 jpg, ms in the name) are in tools/scratch/r42/frames-export/ for Cowork's sheet; real phone / 144 Hz screen not checked.
+Your decision: none.
+- Cause confirmed: the strip resumed at the raw mid-scroll value and the soft snap then moved the real card while the flight aimed at the old place; the last 12.5 % of the flight cross-faded (bulgeHandoff) over the mismatch. The old code on the same test: error 38-310 px in 4 of 6 cases, and 11 fading frames in all 6.
+- Fix: core.js resume() puts the strip at the project's centred rest place (nearest equivalent on the endless strip; snap / inertia ended); frameRect() reads the card there with place() before any tick; project-transition.js playBack: the canvas hand-over is a direct swap (opacity 0 or 1 only).
+- Test tools/scratch/r42/midscroll.mjs: 3 projects x (rest, mid-scroll, mid-snap) x history back and the Works link, rAF paced to 60 and 144 Hz: last flight box vs real card max error 0.5 px, 0 frames with opacity between 0 and 1.
+- Also re-run: frame gaps at normal speed max 20.9 / 13.9 / 14.0 ms (open / back / open again), compare 542/542 at 1920 + 2560, tall smoke ok, 390x844 and 1024x768 tap / back ok, clean-clone build ok (81f08b4). Cloudflare preview build not checked.
