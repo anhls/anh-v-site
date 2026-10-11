@@ -548,12 +548,15 @@ swap.attach({
     paused = false;
     if (innerWidth !== W || innerHeight !== H) relayout();
     const fi = frameOf(slug), q = fi >= 0 ? items[fi].proj : 0;
+    // R42b: the strip comes back at its FINAL RESTING place for this project (centred, the place the soft snap would settle on), not at the raw mid-scroll
+    // value it was opened from: the flight then aims at the card where it will really be (a project opened mid-scroll / mid-snap used to cross-fade)
+    { const L = cur(), k = Math.round((S - q * L.pitch) / L.period), St = q * L.pitch + k * L.period; off += St - S; S = St; prevS = St; kCount = Math.round(St / L.pitch); snap = null; inertia = null; snapForce = 0; }
     transitionBusy = true; loadGate = true; arrivalHold = true; wmScrolled = true; holdFocus();
     if (shrink) { TP.q = q; TP.p = clearMode() ? 0 : TRANSITION.pushScale; if (clearMode()) { TC.u = 0; prepareClear(q); TC.u = 1; } gsap.set(fadeEls, { opacity: 0 }); }
     else { TP.q = -1; TP.p = 0; TC.on = false; TC.u = 0; gsap.set(fadeEls, { opacity: 1 }); }
     gl?.markDirty?.();
   },
-  frameRect(slug) { const fi = frameOf(slug); return { x: px[fi] - bw[fi] / 2, y: py[fi] - bh[fi] / 2, w: bw[fi], h: bh[fi] }; },
+  frameRect(slug) { const fi = frameOf(slug); place(fi, cur(), S); return { x: out.x - bw[fi] / 2, y: out.y - bh[fi] / 2, w: bw[fi], h: bh[fi] }; }, // (read at the rest place resume() set, before any tick)
   backPush: (p, u) => { if (TC.on) TC.u = u; else TP.p = p * TRANSITION.pushScale; },
   finish() {
     transitionBusy = false; loadGate = false; gl?.pauseUploads?.(false);
