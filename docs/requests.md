@@ -365,7 +365,7 @@ Read AGENTS.md, then docs/codex/R37f.md. Parallel with R41.
 ## R41 [Part A done 2026-10-11; Part B waits for R42] (PHONE / TABLET, Claude Code, mobile/next): the project open / close transition on phones and tablets (Part A now, Part B after R37f merges)
 Read CLAUDE.md, AGENTS.md, then docs/codex/R41.md. Parallel with R37f; do not edit the engine this round.
 
-## R42 (ONE agent alone, Claude Code): open projects inside the same page (no document switch): continuous open, reverse bend on back, place kept, works for phone too
+## R42 [done 2026-10-11, see docs/codex/R42-notes.md] (ONE agent alone, Claude Code): open projects inside the same page (no document switch): continuous open, reverse bend on back, place kept, works for phone too
 Read CLAUDE.md, AGENTS.md, then docs/codex/R42.md. Branch claude/r42-same-page-nav from work-v2. Nobody else edits src/ while R42 runs (Codex may do R39, which touches no src/ files).
 
 ## R39 (hosting): Cloudflare Pages previews per branch, nothing public until launch
