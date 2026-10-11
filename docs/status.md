@@ -644,3 +644,12 @@ Undo everything: `git switch work-v2`.
   What you will see now: projects open and close inside the Work page; back lands exactly on its card even mid-scroll.
   Still off: back bends outward and strongly (reference: gentle inward), lands too fast; open's inward bend near full screen not visible. R42c.
   Your decision: none now; eye check R42c, then R41 Part B (phone).
+
+- 2026-10-12 — R42c WIP review candidate, codex/r42c-bend.
+  What you will see now: smaller puff, visible inward opening bend, gentle inward back with a longer settle.
+  Still off: reference match is partial; four-edge reference fit unverified, and the slowed-CPU run has a hitch.
+  Your decision: keep the brief's clear inward silhouette, or fit the video's subtler shape; R42c stays open.
+  Values/ambiguities/evidence/every changed file: docs/codex/R42c-notes.md; open 0.51+0.2s, back 0.75s; tune.js scope approved.
+  Build/clean clone pass; compare542/542 both sizes; 12 landing cases max0.5px/0 fades/0 errors; tall smoke pass; first response4.6ms normal/23.9ms4x.
+  Pushed:84f8614,5a586b3; report checkpoint HEAD pushed immediately after creation. Cloudflare build unverified (Access login).
+  Undo everything: `git switch work-v2`.
