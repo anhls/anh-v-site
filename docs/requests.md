@@ -350,6 +350,12 @@ Codex / other agents: build from docs/codex/R37b.md (self-contained brief with t
 ## R37c [done] (Work page open / close): longer move (our image starts bigger) + inverse-inflate rebound after landing + layering check
 Codex / other agents: read AGENTS.md, then build from docs/codex/R37c.md (reference docs/reference/r37-dribbble.mp4 and r37c-reference-rebound.png; it wins where the two differ). Branch codex/r37-r38, push after every commit.
 
+## R37d (Work page open / close): one continuous motion (landing flows into the rebound, no stop), no click hitch, measured motion curve
+Codex / other agents: read AGENTS.md, then build from docs/codex/R37d.md (it wins where the two differ). Do R37d BEFORE R39; stop after R37d for Anh's eye check. Branch codex/r37-r38, push after every commit.
+
+## R39 (hosting): Cloudflare Pages previews per branch, nothing public until launch
+Codex / other agents: read AGENTS.md, then build Part B of docs/codex/R39.md (repo files only; Part A is Anh's Cloudflare dashboard clicks). Production branch is the placeholder `live` on purpose. Push after every commit.
+
 ## R27 (type motion TOOLKIT): paragraph line reveal + label smear reveal, one shared system, built but applied NOWHERE yet (use Sonnet 5.5, no time budget, Anh runs it at home)
 
 Reference: two screen recordings Anh made of another site (not ours; the iOS "Lens / pause / heart" overlays in them are not part of the effect). Anh places them in the repo as docs/reference/text-fx-paragraph.mov (3.5 s, 60 fps, a bio paragraph) and docs/reference/text-fx-label.mov (2.7 s, 60 fps, a name + index label). If they are missing, use the numbers below (read by Cowork from 10 fps / 60 fps frames, good to about +-0.1 s). Do NOT copy the other site's font: in the paragraph recording the typeface visibly swaps at about 0.6 s (a web font loading late); ours must wait for fonts before measuring and splitting.
