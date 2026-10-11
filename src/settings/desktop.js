@@ -38,7 +38,7 @@ const span = (start, length) => (typeof start === 'number' ? [+start.toFixed(2),
 // (the frame shows its own still, not the header image).
 // R28: pushSec = the first part of the move in which the cards and the two neighbours move away from the image (Work page; the same numbers play
 // in reverse on the way back), pushScale = how far (1 = the focus push at full progress, 0 = off), pushFar = the far cards' share (focusPushOthers).
-export const TRANSITION = { workSec: 0.4, workPushSec: 0.34, workLandAt: 0.85, workCarry: 0.8, hoverPrepareMs: 120, hoverUploadRows: 64, navigationMaxPx: 1, hoverDisposeMs: 2000, reboundAmp: 0.1, lensSec: 0.22, zoomTailSec: 0.65, backZoomSec: 0.3, backRebound: 1, workEase: "cubic", bulgeAmp: 0.13, bulgePeakAt: 0.25, bulgeEndAt: 0.7, cornerAmp: 0.08, zoomAmp: 0.04, bulgeHandoff: 0.125, bulgeGrid: 32, sec: 0.9, fadeSec: 0.5, crossFrom: 0.3, crossTo: 0.85, pushSec: 0.6, pushScale: 1, pushFar: 0.6,
+export const TRANSITION = { workSec: 0.6, workPushSec: 0.34, workLandAt: 0.85, workCarry: 0.8, hoverPrepareMs: 120, hoverUploadRows: 64, navigationMaxPx: 1, hoverDisposeMs: 2000, reboundAmp: 0.1, lensSec: 0.22, zoomTailSec: 0.2, backZoomSec: 0.3, backRebound: 1, workEase: "cubic", bulgeAmp: 0.035, bulgePeakAt: 0.25, bulgeEndAt: 0.7, cornerAmp: 0.008, zoomAmp: 0.04, bulgeHandoff: 0.125, bulgeGrid: 32, sec: 0.9, fadeSec: 0.5, crossFrom: 0.3, crossTo: 0.85, pushSec: 0.6, pushScale: 1, pushFar: 0.6,
   // R30: the clearing push (Work page): with pushClear 1 every card and the neighbouring images travel straight away from the clicked image until they are
   // fully off screen (+ clearMargin px at 1920) by the end of pushSec, near items first (clearStagger = the share of pushSec the far ones start later), so
   // the black layer is not needed (blackMax = how dark it gets on the Work page path). pushClear 0 + blackMax 1 = the R28 transition.
@@ -46,7 +46,7 @@ export const TRANSITION = { workSec: 0.4, workPushSec: 0.34, workLandAt: 0.85, w
   // R42c: signed mesh bow before full screen; lens rebound changes only texture.
   inwardAmp: 0.045, inwardStartAt: 0.45,
   // Reference back: fast first ~0.25s, then ~0.5s shrinking settle, gentle concave edges.
-  backSec: 0.75, backSizePow: 4.5, backBendAmp: -0.018, backBendEndAt: 0.85, backCornerAmp: 0.003 };
+  backSec: 0.75, backSizePow: 3, backBendAmp: -0.018, backBendEndAt: 0.85, backCornerAmp: 0.003 };
 
 // Springs: [stiffness, damping, mass], Framer / motion units. Layers chase their scroll-mapped target through these
 // (see src/effects/springs.js). Different springs = different lag = the floaty, weighted feel.
