@@ -2,6 +2,11 @@
 // pages). A plain id -> one sentence map: the id is what the panel stores the value under ('GROUP.key'), the sentence says what the parameter is, its unit and
 // what up / down does. Edit the text here; a parameter without an entry shows its label only. Never imported by the production build (the panels are dev-only).
 export const TUNE_DOCS = {
+  'TRANSITION.reboundAmp': 'Inward texture lens strength relative to peak outward bow; outline stays full screen.',
+  'TRANSITION.reboundSec': 'Extra full-screen content rebound time after the Work move; zero disables it.',
+  'TRANSITION.reboundPeakAt': 'Time share of the early inward peak within the rebound phase.',
+  'TRANSITION.reboundZoom': 'Small content zoom pulse that returns exactly to the original crop before navigation.',
+  'TRANSITION.backRebound': 'Play the reversed full-screen rebound before shrinking back into Work.',
   'TRANSITION.workLandAt': 'Cubic expansion finishes at this time share; remaining time settles the overshoot.',
   'TRANSITION.bulgeEndAt': 'Bow, rounding and zoom are zero from this time share onward.',
   'TRANSITION.cornerAmp': 'Peak rounded-mask radius as a share of the current short side.',

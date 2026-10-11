@@ -7,6 +7,14 @@ export const pillowBump = (t) => {
   return Math.sin(Math.PI / 2 * (t < peak ? t / peak : (end - t) / (end - peak))) ** 2;
 };
 
+// One early lobe, exact zero value and slope at either end; shared by open and its reversal.
+export const reboundShape = (t) => {
+  if (t <= 0 || t >= 1) return { lens: 0, zoom: 0 };
+  const peak = Math.max(0.01, Math.min(0.99, T.reboundPeakAt));
+  const lobe = Math.sin(Math.PI / 2 * (t < peak ? t / peak : (1 - t) / (1 - peak))) ** 2;
+  return { lens: -T.bulgeAmp * T.reboundAmp * lobe, zoom: T.reboundZoom * Math.sin(Math.PI * t) ** 2 };
+};
+
 // A printed sheet: UVs stay attached to the grid while its four edges bow outward.
 export function createBulge(parent, box, image) {
   if (!image?.complete || !image.naturalWidth) return null;
@@ -48,15 +56,17 @@ export function createBulge(parent, box, image) {
     fs = shader(gl.FRAGMENT_SHADER, `#version 300 es
       precision highp float;
       in vec2 tex; in vec2 local; uniform sampler2D picture;
-      uniform vec4 box; uniform float radius; uniform float zoom; uniform float pixel;
+      uniform vec4 box; uniform float radius; uniform float zoom; uniform float pixel; uniform float lens; uniform bool fullScreen;
       out vec4 color;
       void main() {
-        vec4 sampleColor = texture(picture, (tex - .5) / (1. + zoom) + .5);
+        vec2 qLens = local * 2. - 1.;
+        vec2 warped = .5 + (tex - .5) * (1. + lens * dot(qLens, qLens));
+        vec4 sampleColor = texture(picture, clamp((warped - .5) / (1. + zoom) + .5, 0., 1.));
         vec2 q = abs((local - .5) * box.zw) - box.zw * .5 + radius;
         float distance = length(max(q, 0.)) + min(max(q.x, q.y), 0.) - radius;
         float aa = max(fwidth(distance), pixel);
         // Fade inside the mesh: straight-alpha canvas MSAA otherwise darkens its outer edge.
-        float alpha = 1. - smoothstep(-aa, 0., distance);
+        float alpha = fullScreen ? 1. : 1. - smoothstep(-aa, 0., distance);
         color = vec4(sampleColor.rgb, sampleColor.a * alpha);
       }`);
     program = gl.createProgram(); gl.attachShader(program, vs); gl.attachShader(program, fs); gl.linkProgram(program);
@@ -72,7 +82,7 @@ export function createBulge(parent, box, image) {
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    const uniforms = Object.fromEntries(['box', 'imageBox', 'viewport', 'natural', 'bulge', 'radius', 'zoom', 'pixel'].map(k => [k, gl.getUniformLocation(program, k)]));
+    const uniforms = Object.fromEntries(['box', 'imageBox', 'viewport', 'natural', 'bulge', 'radius', 'zoom', 'pixel', 'lens', 'fullScreen'].map(k => [k, gl.getUniformLocation(program, k)]));
     let natural;
     const setTexture = (im) => {
       if (dead || !im.complete || !im.naturalWidth) return;
@@ -80,7 +90,7 @@ export function createBulge(parent, box, image) {
       natural = [im.naturalWidth, im.naturalHeight];
     };
     setTexture(image); parent.append(canvas);
-    return { canvas, dispose, setTexture, draw(b, ib = b, bump = 0, handoff = 0, pageHandoff = false) {
+    return { canvas, dispose, setTexture, draw(b, ib = b, bump = 0, handoff = 0, pageHandoff = false, content = null) {
       if (dead) return;
       const dpr = Math.min(devicePixelRatio || 1, innerWidth > 2560 ? BEND.dprCapLarge : BEND.dprCap);
       const w = Math.round(innerWidth * dpr), h = Math.round(innerHeight * dpr);
@@ -89,7 +99,9 @@ export function createBulge(parent, box, image) {
       gl.uniform4f(uniforms.box, b.x, b.y, b.w, b.h); gl.uniform4f(uniforms.imageBox, ib.x, ib.y, ib.w, ib.h);
       gl.uniform2f(uniforms.viewport, innerWidth, innerHeight); gl.uniform2fv(uniforms.natural, natural); gl.uniform1f(uniforms.bulge, T.bulgeAmp * bump);
       gl.uniform1f(uniforms.radius, T.cornerAmp * Math.min(b.w, b.h) * bump);
-      gl.uniform1f(uniforms.zoom, T.zoomAmp * bump);
+      gl.uniform1f(uniforms.zoom, T.zoomAmp * bump + (content?.zoom || 0));
+      gl.uniform1f(uniforms.lens, content?.lens || 0);
+      gl.uniform1i(uniforms.fullScreen, content ? 1 : 0);
       gl.uniform1f(uniforms.pixel, 1 / dpr);
       gl.drawElements(gl.TRIANGLES, ids.length, gl.UNSIGNED_SHORT, 0);
       // Brief overlap hides the browser / GPU resampling difference before the exact DOM hand-off.

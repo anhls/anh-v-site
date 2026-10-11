@@ -1,4 +1,4 @@
-import { createBulge, pillowBump } from './bulge-gl.js';
+import { createBulge, pillowBump, reboundShape } from './bulge-gl.js';
 import { withOvershoot } from '../util/overshoot.js';
 import { gsap } from 'gsap';
 import { TRANSITION as T } from '../timeline.js';
@@ -41,6 +41,7 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
   const W = innerWidth, H = innerHeight;
   const hdr = preloadHeader(slug, ref);
   const sec = fromWork ? T.workSec : T.sec, pushSec = fromWork ? T.workPushSec : T.pushSec;
+  const reboundSec = fromWork && !isTall() ? Math.max(0, T.reboundSec) : 0;
   const rel = { x: imgRect.x - rect.x, y: imgRect.y - rect.y, w: imgRect.w, h: imgRect.h }; // the start picture's box in the clip box's coordinates
   const root = document.createElement('div');
   root.className = 'px';
@@ -77,11 +78,17 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
       box.style.width = `${rect.w + (W - rect.w) * e}px`; box.style.height = `${rect.h + (H - rect.h) * e}px`;
       const L = `${rel.x * (1 - e)}px`, Tp = `${rel.y * (1 - e)}px`, Wd = `${rel.w + (W - rel.w) * e}px`, Ht = `${rel.h + (H - rel.h) * e}px`;
       for (const im of [a, b]) { im.style.left = L; im.style.top = Tp; im.style.width = Wd; im.style.height = Ht; }
-      bulge?.draw({ x: rect.x * (1 - e), y: rect.y * (1 - e), w: rect.w + (W - rect.w) * e, h: rect.h + (H - rect.h) * e }, undefined, pillowBump(prog.p), (prog.p - (1 - T.bulgeHandoff)) / T.bulgeHandoff);
+      bulge?.draw({ x: rect.x * (1 - e), y: rect.y * (1 - e), w: rect.w + (W - rect.w) * e, h: rect.h + (H - rect.h) * e }, undefined, pillowBump(prog.p), reboundSec > 0 ? 0 : (prog.p - (1 - T.bulgeHandoff)) / T.bulgeHandoff);
       if (onPush) { const u = Math.min(1, (prog.p * sec) / Math.max(pushSec, 0.01)); onPush(ease(u), u); }
       if (crossfade) { const q = Math.min(1, Math.max(0, (prog.p - T.crossFrom) / Math.max(T.crossTo - T.crossFrom, 0.01))); const s = q * q * (3 - 2 * q); b.style.opacity = s; a.style.opacity = 1 - s * (b.complete ? 1 : 0); }
     },
   }, 0);
+  if (reboundSec > 0) {
+    const rebound = { p: 0 }, fullBox = { x: 0, y: 0, w: W, h: H };
+    tl.to(rebound, { p: 1, duration: reboundSec, ease: 'none', onUpdate: () => {
+      bulge?.draw(fullBox, undefined, 0, (rebound.p - (1 - T.bulgeHandoff)) / T.bulgeHandoff, false, reboundShape(rebound.p));
+    } }, sec);
+  }
   const bgMax = fromWork ? T.blackMax : 1; // R30: on the Work page path the clearing push does the job, the black layer only goes as far as blackMax
   if (bgMax > 0) tl.to(bg, { opacity: bgMax, duration: T.fadeSec, ease: 'sine.inOut' }, 0);
   if (fade.length) tl.to(fade, { opacity: 0, duration: Math.min(T.fadeSec, 0.3), ease: 'none' }, 0);
@@ -151,6 +158,7 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
   }
   const box = root.querySelector('.px__box'), im = root.querySelector('img'), bg = root.querySelector('.px__bg');
   const B = { x: L.sec[0], y: L.sec[1], w: L.sec[2], h: L.sec[3] }, BI = { x: L.img[0], y: L.img[1], w: L.img[2], h: L.img[3] };
+  const reboundSec = T.backRebound && !isTall() ? Math.max(0, T.reboundSec) : 0;
   const A = target, ease = EASES.cubic, bgMax = rec.blackMax ?? 1;
   const moveEase = withOvershoot(heldCubic(T.workLandAt), T.bulgeOvershoot, T.bulgeWindow);
   if (!isTall()) bulge = createBulge(root, box, im);
@@ -167,6 +175,13 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
   };
   let flyMarked = false;
   const tl = gsap.timeline({ onComplete: () => { onPush?.(0, 0); pm('back:shrink-end'); tailEnd(); } });
+  if (reboundSec > 0) {
+    const rebound = { p: 0 };
+    tl.to(rebound, { p: 1, duration: reboundSec, ease: 'none', onUpdate: () => {
+      place(1);
+      bulge?.draw(B, BI, 0, 0, false, reboundShape(1 - rebound.p));
+    } }, 0);
+  }
   tl.to(prog, {
     t: 1, duration: T.workSec, ease: 'none',
     onUpdate: () => {
@@ -175,8 +190,8 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
       { const up = Math.min(1, (u * T.workSec) / Math.max(T.workPushSec, 0.01)); if (up < 1 && !flyMarked) { flyMarked = true; pm('back:fly-start'); } onPush?.(ease(up), up); }
       bg.style.opacity = bgMax * sineIO(Math.min(1, (u * T.workSec) / Math.max(T.fadeSec, 0.01))); // the forward black layer, time-reversed
     },
-  }, 0);
-  if (fade.length) { gsap.set(fade, { opacity: 0 }); tl.to(fade, { opacity: 1, duration: Math.min(T.fadeSec, 0.3), ease: 'none' }, T.workSec - Math.min(T.fadeSec, 0.3)); }
+  }, reboundSec);
+  if (fade.length) { gsap.set(fade, { opacity: 0 }); tl.to(fade, { opacity: 1, duration: Math.min(T.fadeSec, 0.3), ease: 'none' }, reboundSec + T.workSec - Math.min(T.fadeSec, 0.3)); }
   // the overlay goes only once the canvas has drawn the image in that box: two frames after the last step
   const tailEnd = () => requestAnimationFrame(() => requestAnimationFrame(() => { if (import.meta.env.DEV && window.__pxBackHold) { window.__pxBackGo = finish; return; } finish(); }));
   const stop = () => { if (tl.progress() < 1) tl.progress(1); };

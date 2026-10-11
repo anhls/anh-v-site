@@ -571,3 +571,11 @@ Newest at the bottom. Keep each entry to 8 lines or fewer: what changed, compare
   Build passes; cached compare542/542 both sizes; six homepage frames0 pixels; composited open endpoint max0 at1920/2560 DPR1/2. Both-theme open/back20ms sheets and per-frame widths/bow table in tools/scratch/r37b-shots/.
   Double click/context loss/wheel, gl=0/reduced/unavailable navigation pass;20 cycles0 transition canvases/contexts/textures;0 page errors; rounded white texture on light background0 dark-fringe pixels after replacing canvas MSAA with shader perimeter AA.
   RTX4080 at4x CPU: median6.9/7.0ms, p957.1ms, initial worst124.9/138.9ms. R37 whole-page rest/return pixel checks remain unverified, script issue. Open question: Anh eye review; reference widths/bow are estimates where overlap/clipping occurs. Exact undo: `git switch work-v2`.
+
+- 2026-10-11 What you will see now: a longer opening, then the picture bends inward and settles before the project appears.
+  Still off: the reference keeps zooming; our small zoom returns to the original crop, as approved.
+  Your decision: Anh approved the returning zoom pulse and rebound on return; final eye review remains yours.
+  Questions resolved: zoom versus exact header, radial sign, weak starting strength, suspected stacking, uncertain optical measurements; details and three-line visual gate in docs/codex/R37c-notes.md.
+  Branch codex/r37-r38; planning84f6817; renderer checkpoint `WIP R37c: add longer move and inward content rebound`; Pushed:84f6817, checkpoint pushed immediately after commit. Move0.6/land0.51/push0.51s; rebound0.3s, multiplier0.6 (start0.15), peak0.2, zoom0.025, back1.
+  Build and cached compare542/542 both sizes; six home frames0; endpoint max0 both sizes/DPR1/2; rebound0 transparent pixels; fallbacks/interruption/context-loss pass;20 cycles0 resources;0 page errors; RTX4080 4x median6.9ms.
+  Changed: src/effects/{bulge-gl,project-transition,tune-docs}.js, src/timeline.js, src/work/tune.js, docs/status.md, docs/codex/R37c-notes.md; planning docs/requests.md, docs/codex/R37c.md, docs/reference/r37c-reference-rebound.png; own scratch helpers/output inventoried in notes. Exact undo: `git switch work-v2`.
