@@ -70,3 +70,20 @@ Read first: CLAUDE.md (house rules), docs/requests.md (open work: the first item
   site to `live`, never change Cloudflare settings, never ask for or store Cloudflare / GitHub tokens.
 - Anh works on a PC and a laptop: pull before starting, push when stopping, one agent per branch at a time. Never copy folders between
   machines.
+
+## 9. Working speed (checks in proportion to the change)
+- Two check tiers:
+  - ITERATING: run only the one or two checks that tell you whether the current change works (e.g. the motion curve at 1920 for a
+    motion change, one screenshot for a layout change). Fast feedback first.
+  - FINAL (once, before the final commit of a request): the full list in the brief.
+- Only check what the change can affect. Examples: no theme / 404 checks unless theme or 404 code changed; leak cycles only when
+  renderer / canvas / listener code changed; homepage identity only when shared code the homepage imports changed; 2 sizes x 2 DPR only
+  for pixel hand-offs. Say in the report which checks you skipped and why (one line).
+- Reuse helpers: shared capture / diff / motion-curve / cycle scripts live in tools/scratch/lib/ (create it from the best existing
+  helpers the first time). Extend them instead of writing a new script per request. Per-request scripts go in tools/scratch/<req>/ and
+  are deleted at the end unless the report links them.
+- Outputs: keep only what the report links (final sheets, curves, one JSON summary). Delete per-frame PNG dumps and intermediate runs
+  before finishing. Target: tools/scratch under ~300 MB.
+- Time budget: aim for ~20-30 minutes per request. Past ~45 minutes, write where you are, commit WIP, push, and report instead of
+  continuing to iterate. A brief may set its own budget.
+- Same-value retries: at most 2 trial edits of the same number, then calculate it from measurements or report (as in CLAUDE.md).
