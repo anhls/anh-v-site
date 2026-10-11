@@ -356,7 +356,7 @@ Codex / other agents: read AGENTS.md, then build from docs/codex/R37d.md (it win
 ## R37e [done] (signed off by Anh 2026-10-11 with flags to revisit, see docs/codex/FLAGS.md) (Work page open / close): option B: the project page carries on the zoom (monotonic, across the page change), idle prepare, .html hand-off fix
 Codex / other agents: read AGENTS.md, then build from docs/codex/R37e.md (Anh approved option B; it wins where the two differ). Finishes R37d. Stop after R37e for Anh's eye check, then R39. Branch codex/r37-r38, push after every commit.
 
-## R40 (structure): separate the code by mode (desktop / phone+tablet) for parallel agents, no visible change
+## R40 [done] (structure): separate the code by mode (desktop / phone+tablet) for parallel agents, no visible change
 Codex or Claude Code (ONE agent, alone): read AGENTS.md, then docs/codex/R40.md. Branch refactor/r40-mode-split from work-v2. After R40 is merged, the desktop and phone/tablet agents work in parallel.
 
 ## R39 (hosting): Cloudflare Pages previews per branch, nothing public until launch

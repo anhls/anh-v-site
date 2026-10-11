@@ -602,3 +602,12 @@ Newest at the bottom. Keep each entry to 8 lines or fewer: what changed, compare
   Still off: the flags in docs/codex/FLAGS.md (bend strength, page-change hold, motion test), to check by eye later.
   Your decision: none now; next is R40 (split the code by desktop / phone+tablet, no visible change), then parallel agents.
   Anh signed off R37e with flags; R37d superseded. work-v2 fast-forwarded to codex/r37-r38 (no merge commit). R39 still open.
+
+- 2026-10-11 What you will see now: the same site, with desktop and phone/tablet code separated for future work.
+  Still off: no new visible differences found; the earlier opening flags remain, and the hosted build could not be confirmed.
+  Your decision: none required for this split; Cowork can review and merge the branch.
+  Choices/shared exceptions/file map/visual gate yes: docs/codex/R40-notes.md; no values or timings changed. Ownership covers all 89 source files; advisory command and separate ports work.
+  Checks: compare542/542 both sizes; 11 snapshots0 pixels/computed styles identical; open/back geometry0 and mean motion differences0.000195/0.000448; drag/coast/snap/toggle/tune pass;0 console errors in13 views; clean-clone npm ci/build pass.
+  Bundles JS557909→562309 bytes, CSS31661→31662; Cloudflare build unverified (no GitHub status; preview redirects to Access). Extra unchanged-policy matrices skipped as listed in notes.
+  Branch refactor/r40-mode-split from work-v2; commits5dd0b8a,c2444ba,5fcc8af,7458c85,f3d059d,4871ba2,28ee354; Pushed:28ee354 (implementation); final `R40: finish mode split with identity and clean-clone checks` pushed immediately after creation.
+  Changed: AGENTS.md, docs/{OWNERS,requests,status}.md, docs/codex/R40-notes.md, index.html, package.json, vite.config.js, tools/{compare,owners-check}.mjs, src/{main,project,timeline,work}.js, src/project/desktop.js, src/settings/{shared,desktop,tall}.js, src/styles/{base,desktop}.css, src/work/{core,mode-desktop,mode-lite}.js; own scratch inventory in notes. Exact undo: `git switch work-v2`.
