@@ -640,3 +640,7 @@ Undo everything: `git switch work-v2`.
   What you will see now: back always shrinks with the bend straight onto the real card, same as from a resting strip. Still off: no sheet against r37-dribbble.mp4 (no decoder; frames exported for Cowork); real phone / 144 Hz screen not checked. Your decision: none.
   Cause: the strip resumed at the raw mid-scroll value and the snap then moved the card under the flight. Fix: strip placed at its rest place before the flight, target read there, fade replaced by a direct swap.
   Checks: last rect vs card max 0.5 px, 0 fading frames, 3 projects x 3 states x 2 back routes x 60 / 144 Hz; compare 542/542; tall smoke ok; max frame gap 20.9 ms.
+- 2026-10-11 23:55, Cowork: R42 + R42b merged into work-v2 (52bd265, build OK); R42c brief written.
+  What you will see now: projects open and close inside the Work page; back lands exactly on its card even mid-scroll.
+  Still off: back bends outward and strongly (reference: gentle inward), lands too fast; open's inward bend near full screen not visible. R42c.
+  Your decision: none now; eye check R42c, then R41 Part B (phone).
