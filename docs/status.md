@@ -611,3 +611,12 @@ Newest at the bottom. Keep each entry to 8 lines or fewer: what changed, compare
   Bundles JS557909→562309 bytes, CSS31661→31662; Cloudflare build unverified (no GitHub status; preview redirects to Access). Extra unchanged-policy matrices skipped as listed in notes.
   Branch refactor/r40-mode-split from work-v2; commits5dd0b8a,c2444ba,5fcc8af,7458c85,f3d059d,4871ba2,28ee354; Pushed:28ee354 (implementation); final `R40: finish mode split with identity and clean-clone checks` pushed immediately after creation.
   Changed: AGENTS.md, docs/{OWNERS,requests,status}.md, docs/codex/R40-notes.md, index.html, package.json, vite.config.js, tools/{compare,owners-check}.mjs, src/{main,project,timeline,work}.js, src/project/desktop.js, src/settings/{shared,desktop,tall}.js, src/styles/{base,desktop}.css, src/work/{core,mode-desktop,mode-lite}.js; own scratch inventory in notes. Exact undo: `git switch work-v2`.
+
+### 2026-10-11 — R37f WIP, stopped for continuity review
+What you will see now: One picture zooms inward without a ghost or black flash; Duhat fills the screen, and the homepage gets only its approved final zoom.
+Still off: A short held frame remains at page changes; the way back currently omits the bend.
+Your decision: Review the remaining hold; this is not finished and the request stays open.
+Build and compare passed (542/542 both sizes); homepage/tall identity passes. Three different continuity fixes tried; stop rule applies.
+Branch desktop/next; Pushed: ac49e50. Later WIP commit and every changed file are listed in docs/codex/R37f-notes.md.
+Normal navigation gap ~34–50 ms; 4× CPU ~78–103 ms at navigation, plus 135 ms setup after settle; clean-clone/preview pending.
+Undo everything: `git switch work-v2`.

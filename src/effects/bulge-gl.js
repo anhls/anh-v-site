@@ -21,7 +21,7 @@ export function workFlight(start, end, back = false, t0 = Date.now()) {
     const size = (3 - carry) * u * u + (carry - 2) * u * u * u;
     const lensU = Math.max(0, Math.min(1, (time - land) / Math.max(.01, T.lensSec)));
     const lens = back && !T.backRebound ? 0 : -T.bulgeAmp * T.reboundAmp * 6.75 * lensU * (1 - lensU) ** 2;
-    // Introduce the zoom-out pose during growth, never as a step at full screen.
+    // Cover at scale 1 through growth; zoom only inward after landing.
     const zoom = time < land ? 1 : flightZoom(record, t0 + time * 1000);
     return { size, bump: pillowBump(time / T.workSec), content: { lens, zoom: zoom - 1, framed: true } };
   } };

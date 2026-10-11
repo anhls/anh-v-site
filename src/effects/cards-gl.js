@@ -316,6 +316,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     const make = window.createImageBitmap ? createImageBitmap(src, { premultiplyAlpha: 'premultiply', imageOrientation: 'from-image' }) : Promise.resolve(src);
     make.then((bmp) => { inflight--; pending.push([i, bmp]); }).catch(() => { inflight--; loading[i] = 0; });
   };
+  let uploadsPaused = false;
   const flushOne = () => {
     if (!pending.length) return;
     const [i, bmp] = pending.shift();
@@ -520,13 +521,15 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
 
     // textures: ask for the ones near the screen (1.5 screens), upload one per frame, release the far ones when over budget
     const reach = H * 1.5;
-    for (let i = 0; i < n; i++) {
-      const cy = by[i] - sy + oy[i];
-      const near = nearFn ? nearFn(i) : cy + bh[i] / 2 > -reach && cy - bh[i] / 2 < H + reach;
-      if (near) wantTexture(i);
-      else if (used > BEND.textureBudgetMb * 1048576 && (nearFn || cy + bh[i] / 2 < -reach * 2 || cy - bh[i] / 2 > H + reach * 2)) release(i);
+    if (!uploadsPaused) {
+      for (let i = 0; i < n; i++) {
+        const cy = by[i] - sy + oy[i];
+        const near = nearFn ? nearFn(i) : cy + bh[i] / 2 > -reach && cy - bh[i] / 2 < H + reach;
+        if (near) wantTexture(i);
+        else if (used > BEND.textureBudgetMb * 1048576 && (nearFn || cy + bh[i] / 2 < -reach * 2 || cy - bh[i] / 2 > H + reach * 2)) release(i);
+      }
+      flushOne();
     }
-    flushOne();
 
     const step = Math.floor(performance.now() / 1000 * BEND.grainRate);
     const grainOn = BEND.grain > 0;
@@ -534,7 +537,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     if (bendNow) dirty = true;
     for (let i = 0; i < n; i++) if (isVideo[i]) {
       const cy = by[i] - sy + oy[i];
-      if (cy + bh[i] / 2 > -H * 0.25 && cy - bh[i] / 2 < H * 1.25 && uploadVideo(i)) dirty = true;
+      if (cy + bh[i] / 2 > -H * 0.25 && cy - bh[i] / 2 < H * 1.25 && !uploadsPaused && uploadVideo(i)) dirty = true;
     }
     if (!dirty) return bendNow;
     dirty = false;
@@ -615,6 +618,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     reweigh: () => { computeWeights(); dirty = true; }, // after a depth-bell change in the tuning panel
     bend: () => bend,
     bendImg: () => bendI,
+    pauseUploads: (paused) => { uploadsPaused = paused; },
     has: (i) => !!tex[i],
     coverRatio: (i) => (aspect[i] ? (bw[i] / bh[i]) * (cover[i * 4 + 1] / cover[i * 4]) / aspect[i] : 0), // R24i check: drawn picture's x scale / y scale (1 = no stretch)
     stats: () => ({ textureMb: used / 1048576, loaded: tex.filter(Boolean).length, bend: bend.x, bendRaw: bend.x }),

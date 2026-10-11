@@ -1,7 +1,7 @@
 import { FLIGHT } from '../settings/shared.js';
 
 // This pure function is copied verbatim into the seven first-paint hand-off scripts.
-// tools/scratch/r37e-check.mjs verifies those copies, including intermediate samples.
+// The first-paint copies use this same elapsed-time curve at every refresh rate.
 export function flightZoom(flight, now) {
   var u = Math.max(0, Math.min(1, (now - flight.t0 - flight.land * 1000) / (flight.tail * 1000)));
   return 1 + (flight.zEnd - 1) * (1 - Math.pow(1 - u, 3));

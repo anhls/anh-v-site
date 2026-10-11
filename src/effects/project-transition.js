@@ -1,5 +1,6 @@
 import { createBulge, workFlight } from './bulge-gl.js';
 import { gsap } from 'gsap';
+import { FLIGHT } from '../settings/shared.js';
 import { TRANSITION as T } from '../timeline.js';
 import { EASES } from '../util/ease.js';
 import { imgSet } from '../util/media.js';
@@ -44,10 +45,12 @@ export function leavePrepared() {
 export function prepareIdleTransition(slug, ref, image) {
   if (idleTask) (window.cancelIdleCallback || clearTimeout)(idleTask);
   idleTask = (window.requestIdleCallback || ((f) => setTimeout(f, 80)))(() => {
-    idleTask = 0; prepareTransition(slug, ref, image);
+    idleTask = 0; prepareTransition(slug, ref, image, 'idle');
   }, {timeout:1200});
 }
-export function prepareTransition(slug, ref, image) {
+export function prepareTransition(slug, ref, image, trigger = 'hover') {
+  const policy = transitionPolicy();
+  if (!policy.bulge || (policy.prepare === 'tap' && trigger !== 'tap') || (policy.prepare === 'idle' && trigger === 'hover')) return;
   if (!transitionOK() || (transitionPolicy().prepare === 'hover' && !matchMedia('(hover:hover) and (pointer:fine)').matches)) return;
   clearTimeout(leaveTimer);
   if ((prepared?.slug === slug && !prepared.renderer.dead) || pendingSlug === slug) return;
@@ -82,6 +85,11 @@ function takePrepared(slug, root, box) {
   hit.renderer.adopt(root, box); hit.host.remove(); pm('fwd:prepared-used'); return hit.renderer;
 }
 addEventListener('pagehide', disposePrepared);
+
+function wordmarkRecord() {
+  const wm = document.querySelector('a.wordmark');
+  return wm ? {src:wm.querySelector('img')?.getAttribute('src'), style:wm.style.cssText + `position:fixed;left:0;top:0;width:${wm.offsetWidth}px;height:${wm.offsetHeight}px;z-index:9`} : undefined;
+}
 
 let running = false;
 // rect = { x, y, w, h } (viewport px) of the picture on screen; startSrc = the file it shows now; crossfade = the start picture is not the header image
@@ -124,8 +132,7 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
     navigating = true; pm('fwd:navigate');
     // Fixed URL: never let first paint choose a different responsive image.
     flight.record.image = {src:headerFile()};
-    const wm = document.querySelector('a.wordmark');
-    if (wm) flight.record.wordmark = {src:wm.querySelector('img')?.getAttribute('src'), style:wm.style.cssText + `position:fixed;left:0;top:0;width:${wm.offsetWidth}px;height:${wm.offsetHeight}px;z-index:9`};
+    flight.record.wordmark = wordmarkRecord();
     try {
       sessionStorage.setItem('pxt', JSON.stringify({slug, src:headerFile(), t:Date.now(), flight:flight.record, wm:document.querySelector('a.wordmark')?.classList.contains('is-link') ? 1 : 0}));
       sessionStorage.setItem('pxb', JSON.stringify({slug, src:headerFile(), zEnd:flight.record.zEnd, origin:'work', blackMax:T.blackMax, mode:fromWork.mode, projectIndex:fromWork.projectIndex, t:Date.now()}));
@@ -151,7 +158,7 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
       if (state?.content) a.style.transform = `scale(${1 + state.content.zoom})`;
       bulge?.draw({ x: rect.x * (1 - e), y: rect.y * (1 - e), w: rect.w + (W - rect.w) * e, h: rect.h + (H - rect.h) * e }, undefined, state?.bump || 0, flight ? 0 : (prog.p - (1 - T.bulgeHandoff)) / T.bulgeHandoff, false, state?.content);
       if (onPush) { const u = Math.min(1, (prog.p * duration) / Math.max(pushSec, 0.01)); onPush(ease(u), u); }
-      if (crossfade) { const q = Math.min(1, Math.max(0, (prog.p - T.crossFrom) / Math.max(T.crossTo - T.crossFrom, 0.01))); const s = q * q * (3 - 2 * q); b.style.opacity = s; a.style.opacity = 1 - s * (b.complete ? 1 : 0); }
+      if (!flight && crossfade) { const q = Math.min(1, Math.max(0, (prog.p - T.crossFrom) / Math.max(T.crossTo - T.crossFrom, 0.01))); const s = q * q * (3 - 2 * q); b.style.opacity = s; a.style.opacity = 1 - s * (b.complete ? 1 : 0); }
       if (state?.content && prog.p * duration > flight.land + T.lensSec * .5 && !(import.meta.env.DEV && window.__pxHold)) {
         const displacement = Math.max(W,H) * .5 * (2 * Math.abs(state.content.lens)) * (devicePixelRatio || 1);
         if (displacement < T.navigationMaxPx) navigateFlight();
@@ -169,7 +176,8 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
     bulge?.dispose(); bulge = null;
     if (flight) removeEventListener('pagehide', hideFlight);
     if (navigating) return;
-    try { sessionStorage.setItem('pxt', JSON.stringify({ slug, src: headerFile(), t: Date.now(), ...(flight ? {flight:flight.record} : {}), wm: document.querySelector('a.wordmark')?.classList.contains('is-link') ? 1 : 0 })); } catch { /* private window: the page just loads */ }
+    const homeFlight = !fromWork ? { t0: Date.now(), land: 0, tail: T.zoomTailSec, zEnd: FLIGHT.zEnd, wordmark: wordmarkRecord() } : null;
+    try { sessionStorage.setItem('pxt', JSON.stringify({ slug, src: headerFile(), t: Date.now(), ...((flight || homeFlight) ? {flight:flight?.record || homeFlight} : {}), wm: document.querySelector('a.wordmark')?.classList.contains('is-link') ? 1 : 0 })); } catch { /* private window: the page just loads */ }
     if (fromWork) { try { sessionStorage.setItem('pxb', JSON.stringify({ slug, src: headerFile(), zEnd:flight?.record.zEnd || 1, origin: 'work', blackMax: T.blackMax, mode: fromWork.mode, projectIndex: fromWork.projectIndex, t: Date.now() })); } catch { /* plain load on the way back */ } } else { try { sessionStorage.removeItem('pxb'); } catch { /* */ } }
     if (import.meta.env.DEV && window.__pxHold) { window.__pxGo = () => { location.href = `/work/${slug}.html`; }; return; } // dev checks: hold the last overlay frame
     location.href = `/work/${slug}.html`;
@@ -235,7 +243,7 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
   const flight = workFlight(target, B, true);
   const A = target, ease = EASES.cubic, bgMax = rec.blackMax ?? 1;
   const duration = flight.total;
-  // The reverse DOM image is already decoded. No context/shader/upload on its clock.
+  // Reverse uses the decoded DOM image: no context creation/upload on its clock.
   const ready = () => {};
   im.addEventListener("load", ready, { once: true });
   const lerp = (a, b, e) => a + (b - a) * e;

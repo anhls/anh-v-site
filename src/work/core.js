@@ -504,7 +504,7 @@ stage.addEventListener('click', (e) => {
   const it = items.find((q) => q.el === a), i = it.idx, sc = ui ? 1 : gl.hs[i] || 1; // (R33: v2 reads the UNSCALED frame; the hover growth eases back to 1 as the transition starts)
   e.preventDefault();
   const w = bw[i] * sc, h = bh[i] * sc;
-  runProjectTransition({ slug: it.slug, ref: it.ref, rect: { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, startImage: it.img, startSrc: it.img.currentSrc || it.img.src, fade: fadeEls, fromWork: { mode: vertical ? 'vertical' : 'side', projectIndex: it.proj }, onPush: (p, u) => { if (clearMode()) TC.u = u; else if (TRANSITION.pushScale > 0) TP.p = TP.p0 + (TRANSITION.pushScale - TP.p0) * p; }, onStart: () => { transitionBusy = true; loadGate = true; pm('fwd:click'); lenis.stop(); nameEl.style.zIndex = '9'; TP.q = it.proj; TP.p0 = fPu.x[it.proj]; TP.p = TP.p0; TP.hold = TRANSITION.pushScale > 0 || clearMode(); if (clearMode()) { TC.u = 0; prepareClear(it.proj); } } }); // (the project name stays above the growing picture and fades with the rest)
+  runProjectTransition({ slug: it.slug, ref: it.ref, rect: { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, startImage: it.img, startSrc: it.img.currentSrc || it.img.src, fade: fadeEls, fromWork: { mode: vertical ? 'vertical' : 'side', projectIndex: it.proj }, onPush: (p, u) => { if (clearMode()) TC.u = u; else if (TRANSITION.pushScale > 0) TP.p = TP.p0 + (TRANSITION.pushScale - TP.p0) * p; }, onStart: () => { transitionBusy = true; loadGate = true; gl?.pauseUploads(true); pm('fwd:click'); lenis.stop(); nameEl.style.zIndex = '9'; TP.q = it.proj; TP.p0 = fPu.x[it.proj]; TP.p = TP.p0; TP.hold = TRANSITION.pushScale > 0 || clearMode(); if (clearMode()) { TC.u = 0; prepareClear(it.proj); } } }); // (the project name stays above the growing picture and fades with the rest)
 });
 addEventListener('wheel', () => { inertia = null; }, { capture: true, passive: true });
 addEventListener('wheel', cancelSnap, { capture: true, passive: true });
@@ -750,7 +750,7 @@ const tick = (_time, deltaMs) => {
     if (moving) lastDirty = now;
     if (moving || now - lastDirty < 80) gl.markDirty();
     const drawSpeed = mode.drawSpeed(vel, L.M.viewAlong);
-    if (!transitionBusy) gl.draw(0, dt, drawSpeed, scale, vel);
+    gl.draw(0, dt, drawSpeed, scale, vel);
     if (rendererPending && items.every((it,i) => !shownA[i] || gl.has(i))) {
       rendererPending = false; gl.show(true); gl.markDirty(); gl.draw(0, 0, 0, scale, 0);
       root.classList.add('work--gl');

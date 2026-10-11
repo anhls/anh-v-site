@@ -105,6 +105,10 @@
     <script>if (window.__paintPxt) { window.__paintPxt(); delete window.__paintPxt; }</script>
     <a class="skip" href="#app">Skip to content</a>
     <main id="app" tabindex="-1"></main>
-    <script type="module" src="/src/project.js"></script>
+    <script type="module">
+      // First paint and zoom run without parsing/building the project module graph.
+      if (window.__pxtFlightDone) await window.__pxtFlightDone;
+      await import('/src/project.js');
+    </script>
   </body>
 </html>
