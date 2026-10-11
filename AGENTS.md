@@ -44,3 +44,29 @@ Read first: CLAUDE.md (house rules), docs/requests.md (open work: the first item
 - Then at most 5 technical lines (final values vs start values, checks, "Pushed: <hash>", the undo command). Longer detail goes in
   docs/codex/<request>-notes.md.
 - Mark the request [done] in docs/requests.md (heading only).
+
+## 7. Motion: continuity, timing, refresh rate (learned on R37-R37d)
+- Measure motion, do not only look: record frames (60 fps or more) from the trigger to the final settle and compute the per-frame motion
+  curve (mean absolute difference between consecutive greyscale frames). Do the same for the reference and compare the SHAPES.
+- No stop-then-go: continuous means continuous SPEED. A phase that eases to zero and then starts a new phase is a bug, even if every
+  position is right. Judge dips RELATIVE TO THE REFERENCE's own curve (drop its duplicate frames first: exported reference videos often
+  repeat frames), not against an absolute threshold the reference itself would fail.
+- Anything that reverses direction (a pulse that returns) passes through zero speed: if continuity matters, prefer monotonic motion
+  that settles, or carry the motion into the next page instead of reversing it.
+- Click / tap responsiveness: the first frame after a trigger must be under ~20 ms. Heavy setup (WebGL context, shader compile, texture
+  upload) happens BEFORE the trigger (hover, idle, after load), sliced so it never makes a visible hitch either. Judge hitches at real
+  speed first, then at 4x CPU throttle as a stress check; report both.
+- Refresh rate: Anh's desktop is 144 Hz (4K), his laptop Full HD (60 Hz). All motion must be time-based (elapsed time / dt, exact
+  springs, GSAP timelines), never "move X % per frame" or frame counts. For motion work, run the motion test at simulated 60 and 144 Hz
+  (e.g. throttle / pace requestAnimationFrame in Playwright) and confirm the curves match in time.
+- Anh's screen recordings are usually 60 fps: good for spotting stops and hitches, not for judging 144 Hz smoothness.
+- Planner formulas and numbers are starting points. If they produce a visibly wrong result (examples so far: an expo-out ease that
+  popped, a lens sign that bent the wrong way, a 15 % strength that was invisible), say so and fix toward the reference.
+
+## 8. Hosting and machines
+- Every push builds a PRIVATE preview on Cloudflare Pages: `<branch>.anh-v-site.pages.dev` (branch name lowercased, `/` -> `-`),
+  behind a Cloudflare Access login, noindex. Use it for Anh's phone / laptop checks.
+- `live` is the public production branch and is EMPTY on purpose until launch (unreleased client work in the repo). Never push the
+  site to `live`, never change Cloudflare settings, never ask for or store Cloudflare / GitHub tokens.
+- Anh works on a PC and a laptop: pull before starting, push when stopping, one agent per branch at a time. Never copy folders between
+  machines.

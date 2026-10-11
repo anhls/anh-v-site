@@ -1,6 +1,7 @@
 # anh-v.com rebuild
 
 Read these before doing anything:
+0. AGENTS.md: standing rules for EVERY agent, Claude Code included (question the brief, the "looks right?" gate, motion continuity and refresh rate, proportionate strictness, stop rules, git/push rules, hosting, plain-language report). It is loaded below.
 1. docs/HANDOFF.md: full brief, decisions, exact behaviors to reproduce.
 2. docs/requests.md: open tasks. Work on the first one not marked done.
 3. docs/status.md: what's already built and decided.
@@ -42,3 +43,6 @@ General: animate only transform and opacity where possible. The hero mask's widt
 - Small leftovers: if a remaining mismatch is small and hard to see, log it as a known difference and move on instead of looping.
 - Second context compaction in one session: stop after the current item, log, commit, report.
 - status.md entries: 8 lines max. When a request is done, move it from requests.md into docs/archive/.
+
+## Standing rules for all agents
+@AGENTS.md

@@ -20,6 +20,8 @@ Planner: <who>, <date>. Builder: any agent. AGENTS.md applies. This brief wins o
 
 ## Checks
 - Build, compare 542/542 at 1920 and 2560 (dark), 0 console errors, fallbacks (?gl=0, reduced motion), plus request-specific ones.
+- Motion work: per-frame motion curve ours vs reference (AGENTS.md section 7), first frame after the trigger < ~20 ms, curves match at simulated 60 and 144 Hz.
+- Check on the private preview link too (AGENTS.md section 8) when the change is visual.
 
 ## Assumptions and likely misreadings
 - A1 ...
