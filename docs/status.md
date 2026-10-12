@@ -653,3 +653,12 @@ Undo everything: `git switch work-v2`.
   Build/clean clone pass; compare542/542 both sizes; 12 landing cases max0.5px/0 fades/0 errors; tall smoke pass; first response4.6ms normal/23.9ms4x.
   Pushed:84f8614,5a586b3; report checkpoint HEAD pushed immediately after creation. Cloudflare build unverified (Access login).
   Undo everything: `git switch work-v2`.
+
+- 2026-10-12 — R42c Part B review candidate, codex/r42c-bend.
+  What you will see now: every tested click plays the full clear inward bend, including quick clicks and clicks after scrolling or going back.
+  Still off: a cold click can wait about 1.2 seconds before motion (2.1 seconds on slowed CPU); the first-frame proxy reached 24 ms at 60 Hz.
+  Your decision: eye check the clear version; clear versus subtle stays deferred, and R42c remains open for review.
+  150/150 renderer uses/animations: 50 each at60/144Hz and4x; normalised growth samples identical,0 errors. Full details/evidence/files: docs/codex/R42c-notes.md.
+  Compare542/542 both sizes;12 midscroll cases max0.5px/0 fades; tall smoke pass; clean-clone npm ci/build pass; refreshed sheets/curves inspected, reference match partly.
+  Pushed:100d9d8 (brief merge),1be3b07 (implementation); final review record pushed immediately after commit. Cloudflare unverified (no GitHub status). Homepage/theme/404 checks skipped per brief.
+  Undo branch use: `git switch work-v2`.
