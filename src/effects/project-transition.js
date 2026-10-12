@@ -40,6 +40,7 @@ export function disposePrepared() {
   prepared?.renderer.dispose(); prepared?.host.remove(); prepared = null;
 }
 export function leavePrepared() {
+  if (running) return;
   clearTimeout(leaveTimer); leaveTimer = setTimeout(disposePrepared, T.hoverDisposeMs);
 }
 export function prepareIdleTransition(slug, ref, image) {
@@ -49,20 +50,21 @@ export function prepareIdleTransition(slug, ref, image) {
   }, {timeout:1200});
 }
 export function prepareTransition(slug, ref, image, trigger = 'hover') {
+  if (running && trigger !== 'click') return;
   const policy = transitionPolicy();
-  if (!policy.bulge || (policy.prepare === 'tap' && trigger !== 'tap') || (policy.prepare === 'idle' && trigger === 'hover')) return;
+  if (!policy.bulge || (policy.prepare === 'tap' && trigger !== 'tap' && trigger !== 'click') || (policy.prepare === 'idle' && trigger === 'hover')) return;
   if (!transitionOK() || (transitionPolicy().prepare === 'hover' && !matchMedia('(hover:hover) and (pointer:fine)').matches)) return;
   clearTimeout(leaveTimer);
   if ((prepared?.slug === slug && !prepared.renderer.dead) || pendingSlug === slug) return;
   disposePrepared(); pendingSlug = slug; const token = prepareToken, hdr = preloadHeader(slug, ref);
   prepareTimer = setTimeout(async () => {
     try { await hdr.decode(); } catch { /* use the decoded Work picture */ }
-    if (token !== prepareToken || running) return;
+    if (token !== prepareToken || (running && trigger !== 'click')) return;
     const selected = hdr.complete && hdr.naturalWidth ? hdr : image;
     // Bitmap crop coordinates use source pixels, not srcset's density-corrected naturalWidth.
     const source = new Image(); source.decoding = 'async'; source.src = selected.currentSrc || selected.src;
     try { await source.decode(); } catch { pendingSlug = null; return; }
-    if (token !== prepareToken || running) return;
+    if (token !== prepareToken || (running && trigger !== 'click')) return;
     const host = document.createElement('div'), placeholder = document.createElement('div');
     host.style.cssText = 'position:fixed;inset:0;visibility:hidden;pointer-events:none'; host.append(placeholder); document.body.append(host);
     pm('fwd:prepare-start');
@@ -70,12 +72,21 @@ export function prepareTransition(slug, ref, image, trigger = 'hover') {
     if (!renderer) { pendingSlug = null; host.remove(); return; }
     renderer.canvas.style.visibility = 'hidden';
     const entry = { slug, host, renderer, ready: false }; prepared = entry;
-    try { if (!await renderer.prepareTexture(source) || prepared !== entry) return; } catch { if (prepared === entry) disposePrepared(); return; }
+    try { if (!await renderer.prepareTexture(source) || prepared !== entry) { if (prepared === entry) disposePrepared(); return; } } catch { if (prepared === entry) disposePrepared(); return; }
     renderer.draw({x:0,y:0,w:innerWidth,h:innerHeight});
     await new Promise(requestAnimationFrame);
     if (prepared !== entry || renderer.dead) return;
     pendingSlug = null; entry.ready = true; renderer.canvas.dataset.prepared = 'ready'; pm('fwd:prepared');
-  }, T.hoverPrepareMs);
+  }, trigger === 'click' ? 0 : T.hoverPrepareMs);
+}
+// A cold click finishes the same preparation path; it never selects a flat flight.
+export async function ensurePrepared(slug, ref, image) {
+  if (prepared?.slug === slug && prepared.ready && !prepared.renderer.dead) return;
+  disposePrepared();
+  prepareTransition(slug, ref, image, 'click');
+  const token = prepareToken;
+  while (token === prepareToken && pendingSlug === slug) await new Promise(requestAnimationFrame);
+  if (!(prepared?.slug === slug && prepared.ready && !prepared.renderer.dead)) throw new Error('Bend renderer unavailable');
 }
 function takePrepared(slug, root, box) {
   clearTimeout(prepareTimer); clearTimeout(leaveTimer); prepareToken++; pendingSlug = null;
@@ -96,14 +107,14 @@ let running = false;
 // (homepage frame); onPush(p) = the push-away progress 0..1 (Work page: work.js moves the cards); fromWork = { mode, projectIndex } for the way back; imgRect = where the start picture's own box is (the homepage still is a little larger than the frame it is clipped by); fade = elements that fade out with the rest (Work counter / toggle); onStart / onEnd for the caller (Lenis stop etc.).
 // R42: inPlace = { show(): Promise (the project page is built in this document: show it, resolve when its header is decoded), done(), fail(err) }: the flight ends by
 // showing the page under the overlay instead of navigating (no hand-off through sessionStorage, no document switch).
-export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc, startImage, crossfade = false, fade = [], onStart, onPush, fromWork, inPlace }) {
+export async function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc, startImage, crossfade = false, fade = [], onStart, onPush, fromWork, inPlace }) {
   if (running) return;
   running = true;
   onStart?.();
-  const W = innerWidth, H = innerHeight, t0 = Date.now();
+  const W = innerWidth, H = innerHeight; let t0 = Date.now();
   const hdr = preloadHeader(slug, ref);
   const sec = fromWork ? T.workSec : T.sec, pushSec = fromWork ? T.workPushSec : T.pushSec;
-  const flight = fromWork && transitionPolicy().enabled ? workFlight(rect, {w:W,h:H}, false, t0) : null;
+  let flight = null;
   const rel = { x: imgRect.x - rect.x, y: imgRect.y - rect.y, w: imgRect.w, h: imgRect.h }; // the start picture's box in the clip box's coordinates
   const root = document.createElement('div');
   root.className = 'px';
@@ -116,6 +127,18 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
     </div>`;
   document.body.append(root);
   const bg = root.querySelector('.px__bg'), box = root.querySelector('.px__box'), a = root.querySelector('.px__a'), b = root.querySelector('.px__b');
+  if (fromWork && transitionPolicy().bulge) {
+    // Paint feedback before cold texture/shader work. Keep the picture at its original crop.
+    root.style.cursor = 'progress';
+    pm('fwd:ready-wait');
+    if (!(prepared?.slug === slug && prepared.ready && !prepared.renderer.dead)) await new Promise(requestAnimationFrame);
+    try { await ensurePrepared(slug, ref, startImage); }
+    catch (err) { root.remove(); running = false; if (inPlace) inPlace.fail?.(err); else location.href = `/work/${slug}.html`; return; }
+    root.style.cursor = '';
+  }
+  t0 = Date.now();
+  flight = fromWork && transitionPolicy().enabled ? workFlight(rect, {w:W,h:H}, false, t0) : null;
+  pm('fwd:animation-start');
   let bulge = fromWork && transitionPolicy().enabled ? (transitionPolicy().bulge ? takePrepared(slug, root, box) : null) : null;
   bulge?.draw(rect);
   const headerFile = () => hdr.currentSrc || hdr.src;

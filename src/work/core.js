@@ -52,6 +52,16 @@ window.scrollTo(0, 0);
 const params = new URLSearchParams(location.search);
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const warpForce = params.get('warp') === '1';
+// Anchors can paint before the asynchronous nav/layout setup has installed the flight handler.
+let earlyClick = null;
+const queueEarlyClick = (e) => {
+  const a = e.target.closest?.('a.work__frame');
+  if (!a || !transitionOK() || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  e.preventDefault(); e.stopImmediatePropagation(); earlyClick = a;
+  a.style.cursor = 'progress';
+};
+document.addEventListener('click', queueEarlyClick, true);
+
 const v2 = mode.v2;
 const geo = mode.geometry;
 const noCards = mode.noCards;
@@ -501,19 +511,23 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) endDr
 addEventListener('click', (e) => { if (!paused && dragMoved) { e.preventDefault(); e.stopPropagation(); dragMoved = false; } }, { capture: true });
 // R25: a click on a main image grows that picture into the project page's header (cards keep a plain page load)
 items.forEach((it) => { if (it.kind === 'frame') { it.el.addEventListener('pointerenter', () => { preloadHeader(it.slug, it.ref); if (glOn) prepareTransition(it.slug, it.ref, it.img); }); it.el.addEventListener('pointerleave', leavePrepared); } });
-addEventListener('wheel', () => { if (!paused) disposePrepared(); }, {passive:true});
-// R42: the project opens INSIDE this document when the page-swap module is loaded (idle after load, or on the first pointer-over); until then, and for
-// reduced motion / ?gl=0 / no WebGL, it is the plain navigation (with the R37f flight where the policy allows).
+addEventListener('wheel', () => { if (!paused && !transitionBusy) { disposePrepared(); lastIdx = -1; } }, {passive:true});
+// R42c: wait for the same-document router on an early click; reduced motion / ?gl=0 / no WebGL retain plain navigation.
 const swap = createPageSwap();
 const openStart = (it) => { transitionBusy = true; loadGate = true; gl?.pauseUploads(true); pm('fwd:click'); lenis.stop(); nameEl.style.zIndex = '9'; TP.q = it.proj; TP.p0 = fPu.x[it.proj]; TP.p = TP.p0; TP.hold = TRANSITION.pushScale > 0 || clearMode(); if (clearMode()) { TC.u = 0; prepareClear(it.proj); } }; // (the project name stays above the growing picture and fades with the rest)
-stage.addEventListener('click', (e) => {
+stage.addEventListener('click', async (e) => {
   const a = e.target.closest('a.work__frame');
-  if (paused || !a || morph || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  if (paused || transitionBusy || !a || morph || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
   const it = items.find((q) => q.el === a), i = it.idx;
-  const inPlace = glOn && !reduced && params.get('gl') !== '0' && swap.ready();
+  let inPlace = glOn && !reduced && params.get('gl') !== '0';
   if (!inPlace && !(glOn && transitionOK())) return;
   const sc = ui ? 1 : gl.hs[i] || 1; // (R33: v2 reads the UNSCALED frame; the hover growth eases back to 1 as the transition starts)
   e.preventDefault();
+  if (inPlace && !swap.ready()) {
+    openStart(it); a.style.cursor = 'progress';
+    await swap.warm(); a.style.cursor = '';
+    inPlace = swap.ready();
+  }
   const w = bw[i] * sc, h = bh[i] * sc;
   const flight = transitionOK() ? { slug: it.slug, ref: it.ref, rect: { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, startImage: it.img, startSrc: it.img.currentSrc || it.img.src, fade: fadeEls, fromWork: { mode: vertical ? 'vertical' : 'side', projectIndex: it.proj }, onPush: (p, u) => { if (clearMode()) TC.u = u; else if (TRANSITION.pushScale > 0) TP.p = TP.p0 + (TRANSITION.pushScale - TP.p0) * p; }, onStart: () => openStart(it) } : null;
   if (inPlace && swap.open({ slug: it.slug, ref: it.ref, flight, begin: () => openStart(it), image: it.img })) return;
@@ -569,7 +583,7 @@ swap.attach({
     if (glOn && cit) setTimeout(() => { if (!paused && !TC.on && TP.q < 0) { prepareIdleTransition(cit.slug, cit.ref, cit.img); swap.prebuild(cit.slug); } }, 400);
   },
 });
-(window.requestIdleCallback || ((f) => setTimeout(f, 1500)))(() => swap.warm(), { timeout: 3000 });
+setTimeout(() => swap.warm(), 0);
 items.forEach((it) => { if (it.kind === 'frame') it.el.addEventListener('pointerenter', () => { swap.warm().then(() => swap.prebuild(it.slug)); }); });
 addEventListener('wheel', () => { if (!paused) inertia = null; }, { capture: true, passive: true });
 addEventListener('wheel', () => { if (!paused) cancelSnap(); }, { capture: true, passive: true });
@@ -785,7 +799,7 @@ const tick = (_time, deltaMs) => {
     const it = items.find(it => it.kind === 'frame' && it.slug === projects[idx].slug);
     preloadHeader(projects[idx].slug, heroRef(projects[idx]));
     if (glOn && it) { prepareIdleTransition(it.slug, it.ref, it.img); swap.prebuild(it.slug); }
-  }, 1800); /* R25: the centred project's header image is fetched once it rests */ if (!ui) countEl.textContent = `${String(idx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`; }
+  }, 180); /* R42c: the centred project's header image is fetched once it rests */ if (!ui) countEl.textContent = `${String(idx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`; }
 
   if (ui) { // R32 / R33c: the text field, counter and ruler. SCROLL STOP = no input for scrollStopSec (a coasting drag counts as moving until it is slower than scrollStopSpeed), the strip may still
     // be gliding / snapping to its image: the project it is HEADING to is then the active one.
@@ -941,6 +955,13 @@ if (back) {
   })();
 }
 document.title = 'Work | Anh V';
+document.removeEventListener('click', queueEarlyClick, true);
+if (earlyClick) {
+  earlyClick.style.cursor = '';
+  earlyClick.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
+  earlyClick = null;
+}
+
 if (import.meta.env.DEV) {
   window.__SMEAR = WORK_SMEAR; window.__LINE = WORK_LINE; window.__V2 = WORK_V2; window.__TEXT = WORK_TEXT; window.__PTRCFG = WORK_PTR; window.__SCROLL = SCROLL; window.__WORK = WORK; window.__TRANSITION = TRANSITION; window.__TALL = mode.debugSettings; window.__guard = guard; window.__bendP = bendP;
   window.__work = { ui, get ptr() { return ptrFx; }, get hz() { return hzA; }, setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, q: Q, PS,  get snap() { return snap; }, AMB, LEAD, get drag() { return drag; }, get inertia() { return inertia; }, fP, fSc, fPu, get kCount() { return kCount; }, bx, by, bw, bh, vis, hp };
