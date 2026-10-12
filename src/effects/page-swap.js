@@ -7,7 +7,7 @@ import { gsap } from 'gsap';
 import { FLIGHT } from '../settings/shared.js';
 import { TRANSITION as T } from '../timeline.js';
 import { isTall } from '../util/layout-mode.js';
-import { runProjectTransition, playBack, transitionOK, prepareIdleTransition, preloadHeader } from './project-transition.js';
+import { runProjectTransition, playBack, transitionOK, holdBack, releaseBack, preloadHeader } from './project-transition.js';
 
 const SLUG = /\/work\/([^/]+?)(?:\.html)?\/?$/;
 const slugOfPath = (p) => { const m = p.match(SLUG); return m && m[1] !== 'index' ? m[1] : null; };
@@ -43,10 +43,10 @@ export function createPageSwap() {
       ctl.pause();
       v.show({ wmSmall });
     };
-    const fail = (err) => { try { console.error('[page-swap]', err); } catch { /* */ } try { v.destroy(); } catch { /* */ } view = null; state = 'work'; hard(slug); };
+    const fail = (err) => { try { console.error('[page-swap]', err); } catch { /* */ } releaseBack(); try { v.destroy(); } catch { /* */ } view = null; state = 'work'; hard(slug); };
     const done = () => {
       state = 'project';
-      prepareIdleTransition(slug, ref, v.heroImg || imageNow); // the renderer that draws the way back with the bend
+      holdBack(slug, v.headerSrc()); // R42c: the renderer that draws the way back with the bend stays alive while the page is open (the flight hands its own over)
       if (wantBack) back();
     };
     if (flight) runProjectTransition({ ...flight, inPlace: { show: land, done, fail } });
@@ -61,10 +61,21 @@ export function createPageSwap() {
     if (viaHistory) { try { history.back(); return; } catch { /* fall through */ } }
     state = 'closing';
     const v = view, slug = slugNow;
-    const leave = v.backRecord();
     const animate = transitionOK(); // (lite with the effect off, reduced motion, ?gl=0: back is instant, same project, same place)
+    // R42c: header scrolled away: the page glides to the top first (time-based; into the shrink without a stop), then the shrink plays from the full-screen pose
+    if (animate && scrollY > 1 && v.glideTop) {
+      const sec = T.backGlideSec * Math.min(1, Math.max(T.backGlideMin, scrollY / innerHeight));
+      v.glideTop(() => finishBack(v, slug), sec);
+      return;
+    }
+    finishBack(v, slug);
+  }
+  function finishBack(v, slug) {
+    const leave = v.backRecord();
+    const animate = transitionOK();
     const shrink = leave.mode === 'shrink';
     if (!animate) {
+      releaseBack();
       try { v.destroy(); } catch { /* */ }
       ctl.resume({ slug, shrink: false });
       requestAnimationFrame(() => { ctl.finish(); view = null; state = 'work'; });
