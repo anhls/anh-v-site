@@ -662,3 +662,11 @@ Undo everything: `git switch work-v2`.
   Compare542/542 both sizes;12 midscroll cases max0.5px/0 fades; tall smoke pass; clean-clone npm ci/build pass; refreshed sheets/curves inspected, reference match partly.
   Pushed:100d9d8 (brief merge),1be3b07 (implementation); final review record pushed immediately after commit. Cloudflare unverified (no GitHub status). Homepage/theme/404 checks skipped per brief.
   Undo branch use: `git switch work-v2`.
+
+- 2026-10-13 — R42c Part C review candidate, claude/r42c-back (from codex/r42c-bend + work-v2).
+  What you will see now: every back plays the same visible inward bend onto the card; if the header is scrolled away the page first glides to the top (~0.3 s) and flows straight into the shrink.
+  Still off: on a 4x slowed CPU the peak bend sampled varies (low frame rate hides the peak; not a gate); real 144 Hz screen not eye-checked; Cloudflare preview build not verified (Access login).
+  Your decision: eye check back (top, scrolled down, Works link, browser back); bend -0.045 is the opening's strength, make it gentler if too much (tune: Back signed edge bow).
+  Cause: back used the single hover/centre renderer (replaced or missing = flat picture), bow was -0.018, a scrolled-away header faded black. Now: the open flight's renderer is handed over as a held back renderer (own slot, watcher rebuilds if lost, playBack waits for it, never flat); backBendAmp -0.045; glideTop (backGlideSec 0.3, shorter when closer).
+  Checks: 50 backs x (60 Hz, 144 Hz, 4x): 150/150 used the renderer, 0 fade-only, 0 fade frames, landing max 0.5 px, bend peak -0.045 (spread 0.2 % / 0 / 29 % at 4x); lost-context rebuild ok; midscroll 6/6; compare 542/542 x2; tall smoke pass. Contact sheet tools/scratch/r42c/contact-back-c.png: looks like the reference: yes (bend direction, timing); biggest difference: ours slightly stronger bow. Skipped: homepage/theme/404 (untouched).
+  Undo: `git switch work-v2`.
