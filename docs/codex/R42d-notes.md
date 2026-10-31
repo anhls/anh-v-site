@@ -28,7 +28,11 @@ Biggest cost before: the 64-row, one-strip-per-frame texture upload (about 530 m
 - Live connected WebGL canvases at rest over 20 open/back cycles (contexts.mjs): 3, flat at 3 every cycle.
 - npm run build OK (layout checks + vite build); tall smoke (r42c/tall.mjs) 390 wide: no overflow, tap/back ok, 0 errors.
 
-## NOT done / not verified
-- compare 542/542 at 1920 and 2560, ?gl=0 and reduced-motion fallbacks, clean-clone build, Cloudflare preview.
-- Pixel diff across the texture swap (2b) and worst hover-sweep frame time (R37e flag) not measured.
-- Texture memory not stated.
+## Finish checks (Claude, 2026-10-31; scripts in the git-ignored tools/scratch/r42d: finish.mjs, swapgl.mjs, frames.mjs, contexts.mjs)
+- compare: 542/542 within tolerance, 0 mismatches at 1920x1080 and 2560x1440 (live from cache).
+- ?gl=0 and reduced motion: a click is a plain navigation to /work/<slug>.html, no overlay, no canvases, 0 errors.
+- Swap pop (exact: WebGL readback of the flight canvas, frame before vs after setTexture(header), flight frozen so the geometry is identical, 1920x1080): mean abs difference 0.70-0.72 of 255 over the whole canvas, 1.3% of pixels differ by more than 16 levels (max 138, edge sharpening from the higher-resolution header). Normal frame-to-frame baseline 0.1-0.13. No visible pop; the card picture and header are the same framing (the existing swapToFull already assumed this).
+- Frame cost (rAF gaps, 1920x1080, 2 runs each, work-v2 f062c31 vs this branch): normal CPU hover sweep worst 27.7-27.8 vs 27.7-28.0 ms, scroll to a new project worst 14.0 vs 14.0 ms: equal. 4x CPU: hover worst 34.8 / 69.6 vs 55.6 / 41.8 ms (noise), scroll worst 55.7 / 62.4 vs 48.7 / 48.7 ms, p99 48.6 vs 41.7-48.5 ms: scroll at 4x is up to about 7-14 ms worse at the worst frame. The R37e flag (14 ms / 42 ms) is already exceeded by work-v2 itself at 4x. Suspect: the idle header prefetch decode after a scroll rests; not chased.
+- Texture memory (estimate): flight / prepared textures are at most 1920x1251 RGBA with mipmaps = about 12.8 MB each (strip upload at display size 1920x1080 = about 11 MB); 3 live contexts at rest, so about 35-40 MB worst case. Context count flat at 3 over 20 open/backs.
+- Clean-clone build: git clone of the pushed branch, npm ci, npm run build OK.
+- Cloudflare preview: not verified (Access protected, no link available to me).

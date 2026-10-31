@@ -676,4 +676,4 @@ Undo everything: `git switch work-v2`.
   Next: the open-lag fix, then R41 Part B (phone/tablet).
 - 2026-10-31, R42d (Codex partial + Claude): cold click now moves in 20-78 ms (was 290-2034 ms; 4x CPU worst 78 ms); progress cursor removed. Card picture is the start texture and the header swaps in after the first frame; spare renderer reused; click uploads in one go; neighbours' headers prefetched at rest.
   clicks 150/150 renderer used, 0 flat, 0 errors; midscroll landing <= 0.5 px; backs 50/50 held; WebGL canvases at rest flat at 3 over 20 open/backs; build + tall smoke OK.
-  NOT run yet: compare 542/542, ?gl=0 / reduced motion, swap pixel diff, hover-sweep frame cost, clean-clone build, preview link. Details: docs/codex/R42d-notes.md.
+  R42d DONE (finish checks run): compare 542/542 at 1920 and 2560; ?gl=0 / reduced motion = plain navigation; swap pop mean 0.7/255 (no pop); hover / scroll frame cost equal to work-v2 at normal CPU (scroll at 4x worst frame up to +14 ms); clean-clone build OK. Not verified: Cloudflare preview (Access protected). Details: docs/codex/R42d-notes.md.
