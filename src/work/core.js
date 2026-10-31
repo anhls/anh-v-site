@@ -218,7 +218,7 @@ const layouts = () => {
     it.el.style.width = `${w}px`; it.el.style.height = `${h}px`;
   });
   if (ui) ui.layout(fw, fh);
-  liteTitle?.layout(fw, fh);
+  liteTitle?.layout(fw, fh, false);
 };
 layouts();
 const cur = () => LAY[vertical ? 'vertical' : 'side'];

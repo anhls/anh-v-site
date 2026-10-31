@@ -36,13 +36,17 @@ export function createPageSwap() {
     mod.warmHead(slug);
     // built a few frames into the flight (never in the click's own frame); the DOM build is one task of a few ms
     // normally built ahead on idle (prebuild); a click before that builds it a few frames into the flight (never in the click's own frame)
-    const built = v.built ? Promise.resolve() : new Promise((res, rej) => setTimeout(() => { try { v.build(); res(); } catch (e) { rej(e); } }, flight ? 60 : 0));
+    // R41f: a tap that comes before the idle build finished builds and primes the page in small steps, ONE per frame, spread over the flight (never one block mid-flight); the landing waits for the last step
+    const built = v.built && !v.primeLeft?.() ? Promise.resolve() : !flight ? new Promise((res, rej) => setTimeout(() => { try { v.build(); res(); } catch (e) { rej(e); } }, 0)) : new Promise((res, rej) => {
+      const step = () => { try { if (!v.built) v.buildStep(); else if (v.primeStep()) { res(); return; } } catch (e) { rej(e); return; } requestAnimationFrame(step); };
+      setTimeout(() => requestAnimationFrame(step), 60);
+    });
     const land = async () => {
       await built;
       await v.headerReady();
       const wmSmall = !!document.querySelector('body > a.wordmark.is-link'); // read at the landing (the Work wordmark shrinks after the first input): small -> the project's grows to big, no jump
       ctl.pause();
-      v.show({ wmSmall });
+      await v.show({ wmSmall });
     };
     const fail = (err) => { try { console.error('[page-swap]', err); } catch { /* */ } releaseBack(); try { v.destroy(); } catch { /* */ } view = null; state = 'work'; hard(slug); };
     const done = () => {
@@ -56,24 +60,24 @@ export function createPageSwap() {
   }
 
   // the way back: the overlay (the header as it is now) goes on top, the strip resumes under it, the project page is hidden and torn down
-  function back(viaHistory = false) {
+  function back(viaHistory = false, instant = false) {
     if (state === 'opening') { wantBack = true; return; }
     if (state !== 'project') return;
     if (viaHistory) { try { history.back(); return; } catch { /* fall through */ } }
     state = 'closing';
     const v = view, slug = slugNow;
-    const animate = transitionOK(); // (lite with the effect off, reduced motion, ?gl=0: back is instant, same project, same place)
+    const animate = !instant && transitionOK(); // (R41f: instant = the browser already played its own swipe transition: land straight in the strip) (lite with the effect off, reduced motion, ?gl=0: back is instant, same project, same place)
     // R42c: header scrolled away: the page glides to the top first (time-based; into the shrink without a stop), then the shrink plays from the full-screen pose
     if (animate && scrollY > 1 && v.glideTop) {
       const sec = T.backGlideSec * Math.min(1, Math.max(T.backGlideMin, scrollY / innerHeight));
       v.glideTop(() => finishBack(v, slug), sec);
       return;
     }
-    finishBack(v, slug);
+    finishBack(v, slug, instant);
   }
-  function finishBack(v, slug) {
+  function finishBack(v, slug, instant = false) {
     const leave = v.backRecord();
-    const animate = transitionOK();
+    const animate = !instant && transitionOK();
     const shrink = leave.mode === 'shrink';
     if (!animate) {
       releaseBack();
@@ -123,9 +127,9 @@ export function createPageSwap() {
   };
   const warmNext = () => {};
 
-  addEventListener('popstate', () => {
+  addEventListener('popstate', (e) => {
     const slug = slugOfPath(location.pathname);
-    if (!slug) { if (state === 'project' || state === 'opening') back(); return; }
+    if (!slug) { if (state === 'project' || state === 'opening') back(false, !!e.hasUAVisualTransition); return; }
     if (state === 'work' && mod && ctl) {
       const ref = ctl.refOf(slug);
       if (!ref || !open({ slug, ref, flight: null, begin: () => ctl.begin(slug), image: ctl.imageOf(slug), push: false })) location.reload();

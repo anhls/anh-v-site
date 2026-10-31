@@ -219,7 +219,7 @@ function takeBack(slug, root, box) {
 }
 // resolves with a renderer adopted into root / box, or null when WebGL is unavailable (then the DOM picture alone plays)
 async function awaitBack(slug, src, root, box) {
-  const got = await Promise.race([ensureBack(slug, src), new Promise((r) => setTimeout(() => r(null), 3000))]);
+  const got = await Promise.race([ensureBack(slug, src), new Promise((r) => setTimeout(() => r(null), 400))]);
   const r = got && takeBack(slug, root, box);
   return r || null;
 }

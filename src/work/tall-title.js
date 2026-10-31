@@ -3,7 +3,7 @@ import '../styles/tall-work.css';
 import { createSmear } from '../effects/text-fx/smear.js';
 import { LITE_TITLE } from '../settings/tall.js';
 import { TITLE_SHORT, WORK_TITLE, WORK_SMEAR, WORK_TEXT } from '../timeline.js';
-import { pm } from '../util/perf-mark.js';
+import { pm, perfOn } from '../util/perf-mark.js';
 import { timed } from './rest.js';
 
 export function createLiteTitle({ app, projects, reduced, rest }) {
@@ -15,7 +15,12 @@ export function createLiteTitle({ app, projects, reduced, rest }) {
   const plain = reduced || new URLSearchParams(location.search).get('fx') === '0';
   let ready = false, warmed = false, shown = -1, opacity = 0, fw = 0, fh = 0, options = [], last = null, warmTimer = 0, warmedFor = -1;
 
-  function layout(w = fw, h = fh) {
+  // R41f: every title start / cancel with its trigger (the ?perf report field titlePlays)
+  const plays = []; const logT = (what, why, extra) => { plays.push({ at: Math.round(performance.now()), what, why, idx: shown, restFor: rest.restFor?.() || 0, ...extra }); if (plays.length > 80) plays.shift(); };
+  if (perfOn) window.__titlePlays = () => ({ note: 'play = a smear start; a settled project should show ONE play; cancel = why one was dropped', plays: plays.slice(-40) });
+  let laidW = 0, laidH = 0;
+  function layout(w = fw, h = fh, force = true) {
+    if (!force && w === laidW && h === laidH && options.length) return; laidW = w; laidH = h; logT('layout', force ? 'forced' : 'size');
     fw = w; fh = h;
     if (!ready || !fw) return;
     smear.cancel();
@@ -54,7 +59,6 @@ export function createLiteTitle({ app, projects, reduced, rest }) {
     el.style.letterSpacing = `${o.tracking}em`;
   }
   // R41c: the leave is a CSS opacity transition (compositor): it finishes on time even if the main thread stalls, and costs nothing per frame. play() sets it back to none.
-  const fadeOut = () => { el.style.transition = `opacity ${WORK_TEXT.titleOutSec}s linear`; el.style.opacity = '0'; opacity = 0; };
   // R41c: build the text textures of the settled project and its neighbours at true rest, ONE per task, so the play after a flick builds nothing. Cancelled when the strip moves again.
   const warmNear = (idx) => {
     if (plain || !smear || warmedFor === idx) return; warmedFor = idx; cancelWarm();
@@ -66,7 +70,7 @@ export function createLiteTitle({ app, projects, reduced, rest }) {
   const cancelWarm = () => { clearTimeout(warmTimer); warmKeys.splice(0).forEach((k) => rest.cancel(k)); };
   const callbacks = () => ({ done: () => { opacity = 1; }, aborted: () => { opacity = 0; } });
   function play() {
-    pm('lite:title-start');
+    pm('lite:title-start'); logT('play', 'settle+rest.ok', { stopped: !!last?.stopped });
     smear.play({ ...options[shown], ...callbacks() });
     pm('lite:title-scheduled');
   }
@@ -76,7 +80,7 @@ export function createLiteTitle({ app, projects, reduced, rest }) {
   });
   document.addEventListener('anhv-theme', () => layout());
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { cancelWarm(); warmedFor = -1; smear.cancel(); opacity = 0; el.style.transition = 'none'; el.style.opacity = '0'; }
+    if (document.hidden) { logT('cancel', 'page hidden'); cancelWarm(); warmedFor = -1; smear.cancel(); opacity = 0; el.style.transition = 'none'; el.style.opacity = '0'; }
   });
   return {
     root, smear, layout,
@@ -87,8 +91,8 @@ export function createLiteTitle({ app, projects, reduced, rest }) {
       const stopped = s.stopped && !s.transitioning;
       if (!stopped) {
         cancelWarm(); warmedFor = -1;
-        if (smear.playing) smear.abort();
-        else if (opacity > 0) { if (plain) { opacity = Math.max(0, opacity - s.dt / WORK_TEXT.titleOutSec); el.style.opacity = String(opacity); } else fadeOut(); }
+        if (smear.playing) { logT('cancel', 'strip moving (abort)'); smear.abort(); }
+        else if (opacity > 0) { if (plain) { opacity = Math.max(0, opacity - s.dt / WORK_TEXT.titleOutSec); el.style.opacity = String(opacity); } else { logT('hide', 'strip moving'); el.style.transition = 'none'; el.style.opacity = '0'; opacity = 0; } }
         return;
       }
       const idx = s.idxHead;
