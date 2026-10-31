@@ -9,7 +9,7 @@ export const SCROLL = {
 };
 
 // R37f / R41: the project header rests zoomed in at zEnd (the transition's flight ends on this exact state). Same line as on desktop/next.
-export const FLIGHT = { zEnd: 1.10 };
+export const FLIGHT = { zEnd: 1.18 }; // R42e variant B: stronger settle zoom (was 1.10); also the header rest crop on every project page
 
 // R24a: the menu's Contact item stays hidden until this is set (a mailto: link); Anh has no address yet.
 export const CONTACT = { email: '' };
