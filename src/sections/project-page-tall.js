@@ -1,6 +1,7 @@
 import '../styles/tall-project.css';
 import { imgAttrs, videoInfo } from '../util/media.js';
 import { FLIGHT } from '../settings/shared.js';
+import { saveLiteBack } from '../work/tall-back.js';
 
 // R24a Part 4: a project page in the TALL mode (phones, tablet portrait): every block stacked in ONE column at the full width, from the same data
 // (data.json projects[].page.blocks) as the desktop page (src/sections/project-page.js, not loaded here). Rules:
@@ -81,9 +82,20 @@ const blocks = {
 };
 
 // R42: returns a dispose() (observers, video sources) for the in-place Work -> project swap.
+// R41d: a generator so the idle build can append the blocks a few at a time (one yield per chunk, each a short task on a phone); buildProjectPageTall runs it to the end (the same DOM).
 export function buildProjectPageTall(root, page, lenis) {
+  const g = buildProjectPageTallSteps(root, page, lenis);
+  let r; do r = g.next(); while (!r.done);
+  return r.value;
+}
+export function* buildProjectPageTallSteps(root, page, lenis) {
   const offs = [];
-  root.innerHTML = `<div class="tp">${page.blocks.map((b) => (blocks[b.t] ? blocks[b.t](b) : '')).join('')}</div><div class="footer pj__footer"></div>`;
+  const saveBack = () => saveLiteBack(root);
+  addEventListener('pagehide', saveBack); offs.push(() => removeEventListener('pagehide', saveBack));
+  const html = page.blocks.map((b) => (blocks[b.t] ? blocks[b.t](b) : '')); // (read while the caller has the project's title set: the hero's alt text uses it)
+  root.innerHTML = '<div class="tp"></div><div class="footer pj__footer"></div>';
+  const tp = root.firstElementChild;
+  for (let i = 0; i < html.length; i += 4) { tp.insertAdjacentHTML('beforeend', html.slice(i, i + 4).join('')); yield; }
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   root.style.setProperty('--flight-z', String(FLIGHT.zEnd)); // R41: the zoomed picture IS the header (same value the transition ends on)
 

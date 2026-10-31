@@ -8,6 +8,7 @@ import { pm } from '../util/perf-mark.js';
 // Policy: enabled gates navigation; bulge gates GL; prepare selects hover/idle/tap;
 // maxDpr caps the flight canvas. Lite defaults remain disabled for R41.
 import { transitionPolicy } from './transition-policy.js';
+import { isLite } from '../util/layout-mode.js';
 
 // R25: open a project from a main image (Work page) or from the homepage frame without a visible page change.
 // A fixed overlay takes the picture's place (same crop), grows to the full screen = the project page's header at scroll 0 (a 100vw x 100vh cover
@@ -26,14 +27,19 @@ export function preloadHeader(slug, ref) {
   const { src, srcset } = imgSet(ref);
   const im = new Image();
   im.decoding = 'async';
-  if (srcset) { im.sizes = '100vw'; im.srcset = srcset; }
+  if (srcset) {
+    // Lite flight pixels are capped at 1.5 DPR. Avoid uploading a 3x header
+    // into that smaller canvas; the settled DOM header keeps its own srcset.
+    const share = isLite() ? Math.min(1, transitionPolicy().maxDpr / (devicePixelRatio || 1)) : 1;
+    im.sizes = `${100 * share}vw`; im.srcset = srcset;
+  }
   im.src = src;
   full.set(slug, im);
   return im;
 }
 
 // back / forward can restore this page from the cache with the overlay still on it: start clean
-addEventListener('pageshow', (e) => { if (e.persisted) location.reload(); });
+addEventListener('pageshow', (e) => { if (e.persisted && !isLite()) location.reload(); });
 
 // Work hover owns at most one hidden, warmed transition renderer.
 let prepared = null, spare = null, prepareTimer = 0, leaveTimer = 0, prepareToken = 0, pendingSlug = null, idleTask = 0, preparation = null, cancelPreparation = null, hoverSlug = null;
@@ -45,6 +51,7 @@ function rendererHost() {
 function parkRenderer(entry) {
   if (!entry) return;
   entry.renderer.cancelPreparation();
+  entry.renderer.setViewport(null);
   if (entry.renderer.dead) { entry.host.remove(); return; }
   if (spare) { spare.renderer.dispose(); spare.host.remove(); }
   const next = rendererHost(); entry.renderer.adopt(next.host, next.box); entry.host.remove();
@@ -55,11 +62,12 @@ function recycleFlight(renderer) {
   const next = rendererHost(); renderer.adopt(next.host, next.box);
   parkRenderer({ host: next.host, renderer });
 }
-export function disposePrepared() {
+export function disposePrepared(release = false) {
   prepareToken++; pendingSlug = null; hoverSlug = null; clearTimeout(prepareTimer); clearTimeout(leaveTimer);
   if (idleTask) { (window.cancelIdleCallback || clearTimeout)(idleTask); idleTask = 0; }
   cancelPreparation?.(); cancelPreparation = null;
   parkRenderer(prepared); prepared = null;
+  if (release && spare) { spare.renderer.dispose(); spare.host.remove(); spare = null; }
 }
 export function leavePrepared() {
   if (running) return;
@@ -138,6 +146,9 @@ function takePrepared(slug, root, box) {
   hit.renderer.adopt(root, box); hit.host.remove(); pm('fwd:prepared-used'); return hit.renderer;
 }
 addEventListener('pagehide', () => { disposePrepared(); releaseBack(); spare?.renderer.dispose(); spare?.host.remove(); spare = null; });
+for (const event of ['resize', 'visibilitychange']) addEventListener(event, () => {
+  if (isLite() && !running && (event === 'resize' || document.hidden)) disposePrepared(true);
+});
 
 // R42c Part C: the BACK renderer. While a project is open its renderer is held in its own slot, apart from the hover / centre one (disposePrepared never
 // touches it). The open flight's renderer is handed over at the landing (stashBack); if it is ever lost, a watcher rebuilds it on idle. Back never
@@ -223,11 +234,11 @@ let running = false;
 // (homepage frame); onPush(p) = the push-away progress 0..1 (Work page: work.js moves the cards); fromWork = { mode, projectIndex } for the way back; imgRect = where the start picture's own box is (the homepage still is a little larger than the frame it is clipped by); fade = elements that fade out with the rest (Work counter / toggle); onStart / onEnd for the caller (Lenis stop etc.).
 // R42: inPlace = { show(): Promise (the project page is built in this document: show it, resolve when its header is decoded), done(), fail(err) }: the flight ends by
 // showing the page under the overlay instead of navigating (no hand-off through sessionStorage, no document switch).
-export async function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc, startImage, crossfade = false, fade = [], onStart, onPush, fromWork, inPlace }) {
+export async function runProjectTransition({ slug, ref, rect, imgRect = rect, viewport, startSrc, startImage, crossfade = false, fade = [], onStart, onPush, fromWork, inPlace }) {
   if (running) return;
   running = true;
   onStart?.();
-  const W = innerWidth, H = innerHeight; let t0 = Date.now();
+  const W = viewport?.w || innerWidth, H = viewport?.h || innerHeight; let t0 = Date.now();
   const hdr = preloadHeader(slug, ref);
   const sec = fromWork ? T.workSec : T.sec, pushSec = fromWork ? T.workPushSec : T.pushSec;
   let flight = null;
@@ -236,6 +247,7 @@ export async function runProjectTransition({ slug, ref, rect, imgRect = rect, st
   root.className = 'px';
   root.setAttribute('aria-hidden', 'true');
   root.style.cssText = 'position:fixed;inset:0;z-index:8;pointer-events:auto;overflow:hidden';
+  if (viewport) Object.assign(root.style, { right: 'auto', bottom: 'auto', width: `${W}px`, height: `${H}px` });
   root.innerHTML = `<div class="px__bg" style="position:absolute;inset:0;background:var(--bg);opacity:0"></div>
     <div class="px__box" style="position:absolute;overflow:hidden;left:${rect.x}px;top:${rect.y}px;width:${rect.w}px;height:${rect.h}px">
       <img class="px__a" alt="" draggable="false" src="${startSrc}" style="position:absolute;left:${rel.x}px;top:${rel.y}px;width:${rel.w}px;height:${rel.h}px;object-fit:cover;display:block">
@@ -252,6 +264,7 @@ export async function runProjectTransition({ slug, ref, rect, imgRect = rect, st
   flight = fromWork && transitionPolicy().enabled ? workFlight(rect, {w:W,h:H}, false, t0) : null;
   pm('fwd:animation-start');
   let bulge = fromWork && transitionPolicy().enabled ? (transitionPolicy().bulge ? takePrepared(slug, root, box) : null) : null;
+  if (viewport) bulge?.setViewport(viewport);
   bulge?.draw(rect);
   let pendingHeader = false;
   if (fromWork && bulge) hdr.decode().then(() => { pendingHeader = true; pm('fwd:header-decode-end'); }, () => {});
@@ -338,6 +351,7 @@ export async function runProjectTransition({ slug, ref, rect, imgRect = rect, st
 // each project, so the still crossfades into the header image while it grows). Read-only on the frame: it only measures its box and its images.
 // A click on the active title link inside the frame's box does the same; outside the box (the title text can reach past it) the link is a plain load.
 export function initFrameOpen({ hero, projects, lenis }) {
+  if (isLite()) return; // R41b enables Work taps only; homepage behaviour stays parked.
   const wrapper = document.querySelector('.hero__wrapper');
   const headerRef = (slug) => projects.find((p) => p.slug === slug)?.page?.blocks.find((b) => b.t === 'hero')?.img;
   document.addEventListener('click', (e) => {
@@ -393,6 +407,7 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
   const BI = { x: L.img[0] + (L.img[2] - iw) / 2, y: L.img[1] + (L.img[3] - ih) / 2, w: iw, h: ih };
   const flight = workFlight(target, B, true);
   bulge = rec.slug ? takeBack(rec.slug, root, box) : null; // R42c: the held back renderer; none ready = wait for it (below), never a flat flight
+  if (isLite()) { bulge?.setViewport({ w: W, h: H }); Object.assign(root.style, { right: 'auto', bottom: 'auto', width: `${W}px`, height: `${H}px` }); }
   const needRenderer = !bulge && !!rec.slug && transitionPolicy().bulge && transitionOK();
   const A = target, ease = EASES.cubic, bgMax = rec.blackMax ?? 1;
   const duration = flight.total;
@@ -423,7 +438,8 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
   tl.to(prog, { t: 1, duration, ease: 'none', onUpdate: frame }, 0);
   if (needRenderer) { // overlay = frame 0 already; start the shrink as soon as the renderer is ready
     tl.pause(); pm('back:renderer-wait');
-    awaitBack(rec.slug, rec.src, root, box).then((r) => { bulge = r; if (r) frame(); pm('back:renderer-late'); tl.play(); }, () => tl.play());
+    if (isLite()) holdBack(rec.slug, rec.src);
+    awaitBack(rec.slug, rec.src, root, box).then((r) => { bulge = r; if (isLite()) r?.setViewport({ w: W, h: H }); if (r) frame(); pm('back:renderer-late'); tl.play(); }, () => tl.play());
   }
   if (fade.length) { gsap.set(fade, { opacity: 0 }); tl.to(fade, { opacity: 1, duration: Math.min(T.fadeSec, 0.3), ease: 'none' }, duration - Math.min(T.fadeSec, 0.3)); }
   // the overlay goes only once the canvas has drawn the image in that box: two frames after the last step

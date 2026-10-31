@@ -13,7 +13,7 @@ import { installScrollGain } from '../util/scroll-gain.js';
 import { initNav } from '../effects/nav.js';
 import { buildFooter } from '../sections/footer.js';
 import { createDesktopNav, buildDesktopProject } from './desktop.js';
-import { buildProjectPageTall } from '../sections/project-page-tall.js';
+import { buildProjectPageTall, buildProjectPageTallSteps } from '../sections/project-page-tall.js';
 
 gsap.registerPlugin(ScrollTrigger);
 if (document.documentElement.dataset.layout === 'tall') import('../styles/tall-project.css');
@@ -50,32 +50,51 @@ export function createProjectView({ slug, tall, onBack }) {
   el.setAttribute('tabindex', '-1');
   el.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100vh;overflow:hidden;display:none;outline:none'; // (display:none: built ahead on idle, nothing plays or measures until show())
   const saved = { title: document.title, meta: [] }; // (the Work page's title, restored by destroy())
-  let primed = false, disposeBlocks = null, disposeFooter = null, nav = null, navApi = null, realLenis = null, tick = null, gain = null, shown = false, dead = false;
+  let gen = null, primeKids = null, primed = false, disposeBlocks = null, disposeFooter = null, nav = null, navApi = null, realLenis = null, tick = null, gain = null, shown = false, dead = false;
 
   const api = {
     el, project,
     built: false,
-    build() {
-      if (api.built) return api;
-      api.built = true;
-      const prevTitle = document.title;
-      document.title = project.page.title; // (the hero's alt text reads it)
-      document.body.append(el);
-      disposeBlocks = tall ? buildProjectPageTall(el, project.page, lenis) : buildDesktopProject(el, project.page, lenis);
+    // R41d: the build is two stages (the blocks, then the footer + header refs) so the idle build can run them in separate frames; build() runs whatever is left (a click before the idle build finished)
+    buildStage: 0,
+    buildStep() {
+      if (api.built) return true;
+      if (api.buildStage === 0) {
+        const prevTitle = document.title;
+        document.title = project.page.title; // (the hero's alt text reads it)
+        document.body.append(el);
+        try {
+          if (tall) { gen = buildProjectPageTallSteps(el, project.page, lenis); gen.next(); } else disposeBlocks = buildDesktopProject(el, project.page, lenis);
+        } finally { document.title = prevTitle; } // the tab title changes when the page is shown, not when it is built ahead
+        api.buildStage = gen ? 1 : 2; return false;
+      }
+      if (api.buildStage === 1) { const r = gen.next(); if (r.done) { disposeBlocks = r.value; gen = null; api.buildStage = 2; } return false; }
       disposeFooter = buildFooter(el, data.footer, lenis);
       // the header's own picture decoded before the overlay may go (the static page waits for the same)
       api.heroEl = el.querySelector('.pj__hero, .tp-hero');
       api.heroImg = api.heroEl?.querySelector('img') || null;
-      document.title = prevTitle; // the tab title changes when the page is shown, not when it is built ahead
+      api.built = true; api.buildStage = 2;
+      return true;
+    },
+    build() {
+      while (!api.built) api.buildStep();
       return api;
     },
-    // the one-off style + layout pass of the whole page, paid on idle (before any click) instead of in the landing frame
-    prime() {
-      if (shown || dead || primed) return;
-      primed = true;
-      el.style.display = 'block'; el.style.visibility = 'hidden';
-      void el.offsetHeight;
+    // the one-off style + layout pass of the whole page, paid on idle (before any click) instead of in the landing frame.
+    // R41d: sliced: every top-level section starts display:none and is switched on one per call, each forcing only its own layout (86 ms in one go at 6x CPU on the phone strip). primeStep() returns true when done.
+    primeStep() {
+      if (shown || dead || primed) return true;
+      if (!primeKids) {
+        primeKids = [...el.children].flatMap((n) => (n.children.length > 4 ? [...n.children] : [n])).map((n) => [n, n.style.display]); // (the tall page is one wrapper with ~30 sections: those are the slices)
+        primeKids.forEach(([n]) => { n.style.display = 'none'; });
+        el.style.display = 'block'; el.style.visibility = 'hidden';
+      }
+      const next = primeKids.shift();
+      if (next) { next[0].style.display = next[1]; void next[0].offsetHeight; }
+      if (!primeKids.length) { primed = true; primeKids = null; void el.offsetHeight; return true; }
+      return false;
     },
+    prime() { while (!api.primeStep()) { /* all sections */ } },
     headerReady() {
       const hi = api.heroImg;
       if (!hi) return Promise.resolve();
@@ -86,6 +105,7 @@ export function createProjectView({ slug, tall, onBack }) {
     show({ wmSmall }) {
       if (shown || dead) return;
       shown = true;
+      if (primeKids) { primeKids.forEach(([n, d]) => { n.style.display = d; }); primeKids = null; } // (shown while the sliced prime was half done: switch the rest on)
       document.title = project.page.title;
       document.documentElement.classList.add('pj-open');
       el.style.cssText = 'outline:none';

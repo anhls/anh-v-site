@@ -685,3 +685,28 @@ Undo everything: `git switch work-v2`.
   What you will see now: the open is slower and softer: about 1.27 s (was 0.71 s), the card arrives gently at full screen, then the picture slowly zooms into the header; the inward bend is a faint pull (a quarter of before).
   Still off: number-only change, the builder check set was not run (R41b's desktop-unchanged checks run on top of it); back still uses the full inward bend (-0.045).
   Your decision: whether the back bend should drop to match the softer open.
+
+- 2026-10-31 — R41b implementation checkpoint, lite/r41b (review still pending).
+  What you will see now: phone and tablet taps open with the desktop bend; back returns to the same card, and project titles use the desktop smear.
+  Still off: final visual / desktop checks remain; slowed-CPU motion has hitches, and the first title frame is about 25 ms under 4x slowdown.
+  Your decision: none yet; implementation and verification continue.
+  Readings: the engine read an obsolete lite policy; fallback gestures need their own intent gate; fresh loads need a saved header pose; the tap viewport also fixes header height. Details: docs/codex/R41b-notes.md.
+  Initial matrix 32/32 correct renderer and project, landing <=0.014 px, 0 fades/errors; 12 restore cases pass; long press/fling stop/double tap/20 swipes/menu back pass. Final capped-texture timing and desktop regression checks pending.
+
+- 2026-10-31 — R41b done (Codex build + Claude finish), lite/r41b. R41 (A + B) complete.
+  What you will see now: on phone and tablet a tap opens with the desktop puff, bend and zoom, starting at once; back (swipe, back button, back link) shrinks into the strip on the same project; the project title plays the desktop smear.
+  Still off: with the CPU slowed 4x the project page landing after the open stutters (about 100 ms, 260 ms on tablet landscape); the motion itself is smooth. First title frame 27 ms at 4x.
+  Your decision: check on your real phone via the preview link; say if the landing mount cost should become its own request.
+  Tap to first moving frame 12-56 ms (4x: 32-106); 32-case matrix, 12 restore cases, real bfcache, fallbacks, 20 cycles (3 contexts flat, about 29 MiB) pass; desktop compare 542/542 at 1920 and 2560, clicks 50/50, midscroll <= 1 px. Details: docs/codex/R41b-notes.md. Pushed: see git log lite/r41b.
+- 2026-10-31, R41c (Claude), lite/r41b. Diagnostics were pushed first (530bf1b); fixes after.
+  What you will see now: flicking should no longer freeze at the start of a swipe, the title fades out on time instead of hanging as grey text, and the open transition is no longer switched off by one stall.
+  Still off: I could not reproduce the iPhone stalls in any emulation, so this is NOT confirmed on a phone. Why your tap was plain is still unknown: I need your report.
+  Your decision: open https://lite-r41b.anh-v-site.pages.dev/work/?perf on the iPhone, wait 6 s, tap a picture, go back, press "Copy report" and paste it here (or send a new recording).
+  Found: the first finger move destroyed the WebGL renderer (about 170 ms on iOS); the guard switched warp (and with it the transition) off after one bad burst. Both fixed; title textures are built at rest; the soft snap cannot act under a finger. Flick 6x CPU: 0 stalls over 50 ms, 0 jumps. R41b suite, desktop compare 542/542, clicks 150/150, midscroll pass. Details: docs/codex/R41c-notes.md.
+
+- 2026-10-31, R41d (Claude), lite/r41b. Code 640d52a.
+  What you will see now: the strip should keep its WebGL warp (the report-2 loss was my own overlay creating a throw-away WebGL context ten times a second, which made iOS drop the strip's), flicks no longer share the moment with page building or picture loading, and a finger that stops a coasting strip no longer makes it page backwards.
+  Still off: not confirmed on a phone; I cannot reproduce iOS. Building the project page in the background still has a few 12-22 ms steps at 6x CPU (about 2-4 ms on a desktop), over my 8 ms target.
+  Your decision: open https://lite-r41b.anh-v-site.pages.dev/work/?perf=quiet (no overlay), flick, tap a picture, go back, press the small "Copy report" button and paste it, ideally with a screen recording.
+  One rest signal (work/rest.js: still 150 ms, no finger, no snap); every idle job queued on it, one per frame, dropped on touch; project page built in 9 steps and primed in 34; WebGL ledger (live 3, peak 3, after 20 open / back + 3 reloads glOn true; a lost strip context rebuilds); ?perf=quiet; report fields restJobs and glLedger. Details docs/codex/R41d-notes.md.
+  Flick 6x CPU 390x844 and 430x932: worst moving gap 14-17 ms, 0 stalls, 0 jumps. R41b suite, real bfcache, desktop compare 542/542 x2, clicks 150/150, midscroll pass. Undo: git revert 640d52a.

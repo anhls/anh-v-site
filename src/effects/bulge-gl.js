@@ -2,6 +2,7 @@ import { BEND, TRANSITION as T } from '../timeline.js';
 import { transitionPolicy } from './transition-policy.js';
 import { flightZoom, flightRecord } from './flight-curve.js';
 import { pm } from '../util/perf-mark.js';
+import { glOpen, glClose } from '../util/gl-ledger.js';
 
 export const pillowBump = (t) => {
   const end = Math.max(0.02, Math.min(1, T.bulgeEndAt));
@@ -48,8 +49,10 @@ export function createBulge(parent, box, image, deferTexture = false) {
   canvas.className = 'px__bulge';
   canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
   let gl;
-  try { gl = canvas.getContext('webgl2', { alpha: true, antialias: false, depth: false, stencil: false, premultipliedAlpha: false }); } catch { return null; }
+  gl = glOpen(canvas, 'transition', { alpha: true, antialias: false, depth: false, stencil: false, premultipliedAlpha: false });
   if (!gl) return null;
+  let viewport = null;
+  const size = () => viewport || { w: innerWidth, h: innerHeight };
   pm('fwd:context-ready');
   let dead = false, texture, program, vertex, index, vs, fs;
   const dispose = () => {
@@ -59,7 +62,7 @@ export function createBulge(parent, box, image, deferTexture = false) {
     canvas.remove();
     gl.deleteTexture(texture); gl.deleteBuffer(vertex); gl.deleteBuffer(index);
     gl.deleteProgram(program); gl.deleteShader(vs); gl.deleteShader(fs);
-    gl.getExtension('WEBGL_lose_context')?.loseContext();
+    glClose(gl, 'transition');
   };
   canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); dispose(); });
   try {
@@ -99,7 +102,7 @@ export function createBulge(parent, box, image, deferTexture = false) {
     program = gl.createProgram(); gl.attachShader(program, vs); gl.attachShader(program, fs); gl.linkProgram(program);
     if (!deferTexture && !gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error('Bulge program');
     gl.useProgram(program);
-    const n = T.bulgeGrid, points = [], ids = [];
+    const n = transitionPolicy().grid || T.bulgeGrid, points = [], ids = [];
     for (let y = 0; y <= n; y++) for (let x = 0; x <= n; x++) points.push(x / n, y / n);
     for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const i = y * (n + 1) + x; ids.push(i, i + 1, i + n + 1, i + 1, i + n + 2, i + n + 1); }
     vertex = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vertex); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(points), gl.STATIC_DRAW);
@@ -123,7 +126,7 @@ export function createBulge(parent, box, image, deferTexture = false) {
     };
     if (!deferTexture) setTexture(image); parent.append(canvas);
     let preparation = 0;
-    return { canvas, dispose, setTexture, cancelPreparation() { preparation++; }, async prepareTexture(im, urgent = false) {
+    return { canvas, dispose, setTexture, setViewport(v) { viewport = v; }, cancelPreparation() { preparation++; }, async prepareTexture(im, urgent = false) {
       if (dead || !im.complete || !im.naturalWidth) return false;
       const token = ++preparation, cancelled = () => dead || token !== preparation;
       const parallel = gl.getExtension('KHR_parallel_shader_compile');
@@ -149,10 +152,11 @@ export function createBulge(parent, box, image, deferTexture = false) {
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-      for (let y = 0; y < height; y += T.hoverUploadRows) {
+      const uploadRows = transitionPolicy().uploadRows || T.hoverUploadRows;
+      for (let y = 0; y < height; y += uploadRows) {
           await new Promise(requestAnimationFrame);
           if (cancelled()) return false;
-          const rows = Math.min(T.hoverUploadRows, height - y);
+          const rows = Math.min(uploadRows, height - y);
           const sourceY = Math.round(y * im.naturalHeight / height), sourceEnd = Math.round((y + rows) * im.naturalHeight / height);
           const strip = await createImageBitmap(im, 0, sourceY, im.naturalWidth, sourceEnd - sourceY, {resizeWidth:width, resizeHeight:rows, resizeQuality:'high'});
           if (cancelled()) { strip.close(); return false; }
@@ -169,16 +173,17 @@ export function createBulge(parent, box, image, deferTexture = false) {
       box.style.visibility = ''; box = nextBox; parent.append(canvas); canvas.style.visibility = '';
     }, draw(b, ib = b, bump = 0, handoff = 0, pageHandoff = false, content = null) {
       if (dead) return;
-      const dpr = Math.min(devicePixelRatio || 1, Math.min(transitionPolicy().maxDpr, innerWidth > 2560 ? BEND.dprCapLarge : BEND.dprCap));
-      const w = Math.round(innerWidth * dpr), h = Math.round(innerHeight * dpr);
+      const V = size();
+      const dpr = Math.min(devicePixelRatio || 1, Math.min(transitionPolicy().maxDpr, V.w > 2560 ? BEND.dprCapLarge : BEND.dprCap));
+      const w = Math.round(V.w * dpr), h = Math.round(V.h * dpr);
       if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
       gl.viewport(0, 0, w, h); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
       gl.uniform4f(uniforms.box, b.x, b.y, b.w, b.h); gl.uniform4f(uniforms.imageBox, ib.x, ib.y, ib.w, ib.h);
-      gl.uniform2f(uniforms.viewport, innerWidth, innerHeight); gl.uniform2fv(uniforms.natural, natural); gl.uniform1f(uniforms.bulge, content?.bend ?? T.bulgeAmp * bump);
+      gl.uniform2f(uniforms.viewport, V.w, V.h); gl.uniform2fv(uniforms.natural, natural); gl.uniform1f(uniforms.bulge, content?.bend ?? T.bulgeAmp * bump);
       gl.uniform1f(uniforms.radius, Math.min(b.w, b.h) * (content?.corner ?? T.cornerAmp * bump));
       gl.uniform1f(uniforms.zoom, content?.framed ? content.zoom : T.zoomAmp * bump + (content?.zoom || 0));
       gl.uniform1f(uniforms.lens, content?.lens || 0);
-      gl.uniform1i(uniforms.fullScreen, content && b.w >= innerWidth - .01 && b.h >= innerHeight - .01 ? 1 : 0);
+      gl.uniform1i(uniforms.fullScreen, content && b.w >= V.w - .01 && b.h >= V.h - .01 ? 1 : 0);
       gl.uniform1i(uniforms.framed, content?.framed ? 1 : 0);
       gl.uniform1f(uniforms.pixel, 1 / dpr);
       gl.drawElements(gl.TRIANGLES, ids.length, gl.UNSIGNED_SHORT, 0);

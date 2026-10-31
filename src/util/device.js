@@ -1,3 +1,4 @@
+import { gpuProbe } from './gl-ledger.js';
 // "Weak device" rule shared by the back-to-top fallback (R13g) and the WebGL cards fallback (R16): 4 cores or fewer, 4 GB or less
 // memory (when the browser reports it), or Save-Data on. No frame-time measuring.
 // R24g: Apple devices are never flagged by the core / memory test: iOS reports 4 or 6 cores whatever the chip (an iPhone that renders a 3D scene at 120 Hz looked "weak"). They are
@@ -8,8 +9,7 @@ export const appleGpu = () => {
   if (apple !== null) return apple;
   apple = false;
   try {
-    const c = document.createElement('canvas'), g = c.getContext('webgl2') || c.getContext('webgl');
-    if (g) { const e = g.getExtension('WEBGL_debug_renderer_info'); apple = /apple/i.test(String(e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER))); g.getExtension('WEBGL_lose_context')?.loseContext(); }
+    apple = /apple/i.test(gpuProbe().renderer || ''); // (R41d: one shared, cached probe context)
   } catch { /* no WebGL: not Apple as far as we can tell */ }
   return apple;
 };

@@ -1,6 +1,8 @@
 // R31: `?perf` overlay + report. Loaded only with ?perf (see util/perf-mark.js), as its own chunk. One rAF sampler (frame time = the gap between
 // rAF callbacks), the graph is drawn at 10 Hz, phase marks come from `pm()` (performance.mark + a label on the graph). A phase = the frames between two
 // marks of a run. Runs are kept in sessionStorage so the forward run (the page is left right after it) and the back runs are in one report.
+import { gpuProbe, glLedger } from '../util/gl-ledger.js';
+import { perfQuiet } from '../util/perf-mark.js';
 const KEY = 'perfRuns';
 const RUN_START = { 'fwd:click': 'fwd', 'back:arrive': 'back' };
 const RUN_END = { 'fwd:end': 1, 'back:idle-load-end': 1 };
@@ -60,16 +62,8 @@ const mark = (name, t = performance.now()) => {
 const canvasInfo = () => { const c = glApi?.canvas; return c ? { w: c.width, h: c.height, dpr: r2(devicePixelRatio || 1), textures: glApi.stats().loaded, textureMb: r2(glApi.stats().textureMb) } : null; };
 
 const environment = () => {
-  let renderer = 'n/a', version = 'n/a', maxTex = 'n/a';
-  try {
-    const c = document.createElement('canvas'), g = c.getContext('webgl2') || c.getContext('webgl');
-    if (g) {
-      version = g.getParameter(g.VERSION); maxTex = g.getParameter(g.MAX_TEXTURE_SIZE);
-      const e = g.getExtension('WEBGL_debug_renderer_info');
-      renderer = e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER);
-      g.getExtension('WEBGL_lose_context')?.loseContext();
-    }
-  } catch { /* */ }
+  const pr = gpuProbe(); // (R41d: the cached probe; this used to create a context per call)
+  const renderer = pr.renderer || 'n/a', version = pr.version || 'n/a', maxTex = pr.maxTextureSize ?? 'n/a';
   const t0 = performance.now(); let x = 0; for (let i = 0; i < 3e6; i++) x += Math.sqrt(i); const bench = performance.now() - t0;
   return {
     userAgent: navigator.userAgent, screen: `${screen.width}x${screen.height}`, window: `${innerWidth}x${innerHeight}`, dpr: devicePixelRatio,
@@ -89,6 +83,9 @@ const buildReport = () => ({
   baselinePlainScroll5s: saved.base || 'not taken yet (needs 5 s on the Work page with no input right after load)',
   lastForward: saved.fwd[saved.fwd.length - 1] || null, lastBack: saved.back[saved.back.length - 1] || null,
   forwardRuns: saved.fwd, backRuns: saved.back,
+  glLedger: glLedger(),
+  restJobs: window.__restJobs ? window.__restJobs() : 'not the Work page',
+  why: window.__why ? window.__why() : 'not the Work page',
   warpDiagnosis: window.__tallDiag ? { ...window.__tallDiag(), ...gapStats(30), gpuNote: gpuNote() } : 'not the Work page',
   tallGuard: window.__tallGuard ? { ...window.__tallGuard, note: 'R24d frame-time guard of the phone / tablet Work page: step 0 = full warp, 1 = warp pass x0.75, 2 = x0.5, 3 = warp off' } : 'not a phone / tablet Work page',
 });
@@ -125,6 +122,22 @@ export function attachGl(api) {
 export function mountPerf() {
   if (window.__pm) return;
   const box = document.createElement('div');
+  if (perfQuiet) { // R41d: no graph, no repaint: one static button
+    box.style.cssText = 'position:fixed;right:8px;bottom:8px;z-index:2147483000;pointer-events:none;font:11px/1.2 ui-monospace,Consolas,monospace';
+    box.innerHTML = '<button style="pointer-events:auto;font:inherit;opacity:.55;cursor:pointer">Copy report</button><textarea hidden readonly style="pointer-events:auto;width:70vw;height:90px;margin-top:4px;font-size:9px"></textarea>';
+    document.body.append(box);
+    const [btn] = box.querySelectorAll('button'), area = box.querySelector('textarea');
+    btn.onclick = async () => {
+      const json = JSON.stringify(buildReport(), null, 1); area.value = json; let ok = false;
+      try { await Promise.race([navigator.clipboard.writeText(json).then(() => { ok = true; }), new Promise((r) => setTimeout(r, 1500))]); } catch { /* shown below */ }
+      if (ok) { btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = 'Copy report'; }, 1500); } else { area.hidden = false; area.select(); }
+    };
+    window.__pm = mark; for (const [n, t] of window.__pmq || []) mark(n, t); window.__pmq = null;
+    let last = 0;
+    const tick = (now) => { if (last) { frames.push([now, now - last]); if (frames.length > 40000) frames = frames.slice(-20000); } last = now; requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+    return;
+  }
   box.style.cssText = 'position:fixed;right:8px;bottom:8px;z-index:2147483000;pointer-events:none;font:11px/1.35 ui-monospace,Consolas,monospace;color:#bff5c8;background:rgba(0,0,0,.78);padding:6px 8px;border-radius:4px;width:262px';
   box.innerHTML = '<canvas width="480" height="104" style="width:240px;height:52px;display:block"></canvas><pre style="margin:4px 0;white-space:pre-wrap;font:inherit"></pre><button style="pointer-events:auto;font:inherit;cursor:pointer">Copy report</button> <button class="r" style="pointer-events:auto;font:inherit;cursor:pointer">Reset</button><textarea hidden readonly style="pointer-events:auto;width:100%;height:90px;margin-top:4px;font-size:9px"></textarea>';
   document.body.append(box);
@@ -187,8 +200,12 @@ export function mountPerf() {
     const c = glApi?.canvas, st = glApi?.stats?.();
     const heap = performance.memory ? `${(performance.memory.usedJSHeapSize / 1048576).toFixed(0)} MB` : 'n/a';
     const dg = window.__tallDiag ? window.__tallDiag() : null, gs = gapStats(30);
+    const wy = window.__why ? window.__why() : null, whyLine = wy ? `
+WHY ${wy.chosen} | weak ${wy.weakReason} apple ${wy.appleGpu} cores ${wy.cores} mem ${wy.deviceMemoryGb} | gl${wy.webgl} ${String(wy.renderer || '').slice(0, 28)}
+saveData ${wy.saveData} reduced ${wy.reducedMotion} | guard step ${wy.guard.step} warp ${wy.guard.warp}${wy.guard.history.length ? ' (' + wy.guard.history.map((x) => x.label + ' med ' + x.medianMs + ' p95 ' + x.p95Ms).join('; ') + ')' : ''}
+last tap: ${wy.lastTap ? (wy.lastTap.animateTap ? 'ANIMATED' : 'PLAIN') + ' gl ' + wy.lastTap.glOn + ' ok ' + wy.lastTap.transitionOK + ' guardWarp ' + wy.lastTap.guardWarp + ' gate ' + JSON.stringify(wy.lastTap.gate) : '-'}` : '';
     const diagLine = dg ? `\nwarp: gl ${dg.glOn ? 'on' : 'OFF (' + dg.glOffReason + ')'} | pass ${dg.warpPassActive ? 'on' : 'idle'} | warp ${dg.warpOn ? 'on' : 'off'}${dg.warpForced ? ' (forced)' : ''}\namount ${dg.warpAmountNow} / peak ${dg.warpAmountPeak} | guard ${dg.guardStep} | dpr ${dg.dpr} (${dg.canvasDpr}) pass x${dg.passScale}\ngaps med ${gs.last30GapMedianMs ?? '-'} p95 ${gs.last30GapP95Ms ?? '-'} ms | ${dg.strip}\npeak last ${dg.warpAmountPeakLast} / all ${dg.warpAmountPeak} | cores ${dg.cores}${dg.appleGpu ? ' Apple GPU' : ''}${gpuNote() ? '\n' + gpuNote() : ''}\nswipes (L/s, coast pitches, peak): ${(dg.touch || []).slice(-4).map((t) => `${t.releaseLenPerS} ${t.fling ? t.coastPitches : '-'} ${t.peak}`).join(' | ') || '-'}\nfg ${dg.values.flingGain} fr ${dg.values.dragFriction} fm ${dg.values.dragMaxCoast} sa ${dg.values.snapAfterSpeed} wg ${dg.values.warpGain} wp ${dg.values.warpPow} ws ${dg.values.warpStrength} wf ${dg.values.warpFall} fw ${dg.values.frame}` : '';
-    pre.textContent = `${(f[f.length - 1]?.[1] ?? 0).toFixed(1)} ms  ${l1.length} fps  worst(2s) ${worst.toFixed(1)} ms\ncanvas ${c ? `${c.width}x${c.height}` : 'none'} @DPR ${r2(devicePixelRatio)}\ntextures ${st ? st.loaded : 'n/a'}  up/1s ${(up / 1048576).toFixed(1)} MB  heap ${heap}\n${cur ? `run: ${cur.kind} (${cur.marks[cur.marks.length - 1].name})` : base.done ? 'idle' : 'baseline...'}${diagLine}`;
+    pre.textContent = `${(f[f.length - 1]?.[1] ?? 0).toFixed(1)} ms  ${l1.length} fps  worst(2s) ${worst.toFixed(1)} ms\ncanvas ${c ? `${c.width}x${c.height}` : 'none'} @DPR ${r2(devicePixelRatio)}\ntextures ${st ? st.loaded : 'n/a'}  up/1s ${(up / 1048576).toFixed(1)} MB  heap ${heap}\n${cur ? `run: ${cur.kind} (${cur.marks[cur.marks.length - 1].name})` : base.done ? 'idle' : 'baseline...'}${diagLine}${whyLine}`;
   };
   requestAnimationFrame(tick);
 }

@@ -8,6 +8,7 @@
 // `visibility` while the overlay plays. Fallbacks: the CSS path (opacity = p) for ?gl=0 / weak devices / a lost context; reduced motion = a plain 0.2 s fade (decided by the caller);
 // ?fx=0 = plain fade. Idle cost: no rAF, no GL call. Used for the Work v2 title only.
 import { weakDevice } from '../../util/device.js';
+import { glOpen } from '../../util/gl-ledger.js';
 
 const VS = `#version 300 es
 in vec2 a;
@@ -96,7 +97,8 @@ export function createSmear({ host, cfg, reduced }) {
   const params = new URLSearchParams(location.search);
   const fxOff = params.get('fx') === '0';
   const useGl = !reduced && !fxOff && params.get('gl') !== '0' && !weakDevice();
-  let canvas = null, gl = null, prog = null, loc = null, vao = null, tex = null, lost = false;
+  let canvas = null, gl = null, prog = null, loc = null, vao = null, lost = false;
+  const cache = new Map(); // R41c: text textures built ahead at rest (warm()), keyed by what the texture holds; a play() with a hit builds nothing
   let run = null; // the play in flight: { mode: 'enter' | 'leave', t0, u0, ... }
   let raf = 0;
 
@@ -106,7 +108,7 @@ export function createSmear({ host, cfg, reduced }) {
     canvas.className = 'w2__smear';
     canvas.setAttribute('aria-hidden', 'true');
     canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;visibility:hidden';
-    try { gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: false }); } catch { gl = null; }
+    gl = glOpen(canvas, 'title', { alpha: true, premultipliedAlpha: true, antialias: false });
     if (!gl) { canvas = null; lost = true; return false; }
     const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
     prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS)); gl.bindAttribLocation(prog, 0, 'a'); gl.linkProgram(prog);
@@ -116,7 +118,7 @@ export function createSmear({ host, cfg, reduced }) {
     const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1]), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-    canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); lost = true; finish(true); });
+    canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); lost = true; cache.clear(); finish(true); });
     host.append(canvas);
     return true;
   };
@@ -127,7 +129,10 @@ export function createSmear({ host, cfg, reduced }) {
   };
 
   // text -> texture: the advance box plus a small pad; the anchor is the left baseline (snapped to a device pixel by snapAnchor; the fraction of x is drawn into the texture)
+  const texKey = (o) => [o.text, o.size, o.weight, o.family, o.color, o.tracking || 0, dpr(), o.fracX].join('|');
   const makeTexture = (o) => {
+    const key = texKey(o), hit = cache.get(key);
+    if (hit) { cache.delete(key); cache.set(key, hit); return hit; }
     const d = dpr(), c = document.createElement('canvas'), x = c.getContext('2d');
     x.font = `${o.weight} ${o.size * d}px ${o.family}`;
     const track = (o.tracking || 0) * o.size * d; if ('letterSpacing' in x) x.letterSpacing = `${track}px`;
@@ -137,13 +142,15 @@ export function createSmear({ host, cfg, reduced }) {
     c.width = w; c.height = h;
     x.font = `${o.weight} ${o.size * d}px ${o.family}`; if ('letterSpacing' in x) x.letterSpacing = `${track}px`; x.fillStyle = o.color; x.textBaseline = 'alphabetic'; x.fontKerning = 'normal';
     x.fillText(o.text, padX + o.fracX, padY + asc); // (the text starts at the browser's fractional device pixel, so the overlay is a 1:1 copy at p = 1: no resampling blur)
-    if (tex) gl.deleteTexture(tex);
-    tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+    const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
-    return { w, h, ax: padX, ay: padY + asc };
+    const made = { w, h, ax: padX, ay: padY + asc, tex };
+    cache.set(key, made);
+    while (cache.size > 5) { const [k, v] = cache.entries().next().value; if (v === run?.tx) { cache.delete(k); cache.set(k, v); continue; } gl.deleteTexture(v.tex); cache.delete(k); }
+    return made;
   };
   // the anchor is snapped to a whole device pixel (as the browser does for the baseline); the fraction of x goes into the texture
   const snapAnchor = (o) => { const d = dpr(), xd = o.x * d; o.fracX = xd - Math.floor(xd); o.x = Math.floor(xd) / d; o.baseline = Math.floor(o.baseline * d + 1e-6) / d; return o; };
@@ -162,7 +169,7 @@ export function createSmear({ host, cfg, reduced }) {
     sizeCanvas();
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.useProgram(prog); gl.bindVertexArray(vao); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.useProgram(prog); gl.bindVertexArray(vao); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, r.tx.tex);
     gl.uniform1i(loc.uTex, 0); gl.uniform2f(loc.uRes, innerWidth, innerHeight); gl.uniform1f(loc.uDpr, d);
     gl.uniform2f(loc.uAnchor, r.x, r.baseline); gl.uniform2f(loc.uTexSize, r.tx.w, r.tx.h); gl.uniform2f(loc.uTexAnchor, r.tx.ax, r.tx.ay);
     gl.uniform1f(loc.uProgress, u); gl.uniform1f(loc.uTime, time + r.seed);
@@ -192,6 +199,8 @@ export function createSmear({ host, cfg, reduced }) {
     get leaving() { return !!run && run.mode === 'leave'; },
     get gl() { return !!gl && !lost; },
     get lost() { return lost; },
+    // R41c: build the text texture of o ahead of time (call at rest, one title per task); play() / scrub() with the same text, size, colour and position then upload nothing
+    warm(o) { if (!ensure()) return false; makeTexture(snapAnchor({ ...o })); return true; },
     // o = { el (the DOM title), text, size, weight, family, color, x (text left, css px), baseline (css px), alpha, done, aborted }
     play(o) {
       if (run) finish();

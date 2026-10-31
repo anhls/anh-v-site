@@ -33,7 +33,10 @@ import { workEase, blendSoft, moveForce, forceOf, EASES } from '../util/ease.js'
 import { ambUnits, ambParams, ambDepthW, ambProgress, ambCardOffset, ambImageOffset, leadUnits, leadParams, leadOffset } from './ambient.js';
 import { placeCards, balanceDark, workMetrics, fixWorkLayout, fixWorkLayoutIdle } from './cards.js';
 import { slugSeed } from './states.js';
-import { appleGpu } from '../util/device.js';
+import { appleGpu, weakReason } from '../util/device.js';
+import { gpuProbe, glLedger } from '../util/gl-ledger.js';
+import { createRest, setRestContext, timed, restJobs } from './rest.js';
+import { transitionPolicy } from '../effects/transition-policy.js';
 import layoutsData from '../data/layouts.json';
 import { pickSize, placeStored, applyStoredDark, projectHash } from './layout-store.js';
 
@@ -58,7 +61,7 @@ const queueEarlyClick = (e) => {
   const a = e.target.closest?.('a.work__frame');
   if (!a || !transitionOK() || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
   e.preventDefault(); e.stopImmediatePropagation(); earlyClick = a;
-  a.style.cursor = 'progress';
+  if (!mode.tap) a.style.cursor = 'progress';
 };
 document.addEventListener('click', queueEarlyClick, true);
 
@@ -72,7 +75,15 @@ const N = projects.length;
 const heroRef = (p) => p.page.blocks.find((b) => b.t === 'hero').img;
 const store = { get: () => { try { return localStorage.getItem('work-mode'); } catch { return null; } }, set: (v) => { try { localStorage.setItem('work-mode', v); } catch { /* private window */ } } };
 // R28: arriving from a project page entered through the R25 transition: the same mode, that project centred, the enlarge played in reverse (below)
-const back = !reduced && params.get('gl') !== '0' ? readBack() : null;
+const back = !reduced && params.get('gl') !== '0' && (!mode.tap || transitionOK()) ? readBack() : null;
+if (mode.tap && !transitionOK()) document.getElementById('pxb')?.remove();
+// Plain lite navigation must retain the project too (including a fresh Work
+// document). Store a slug rather than relying on an old layout's coordinates.
+const litePlace = () => {
+  if (!mode.tap) return null;
+  try { const r = JSON.parse(sessionStorage.getItem('work-lite-place') || 'null'); return r && slugs.includes(r.slug) ? r : null; } catch { return null; }
+};
+const rememberLite = (it, animated) => { if (mode.tap) { try { sessionStorage.setItem('work-lite-place', JSON.stringify({ slug: it.slug, projectIndex: it.proj, mode: vertical ? 'vertical' : 'side', animated })); if (!animated) sessionStorage.removeItem('pxb'); } catch { /* private mode */ } } };
 const perfP = perfOn ? import('../effects/perf-hud.js').then((m) => { m.mountPerf(); return m; }) : null; // R31: ?perf report (own chunk)
 if (back) pm('back:arrive');
 let vertical = mode.initialVertical(back, store);
@@ -97,7 +108,7 @@ app.innerHTML = `
   <div class="work" id="work">
     <div class="work__stage"></div>
   </div>
-  ${v2 ? '' : `<div class="work__name" aria-hidden="true">${projects.map((p) => `<span class="work__title">${[...p.title].map((c) => `<span class="work__char">${c === ' ' ? '&nbsp;' : c}</span>`).join('')}</span>`).join('')}</div>
+  ${v2 ? '' : `${mode.createTitle ? '' : `<div class="work__name" aria-hidden="true">${projects.map((p) => `<span class="work__title">${[...p.title].map((c) => `<span class="work__char">${c === ' ' ? '&nbsp;' : c}</span>`).join('')}</span>`).join('')}</div>`}
   <div class="work__count" aria-live="polite">01 / 0${N}</div>`}
   ${mode.showToggle ? `<button type="button" class="work__toggle" aria-label="Switch to vertical scroll">
     <svg viewBox="0 0 24 24" aria-hidden="true"><g class="work__icon"><rect x="3.5" y="5" width="3" height="14"/><rect x="10.5" y="5" width="3" height="14"/><rect x="17.5" y="5" width="3" height="14"/></g></svg>
@@ -106,10 +117,16 @@ const root = app.querySelector('.work');
 const stage = root.querySelector('.work__stage');
 // R23e: the counter and the toggle are children of the page, not of .work: their own top layer above the canvas and every click anchor
 const ui = v2 ? createV2({ app, projects, reduced }) : null; // R32
+// R41d: ONE "at rest" signal (work/rest.js) for every job that must not run while the strip moves: the title textures, the header decode, the transition renderer, the project page build, the picture loads
+const rest = createRest({ holdMs: mode.transitionPolicy?.restHoldMs || 150 });
+let touchEndAt = 0;
+setRestContext(() => { const now = performance.now(); return { speed: Math.round(tapSpeed), sinceTouchEnd: touchEndAt ? Math.round(now - touchEndAt) : null, restFor: Math.round(rest.restFor(now)), moving: !rest.ok(now) }; });
+if (perfOn) { window.__restJobs = restJobs; window.__glLedger = glLedger; gpuProbe(); } // (the one throw-away GPU probe happens here, before the strip's own context exists: the live count never passes 3)
+const liteTitle = mode.createTitle?.({ app, projects, reduced, rest });
 if (ui) root.insertBefore(ui.lineEl, stage); // R33d: the scroll line sits in .work, under the canvas
 const countEl = app.querySelector('.work__count') || document.createElement('div');
 const toggleEl = ui ? ui.switchEl : app.querySelector('.work__toggle') || document.createElement('button');
-const nameEl = app.querySelector('.work__name') || document.createElement('div');
+const nameEl = liteTitle?.root || app.querySelector('.work__name') || document.createElement('div');
 const fadeEls = ui ? [ui.root, ui.lineEl] : [countEl, toggleEl, nameEl]; // what the project transition fades out / back in
 const titleEls = [...nameEl.querySelectorAll('.work__title')].map((el) => ({ el, chars: [...el.querySelectorAll('.work__char')], f: -1 }));
 const iconEl = toggleEl.querySelector('.work__icon') || document.createElement('span');
@@ -201,6 +218,7 @@ const layouts = () => {
     it.el.style.width = `${w}px`; it.el.style.height = `${h}px`;
   });
   if (ui) ui.layout(fw, fh);
+  liteTitle?.layout(fw, fh);
 };
 layouts();
 const cur = () => LAY[vertical ? 'vertical' : 'side'];
@@ -232,8 +250,15 @@ const syncWarp = () => {
 syncWarp();
 fine = matchMedia('(pointer: fine)').matches && !reduced && mode.allowPointer; // (tablet landscape keeps its hover rules: touch has no fine pointer anyway)
 let glOn = false, rendererPending = false;
+let rendererId = 0, rendererRetries = 0;
 const startRenderer = () => {
-  const fallback = () => { glOn = false; root.classList.remove('work--gl'); gl?.destroy?.(); gl = null; };
+  const id = ++rendererId;
+  // R41d: a lost strip context (iOS drops the OLDEST one when its budget is spent) falls back to the flat strip as before, and on the phone / tablet it is rebuilt after a pause (at most 3 times, only while the page is visible and calm)
+  const fallback = () => {
+    if (id !== rendererId) return; // (the lost event of a context we already replaced / destroyed)
+    glOn = false; root.classList.remove('work--gl'); gl?.destroy?.(); gl = null;
+    if (mode.tap && !paused && rendererRetries < 3) { const wait = 600 * (1 + rendererRetries++); const retry = () => { if (glOn || paused) return; if (document.hidden || transitionBusy || !rest.ok()) { setTimeout(retry, 400); return; } startRenderer(); }; setTimeout(retry, wait); }
+  };
   gl = createCardsGL({ ...mode.rendererOptions, section: root, els: items.map((it) => it.img), cards: items, bx, by, bw, bh, onLost: fallback, bend: bendP, warp: warpP, near: (i) => items[i].active === true, layers: { isFrame: Uint8Array.from(items, (it) => (it.kind === 'frame' ? 1 : 0)), warp: warpImg, bend: bendImg, target: (v) => frameAmount(v / Math.max(cur().M.viewAlong, 1), warpImg) } });
   if (gl) {
     glOn = true;
@@ -253,6 +278,16 @@ if (perfOn) window.__tallDiag = () => {
   const d = gl?.diag?.() || {};
   const why = gl ? '' : params.get('gl') === '0' ? '?gl=0' : reduced ? 'reduced motion (the iOS "Reduce Motion" setting): add ?warp=1' : mode.glOffReason(); // (R24g: names the test that fired: saveData / cores / memory / noWebGL2)
   return { ...mode.diagnosticKind, strip: vertical ? 'vertical' : 'side', glOn: !!gl, glOffReason: why, warpForced: warpForce, warpOn: mode.debugSettings.warp && guard.state.warp, warpPassActive: d.lastPass ? performance.now() - d.lastPass < 300 : false, warpPasses: d.passCount ?? 0, warpAmountNow: +diag.now.toFixed(3), warpAmountPeak: +diag.peakAll.toFixed(3), warpAmountPeakLast: +diag.peakLast.toFixed(3), cores: navigator.hardwareConcurrency, appleGpu: appleGpu(), touch: touchLog.slice(), pointerEvents: pEvents.slice(), values: { flingGain: mode.debugSettings.flingGain, flingMin: mode.debugSettings.flingMin, dragFriction: mode.debugSettings.dragFriction, dragMaxCoast: mode.debugSettings.dragMaxCoast, snapAfterSpeed: mode.debugSettings.snapAfterSpeed, snapDelay: mode.debugSettings.snapDelay, focusDelay: mode.debugSettings.focusDelay, warpGain: mode.debugSettings.warpGain, warpPow: mode.debugSettings.warpPow, warpStrength: mode.debugSettings.warpStrength, warpRise: mode.debugSettings.frameWarp.riseSec, warpFall: mode.debugSettings.warpFall, frame: mode.debugSettings.frame, overrides: mode.overrides }, guardStep: guard.state.step, dpr: devicePixelRatio, canvasDpr: gl ? +(gl.canvas.width / innerWidth).toFixed(2) : 0, passScale: d.warpScale ?? 1, bufferPath: d.fbPath ?? 'n/a', warpProgram: d.postOk ?? 'n/a', bufferPx: d.bufferPx ?? 'n/a' };
+};
+// R41c: why the phone does / does not play the open transition (the ?perf report field `why`, also shown in the overlay). lastTap is kept in sessionStorage because a plain
+// navigation (the case this explains) unloads the page before anyone can read it; the next Work page load still shows it.
+const gpuName = () => { const p = gpuProbe(); return { webgl: p.webgl, renderer: p.renderer, debugInfoExt: p.debugInfoExt }; }; // (R41d: cached; it used to create a new WebGL context on every call = ten per second under the HUD, which got the strip's own context lost on the iPhone)
+let lastTap = null; if (perfOn) { try { lastTap = JSON.parse(sessionStorage.getItem('whyTap') || 'null'); } catch { /* none */ } }
+if (perfOn) window.__why = () => {
+  const pol = transitionPolicy(), weak = weakReason();
+  return { chosen: pol.enabled ? 'lite (animated)' : 'PLAIN (no transition)', policyEnabled: pol.enabled, policyBulge: pol.bulge, weakReason: weak || 'not weak', appleGpu: appleGpu(), cores: navigator.hardwareConcurrency, deviceMemoryGb: navigator.deviceMemory ?? 'n/a',
+    saveData: navigator.connection?.saveData === true, reducedMotion: !!reduced, gl: !!gl, glParam: params.get('gl'), ...gpuName(), transitionOK: transitionOK(),
+    guard: { enabled: guard.state.enabled, step: guard.state.step, warp: guard.state.warp, history: guard.state.history }, lastTap };
 };
 // ---- pointer: parallax (the homepage mouse drift), hover (zoom, the dark layer fades), click opens the project page (the anchors)
 const mouse = { tx: 0, ty: 0, x: 0, y: 0, px: -1e5, py: -1e5, known: false }; // px, py: the raw pointer (the push), tx, ty: normalised (the drift)
@@ -449,7 +484,7 @@ let focusHeld = false, focusHoldUntil = 0;
 const holdFocus = () => { focusHeld = WORK.focusAfterMorph !== 0; focusHoldUntil = 0; };
 const focusOff = (now) => focusHeld && (!!morph || (typeof WORK.focusAfterMorph === 'number' ? now < focusHoldUntil : true));
 const inputRelease = () => { if (focusHeld && !morph && WORK.focusAfterMorph === 'input') focusHeld = false; };
-const cancelSnap = () => { snap = null; snapForce = 0; lastWheel = performance.now(); inputAt = lastWheel; wmScrolled = true; arrivalHold = false; inputRelease(); };
+const cancelSnap = () => { rest.interrupt(); snap = null; snapForce = 0; lastWheel = performance.now(); inputAt = lastWheel; wmScrolled = true; arrivalHold = false; inputRelease(); };
 // ---- R22e: hold and drag (desktop mouse). The strip follows the pointer 1:1 (the scroll gain does not apply) along the mode's axis; on release
 // it keeps the pointer's speed and loses it by friction (R22i: speed x exp(-t / WORK.dragFriction), distance = speed x friction time, capped at
 // WORK.dragMaxCoast pitches; no overshoot; it ends when the speed is under 5 px/s)
@@ -459,8 +494,9 @@ const snapSecNow = () => mode.snapSec(); // (R33c: WORK.snapSec 1 is for the des
 let inputAt = 0; // R33c: the last wheel / key / touch / press / drag movement (the scroll-stop clock)
 let drag = null; // { id, last, total, captured, samples: [[t, pos]] }
 let inertia = null; // { from, v0, F, t0 }
-let dragMoved = false;
+let dragMoved = false, tapPrepT = 0, grabDir = 0; // grabDir (R41d): the direction the strip was travelling when a finger stopped it (+1 / -1), 0 = it was not travelling
 let dragAccum = 0; // S change made by the drag / inertia since the last frame (px): the warp follows it like a wheel scroll
+let tapSpeed = 0; // the last measured strip velocity, available to event handlers
 const axisOf = (e) => (vertical ? e.clientY : e.clientX);
 // x TALL.flingGain; under TALL.flingMin screen lengths / s no coast; friction TALL.dragFriction, at most TALL.dragMaxCoast pitches. Every swipe is logged for the ?perf touch block.
 const touchLog = []; let curSwipe = null, swipePeak = 0;
@@ -468,7 +504,7 @@ const ampHist = []; // R24j: [time, |warp amount|] of the last frames (the touch
 const endDrag = (by = 'other') => {
   if (!drag) return;
   const d = drag;
-  drag = null;
+  drag = null; touchEndAt = performance.now();
   root.classList.remove('is-dragging');
   try { if (d.captured) document.documentElement.releasePointerCapture(d.id); } catch { /* already released */ }
   if (!d.total || d.total <= d.thr) return;
@@ -479,7 +515,15 @@ const endDrag = (by = 'other') => {
 addEventListener('pointerdown', (e) => {
   if (paused || (e.pointerType === 'mouse' && e.button !== 0) || morph || fading || (drag && e.pointerType !== 'mouse')) return; // R24b: touch and pen share the drag; a second finger is ignored
   if (e.target.closest?.('.work__toggle, .work__count, .w2__hit, .tmenu__btn, .tmenu, [data-tune-panel]') || e.target.closest?.('div[style*="99999"]')) return;
-  dragMoved = false; swipePeak = 0; curSwipe = null;
+  if (mode.tap && e.target.closest?.('a.work__frame')) {
+    mode.tap.down({ moving: transitionBusy || !!inertia || !!snap || Math.abs(tapSpeed) > 5 });
+    const it = items.find(it => it.el === e.target.closest('a.work__frame'));
+    // R41d: not on the touchdown itself (a flick starts on a picture too: the decode / renderer work would land in its first frames). It starts once the finger has stayed put for tapPrepareMs; a drag cancels it.
+    clearTimeout(tapPrepT);
+    if (!transitionBusy && glOn && mode.transitionPolicy.tapFallback) tapPrepT = setTimeout(() => { if (drag && !dragMoved && !transitionBusy) timed('prepareTap', () => prepareTransition(it.slug, it.ref, it.img, 'tap')); }, mode.transitionPolicy.tapPrepareMs ?? 70);
+  }
+  grabDir = mode.tap && (inertia || Math.abs(tapSpeed) > 60) ? Math.sign(inertia ? inertia.D : tapSpeed) || 0 : 0;
+  dragMoved = false; swipePeak = 0; curSwipe = null; rest.interrupt();
   drag = { id: e.pointerId, mouse: e.pointerType === 'mouse', thr: e.pointerType === 'mouse' ? 6 : 10, last: axisOf(e), total: 0, captured: false, samples: [[performance.now(), axisOf(e)]] };
   inertia = null; snap = null; snapForce = 0; lastWheel = performance.now(); inputAt = lastWheel; wmScrolled = true; inputRelease();
   e.preventDefault(); // no text selection, no image drag
@@ -491,7 +535,7 @@ addEventListener('pointermove', (e) => {
   drag.last = pos;
   drag.total += Math.abs(dpos);
   if (drag.total > drag.thr) {
-    if (!dragMoved) disposePrepared();
+    if (!dragMoved) { grabDir = 0; clearTimeout(tapPrepT); swap.cancelPrebuild(); disposePrepared(); } // R41c: lite no longer RELEASES the spare renderer here: destroying a WebGL context at the first drag move stalled iOS (~170 ms) and the next rest built a new one
     dragMoved = true;
     root.classList.add('is-dragging');
     if (!drag.captured && drag.mouse) { try { document.documentElement.setPointerCapture(drag.id); drag.captured = true; } catch { /* not capturable */ } } // from here the move / up come even outside the window
@@ -510,16 +554,29 @@ document.documentElement.addEventListener('lostpointercapture', (e) => { if (dra
 document.addEventListener('visibilitychange', () => { if (document.hidden) endDrag(); });
 addEventListener('click', (e) => { if (!paused && dragMoved) { e.preventDefault(); e.stopPropagation(); dragMoved = false; } }, { capture: true });
 // R25: a click on a main image grows that picture into the project page's header (cards keep a plain page load)
-items.forEach((it) => { if (it.kind === 'frame') { it.el.addEventListener('pointerenter', () => { preloadHeader(it.slug, it.ref); if (glOn) prepareTransition(it.slug, it.ref, it.img); }); it.el.addEventListener('pointerleave', leavePrepared); } });
-addEventListener('wheel', () => { if (!paused && !transitionBusy) { disposePrepared(); lastIdx = -1; } }, {passive:true});
+items.forEach((it) => { if (it.kind === 'frame') { it.el.addEventListener('pointerenter', () => { if (mode.tap && !transitionOK()) return; preloadHeader(it.slug, it.ref); if (glOn) prepareTransition(it.slug, it.ref, it.img); }); it.el.addEventListener('pointerleave', leavePrepared); } });
+addEventListener('wheel', () => { rest.interrupt(); grabDir = 0; if (!paused && !transitionBusy) { swap.cancelPrebuild(); disposePrepared(); lastIdx = -1; } }, {passive:true});
 // R42c: wait for the same-document router on an early click; reduced motion / ?gl=0 / no WebGL retain plain navigation.
 const swap = createPageSwap();
-const openStart = (it) => { transitionBusy = true; loadGate = true; gl?.pauseUploads(true); pm('fwd:click'); lenis.stop(); nameEl.style.zIndex = '9'; TP.q = it.proj; TP.p0 = fPu.x[it.proj]; TP.p = TP.p0; TP.hold = TRANSITION.pushScale > 0 || clearMode(); if (clearMode()) { TC.u = 0; prepareClear(it.proj); } }; // (the project name stays above the growing picture and fades with the rest)
+const openStart = (it) => { if (mode.tap) document.documentElement.style.setProperty('--tap-viewport-height', `${mode.tap.viewport.h}px`); transitionBusy = true; loadGate = true; gl?.pauseUploads(true); pm('fwd:click'); lenis.stop(); nameEl.style.zIndex = '9'; TP.q = it.proj; TP.p0 = fPu.x[it.proj]; TP.p = TP.p0; TP.hold = TRANSITION.pushScale > 0 || clearMode(); if (clearMode()) { TC.u = 0; prepareClear(it.proj); } }; // (the project name stays above the growing picture and fades with the rest)
 stage.addEventListener('click', async (e) => {
   const a = e.target.closest('a.work__frame');
-  if (paused || transitionBusy || !a || morph || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  if (!a || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  if (paused || transitionBusy || morph) { if (mode.tap) e.preventDefault(); return; }
   const it = items.find((q) => q.el === a), i = it.idx;
+  let animateTap = true;
+  if (mode.tap) {
+    const moving = !!drag || !!inertia || !!snap || Math.abs(tapSpeed) > 5;
+    if (!mode.tap.pressed && e.detail === 0) mode.tap.down({ moving }); // keyboard activation
+    const centre = vertical ? (by[i] - H / 2) / H : (bx[i] - W / 2) / W;
+    const intent = { dragMoved, moving, centre };
+    if (!mode.tap.intent(intent)) { if (perfOn) { lastTap = { at: Math.round(performance.now()), rejected: 'gesture intent (drag / moving / long press / off-centre / locked)', gate: mode.tap.explain({ ...intent, reduced, degraded: !guard.state.warp }) }; try { sessionStorage.setItem('whyTap', JSON.stringify(lastTap)); } catch { /* private mode */ } } e.preventDefault(); return; }
+    animateTap = glOn && mode.tap.accept({ ...intent, reduced, degraded: !guard.state.warp }) && transitionOK();
+    if (perfOn) { lastTap = { at: Math.round(performance.now()), glOn: !!glOn, transitionOK: transitionOK(), animateTap, guardStep: guard.state.step, guardWarp: guard.state.warp, tapSpeed: Math.round(tapSpeed), policy: transitionPolicy().enabled, gate: mode.tap.explain({ ...intent, reduced, degraded: !guard.state.warp }) }; try { sessionStorage.setItem('whyTap', JSON.stringify(lastTap)); } catch { /* private mode */ } }
+    rememberLite(it, animateTap); mode.tap.lock();
+  }
   let inPlace = glOn && !reduced && params.get('gl') !== '0';
+  if (mode.tap && !animateTap) inPlace = false;
   if (!inPlace && !(glOn && transitionOK())) return;
   const sc = ui ? 1 : gl.hs[i] || 1; // (R33: v2 reads the UNSCALED frame; the hover growth eases back to 1 as the transition starts)
   e.preventDefault();
@@ -529,10 +586,20 @@ stage.addEventListener('click', async (e) => {
     inPlace = swap.ready();
   }
   const w = bw[i] * sc, h = bh[i] * sc;
-  const flight = transitionOK() ? { slug: it.slug, ref: it.ref, rect: { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, startImage: it.img, startSrc: it.img.currentSrc || it.img.src, fade: fadeEls, fromWork: { mode: vertical ? 'vertical' : 'side', projectIndex: it.proj }, onPush: (p, u) => { if (clearMode()) TC.u = u; else if (TRANSITION.pushScale > 0) TP.p = TP.p0 + (TRANSITION.pushScale - TP.p0) * p; }, onStart: () => openStart(it) } : null;
+  const flight = transitionOK() && animateTap ? { slug: it.slug, ref: it.ref, rect: mode.tap ? mode.tap.rect({ bx: bx[i], by: by[i], bw: bw[i], bh: bh[i], ox: gl.ox[i], oy: gl.oy[i], scale: sc }) : { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, viewport: mode.tap?.viewport, startImage: it.img, startSrc: it.img.currentSrc || it.img.src, fade: fadeEls, fromWork: { mode: vertical ? 'vertical' : 'side', projectIndex: it.proj }, onPush: (p, u) => { if (clearMode()) TC.u = u; else if (TRANSITION.pushScale > 0) TP.p = TP.p0 + (TRANSITION.pushScale - TP.p0) * p; }, onStart: () => openStart(it) } : null;
   if (inPlace && swap.open({ slug: it.slug, ref: it.ref, flight, begin: () => openStart(it), image: it.img })) return;
   if (flight) runProjectTransition(flight); else location.href = a.href;
 });
+// The tall menu survives the in-place project. Its Works link closes that view
+// through the same router, including the bend, rather than loading a new strip.
+if (mode.tap) document.addEventListener('click', e => {
+  const a = e.target.closest?.('a[href]');
+  if (paused && a && new URL(a.href).origin === location.origin && new URL(a.href).pathname === '/work/' && !e.button && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+    if (document.documentElement.classList.contains('tmenu-open')) document.querySelector('.tmenu__btn')?.click();
+    e.preventDefault(); swap.back(true);
+  }
+}, true);
+if (mode.saveBack) addEventListener('pagehide', () => { if (paused) mode.saveBack(document.querySelector('.pj-root')); });
 // ---- R42: what the page-swap router needs from the strip (pause / resume it, where a project's image sits, the push on the way back)
 let savedY = 0, workChrome = [];
 const frameOf = (slug) => items.findIndex((it) => it.kind === 'frame' && it.slug === slug);
@@ -573,6 +640,8 @@ swap.attach({
   frameRect(slug) { const fi = frameOf(slug); place(fi, cur(), S); return { x: out.x - bw[fi] / 2, y: out.y - bh[fi] / 2, w: bw[fi], h: bh[fi] }; }, // (read at the rest place resume() set, before any tick)
   backPush: (p, u) => { if (TC.on) TC.u = u; else TP.p = p * TRANSITION.pushScale; },
   finish() {
+    mode.tap?.unlock();
+    if (mode.tap) document.documentElement.style.removeProperty('--tap-viewport-height');
     transitionBusy = false; loadGate = false; gl?.pauseUploads?.(false);
     TP.q = -1; TP.p = 0; TP.hold = false; TC.on = false; TC.u = 0;
     gsap.set(fadeEls, { clearProps: 'opacity' }); nameEl.style.zIndex = '';
@@ -580,14 +649,18 @@ swap.attach({
     idleLoad();
     // the next click must animate like the first: the centred project's renderer + page are prepared again (idle, never in a frame that matters)
     const ci = ((kCount % N) + N) % N, cit = items.find((q) => q.kind === 'frame' && q.proj === ci);
-    if (glOn && cit) setTimeout(() => { if (!paused && !TC.on && TP.q < 0) { prepareIdleTransition(cit.slug, cit.ref, cit.img); swap.prebuild(cit.slug); } }, 400);
+    if (glOn && cit) {
+      const idle = mode.transitionPolicy?.idleMs || 400;
+      rest.schedule('prepare', 'prepareIdle', () => { if (!paused && !TC.on && TP.q < 0) prepareIdleTransition(cit.slug, cit.ref, cit.img); }, idle);
+      rest.schedule('prebuild', 'prebuild', () => { if (!paused && !TC.on && TP.q < 0) swap.prebuild(cit.slug, rest.ok); }, idle + 120);
+    }
   },
 });
 setTimeout(() => swap.warm(), 0);
-items.forEach((it) => { if (it.kind === 'frame') it.el.addEventListener('pointerenter', () => { swap.warm().then(() => swap.prebuild(it.slug)); }); });
+items.forEach((it) => { if (it.kind === 'frame') it.el.addEventListener('pointerenter', () => { if (!mode.tap || transitionOK()) swap.warm().then(() => swap.prebuild(it.slug)); }); });
 addEventListener('wheel', () => { if (!paused) inertia = null; }, { capture: true, passive: true });
 addEventListener('wheel', () => { if (!paused) cancelSnap(); }, { capture: true, passive: true });
-addEventListener('touchstart', () => { if (!paused) cancelSnap(); }, { capture: true, passive: true });
+addEventListener('touchstart', () => { rest.interrupt(); if (!paused) cancelSnap(); }, { capture: true, passive: true });
 addEventListener('keydown', () => { if (!paused) cancelSnap(); }, { capture: true });
 const navTravel = () => dist(INDEX.travelVh); // how far a title rises (px), like the homepage index rows (a capped distance)
 const updateNames = () => {
@@ -639,11 +712,17 @@ const tick = (_time, deltaMs) => {
       // R22h: the snap must always take over. A speed above 250 px/s can no longer hold it off for more than 0.6 s after the quiet time, and a stale
       // Lenis glide is not trusted that long either (see `late`)
       // the wheel has been quiet and Lenis' glide is nearly over: where the glide will end (S + what is left of it) picks the project
-      const pt = cur().pitch, late = now - lastWheel > sdMs + 600, pred = late ? S : S + (lenis.targetScroll - lenis.animatedScroll) * WORK.wheel, k = Math.round(pred / pt), d = k * pt - pred;
-      if (Math.abs(d) <= WORK.snapWindow * pt && Math.abs(k * pt - S) > 0.5) { snapForce = moveForce(k * pt - S, scale, workEase(WORK), snapSecNow(), WORK); snap = { from: S, to: k * pt, t0: now, force: snapForce }; }
+      const pt = cur().pitch, late = now - lastWheel > sdMs + 600, pred = late ? S : S + (lenis.targetScroll - lenis.animatedScroll) * WORK.wheel;
+      let k = Math.round(pred / pt);
+      // R41d: a finger that STOPPED a moving strip (a touch with no drag after it) must not make the soft snap page BACK against the direction it was travelling: if the nearest project lies more than 15 % of a pitch behind, the next one ahead is taken (the whole pitch is the window then). Any drag / fling / wheel clears it.
+      const grabbed = grabDir !== 0 && !drag;
+      if (grabbed && (k * pt - pred) * grabDir < -0.15 * pt) k += grabDir;
+      const d = k * pt - pred;
+      if (Math.abs(d) <= (grabbed ? 1 : WORK.snapWindow) * pt && Math.abs(k * pt - S) > 0.5) { grabDir = 0; snapForce = moveForce(k * pt - S, scale, workEase(WORK), snapSecNow(), WORK); snap = { from: S, to: k * pt, t0: now, force: snapForce }; }
     }
   } else snap = null;
   prevS = S;
+  if (mode.tap) tapSpeed = vel;
   // focus progress per project
   let focusMoving = false;
   {
@@ -793,32 +872,32 @@ const tick = (_time, deltaMs) => {
   const pos = (morph ? sB : S) / pitchNow;
   if (morph || Math.abs(pos - kCount) > 0.5 + WORK_COUNTER.counterHysteresis) kCount = Math.round(pos);
   const idx = ((kCount % N) + N) % N;
-  if (idx !== lastIdx) { lastIdx = idx; clearTimeout(preT); preT = setTimeout(function warmCentre() {
-    if (TC.on || arrivalHold) return;
-    if (drag || morph || snap || inertia || performance.now() - lastWheel < 300) { preT = setTimeout(warmCentre, 300); return; }
-    const it = items.find(it => it.kind === 'frame' && it.slug === projects[idx].slug);
-    preloadHeader(projects[idx].slug, heroRef(projects[idx]));
-    if (glOn && it) { prepareIdleTransition(it.slug, it.ref, it.img); swap.prebuild(it.slug); }
-    // R42d: prefetch only at rest, never during scroll / drag / snap. Decode
-    // sequentially so three headers do not compete in the same idle task.
-    if (glOn) {
-      const centre = idx;
-      const warmNeighbours = async () => {
-        for (const offset of [0, -1, 1]) {
-          if (paused || transitionBusy || lastIdx !== centre || drag || morph || snap || inertia || performance.now() - lastWheel < 300) return;
+  if (idx !== lastIdx) {
+    lastIdx = idx; clearTimeout(preT);
+    // R41d: the work that follows a new centred project is queued on the shared rest signal (one job per frame, none before the strip is calm for idleMs, all dropped when a finger or wheel comes back): header fetch, the transition renderer, the project page, then the neighbours' decode one per job
+    for (const k of ['centre', 'prepare', 'prebuild', 'nb0', 'nb1', 'nb2']) rest.cancel(k);
+    if (!(mode.tap && !transitionOK())) {
+      const idle = mode.transitionPolicy?.idleMs || 180, centre = idx, ok = () => !paused && !transitionBusy && !TC.on && !arrivalHold && lastIdx === centre;
+      const it = items.find(it => it.kind === 'frame' && it.slug === projects[idx].slug);
+      rest.schedule('centre', 'preloadHeader', () => { if (ok()) preloadHeader(projects[idx].slug, heroRef(projects[idx])); }, idle);
+      if (glOn && it) {
+        rest.schedule('prepare', 'prepareIdle', () => { if (ok()) prepareIdleTransition(it.slug, it.ref, it.img); }, idle + 60);
+        rest.schedule('prebuild', 'prebuild', () => { if (ok()) swap.prebuild(it.slug, rest.ok); }, idle + 180);
+        // R42d: prefetch only at rest, never during scroll / drag / snap, sequentially (one header decode per job)
+        [0, -1, 1].forEach((offset, n) => rest.schedule('nb' + n, 'decodeNeighbour', () => {
+          if (!ok()) return;
           const p = projects[(centre + offset + N) % N];
-          try { await preloadHeader(p.slug, heroRef(p)).decode(); } catch { /* prefetch is optional */ }
-        }
-      };
-      (window.requestIdleCallback || ((fn) => setTimeout(fn, 80)))(warmNeighbours);
+          try { const im = preloadHeader(p.slug, heroRef(p)); im.decode().catch(() => { /* prefetch is optional */ }); } catch { /* prefetch is optional */ }
+        }, idle + 300 + n * 120));
+      }
     }
-  }, 180); /* R42c: the centred project's header image is fetched once it rests */ if (!ui) countEl.textContent = `${String(idx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`; }
+    /* R42c: the centred project's header image is fetched once it rests */ if (!ui) countEl.textContent = `${String(idx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`; }
 
-  if (ui) { // R32 / R33c: the text field, counter and ruler. SCROLL STOP = no input for scrollStopSec (a coasting drag counts as moving until it is slower than scrollStopSpeed), the strip may still
+  if (ui || liteTitle) { // R32 / R33c: the text field, counter and ruler. SCROLL STOP = no input for scrollStopSec (a coasting drag counts as moving until it is slower than scrollStopSpeed), the strip may still
     // be gliding / snapping to its image: the project it is HEADING to is then the active one.
     const ptn = L.pitch;
     if (drag) inputAt = now;
-    const inSpeed = inertia ? Math.abs(inertia.v0) * Math.exp(-((now - inertia.t0) / 1000) / Math.max(inertia.F || 0.6, 0.05)) : 0;
+    const inSpeed = mode.tap ? Math.abs(vel) : inertia ? Math.abs(inertia.v0) * Math.exp(-((now - inertia.t0) / 1000) / Math.max(inertia.F || 0.6, 0.05)) : 0;
     const stopped = !morph && !drag && TP.q < 0 && !TC.on && now - inputAt > WORK_TEXT.scrollStopSec * 1000 && (!inertia || inSpeed < WORK_TEXT.scrollStopSpeed * L.M.viewAlong);
     let kHead;
     if (snap) kHead = Math.round(snap.to / ptn);
@@ -827,7 +906,7 @@ const tick = (_time, deltaMs) => {
     v2s.pos = pos; v2s.idx = idx; v2s.kHead = kHead; v2s.idxHead = ((kHead % N) + N) % N; v2s.kNum = (stopped ? kHead : kCount) + 1;
     v2s.speedL = Math.abs(vel) / Math.max(L.M.viewAlong, 1); v2s.vertical = morph ? morph.to === 'vertical' : vertical; v2s.morph = !!morph; v2s.dt = dt; v2s.stopped = stopped;
     if (!stopped) v2StopAt = 0; else if (!v2StopAt) { v2StopAt = now; if (window.__stopLog) window.__stopLog.push({ at: now, since: now - inputAt }); }
-    v2s.transitioning = transitionBusy; ui.frame(v2s);
+    v2s.transitioning = transitionBusy; ui?.frame(v2s); liteTitle?.frame(v2s);
   }
   if (ui && glOn && !transitionBusy) { // R33b: the pixel smear on every picture (only with a fine pointer; cards-gl is null on reduced motion / weak devices / ?gl=0)
     ptrFx ||= createPointerFx(gl, N);
@@ -850,6 +929,7 @@ const tick = (_time, deltaMs) => {
     ampHist.push([now, Math.abs(gl.bendImg().amt || 0)]); while (ampHist.length > 40) ampHist.shift();
     swipePeak = mode.perFrame({gl, vel, drag, now, diag, curSwipe, swipePeak});
   }
+  rest.update(now, { speed: vel, touching: !!drag || transitionBusy || TC.on || TP.q >= 0, snap: !!snap, inertia: !!inertia, morph: !!morph }); rest.step(now); // R41d: after the frame's draw, at most one rest job
   if (morph && now - morph.t0 >= WORK.morphSec * 1000) finishMorph();
 };
 gsap.ticker.add(tick);
@@ -861,11 +941,11 @@ const idleLoad = () => {
   const step = () => {
     const left = items.filter((it) => !it.active);
     if (!left.length) { pm('back:idle-load-end'); return; }
-    if (TC.on || TP.q >= 0 || performance.now() - lastWheel < 150) { setTimeout(step, 60); return; }
+    if (TC.on || TP.q >= 0 || !rest.ok()) { setTimeout(step, 60); return; } // (R41d: a picture upload only at rest)
     const c = vertical ? H / 2 : W / 2, a = vertical ? py : px;
     let best = left[0], bd = Infinity;
     for (const it of left) { const d = Math.abs(a[it.idx] - c); if (d < bd) { bd = d; best = it; } }
-    activate(best);
+    timed('activate', () => activate(best));
     (window.requestIdleCallback || ((f) => setTimeout(f, 50)))(() => setTimeout(step, 50), { timeout: 250 });
   };
   step();
@@ -937,9 +1017,17 @@ const relayout = () => {
   off += f * cur().pitch - S;
   if (glOn) gl.resize(W, H);
 };
-addEventListener('resize', () => { if (paused) return; clearTimeout(rt); rt = setTimeout(relayout, 120); });
+addEventListener('resize', () => { if (paused || (mode.tap && transitionBusy)) return; clearTimeout(rt); rt = setTimeout(relayout, 120); });
 
 commit(vertical ? 'vertical' : 'side');
+const restoreLitePlace = () => {
+  const r = litePlace(); if (!r) return;
+  const q = slugs.indexOf(r.slug), target = q * cur().pitch;
+  off += target - S; S = target; prevS = target; kCount = q; snap = null; inertia = null;
+  mode.tap.unlock();
+};
+if (mode.tap && !back) restoreLitePlace();
+if (mode.tap) addEventListener('pageshow', e => { if (e.persisted) restoreLitePlace(); });
 // the endless strip passes through 0 at every wrap, so the distance must not drive the wordmark: it reports "scrolled" once and never rest again
 mode.lateNav(data.hero.wordmark, lenis, () => wmScrolled, back);
 // R28: the way back. The overlay (#pxb, painted by the inline script in work/index.html) covers the page with the project's header at the scroll it was
@@ -978,6 +1066,7 @@ if (earlyClick) {
 if (import.meta.env.DEV) {
   window.__SMEAR = WORK_SMEAR; window.__LINE = WORK_LINE; window.__V2 = WORK_V2; window.__TEXT = WORK_TEXT; window.__PTRCFG = WORK_PTR; window.__SCROLL = SCROLL; window.__WORK = WORK; window.__TRANSITION = TRANSITION; window.__TALL = mode.debugSettings; window.__guard = guard; window.__bendP = bendP;
   window.__work = { ui, get ptr() { return ptrFx; }, get hz() { return hzA; }, setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, q: Q, PS,  get snap() { return snap; }, AMB, LEAD, get drag() { return drag; }, get inertia() { return inertia; }, fP, fSc, fPu, get kCount() { return kCount; }, bx, by, bw, bh, vis, hp };
+  if (mode.tap) { window.__work.liteTitle = liteTitle; window.__work.tap = mode.tap; }
   if (params.has('tune')) import('./tune.js').then((m) => m.mountWorkTune({ relayout }));
   if (params.has('overlap')) import('../effects/overlap-debug.js').then((m) => m.mountOverlapDebug('.work__card', () => `focus ${Math.max(...fSc.x).toFixed(2)}${AMB.on ? ', ambient drift on' : ''}${LEAD.moving ? ', lead moving' : ''}${morph ? ', toggle morph' : ''}${TC.on ? ', transition' : ''}${drag ? ', drag' : ''}`));
 }
