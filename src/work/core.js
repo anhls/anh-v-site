@@ -543,7 +543,7 @@ stage.addEventListener('click', async (e) => {
     const centre = vertical ? (by[i] - H / 2) / H : (bx[i] - W / 2) / W;
     const intent = { dragMoved, moving, centre };
     if (!mode.tap.intent(intent)) { e.preventDefault(); return; }
-    animateTap = mode.tap.accept({ ...intent, reduced, degraded: !guard.state.warp }) && transitionOK();
+    animateTap = glOn && mode.tap.accept({ ...intent, reduced, degraded: !guard.state.warp }) && transitionOK();
     rememberLite(it, animateTap); mode.tap.lock();
   }
   let inPlace = glOn && !reduced && params.get('gl') !== '0';
@@ -565,7 +565,7 @@ stage.addEventListener('click', async (e) => {
 // through the same router, including the bend, rather than loading a new strip.
 if (mode.tap) document.addEventListener('click', e => {
   const a = e.target.closest?.('a[href]');
-  if (paused && a && new URL(a.href).pathname === '/work/' && !e.button && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+  if (paused && a && new URL(a.href).origin === location.origin && new URL(a.href).pathname === '/work/' && !e.button && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
     if (document.documentElement.classList.contains('tmenu-open')) document.querySelector('.tmenu__btn')?.click();
     e.preventDefault(); swap.back(true);
   }
