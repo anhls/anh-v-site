@@ -23,3 +23,9 @@ Where: src/effects/{flight-curve,bulge-gl,project-transition}.js, src/timeline.j
 
 ## R36 / earlier
 - Strict whole-page Work rest / return pixel proof remains "unverified (script issue)" since R37 (endpoint checks pass).
+
+## ?perf report on Anh's 4K desktop (2026-10-31, work-v2 after R41b-d + R42e; docs/reference/perf-4k-desktop-2026-10-31.json)
+Performance is fine: 144 Hz (median 6.9 ms), both opens 180 frames with max 7.1 ms, first flight frame 8.5-10 ms after the click, 3 live WebGL contexts, none failed. Report bugs to fix in a small desktop request:
+1. `backRuns` is empty although Anh went back twice with the mouse back button (pointer buttons 8 at 23937 and 33800 ms): the back path is not recorded on desktop (or the mouse back button skips the animated back). Check which.
+2. `why.chosen` says "lite (animated)" on desktop (warpDiagnosis.kind is "desktop"): wrong label in the WHY report.
+3. `restJobs`: 146 desktop jobs flagged ranWhileMoving with stripSpeed 0 and restForMs 0: the R41d rest signal (src/work/rest.js) is not fed on desktop, so desktop idle work is not gated by it (cheap here, max 2.7 ms, but the gate is meant for every mode).
