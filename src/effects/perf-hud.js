@@ -89,6 +89,7 @@ const buildReport = () => ({
   baselinePlainScroll5s: saved.base || 'not taken yet (needs 5 s on the Work page with no input right after load)',
   lastForward: saved.fwd[saved.fwd.length - 1] || null, lastBack: saved.back[saved.back.length - 1] || null,
   forwardRuns: saved.fwd, backRuns: saved.back,
+  why: window.__why ? window.__why() : 'not the Work page',
   warpDiagnosis: window.__tallDiag ? { ...window.__tallDiag(), ...gapStats(30), gpuNote: gpuNote() } : 'not the Work page',
   tallGuard: window.__tallGuard ? { ...window.__tallGuard, note: 'R24d frame-time guard of the phone / tablet Work page: step 0 = full warp, 1 = warp pass x0.75, 2 = x0.5, 3 = warp off' } : 'not a phone / tablet Work page',
 });
@@ -187,8 +188,12 @@ export function mountPerf() {
     const c = glApi?.canvas, st = glApi?.stats?.();
     const heap = performance.memory ? `${(performance.memory.usedJSHeapSize / 1048576).toFixed(0)} MB` : 'n/a';
     const dg = window.__tallDiag ? window.__tallDiag() : null, gs = gapStats(30);
+    const wy = window.__why ? window.__why() : null, whyLine = wy ? `
+WHY ${wy.chosen} | weak ${wy.weakReason} apple ${wy.appleGpu} cores ${wy.cores} mem ${wy.deviceMemoryGb} | gl${wy.webgl} ${String(wy.renderer || '').slice(0, 28)}
+saveData ${wy.saveData} reduced ${wy.reducedMotion} | guard step ${wy.guard.step} warp ${wy.guard.warp}${wy.guard.history.length ? ' (' + wy.guard.history.map((x) => x.label + ' med ' + x.medianMs + ' p95 ' + x.p95Ms).join('; ') + ')' : ''}
+last tap: ${wy.lastTap ? (wy.lastTap.animateTap ? 'ANIMATED' : 'PLAIN') + ' gl ' + wy.lastTap.glOn + ' ok ' + wy.lastTap.transitionOK + ' guardWarp ' + wy.lastTap.guardWarp + ' gate ' + JSON.stringify(wy.lastTap.gate) : '-'}` : '';
     const diagLine = dg ? `\nwarp: gl ${dg.glOn ? 'on' : 'OFF (' + dg.glOffReason + ')'} | pass ${dg.warpPassActive ? 'on' : 'idle'} | warp ${dg.warpOn ? 'on' : 'off'}${dg.warpForced ? ' (forced)' : ''}\namount ${dg.warpAmountNow} / peak ${dg.warpAmountPeak} | guard ${dg.guardStep} | dpr ${dg.dpr} (${dg.canvasDpr}) pass x${dg.passScale}\ngaps med ${gs.last30GapMedianMs ?? '-'} p95 ${gs.last30GapP95Ms ?? '-'} ms | ${dg.strip}\npeak last ${dg.warpAmountPeakLast} / all ${dg.warpAmountPeak} | cores ${dg.cores}${dg.appleGpu ? ' Apple GPU' : ''}${gpuNote() ? '\n' + gpuNote() : ''}\nswipes (L/s, coast pitches, peak): ${(dg.touch || []).slice(-4).map((t) => `${t.releaseLenPerS} ${t.fling ? t.coastPitches : '-'} ${t.peak}`).join(' | ') || '-'}\nfg ${dg.values.flingGain} fr ${dg.values.dragFriction} fm ${dg.values.dragMaxCoast} sa ${dg.values.snapAfterSpeed} wg ${dg.values.warpGain} wp ${dg.values.warpPow} ws ${dg.values.warpStrength} wf ${dg.values.warpFall} fw ${dg.values.frame}` : '';
-    pre.textContent = `${(f[f.length - 1]?.[1] ?? 0).toFixed(1)} ms  ${l1.length} fps  worst(2s) ${worst.toFixed(1)} ms\ncanvas ${c ? `${c.width}x${c.height}` : 'none'} @DPR ${r2(devicePixelRatio)}\ntextures ${st ? st.loaded : 'n/a'}  up/1s ${(up / 1048576).toFixed(1)} MB  heap ${heap}\n${cur ? `run: ${cur.kind} (${cur.marks[cur.marks.length - 1].name})` : base.done ? 'idle' : 'baseline...'}${diagLine}`;
+    pre.textContent = `${(f[f.length - 1]?.[1] ?? 0).toFixed(1)} ms  ${l1.length} fps  worst(2s) ${worst.toFixed(1)} ms\ncanvas ${c ? `${c.width}x${c.height}` : 'none'} @DPR ${r2(devicePixelRatio)}\ntextures ${st ? st.loaded : 'n/a'}  up/1s ${(up / 1048576).toFixed(1)} MB  heap ${heap}\n${cur ? `run: ${cur.kind} (${cur.marks[cur.marks.length - 1].name})` : base.done ? 'idle' : 'baseline...'}${diagLine}${whyLine}`;
   };
   requestAnimationFrame(tick);
 }

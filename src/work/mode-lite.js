@@ -27,6 +27,12 @@ export function createTapGate(policy = TRANSITION_POLICY_LITE) {
       if (!policy.enabled || reduced || degraded || dragMoved || moving || movingAtDown || navigator.connection?.saveData === true) return false;
       return intent({now, dragMoved, moving, centre});
     },
+    // R41c: every term of the gate, for the ?perf report (why a tap was or was not animated)
+    explain({now = performance.now(), dragMoved = false, moving = false, centre = 0, reduced = false, degraded = false}) {
+      return { policyEnabled: policy.enabled, reduced, degraded, dragMoved, moving, movingAtDown, saveData: navigator.connection?.saveData === true,
+        pressMs: downAt > 0 ? Math.round(now - downAt) : null, maxPressMs: policy.maxPressMs, sinceOpenMs: Math.round(Math.min(now - openedAt, 99999)), lockMs: policy.lockMs,
+        centre: +centre.toFixed(3), centreTol: policy.centreTol, intent: intent({now, dragMoved, moving, centre}), accept: this.accept({now, dragMoved, moving, centre, reduced, degraded}) };
+    },
     lock(now = performance.now()) { openedAt = now; vp = { w: document.documentElement.clientWidth || innerWidth, h: innerHeight }; return vp; },
     get viewport() { return vp || { w: document.documentElement.clientWidth || innerWidth, h: innerHeight }; },
     unlock() { openedAt = -1e9; downAt = 0; movingAtDown = true; vp = null; }, // bfcache restore / failed navigation: the gate opens again

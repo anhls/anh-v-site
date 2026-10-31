@@ -33,7 +33,8 @@ import { workEase, blendSoft, moveForce, forceOf, EASES } from '../util/ease.js'
 import { ambUnits, ambParams, ambDepthW, ambProgress, ambCardOffset, ambImageOffset, leadUnits, leadParams, leadOffset } from './ambient.js';
 import { placeCards, balanceDark, workMetrics, fixWorkLayout, fixWorkLayoutIdle } from './cards.js';
 import { slugSeed } from './states.js';
-import { appleGpu } from '../util/device.js';
+import { appleGpu, weakReason } from '../util/device.js';
+import { transitionPolicy } from '../effects/transition-policy.js';
 import layoutsData from '../data/layouts.json';
 import { pickSize, placeStored, applyStoredDark, projectHash } from './layout-store.js';
 
@@ -263,6 +264,16 @@ if (perfOn) window.__tallDiag = () => {
   const d = gl?.diag?.() || {};
   const why = gl ? '' : params.get('gl') === '0' ? '?gl=0' : reduced ? 'reduced motion (the iOS "Reduce Motion" setting): add ?warp=1' : mode.glOffReason(); // (R24g: names the test that fired: saveData / cores / memory / noWebGL2)
   return { ...mode.diagnosticKind, strip: vertical ? 'vertical' : 'side', glOn: !!gl, glOffReason: why, warpForced: warpForce, warpOn: mode.debugSettings.warp && guard.state.warp, warpPassActive: d.lastPass ? performance.now() - d.lastPass < 300 : false, warpPasses: d.passCount ?? 0, warpAmountNow: +diag.now.toFixed(3), warpAmountPeak: +diag.peakAll.toFixed(3), warpAmountPeakLast: +diag.peakLast.toFixed(3), cores: navigator.hardwareConcurrency, appleGpu: appleGpu(), touch: touchLog.slice(), pointerEvents: pEvents.slice(), values: { flingGain: mode.debugSettings.flingGain, flingMin: mode.debugSettings.flingMin, dragFriction: mode.debugSettings.dragFriction, dragMaxCoast: mode.debugSettings.dragMaxCoast, snapAfterSpeed: mode.debugSettings.snapAfterSpeed, snapDelay: mode.debugSettings.snapDelay, focusDelay: mode.debugSettings.focusDelay, warpGain: mode.debugSettings.warpGain, warpPow: mode.debugSettings.warpPow, warpStrength: mode.debugSettings.warpStrength, warpRise: mode.debugSettings.frameWarp.riseSec, warpFall: mode.debugSettings.warpFall, frame: mode.debugSettings.frame, overrides: mode.overrides }, guardStep: guard.state.step, dpr: devicePixelRatio, canvasDpr: gl ? +(gl.canvas.width / innerWidth).toFixed(2) : 0, passScale: d.warpScale ?? 1, bufferPath: d.fbPath ?? 'n/a', warpProgram: d.postOk ?? 'n/a', bufferPx: d.bufferPx ?? 'n/a' };
+};
+// R41c: why the phone does / does not play the open transition (the ?perf report field `why`, also shown in the overlay). lastTap is kept in sessionStorage because a plain
+// navigation (the case this explains) unloads the page before anyone can read it; the next Work page load still shows it.
+const gpuName = () => { try { const cv = document.createElement('canvas'), g = cv.getContext('webgl2') || cv.getContext('webgl'); if (!g) return { webgl: 'none' }; const e = g.getExtension('WEBGL_debug_renderer_info'); const r = { webgl: typeof WebGL2RenderingContext !== 'undefined' && g instanceof WebGL2RenderingContext ? 2 : 1, renderer: String(e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER)), debugInfoExt: !!e }; g.getExtension('WEBGL_lose_context')?.loseContext(); return r; } catch (err) { return { webgl: 'error ' + err.message }; } };
+let lastTap = null; if (perfOn) { try { lastTap = JSON.parse(sessionStorage.getItem('whyTap') || 'null'); } catch { /* none */ } }
+if (perfOn) window.__why = () => {
+  const pol = transitionPolicy(), weak = weakReason();
+  return { chosen: pol.enabled ? 'lite (animated)' : 'PLAIN (no transition)', policyEnabled: pol.enabled, policyBulge: pol.bulge, weakReason: weak || 'not weak', appleGpu: appleGpu(), cores: navigator.hardwareConcurrency, deviceMemoryGb: navigator.deviceMemory ?? 'n/a',
+    saveData: navigator.connection?.saveData === true, reducedMotion: !!reduced, gl: !!gl, glParam: params.get('gl'), ...gpuName(), transitionOK: transitionOK(),
+    guard: { enabled: guard.state.enabled, step: guard.state.step, warp: guard.state.warp, history: guard.state.history }, lastTap };
 };
 // ---- pointer: parallax (the homepage mouse drift), hover (zoom, the dark layer fades), click opens the project page (the anchors)
 const mouse = { tx: 0, ty: 0, x: 0, y: 0, px: -1e5, py: -1e5, known: false }; // px, py: the raw pointer (the push), tx, ty: normalised (the drift)
@@ -542,8 +553,9 @@ stage.addEventListener('click', async (e) => {
     if (!mode.tap.pressed && e.detail === 0) mode.tap.down({ moving }); // keyboard activation
     const centre = vertical ? (by[i] - H / 2) / H : (bx[i] - W / 2) / W;
     const intent = { dragMoved, moving, centre };
-    if (!mode.tap.intent(intent)) { e.preventDefault(); return; }
+    if (!mode.tap.intent(intent)) { if (perfOn) { lastTap = { at: Math.round(performance.now()), rejected: 'gesture intent (drag / moving / long press / off-centre / locked)', gate: mode.tap.explain({ ...intent, reduced, degraded: !guard.state.warp }) }; try { sessionStorage.setItem('whyTap', JSON.stringify(lastTap)); } catch { /* private mode */ } } e.preventDefault(); return; }
     animateTap = glOn && mode.tap.accept({ ...intent, reduced, degraded: !guard.state.warp }) && transitionOK();
+    if (perfOn) { lastTap = { at: Math.round(performance.now()), glOn: !!glOn, transitionOK: transitionOK(), animateTap, guardStep: guard.state.step, guardWarp: guard.state.warp, tapSpeed: Math.round(tapSpeed), policy: transitionPolicy().enabled, gate: mode.tap.explain({ ...intent, reduced, degraded: !guard.state.warp }) }; try { sessionStorage.setItem('whyTap', JSON.stringify(lastTap)); } catch { /* private mode */ } }
     rememberLite(it, animateTap); mode.tap.lock();
   }
   let inPlace = glOn && !reduced && params.get('gl') !== '0';
