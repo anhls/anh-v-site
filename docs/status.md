@@ -681,3 +681,7 @@ Undo everything: `git switch work-v2`.
   What you will see now: clicking any Work picture, hovered or not, starts the open animation at once (20-78 ms, was up to 2 s); no progress cursor.
   Still off: scroll worst frame at 4x CPU up to ~14 ms slower (idle header prefetch suspected); Cloudflare preview not verified by the builder.
   Your decision: none. Next: open timing slower (Anh: "not too snappy"), then R41 Part B.
+- 2026-10-31 19:10, Cowork: R42e variant A merged into work-v2 (Anh chose A from A / B / C / A+C previews).
+  What you will see now: the open is slower and softer: about 1.27 s (was 0.71 s), the card arrives gently at full screen, then the picture slowly zooms into the header; the inward bend is a faint pull (a quarter of before).
+  Still off: number-only change, the builder check set was not run (R41b's desktop-unchanged checks run on top of it); back still uses the full inward bend (-0.045).
+  Your decision: whether the back bend should drop to match the softer open.

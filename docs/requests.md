@@ -380,6 +380,9 @@ Read CLAUDE.md, AGENTS.md (section 12: busy note first), then docs/codex/R42c.md
 ## R42d [done, merged 2026-10-31] (DESKTOP, Claude Code (Codex stopped at its usage limit, nothing pushed); branch desktop/r42d-open-lag): no wait before the open animation, a cold click on any Work card starts moving at once
 Read CLAUDE.md, AGENTS.md (section 12: busy note first), then docs/codex/R42d.md. New branch desktop/r42d-open-lag from work-v2 (2b0ade8 or later). Before R41 Part B.
 
+## R42e [done, merged 2026-10-31] (DESKTOP, Cowork, number-only): slower, softer open. Anh compared variants A / B / C / A+C on previews and chose A.
+workSec 0.6 -> 0.85, workPushSec 0.34 -> 0.48, workCarry 0.8 -> 0.4, zoomTailSec 0.2 -> 0.55, inwardAmp 0.045 -> 0.01125 (open 0.71 -> ~1.27 s). Back unchanged (backBendAmp -0.045). Variant branches kept for reference: desktop/r42e-b (zEnd 1.18), desktop/r42e-c (zoom across the whole open, growZoom), desktop/r42e-ac.
+
 ## R41b (LITE = phone + tablet, any agent, Codex suggested; folder anh-v-site-mobile, branch lite/r41b from work-v2): open / close transition, back to the same project, desktop title smear on phones and tablets
 Read CLAUDE.md, AGENTS.md (section 12: busy note first), then docs/codex/R41b.md (replaces R41 Part B).
 
