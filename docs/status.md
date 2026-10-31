@@ -703,3 +703,10 @@ Undo everything: `git switch work-v2`.
   Still off: I could not reproduce the iPhone stalls in any emulation, so this is NOT confirmed on a phone. Why your tap was plain is still unknown: I need your report.
   Your decision: open https://lite-r41b.anh-v-site.pages.dev/work/?perf on the iPhone, wait 6 s, tap a picture, go back, press "Copy report" and paste it here (or send a new recording).
   Found: the first finger move destroyed the WebGL renderer (about 170 ms on iOS); the guard switched warp (and with it the transition) off after one bad burst. Both fixed; title textures are built at rest; the soft snap cannot act under a finger. Flick 6x CPU: 0 stalls over 50 ms, 0 jumps. R41b suite, desktop compare 542/542, clicks 150/150, midscroll pass. Details: docs/codex/R41c-notes.md.
+
+- 2026-10-31, R41d (Claude), lite/r41b. Code 640d52a.
+  What you will see now: the strip should keep its WebGL warp (the report-2 loss was my own overlay creating a throw-away WebGL context ten times a second, which made iOS drop the strip's), flicks no longer share the moment with page building or picture loading, and a finger that stops a coasting strip no longer makes it page backwards.
+  Still off: not confirmed on a phone; I cannot reproduce iOS. Building the project page in the background still has a few 12-22 ms steps at 6x CPU (about 2-4 ms on a desktop), over my 8 ms target.
+  Your decision: open https://lite-r41b.anh-v-site.pages.dev/work/?perf=quiet (no overlay), flick, tap a picture, go back, press the small "Copy report" button and paste it, ideally with a screen recording.
+  One rest signal (work/rest.js: still 150 ms, no finger, no snap); every idle job queued on it, one per frame, dropped on touch; project page built in 9 steps and primed in 34; WebGL ledger (live 3, peak 3, after 20 open / back + 3 reloads glOn true; a lost strip context rebuilds); ?perf=quiet; report fields restJobs and glLedger. Details docs/codex/R41d-notes.md.
+  Flick 6x CPU 390x844 and 430x932: worst moving gap 14-17 ms, 0 stalls, 0 jumps. R41b suite, real bfcache, desktop compare 542/542 x2, clicks 150/150, midscroll pass. Undo: git revert 640d52a.
