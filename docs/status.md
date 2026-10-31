@@ -674,3 +674,6 @@ Undo everything: `git switch work-v2`.
   What you will see now: every open and every back plays the same visible inward bend (strength -0.045); a scrolled-down project glides to its header (~0.3 s) before it shrinks into its card.
   Still open: a click on an unprepared card can wait 0.5-2 s before the animation starts (task "Fix lag mở card"); bend strength by eye (tunable); 144 Hz not eye-checked.
   Next: the open-lag fix, then R41 Part B (phone/tablet).
+- 2026-10-31, R42d (Codex partial + Claude): cold click now moves in 20-78 ms (was 290-2034 ms; 4x CPU worst 78 ms); progress cursor removed. Card picture is the start texture and the header swaps in after the first frame; spare renderer reused; click uploads in one go; neighbours' headers prefetched at rest.
+  clicks 150/150 renderer used, 0 flat, 0 errors; midscroll landing <= 0.5 px; backs 50/50 held; WebGL canvases at rest flat at 3 over 20 open/backs; build + tall smoke OK.
+  NOT run yet: compare 542/542, ?gl=0 / reduced motion, swap pixel diff, hover-sweep frame cost, clean-clone build, preview link. Details: docs/codex/R42d-notes.md.
