@@ -1,6 +1,7 @@
 import { BEND, TRANSITION as T } from '../timeline.js';
 import { transitionPolicy } from './transition-policy.js';
 import { flightZoom, flightRecord } from './flight-curve.js';
+import { pm } from '../util/perf-mark.js';
 
 export const pillowBump = (t) => {
   const end = Math.max(0.02, Math.min(1, T.bulgeEndAt));
@@ -49,6 +50,7 @@ export function createBulge(parent, box, image, deferTexture = false) {
   let gl;
   try { gl = canvas.getContext('webgl2', { alpha: true, antialias: false, depth: false, stencil: false, premultipliedAlpha: false }); } catch { return null; }
   if (!gl) return null;
+  pm('fwd:context-ready');
   let dead = false, texture, program, vertex, index, vs, fs;
   const dispose = () => {
     if (dead) return;
@@ -116,30 +118,44 @@ export function createBulge(parent, box, image, deferTexture = false) {
       if (key === textureKey) return;
       textureKey = key;
       gl.bindTexture(gl.TEXTURE_2D, texture); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, decoded || im); gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
       natural = [im.naturalWidth, im.naturalHeight];
     };
     if (!deferTexture) setTexture(image); parent.append(canvas);
-    return { canvas, dispose, setTexture, async prepareTexture(im) {
+    let preparation = 0;
+    return { canvas, dispose, setTexture, cancelPreparation() { preparation++; }, async prepareTexture(im, urgent = false) {
       if (dead || !im.complete || !im.naturalWidth) return false;
+      const token = ++preparation, cancelled = () => dead || token !== preparation;
       const parallel = gl.getExtension('KHR_parallel_shader_compile');
-      do { await new Promise(requestAnimationFrame); if (dead) return false; }
-      while (parallel && !gl.getProgramParameter(program, parallel.COMPLETION_STATUS_KHR));
+      while (parallel && !gl.getProgramParameter(program, parallel.COMPLETION_STATUS_KHR)) {
+        await new Promise(requestAnimationFrame); if (cancelled()) return false;
+      }
       if (!gl.getProgramParameter(program, gl.LINK_STATUS)) { dispose(); return false; }
       uniforms = readUniforms();
+      pm('fwd:compile-ready');
+      if (urgent) {
+        // The on-screen card is already decoded. Upload directly: no frame-paced
+        // strips, extra Image decode or bitmap resize on the click's clock.
+        setTexture(im);
+        pm('fwd:upload-end');
+        return true;
+      }
       const dpr = Math.min(devicePixelRatio || 1, Math.min(transitionPolicy().maxDpr, innerWidth > 2560 ? BEND.dprCapLarge : BEND.dprCap));
       const ratio = Math.min(1, Math.max(innerWidth * dpr / im.naturalWidth, innerHeight * dpr / im.naturalHeight));
       const width = Math.round(im.naturalWidth * ratio), height = Math.round(im.naturalHeight * ratio);
       natural = [width, height];
+      // A cancelled partial upload must never masquerade as the old texture.
+      textureKey = null;
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
       for (let y = 0; y < height; y += T.hoverUploadRows) {
           await new Promise(requestAnimationFrame);
-          if (dead) return false;
+          if (cancelled()) return false;
           const rows = Math.min(T.hoverUploadRows, height - y);
           const sourceY = Math.round(y * im.naturalHeight / height), sourceEnd = Math.round((y + rows) * im.naturalHeight / height);
           const strip = await createImageBitmap(im, 0, sourceY, im.naturalWidth, sourceEnd - sourceY, {resizeWidth:width, resizeHeight:rows, resizeQuality:'high'});
-          if (dead) { strip.close(); return false; }
+          if (cancelled()) { strip.close(); return false; }
           gl.bindTexture(gl.TEXTURE_2D, texture);
           gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, y, gl.RGBA, gl.UNSIGNED_BYTE, strip); strip.close();
       }
@@ -147,6 +163,7 @@ export function createBulge(parent, box, image, deferTexture = false) {
       gl.generateMipmap(gl.TEXTURE_2D);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
       textureKey = im.currentSrc || im.src;
+      pm('fwd:upload-end');
       return true;
     }, get dead() { return dead; }, adopt(parent, nextBox) {
       box.style.visibility = ''; box = nextBox; parent.append(canvas); canvas.style.visibility = '';

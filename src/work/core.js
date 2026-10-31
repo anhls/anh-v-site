@@ -524,8 +524,8 @@ stage.addEventListener('click', async (e) => {
   const sc = ui ? 1 : gl.hs[i] || 1; // (R33: v2 reads the UNSCALED frame; the hover growth eases back to 1 as the transition starts)
   e.preventDefault();
   if (inPlace && !swap.ready()) {
-    openStart(it); a.style.cursor = 'progress';
-    await swap.warm(); a.style.cursor = '';
+    openStart(it);
+    await swap.warm();
     inPlace = swap.ready();
   }
   const w = bw[i] * sc, h = bh[i] * sc;
@@ -799,6 +799,19 @@ const tick = (_time, deltaMs) => {
     const it = items.find(it => it.kind === 'frame' && it.slug === projects[idx].slug);
     preloadHeader(projects[idx].slug, heroRef(projects[idx]));
     if (glOn && it) { prepareIdleTransition(it.slug, it.ref, it.img); swap.prebuild(it.slug); }
+    // R42d: prefetch only at rest, never during scroll / drag / snap. Decode
+    // sequentially so three headers do not compete in the same idle task.
+    if (glOn) {
+      const centre = idx;
+      const warmNeighbours = async () => {
+        for (const offset of [0, -1, 1]) {
+          if (paused || transitionBusy || lastIdx !== centre || drag || morph || snap || inertia || performance.now() - lastWheel < 300) return;
+          const p = projects[(centre + offset + N) % N];
+          try { await preloadHeader(p.slug, heroRef(p)).decode(); } catch { /* prefetch is optional */ }
+        }
+      };
+      (window.requestIdleCallback || ((fn) => setTimeout(fn, 80)))(warmNeighbours);
+    }
   }, 180); /* R42c: the centred project's header image is fetched once it rests */ if (!ui) countEl.textContent = `${String(idx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`; }
 
   if (ui) { // R32 / R33c: the text field, counter and ruler. SCROLL STOP = no input for scrollStopSec (a coasting drag counts as moving until it is slower than scrollStopSpeed), the strip may still
