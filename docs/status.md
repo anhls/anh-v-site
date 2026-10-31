@@ -714,3 +714,11 @@ Undo everything: `git switch work-v2`.
   What you will see now: on phone and tablet a tap opens with the desktop bend and zoom, back shrinks into the strip on the same project, the title plays the smear; flicking is smooth on Anh's iPhone (freezes of 4+ frames: 7 -> 5 -> 0; only 2-3 frame blips left).
   Still off: a 40 ms page-build step sometimes runs while the strip moves; the first back after a direct project page load waits ~0.8 s; R41e (queued) covers both.
   Your decision: none. Evidence: docs/reference/r41*-iphone-* (recordings, sheets, ?perf reports).
+
+- 2026-10-31, R41e (Claude), lite/r41e.
+  What you will see now: the project page is no longer built while the strip moves (the 40 ms steps are gone in tests: 0 of 15 build steps and the title ran while moving), and the first back after a reloaded project page gets its renderer in about 50 ms instead of about 320 ms (at 6x CPU).
+  Still off: two page-prepare slices still take 12-14 ms at 6x CPU (target 8); I could not find what caused the single 95 ms frame inside one open (the iPhone has no long-task data, no repro in Chromium). Nothing is confirmed on a phone.
+  Your decision: record once more on the iPhone with https://lite-r41e.anh-v-site.pages.dev/work/?perf=quiet (flick, open, back, then also reload a project page and press back).
+  Cause 1: the hover path called prebuild with "always calm"; now it passes rest.ok and every step re-checks calm. Build slices 2 blocks (was 4); prime slices down to 5 levels, with the hide and the display:block as their own steps. Title set/play wait for rest.ok (delay = the gap between the title's own "stopped" and 150 ms of rest, at most about 0.15 s; unmeasured on a phone).
+  Cause 2: a reloaded project page is a new document, so no renderer can be held across the back; instead a cold back uploads ONE screen-sized bitmap (was frame-paced strips). The 280 ms from renderer-late to "fly-start" is the timeline's own design (push starts late), not a wait; so "shrink starts within 100 ms" holds from renderer-late.
+  Checks: rest.mjs 14 flicks 6x (0 stalls, ranWhileMoving 0, pageBuild max 3.8-9 ms, pagePrime 2 outliers 14 ms), cycles (live 3, 20 cycles), compare 542/542 x2, clean-clone build. Skipped: R41b-c suites, clicks, midscroll (no desktop code touched except shared bulge-gl cold flag). Undo: git revert 347f79e.

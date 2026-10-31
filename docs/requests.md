@@ -390,7 +390,7 @@ Read CLAUDE.md, AGENTS.md (section 12: busy note first), then docs/codex/R41b.md
 
 ## R41d [done, merged 2026-10-31] (LITE, Claude Code, lite/r41b): one rest signal for idle work, sliced page build, WebGL context ledger, ?perf=quiet. Brief docs/codex/R41d.md.
 
-## R41e (queued, LITE, any agent; branch lite/r41e from work-v2): iPhone leftovers (page build while moving, first back after a direct load, title while moving). Brief docs/codex/R41e.md.
+## R41e [done] (queued, LITE, any agent; branch lite/r41e from work-v2): iPhone leftovers (page build while moving, first back after a direct load, title while moving). Brief docs/codex/R41e.md.
 
 ## R27 (type motion TOOLKIT): paragraph line reveal + label smear reveal, one shared system, built but applied NOWHERE yet (use Sonnet 5.5, no time budget, Anh runs it at home)
 
