@@ -49,9 +49,10 @@ export const TRANSITION = { workSec: 0.85, workPushSec: 0.48, workLandAt: 0.85, 
   inwardAmp: 0.01125, inwardStartAt: 0.45,
   // R42d: retain at most three decoded headers (centre and neighbours); no motion tuning.
   headerCacheCount: 3,
+  // R42f (Anh 2026-10-31): back inward bend halved, backBendAmp -0.045 -> -0.0225 (the open is softer since R42e).
   // Reference back: fast first ~0.25s, then ~0.5s shrinking settle, concave edges (R42c Part C: -0.045 = the opening's inward strength, same sign).
   // backGlideSec = page glide to the top before the shrink when the header is scrolled away (full distance >= 1 viewport; shorter below, floor backGlideMin share).
-  backSec: 0.75, backSizePow: 3, backBendAmp: -0.045, backGlideSec: 0.3, backGlideMin: 0.35, backBendEndAt: 0.85, backCornerAmp: 0.003 };
+  backSec: 0.75, backSizePow: 3, backBendAmp: -0.0225, backGlideSec: 0.3, backGlideMin: 0.35, backBendEndAt: 0.85, backCornerAmp: 0.003 };
 
 // Springs: [stiffness, damping, mass], Framer / motion units. Layers chase their scroll-mapped target through these
 // (see src/effects/springs.js). Different springs = different lag = the floaty, weighted feel.
