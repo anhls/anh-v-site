@@ -698,3 +698,8 @@ Undo everything: `git switch work-v2`.
   Still off: with the CPU slowed 4x the project page landing after the open stutters (about 100 ms, 260 ms on tablet landscape); the motion itself is smooth. First title frame 27 ms at 4x.
   Your decision: check on your real phone via the preview link; say if the landing mount cost should become its own request.
   Tap to first moving frame 12-56 ms (4x: 32-106); 32-case matrix, 12 restore cases, real bfcache, fallbacks, 20 cycles (3 contexts flat, about 29 MiB) pass; desktop compare 542/542 at 1920 and 2560, clicks 50/50, midscroll <= 1 px. Details: docs/codex/R41b-notes.md. Pushed: see git log lite/r41b.
+- 2026-10-31, R41c (Claude), lite/r41b. Diagnostics were pushed first (530bf1b); fixes after.
+  What you will see now: flicking should no longer freeze at the start of a swipe, the title fades out on time instead of hanging as grey text, and the open transition is no longer switched off by one stall.
+  Still off: I could not reproduce the iPhone stalls in any emulation, so this is NOT confirmed on a phone. Why your tap was plain is still unknown: I need your report.
+  Your decision: open https://lite-r41b.anh-v-site.pages.dev/work/?perf on the iPhone, wait 6 s, tap a picture, go back, press "Copy report" and paste it here (or send a new recording).
+  Found: the first finger move destroyed the WebGL renderer (about 170 ms on iOS); the guard switched warp (and with it the transition) off after one bad burst. Both fixed; title textures are built at rest; the soft snap cannot act under a finger. Flick 6x CPU: 0 stalls over 50 ms, 0 jumps. R41b suite, desktop compare 542/542, clicks 150/150, midscroll pass. Details: docs/codex/R41c-notes.md.
