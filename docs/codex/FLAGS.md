@@ -29,3 +29,8 @@ Performance is fine: 144 Hz (median 6.9 ms), both opens 180 frames with max 7.1 
 1. `backRuns` is empty although Anh went back twice with the mouse back button (pointer buttons 8 at 23937 and 33800 ms): the back path is not recorded on desktop (or the mouse back button skips the animated back). Check which.
 2. `why.chosen` says "lite (animated)" on desktop (warpDiagnosis.kind is "desktop"): wrong label in the WHY report.
 3. `restJobs`: 146 desktop jobs flagged ranWhileMoving with stripSpeed 0 and restForMs 0: the R41d rest signal (src/work/rest.js) is not fed on desktop, so desktop idle work is not gated by it (cheap here, max 2.7 ms, but the gate is meant for every mode).
+
+## ?perf report on Anh's FHD laptop (2026-10-31, AMD Radeon iGPU, 1920x1080 at 144 Hz; docs/reference/perf-fhd-laptop-2026-10-31.json)
+- Open: 176 frames, median 6.9 ms, one 20.9 ms frame; first flight frame 12 ms after the click. Fine.
+- Start-up hitch: during the 5 s baseline right after load, 3 frames over 50 ms, worst 152.8 ms (GPU 158.7 ms), while 7 textures (51.7 MB) uploaded. On the integrated GPU the first scroll after load can hitch while the card textures upload; spread the uploads (one per frame, smaller first) or finish them before the first interaction.
+- Same report bugs as the 4K desktop: backRuns empty (Anh did 3 Work -> project -> back rounds but only 1 forward run and 0 backs are recorded: the recorder may reset on the in-page swap), WHY label "lite" on desktop, rest signal not fed on desktop (pageBuild up to 10.8 ms flagged ranWhileMoving at speed 0).
