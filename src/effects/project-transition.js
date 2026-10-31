@@ -20,6 +20,9 @@ export const transitionOK = () => !reduced && new URLSearchParams(location.searc
 const full = new Map(); // slug -> an <img> preloading the header image with the header's own srcset / sizes (so the same file is picked)
 export function preloadHeader(slug, ref) {
   if (full.has(slug)) return full.get(slug);
+  // Bound decoded header retention to the centred project and two neighbours.
+  // Active flights keep their own image reference when an entry is evicted.
+  while (full.size >= (T.headerCacheCount || 3)) full.delete(full.keys().next().value);
   const { src, srcset } = imgSet(ref);
   const im = new Image();
   im.decoding = 'async';
@@ -33,14 +36,34 @@ export function preloadHeader(slug, ref) {
 addEventListener('pageshow', (e) => { if (e.persisted) location.reload(); });
 
 // Work hover owns at most one hidden, warmed transition renderer.
-let prepared = null, prepareTimer = 0, leaveTimer = 0, prepareToken = 0, pendingSlug = null, idleTask = 0;
+let prepared = null, spare = null, prepareTimer = 0, leaveTimer = 0, prepareToken = 0, pendingSlug = null, idleTask = 0, preparation = null, cancelPreparation = null, hoverSlug = null;
+function rendererHost() {
+  const host = document.createElement('div'), box = document.createElement('div');
+  host.style.cssText = 'position:fixed;inset:0;visibility:hidden;pointer-events:none'; host.append(box); document.body.append(host);
+  return { host, box };
+}
+function parkRenderer(entry) {
+  if (!entry) return;
+  entry.renderer.cancelPreparation();
+  if (entry.renderer.dead) { entry.host.remove(); return; }
+  if (spare) { spare.renderer.dispose(); spare.host.remove(); }
+  const next = rendererHost(); entry.renderer.adopt(next.host, next.box); entry.host.remove();
+  entry.renderer.canvas.style.visibility = 'hidden'; spare = { ...next, renderer: entry.renderer };
+}
+function recycleFlight(renderer) {
+  if (!renderer) return;
+  const next = rendererHost(); renderer.adopt(next.host, next.box);
+  parkRenderer({ host: next.host, renderer });
+}
 export function disposePrepared() {
-  prepareToken++; pendingSlug = null; clearTimeout(prepareTimer); clearTimeout(leaveTimer);
+  prepareToken++; pendingSlug = null; hoverSlug = null; clearTimeout(prepareTimer); clearTimeout(leaveTimer);
   if (idleTask) { (window.cancelIdleCallback || clearTimeout)(idleTask); idleTask = 0; }
-  prepared?.renderer.dispose(); prepared?.host.remove(); prepared = null;
+  cancelPreparation?.(); cancelPreparation = null;
+  parkRenderer(prepared); prepared = null;
 }
 export function leavePrepared() {
   if (running) return;
+  hoverSlug = null;
   clearTimeout(leaveTimer); leaveTimer = setTimeout(disposePrepared, T.hoverDisposeMs);
 }
 export function prepareIdleTransition(slug, ref, image) {
@@ -51,51 +74,70 @@ export function prepareIdleTransition(slug, ref, image) {
 }
 export function prepareTransition(slug, ref, image, trigger = 'hover') {
   if (running && trigger !== 'click') return;
+  if (trigger === 'idle' && hoverSlug && hoverSlug !== slug) return;
   const policy = transitionPolicy();
   if (!policy.bulge || (policy.prepare === 'tap' && trigger !== 'tap' && trigger !== 'click') || (policy.prepare === 'idle' && trigger === 'hover')) return;
   if (!transitionOK() || (transitionPolicy().prepare === 'hover' && !matchMedia('(hover:hover) and (pointer:fine)').matches)) return;
   clearTimeout(leaveTimer);
-  if ((prepared?.slug === slug && !prepared.renderer.dead) || pendingSlug === slug) return;
+  if (trigger === 'hover') hoverSlug = slug;
+  if ((prepared?.slug === slug && prepared.ready && !prepared.renderer.dead) || pendingSlug === slug) return preparation;
   disposePrepared(); pendingSlug = slug; const token = prepareToken, hdr = preloadHeader(slug, ref);
-  prepareTimer = setTimeout(async () => {
-    try { await hdr.decode(); } catch { /* use the decoded Work picture */ }
+  if (trigger === 'hover') hoverSlug = slug;
+  preparation = new Promise((resolve) => {
+   cancelPreparation = resolve;
+   const build = async () => { try {
+    if (trigger !== 'click') { try { await hdr.decode(); pm('fwd:header-decode-end'); } catch { /* use the decoded Work picture */ } }
     if (token !== prepareToken || (running && trigger !== 'click')) return;
-    const selected = hdr.complete && hdr.naturalWidth ? hdr : image;
-    // Bitmap crop coordinates use source pixels, not srcset's density-corrected naturalWidth.
-    const source = new Image(); source.decoding = 'async'; source.src = selected.currentSrc || selected.src;
-    try { await source.decode(); } catch { pendingSlug = null; return; }
-    if (token !== prepareToken || (running && trigger !== 'click')) return;
-    const host = document.createElement('div'), placeholder = document.createElement('div');
-    host.style.cssText = 'position:fixed;inset:0;visibility:hidden;pointer-events:none'; host.append(placeholder); document.body.append(host);
+    // Never wait for a network fetch/decode on click. Both refs come from the
+    // same hero: the decoded on-screen picture is a safe starting texture.
+    let source = trigger === 'click' && (image?.currentSrc || image?.src) ? image : hdr.complete && hdr.naturalWidth ? hdr : image?.currentSrc ? image : hdr;
+    if (trigger === 'click' && source && (!source.complete || !source.naturalWidth)) {
+      // A scripted/very early click can precede the card's first image paint.
+      try { await source.decode(); } catch { pendingSlug = null; return; }
+      if (token !== prepareToken) return;
+    }
+    if (!source?.complete || !source.naturalWidth) { pendingSlug = null; return; }
+    if (trigger !== 'click') {
+      // Strip crop coordinates need physical pixels, not srcset's density-
+      // corrected naturalWidth. This background-only decode keeps that path.
+      const physical = new Image(); physical.decoding = 'async'; physical.src = source.currentSrc || source.src;
+      await physical.decode(); source = physical;
+      if (token !== prepareToken || running) return;
+    }
+    const slot = spare; spare = null;
+    const { host, box: placeholder } = slot || rendererHost();
     pm('fwd:prepare-start');
-    const renderer = createBulge(host, placeholder, source, true);
+    const renderer = slot && !slot.renderer.dead ? slot.renderer : createBulge(host, placeholder, source, true);
     if (!renderer) { pendingSlug = null; host.remove(); return; }
     renderer.canvas.style.visibility = 'hidden';
-    const entry = { slug, host, renderer, ready: false }; prepared = entry;
-    try { if (!await renderer.prepareTexture(source) || prepared !== entry) { if (prepared === entry) disposePrepared(); return; } } catch { if (prepared === entry) disposePrepared(); return; }
+    renderer.canvas.dataset.slug = slug; renderer.canvas.dataset.prepared = 'uploading';
+    const entry = { slug, host, renderer, source, ready: false }; prepared = entry;
+    try { if (!await renderer.prepareTexture(source, trigger === 'click') || prepared !== entry) { if (prepared === entry) disposePrepared(); return; } } catch { if (prepared === entry) disposePrepared(); return; }
     renderer.draw({x:0,y:0,w:innerWidth,h:innerHeight});
-    await new Promise(requestAnimationFrame);
+    if (trigger !== 'click') await new Promise(requestAnimationFrame);
     if (prepared !== entry || renderer.dead) return;
     pendingSlug = null; entry.ready = true; renderer.canvas.dataset.prepared = 'ready'; pm('fwd:prepared');
-  }, trigger === 'click' ? 0 : T.hoverPrepareMs);
+   } catch { if (token === prepareToken) disposePrepared(); }
+   finally { resolve(); } };
+   if (trigger === 'click') build(); else prepareTimer = setTimeout(build, T.hoverPrepareMs);
+  });
+  return preparation;
 }
 // A cold click finishes the same preparation path; it never selects a flat flight.
 export async function ensurePrepared(slug, ref, image) {
   if (prepared?.slug === slug && prepared.ready && !prepared.renderer.dead) return;
   disposePrepared();
-  prepareTransition(slug, ref, image, 'click');
-  const token = prepareToken;
-  while (token === prepareToken && pendingSlug === slug) await new Promise(requestAnimationFrame);
+  await prepareTransition(slug, ref, image, 'click');
   if (!(prepared?.slug === slug && prepared.ready && !prepared.renderer.dead)) throw new Error('Bend renderer unavailable');
 }
 function takePrepared(slug, root, box) {
   clearTimeout(prepareTimer); clearTimeout(leaveTimer); prepareToken++; pendingSlug = null;
   const hit = prepared; prepared = null;
   if (!hit) return null;
-  if (hit.slug !== slug || !hit.ready || hit.renderer.dead) { hit.renderer.dispose(); hit.host.remove(); return null; }
+  if (hit.slug !== slug || !hit.ready || hit.renderer.dead) { parkRenderer(hit); return null; }
   hit.renderer.adopt(root, box); hit.host.remove(); pm('fwd:prepared-used'); return hit.renderer;
 }
-addEventListener('pagehide', () => { disposePrepared(); releaseBack(); });
+addEventListener('pagehide', () => { disposePrepared(); releaseBack(); spare?.renderer.dispose(); spare?.host.remove(); spare = null; });
 
 // R42c Part C: the BACK renderer. While a project is open its renderer is held in its own slot, apart from the hover / centre one (disposePrepared never
 // touches it). The open flight's renderer is handed over at the landing (stashBack); if it is ever lost, a watcher rebuilds it on idle. Back never
@@ -202,19 +244,17 @@ export async function runProjectTransition({ slug, ref, rect, imgRect = rect, st
   document.body.append(root);
   const bg = root.querySelector('.px__bg'), box = root.querySelector('.px__box'), a = root.querySelector('.px__a'), b = root.querySelector('.px__b');
   if (fromWork && transitionPolicy().bulge) {
-    // Paint feedback before cold texture/shader work. Keep the picture at its original crop.
-    root.style.cursor = 'progress';
     pm('fwd:ready-wait');
-    if (!(prepared?.slug === slug && prepared.ready && !prepared.renderer.dead)) await new Promise(requestAnimationFrame);
     try { await ensurePrepared(slug, ref, startImage); }
     catch (err) { root.remove(); running = false; if (inPlace) inPlace.fail?.(err); else location.href = `/work/${slug}.html`; return; }
-    root.style.cursor = '';
   }
   t0 = Date.now();
   flight = fromWork && transitionPolicy().enabled ? workFlight(rect, {w:W,h:H}, false, t0) : null;
   pm('fwd:animation-start');
   let bulge = fromWork && transitionPolicy().enabled ? (transitionPolicy().bulge ? takePrepared(slug, root, box) : null) : null;
   bulge?.draw(rect);
+  let pendingHeader = false;
+  if (fromWork && bulge) hdr.decode().then(() => { pendingHeader = true; pm('fwd:header-decode-end'); }, () => {});
   const headerFile = () => hdr.currentSrc || hdr.src;
   const swapToFull = () => { // the header's own file: the sharpening swap (Work: same picture) or the crossfade target (homepage frame)
     if (!(hdr.complete && hdr.naturalWidth)) return false;
@@ -242,6 +282,7 @@ export async function runProjectTransition({ slug, ref, rect, imgRect = rect, st
   // Retain the last painted canvas through pageswap; the browser releases the old document.
   // Disposing at pagehide can turn the View Transition snapshot black.
   const prog = { p: 0 };
+  let firstFlightFrame = true;
   const ease = fromWork ? EASES.cubic : EASES.circ;
   const duration = flight ? flight.total : sec;
   const tl = gsap.timeline({ onComplete: () => finish() });
@@ -250,12 +291,14 @@ export async function runProjectTransition({ slug, ref, rect, imgRect = rect, st
     onUpdate: () => {
       if (flight && !(import.meta.env.DEV && window.__pxFreeze)) prog.p = Math.max(0, Math.min(1, (Date.now() - t0) / (duration * 1000)));
       const state = flight?.sample(prog.p), e = state ? state.size : ease(prog.p);
+      if (pendingHeader && !firstFlightFrame) { pendingHeader = false; bulge?.setTexture(hdr); pm('fwd:header-texture'); }
       box.style.left = `${rect.x * (1 - e)}px`; box.style.top = `${rect.y * (1 - e)}px`;
       box.style.width = `${rect.w + (W - rect.w) * e}px`; box.style.height = `${rect.h + (H - rect.h) * e}px`;
       const L = `${rel.x * (1 - e)}px`, Tp = `${rel.y * (1 - e)}px`, Wd = `${rel.w + (W - rel.w) * e}px`, Ht = `${rel.h + (H - rel.h) * e}px`;
       for (const im of [a, b]) { im.style.left = L; im.style.top = Tp; im.style.width = Wd; im.style.height = Ht; }
       if (state?.content) a.style.transform = `scale(${1 + state.content.zoom})`;
       bulge?.draw({ x: rect.x * (1 - e), y: rect.y * (1 - e), w: rect.w + (W - rect.w) * e, h: rect.h + (H - rect.h) * e }, undefined, state?.bump || 0, flight ? 0 : (prog.p - (1 - T.bulgeHandoff)) / T.bulgeHandoff, false, state?.content);
+      if (firstFlightFrame && e * Math.max(W - rect.w, H - rect.h) > .05) { firstFlightFrame = false; pm('fwd:first-flight-frame'); }
       if (onPush) { const u = Math.min(1, (prog.p * duration) / Math.max(pushSec, 0.01)); onPush(ease(u), u); }
       if (!flight && crossfade) { const q = Math.min(1, Math.max(0, (prog.p - T.crossFrom) / Math.max(T.crossTo - T.crossFrom, 0.01))); const s = q * q * (3 - 2 * q); b.style.opacity = s; a.style.opacity = 1 - s * (b.complete ? 1 : 0); }
       if (state?.content && prog.p * duration > flight.land + T.lensSec * .5 && !(import.meta.env.DEV && window.__pxHold)) {
@@ -273,6 +316,7 @@ export async function runProjectTransition({ slug, ref, rect, imgRect = rect, st
     pm('fwd:end');
     if (inPlace) {
       const end = () => { // R42c: the flight's renderer becomes the back renderer (no dispose + rebuild: "back right after open" is ready at once)
+        if (fromWork) bulge?.setTexture(hdr); // a slow header must be sharp for the held BACK renderer too
         if (bulge && !bulge.dead && fromWork) { stashBack(slug, bulge, headerFile()); bulge = null; } else { bulge?.dispose(); bulge = null; }
         root.remove(); running = false; pm('fwd:swapped'); inPlace.done?.(); };
       Promise.resolve().then(() => inPlace.show()).then(() => requestAnimationFrame(() => requestAnimationFrame(end)), (err) => { bulge?.dispose(); bulge = null; root.remove(); running = false; inPlace.fail?.(err); });
@@ -336,7 +380,7 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
   const root = document.getElementById('pxb');
   const L = rec.leave, W = innerWidth, H = innerHeight;
   let bulge = null, cleanup = () => {};
-  const finish = () => { cleanup(); bulge?.dispose(); root?.remove(); clearBack(); pm('back:swap'); done?.(); };
+  const finish = () => { cleanup(); recycleFlight(bulge); root?.remove(); clearBack(); pm('back:swap'); done?.(); };
   if (!root) { finish(); return null; }
   if (!root.querySelector('.px__box')) { // the header had scrolled out: nothing to match, the black fades out over 0.4 s
     const bgOnly = root.querySelector('.px__bg') || root;
