@@ -386,6 +386,12 @@ workSec 0.6 -> 0.85, workPushSec 0.34 -> 0.48, workCarry 0.8 -> 0.4, zoomTailSec
 ## R41b [done 2026-10-31] (LITE = phone + tablet, any agent, Codex suggested; folder anh-v-site-mobile, branch lite/r41b from work-v2): open / close transition, back to the same project, desktop title smear on phones and tablets
 Read CLAUDE.md, AGENTS.md (section 12: busy note first), then docs/codex/R41b.md (replaces R41 Part B).
 
+## R41c [done, merged 2026-10-31] (LITE, Claude Code, lite/r41b): iPhone fixes after Anh's first phone test (renderer kept on drag, title leave as CSS, sustained-only guard, ?perf WHY report). Brief docs/codex/R41c.md.
+
+## R41d [done, merged 2026-10-31] (LITE, Claude Code, lite/r41b): one rest signal for idle work, sliced page build, WebGL context ledger, ?perf=quiet. Brief docs/codex/R41d.md.
+
+## R41e (queued, LITE, any agent; branch lite/r41e from work-v2): iPhone leftovers (page build while moving, first back after a direct load, title while moving). Brief docs/codex/R41e.md.
+
 ## R27 (type motion TOOLKIT): paragraph line reveal + label smear reveal, one shared system, built but applied NOWHERE yet (use Sonnet 5.5, no time budget, Anh runs it at home)
 
 Reference: two screen recordings Anh made of another site (not ours; the iOS "Lens / pause / heart" overlays in them are not part of the effect). Anh places them in the repo as docs/reference/text-fx-paragraph.mov (3.5 s, 60 fps, a bio paragraph) and docs/reference/text-fx-label.mov (2.7 s, 60 fps, a name + index label). If they are missing, use the numbers below (read by Cowork from 10 fps / 60 fps frames, good to about +-0.1 s). Do NOT copy the other site's font: in the paragraph recording the typeface visibly swaps at about 0.6 s (a web font loading late); ours must wait for fonts before measuring and splitting.

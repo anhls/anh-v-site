@@ -710,3 +710,7 @@ Undo everything: `git switch work-v2`.
   Your decision: open https://lite-r41b.anh-v-site.pages.dev/work/?perf=quiet (no overlay), flick, tap a picture, go back, press the small "Copy report" button and paste it, ideally with a screen recording.
   One rest signal (work/rest.js: still 150 ms, no finger, no snap); every idle job queued on it, one per frame, dropped on touch; project page built in 9 steps and primed in 34; WebGL ledger (live 3, peak 3, after 20 open / back + 3 reloads glOn true; a lost strip context rebuilds); ?perf=quiet; report fields restJobs and glLedger. Details docs/codex/R41d-notes.md.
   Flick 6x CPU 390x844 and 430x932: worst moving gap 14-17 ms, 0 stalls, 0 jumps. R41b suite, real bfcache, desktop compare 542/542 x2, clicks 150/150, midscroll pass. Undo: git revert 640d52a.
+- 2026-10-31 23:05, Cowork: R41b + R41c + R41d merged into work-v2 (lite/r41b 5c51a82). Anh approved after three iPhone recordings.
+  What you will see now: on phone and tablet a tap opens with the desktop bend and zoom, back shrinks into the strip on the same project, the title plays the smear; flicking is smooth on Anh's iPhone (freezes of 4+ frames: 7 -> 5 -> 0; only 2-3 frame blips left).
+  Still off: a 40 ms page-build step sometimes runs while the strip moves; the first back after a direct project page load waits ~0.8 s; R41e (queued) covers both.
+  Your decision: none. Evidence: docs/reference/r41*-iphone-* (recordings, sheets, ?perf reports).
