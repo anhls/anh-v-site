@@ -43,9 +43,9 @@ export const TRANSITION = { workSec: 0.85, workPushSec: 0.48, workLandAt: 0.85, 
   // fully off screen (+ clearMargin px at 1920) by the end of pushSec, near items first (clearStagger = the share of pushSec the far ones start later), so
   // the black layer is not needed (blackMax = how dark it gets on the Work page path). pushClear 0 + blackMax 1 = the R28 transition.
   pushClear: 1, clearMargin: 40, clearStagger: 0.1, blackMax: 0,
-  // R42e (Anh 2026-10-31, "not too snappy"): open slowed ~1.4x: workSec 0.6 -> 0.85, zoomTailSec 0.2 -> 0.3, workPushSec 0.34 -> 0.48 (open 0.71 -> 1.02 s; back unchanged).
+  // R42e (Anh 2026-10-31, "not too snappy"): open slowed ~1.4x: workSec 0.6 -> 0.85, zoomTailSec 0.2 -> 0.3, workPushSec 0.34 -> 0.48 (open 0.71 -> 1.02 s; back unchanged). Open inward bend halved: inwardAmp 0.045 -> 0.0225 (back bend backBendAmp unchanged).
   // R42c: signed mesh bow before full screen; lens rebound changes only texture.
-  inwardAmp: 0.045, inwardStartAt: 0.45,
+  inwardAmp: 0.0225, inwardStartAt: 0.45,
   // R42d: retain at most three decoded headers (centre and neighbours); no motion tuning.
   headerCacheCount: 3,
   // Reference back: fast first ~0.25s, then ~0.5s shrinking settle, concave edges (R42c Part C: -0.045 = the opening's inward strength, same sign).
