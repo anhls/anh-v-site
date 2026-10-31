@@ -392,6 +392,8 @@ Read CLAUDE.md, AGENTS.md (section 12: busy note first), then docs/codex/R41b.md
 
 ## R41e (queued, LITE, any agent; branch lite/r41e from work-v2): iPhone leftovers (page build while moving, first back after a direct load, title while moving). Brief docs/codex/R41e.md.
 
+## R43 (queued after R41e is merged; DESKTOP, any agent; branch desktop/r43-perf-fixes): start-up texture upload hitch on the laptop, ?perf records every open / back, WHY label, rest signal fed on desktop. Brief docs/codex/R43.md.
+
 ## R27 (type motion TOOLKIT): paragraph line reveal + label smear reveal, one shared system, built but applied NOWHERE yet (use Sonnet 5.5, no time budget, Anh runs it at home)
 
 Reference: two screen recordings Anh made of another site (not ours; the iOS "Lens / pause / heart" overlays in them are not part of the effect). Anh places them in the repo as docs/reference/text-fx-paragraph.mov (3.5 s, 60 fps, a bio paragraph) and docs/reference/text-fx-label.mov (2.7 s, 60 fps, a name + index label). If they are missing, use the numbers below (read by Cowork from 10 fps / 60 fps frames, good to about +-0.1 s). Do NOT copy the other site's font: in the paragraph recording the typeface visibly swaps at about 0.6 s (a web font loading late); ours must wait for fonts before measuring and splitting.
