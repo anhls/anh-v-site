@@ -362,7 +362,7 @@ Codex or Claude Code (ONE agent, alone): read AGENTS.md, then docs/codex/R40.md.
 ## R37f [done] (signed off by Anh 2026-10-11 with flags, see docs/codex/FLAGS.md; superseded in part by R42) (DESKTOP, Codex, desktop/next): no flash, no ghost, no stalls; zoom-in end state (header rests zoomed); engine made mode-agnostic
 Read AGENTS.md, then docs/codex/R37f.md. Parallel with R41.
 
-## R41 [Part A done 2026-10-11; Part B waits for R42] (PHONE / TABLET, Claude Code, mobile/next): the project open / close transition on phones and tablets (Part A now, Part B after R37f merges)
+## R41 [Part A done 2026-10-11; Part B = R41b below] (PHONE / TABLET, Claude Code, mobile/next): the project open / close transition on phones and tablets (Part A now, Part B after R37f merges)
 Read CLAUDE.md, AGENTS.md, then docs/codex/R41.md. Parallel with R37f; do not edit the engine this round.
 
 ## R42 [done 2026-10-11, see docs/codex/R42-notes.md] (ONE agent alone, Claude Code): open projects inside the same page (no document switch): continuous open, reverse bend on back, place kept, works for phone too
@@ -379,6 +379,9 @@ Read CLAUDE.md, AGENTS.md (section 12: busy note first), then docs/codex/R42c.md
 
 ## R42d [done, merged 2026-10-31] (DESKTOP, Claude Code (Codex stopped at its usage limit, nothing pushed); branch desktop/r42d-open-lag): no wait before the open animation, a cold click on any Work card starts moving at once
 Read CLAUDE.md, AGENTS.md (section 12: busy note first), then docs/codex/R42d.md. New branch desktop/r42d-open-lag from work-v2 (2b0ade8 or later). Before R41 Part B.
+
+## R41b (LITE = phone + tablet, any agent, Codex suggested; folder anh-v-site-mobile, branch lite/r41b from work-v2): open / close transition, back to the same project, desktop title smear on phones and tablets
+Read CLAUDE.md, AGENTS.md (section 12: busy note first), then docs/codex/R41b.md (replaces R41 Part B).
 
 ## R27 (type motion TOOLKIT): paragraph line reveal + label smear reveal, one shared system, built but applied NOWHERE yet (use Sonnet 5.5, no time budget, Anh runs it at home)
 
