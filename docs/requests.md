@@ -383,7 +383,7 @@ Read CLAUDE.md, AGENTS.md (section 12: busy note first), then docs/codex/R42d.md
 ## R42e [done, merged 2026-10-31] (DESKTOP, Cowork, number-only): slower, softer open. Anh compared variants A / B / C / A+C on previews and chose A.
 workSec 0.6 -> 0.85, workPushSec 0.34 -> 0.48, workCarry 0.8 -> 0.4, zoomTailSec 0.2 -> 0.55, inwardAmp 0.045 -> 0.01125 (open 0.71 -> ~1.27 s). Back unchanged (backBendAmp -0.045). Variant branches kept for reference: desktop/r42e-b (zEnd 1.18), desktop/r42e-c (zoom across the whole open, growZoom), desktop/r42e-ac.
 
-## R41b (LITE = phone + tablet, any agent, Codex suggested; folder anh-v-site-mobile, branch lite/r41b from work-v2): open / close transition, back to the same project, desktop title smear on phones and tablets
+## R41b [done 2026-10-31] (LITE = phone + tablet, any agent, Codex suggested; folder anh-v-site-mobile, branch lite/r41b from work-v2): open / close transition, back to the same project, desktop title smear on phones and tablets
 Read CLAUDE.md, AGENTS.md (section 12: busy note first), then docs/codex/R41b.md (replaces R41 Part B).
 
 ## R27 (type motion TOOLKIT): paragraph line reveal + label smear reveal, one shared system, built but applied NOWHERE yet (use Sonnet 5.5, no time budget, Anh runs it at home)

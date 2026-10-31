@@ -692,3 +692,9 @@ Undo everything: `git switch work-v2`.
   Your decision: none yet; implementation and verification continue.
   Readings: the engine read an obsolete lite policy; fallback gestures need their own intent gate; fresh loads need a saved header pose; the tap viewport also fixes header height. Details: docs/codex/R41b-notes.md.
   Initial matrix 32/32 correct renderer and project, landing <=0.014 px, 0 fades/errors; 12 restore cases pass; long press/fling stop/double tap/20 swipes/menu back pass. Final capped-texture timing and desktop regression checks pending.
+
+- 2026-10-31 — R41b done (Codex build + Claude finish), lite/r41b. R41 (A + B) complete.
+  What you will see now: on phone and tablet a tap opens with the desktop puff, bend and zoom, starting at once; back (swipe, back button, back link) shrinks into the strip on the same project; the project title plays the desktop smear.
+  Still off: with the CPU slowed 4x the project page landing after the open stutters (about 100 ms, 260 ms on tablet landscape); the motion itself is smooth. First title frame 27 ms at 4x.
+  Your decision: check on your real phone via the preview link; say if the landing mount cost should become its own request.
+  Tap to first moving frame 12-56 ms (4x: 32-106); 32-case matrix, 12 restore cases, real bfcache, fallbacks, 20 cycles (3 contexts flat, about 29 MiB) pass; desktop compare 542/542 at 1920 and 2560, clicks 50/50, midscroll <= 1 px. Details: docs/codex/R41b-notes.md. Pushed: see git log lite/r41b.
