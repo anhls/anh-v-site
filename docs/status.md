@@ -670,3 +670,7 @@ Undo everything: `git switch work-v2`.
   Cause: back used the single hover/centre renderer (replaced or missing = flat picture), bow was -0.018, a scrolled-away header faded black. Now: the open flight's renderer is handed over as a held back renderer (own slot, watcher rebuilds if lost, playBack waits for it, never flat); backBendAmp -0.045; glideTop (backGlideSec 0.3, shorter when closer).
   Checks: 50 backs x (60 Hz, 144 Hz, 4x): 150/150 used the renderer, 0 fade-only, 0 fade frames, landing max 0.5 px, bend peak -0.045 (spread 0.2 % / 0 / 29 % at 4x); lost-context rebuild ok; midscroll 6/6; compare 542/542 x2; tall smoke pass. Contact sheet tools/scratch/r42c/contact-back-c.png: looks like the reference: yes (bend direction, timing); biggest difference: ours slightly stronger bow. Skipped: homepage/theme/404 (untouched).
   Undo: `git switch work-v2`.
+- 2026-10-31 12:30, Cowork: R42c merged into work-v2 (claude/r42c-back c0822cb, Codex Part A/B + Claude Code Part C). Anh approved the merge.
+  What you will see now: every open and every back plays the same visible inward bend (strength -0.045); a scrolled-down project glides to its header (~0.3 s) before it shrinks into its card.
+  Still open: a click on an unprepared card can wait 0.5-2 s before the animation starts (task "Fix lag mở card"); bend strength by eye (tunable); 144 Hz not eye-checked.
+  Next: the open-lag fix, then R41 Part B (phone/tablet).
