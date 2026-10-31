@@ -677,3 +677,7 @@ Undo everything: `git switch work-v2`.
 - 2026-10-31, R42d (Codex partial + Claude): cold click now moves in 20-78 ms (was 290-2034 ms; 4x CPU worst 78 ms); progress cursor removed. Card picture is the start texture and the header swaps in after the first frame; spare renderer reused; click uploads in one go; neighbours' headers prefetched at rest.
   clicks 150/150 renderer used, 0 flat, 0 errors; midscroll landing <= 0.5 px; backs 50/50 held; WebGL canvases at rest flat at 3 over 20 open/backs; build + tall smoke OK.
   R42d DONE (finish checks run): compare 542/542 at 1920 and 2560; ?gl=0 / reduced motion = plain navigation; swap pop mean 0.7/255 (no pop); hover / scroll frame cost equal to work-v2 at normal CPU (scroll at 4x worst frame up to +14 ms); clean-clone build OK. Not verified: Cloudflare preview (Access protected). Details: docs/codex/R42d-notes.md.
+- 2026-10-31 13:45, Cowork: R42d merged into work-v2 (desktop/r42d-open-lag 479e645). Anh approved the merge.
+  What you will see now: clicking any Work picture, hovered or not, starts the open animation at once (20-78 ms, was up to 2 s); no progress cursor.
+  Still off: scroll worst frame at 4x CPU up to ~14 ms slower (idle header prefetch suspected); Cloudflare preview not verified by the builder.
+  Your decision: none. Next: open timing slower (Anh: "not too snappy"), then R41 Part B.
