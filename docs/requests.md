@@ -362,7 +362,7 @@ Codex or Claude Code (ONE agent, alone): read AGENTS.md, then docs/codex/R40.md.
 ## R37f [done] (signed off by Anh 2026-10-11 with flags, see docs/codex/FLAGS.md; superseded in part by R42) (DESKTOP, Codex, desktop/next): no flash, no ghost, no stalls; zoom-in end state (header rests zoomed); engine made mode-agnostic
 Read AGENTS.md, then docs/codex/R37f.md. Parallel with R41.
 
-## R41 [Part A done 2026-10-11; Part B = R41b below] (PHONE / TABLET, Claude Code, mobile/next): the project open / close transition on phones and tablets (Part A now, Part B after R37f merges)
+## R41 [done 2026-10-31: Part A 2026-10-11, Part B = R41b] (PHONE / TABLET, Claude Code, mobile/next): the project open / close transition on phones and tablets (Part A now, Part B after R37f merges)
 Read CLAUDE.md, AGENTS.md, then docs/codex/R41.md. Parallel with R37f; do not edit the engine this round.
 
 ## R42 [done 2026-10-11, see docs/codex/R42-notes.md] (ONE agent alone, Claude Code): open projects inside the same page (no document switch): continuous open, reverse bend on back, place kept, works for phone too
