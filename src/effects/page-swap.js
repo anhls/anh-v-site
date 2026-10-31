@@ -115,7 +115,7 @@ export function createPageSwap() {
         if (v) {
           pre = { slug, view: v, next: null };
           // R41d: one stage per idle slice (blocks, footer, then the page's sections one at a time), each timed and each waiting for the strip to be calm again
-          const next = () => { if (pre?.view !== v || state !== 'work') return; const done = timed(v.built ? 'pagePrime' : 'pageBuild', () => (v.built ? v.primeStep() : (v.buildStep(), false))); if (done) pre.next = null; else idle(next, 1500); };
+          const next = () => { if (pre?.view !== v || state !== 'work') return; if (!calm()) { idle(next, 1500); return; } const done = timed(v.built ? 'pagePrime' : 'pageBuild', () => (v.built ? v.primeStep() : (v.buildStep(), false))); if (done) pre.next = null; else idle(next, 1500); };
           pre.next = next; next();
         }
       } catch { pre = null; }

@@ -657,7 +657,7 @@ swap.attach({
   },
 });
 setTimeout(() => swap.warm(), 0);
-items.forEach((it) => { if (it.kind === 'frame') it.el.addEventListener('pointerenter', () => { if (!mode.tap || transitionOK()) swap.warm().then(() => swap.prebuild(it.slug)); }); });
+items.forEach((it) => { if (it.kind === 'frame') it.el.addEventListener('pointerenter', () => { if (!mode.tap || transitionOK()) swap.warm().then(() => swap.prebuild(it.slug, rest.ok)); }); });
 addEventListener('wheel', () => { if (!paused) inertia = null; }, { capture: true, passive: true });
 addEventListener('wheel', () => { if (!paused) cancelSnap(); }, { capture: true, passive: true });
 addEventListener('touchstart', () => { rest.interrupt(); if (!paused) cancelSnap(); }, { capture: true, passive: true });

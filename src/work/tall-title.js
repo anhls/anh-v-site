@@ -95,6 +95,7 @@ export function createLiteTitle({ app, projects, reduced, rest }) {
       if (smear.playing && shown !== idx) { smear.cancel(); opacity = 0; el.style.transition = 'none'; el.style.opacity = '0'; }
       if (smear.playing) { if (smear.leaving && shown === idx) smear.resume(); return; }
       if (shown !== idx || opacity < .95) {
+        if (!plain && !rest.ok()) return; // R41e: the set / play wait for the shared rest signal (checked again next frame)
         if (plain) {
           if (shown !== idx) { opacity = Math.max(0, opacity - s.dt / .2); if (!opacity) setTitle(idx); }
           else opacity = Math.min(1, opacity + s.dt / .2);
