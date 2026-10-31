@@ -714,3 +714,4 @@ Undo everything: `git switch work-v2`.
   What you will see now: on phone and tablet a tap opens with the desktop bend and zoom, back shrinks into the strip on the same project, the title plays the smear; flicking is smooth on Anh's iPhone (freezes of 4+ frames: 7 -> 5 -> 0; only 2-3 frame blips left).
   Still off: a 40 ms page-build step sometimes runs while the strip moves; the first back after a direct project page load waits ~0.8 s; R41e (queued) covers both.
   Your decision: none. Evidence: docs/reference/r41*-iphone-* (recordings, sheets, ?perf reports).
+- 2026-10-31 23:12, Cowork: decision: the back keeps the FULL inward bend (backBendAmp -0.045); Anh compared the halved version (branch desktop/r42f-back-bend, not merged) and prefers the full strength.
