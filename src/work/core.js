@@ -518,7 +518,7 @@ addEventListener('pointermove', (e) => {
   drag.last = pos;
   drag.total += Math.abs(dpos);
   if (drag.total > drag.thr) {
-    if (!dragMoved) disposePrepared(!!mode.tap);
+    if (!dragMoved) disposePrepared(); // R41c: lite no longer RELEASES the spare renderer here: destroying a WebGL context at the first drag move stalled iOS (~170 ms) and the next rest built a new one
     dragMoved = true;
     root.classList.add('is-dragging');
     if (!drag.captured && drag.mouse) { try { document.documentElement.setPointerCapture(drag.id); drag.captured = true; } catch { /* not capturable */ } } // from here the move / up come even outside the window
@@ -538,7 +538,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) endDr
 addEventListener('click', (e) => { if (!paused && dragMoved) { e.preventDefault(); e.stopPropagation(); dragMoved = false; } }, { capture: true });
 // R25: a click on a main image grows that picture into the project page's header (cards keep a plain page load)
 items.forEach((it) => { if (it.kind === 'frame') { it.el.addEventListener('pointerenter', () => { if (mode.tap && !transitionOK()) return; preloadHeader(it.slug, it.ref); if (glOn) prepareTransition(it.slug, it.ref, it.img); }); it.el.addEventListener('pointerleave', leavePrepared); } });
-addEventListener('wheel', () => { if (!paused && !transitionBusy) { disposePrepared(!!mode.tap); lastIdx = -1; } }, {passive:true});
+addEventListener('wheel', () => { if (!paused && !transitionBusy) { disposePrepared(); lastIdx = -1; } }, {passive:true});
 // R42c: wait for the same-document router on an early click; reduced motion / ?gl=0 / no WebGL retain plain navigation.
 const swap = createPageSwap();
 const openStart = (it) => { if (mode.tap) document.documentElement.style.setProperty('--tap-viewport-height', `${mode.tap.viewport.h}px`); transitionBusy = true; loadGate = true; gl?.pauseUploads(true); pm('fwd:click'); lenis.stop(); nameEl.style.zIndex = '9'; TP.q = it.proj; TP.p0 = fPu.x[it.proj]; TP.p = TP.p0; TP.hold = TRANSITION.pushScale > 0 || clearMode(); if (clearMode()) { TC.u = 0; prepareClear(it.proj); } }; // (the project name stays above the growing picture and fades with the rest)

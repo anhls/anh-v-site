@@ -12,7 +12,7 @@ export function createLiteTitle({ app, projects, reduced }) {
   const measure = document.createElement('canvas').getContext('2d');
   const family = '"Clash Display", system-ui, sans-serif';
   const plain = reduced || new URLSearchParams(location.search).get('fx') === '0';
-  let ready = false, warmed = false, shown = -1, opacity = 0, fw = 0, fh = 0, options = [], last = null;
+  let ready = false, warmed = false, shown = -1, opacity = 0, fw = 0, fh = 0, options = [], last = null, warmTimer = 0, warmedFor = -1;
 
   function layout(w = fw, h = fh) {
     fw = w; fh = h;
@@ -52,6 +52,15 @@ export function createLiteTitle({ app, projects, reduced }) {
     el.style.left = `${o.x}px`; el.style.top = `${o.top}px`;
     el.style.letterSpacing = `${o.tracking}em`;
   }
+  // R41c: the leave is a CSS opacity transition (compositor): it finishes on time even if the main thread stalls, and costs nothing per frame. play() sets it back to none.
+  const fadeOut = () => { el.style.transition = `opacity ${WORK_TEXT.titleOutSec}s linear`; el.style.opacity = '0'; opacity = 0; };
+  // R41c: build the text textures of the settled project and its neighbours at true rest, ONE per task, so the play after a flick builds nothing. Cancelled when the strip moves again.
+  const warmNear = (idx) => {
+    clearTimeout(warmTimer); if (plain || !smear || warmedFor === idx) return; warmedFor = idx;
+    const order = [0, 1, -1, 2, -2].map((d) => (idx + d + options.length * 4) % options.length), todo = [...new Set(order)];
+    const step = () => { const i = todo.shift(); if (i === undefined) return; if (last && !last.stopped) return; if (!smear.playing) smear.warm({ ...options[i], alpha: 0 }); warmTimer = setTimeout(step, 90); };
+    warmTimer = setTimeout(step, 250);
+  };
   const callbacks = () => ({ done: () => { opacity = 1; }, aborted: () => { opacity = 0; } });
   function play() {
     pm('lite:title-start');
@@ -64,7 +73,7 @@ export function createLiteTitle({ app, projects, reduced }) {
   });
   document.addEventListener('anhv-theme', () => layout());
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { smear.cancel(); opacity = 0; el.style.opacity = '0'; }
+    if (document.hidden) { clearTimeout(warmTimer); warmedFor = -1; smear.cancel(); opacity = 0; el.style.transition = 'none'; el.style.opacity = '0'; }
   });
   return {
     root, smear, layout,
@@ -74,20 +83,21 @@ export function createLiteTitle({ app, projects, reduced }) {
       if (import.meta.env.DEV && window.__titleScrub) return;
       const stopped = s.stopped && !s.transitioning;
       if (!stopped) {
+        clearTimeout(warmTimer); warmedFor = -1;
         if (smear.playing) smear.abort();
-        else if (opacity > 0) { opacity = Math.max(0, opacity - s.dt / WORK_TEXT.titleOutSec); el.style.opacity = String(opacity); }
+        else if (opacity > 0) { if (plain) { opacity = Math.max(0, opacity - s.dt / WORK_TEXT.titleOutSec); el.style.opacity = String(opacity); } else fadeOut(); }
         return;
       }
       const idx = s.idxHead;
-      if (smear.playing && shown !== idx) { smear.cancel(); opacity = 0; el.style.opacity = '0'; }
+      if (smear.playing && shown !== idx) { smear.cancel(); opacity = 0; el.style.transition = 'none'; el.style.opacity = '0'; }
       if (smear.playing) { if (smear.leaving && shown === idx) smear.resume(); return; }
       if (shown !== idx || opacity < .95) {
         if (plain) {
           if (shown !== idx) { opacity = Math.max(0, opacity - s.dt / .2); if (!opacity) setTitle(idx); }
           else opacity = Math.min(1, opacity + s.dt / .2);
           el.style.opacity = String(opacity);
-        } else { setTitle(idx); el.style.opacity = '0'; play(); }
-      }
+        } else { setTitle(idx); el.style.transition = 'none'; el.style.opacity = '0'; play(); }
+      } else if (!plain && opacity >= .95) warmNear(idx);
     },
     scrubTitle(idx, seconds) {
       if (!ready) return;
