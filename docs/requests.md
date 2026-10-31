@@ -377,7 +377,7 @@ Read CLAUDE.md, AGENTS.md (section 12: busy note first), then docs/codex/R42b.md
 ## R42c [done, merged 2026-10-31] (DESKTOP, Codex Part A/B on codex/r42c-bend; Claude Code Part C on claude/r42c-back): bend shapes match the reference: visible inward bend on open, gentle inward bend + longer settle on back
 Read CLAUDE.md, AGENTS.md (section 12: busy note first), then docs/codex/R42c.md. New branch codex/r42c-bend from work-v2. Before R41 Part B.
 
-## R42d (DESKTOP, any agent, suggested Codex; branch desktop/r42d-open-lag): no wait before the open animation, a cold click on any Work card starts moving at once
+## R42d (DESKTOP, Claude Code (Codex stopped at its usage limit, nothing pushed); branch desktop/r42d-open-lag): no wait before the open animation, a cold click on any Work card starts moving at once
 Read CLAUDE.md, AGENTS.md (section 12: busy note first), then docs/codex/R42d.md. New branch desktop/r42d-open-lag from work-v2 (2b0ade8 or later). Before R41 Part B.
 
 ## R27 (type motion TOOLKIT): paragraph line reveal + label smear reveal, one shared system, built but applied NOWHERE yet (use Sonnet 5.5, no time budget, Anh runs it at home)
