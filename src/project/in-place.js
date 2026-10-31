@@ -85,10 +85,12 @@ export function createProjectView({ slug, tall, onBack }) {
     primeStep() {
       if (shown || dead || primed) return true;
       if (!primeKids) {
-        primeKids = [...el.children].flatMap((n) => (n.children.length > 4 ? [...n.children] : [n])).map((n) => [n, n.style.display]); // (the tall page is one wrapper with ~30 sections: those are the slices)
+        const slices = (n, d = 0) => (n.children.length > 1 && d < 5 ? [...n.children].flatMap((c) => slices(c, d + 1)) : [n]); // (R41e: down to five levels, so one image-heavy section is several slices)
+        primeKids = [...el.children].flatMap((n) => slices(n)).map((n) => [n, n.style.display]); // (the tall page is one wrapper with ~30 sections: those are the slices)
         primeKids.forEach(([n]) => { n.style.display = 'none'; });
-        el.style.display = 'block'; el.style.visibility = 'hidden';
+        return false; // (R41e: its own step; the display:block below is the next one, so neither carries a page-wide style pass with real content)
       }
+      if (el.style.display !== "block") { el.style.display = "block"; el.style.visibility = "hidden"; return false; }
       const next = primeKids.shift();
       if (next) { next[0].style.display = next[1]; void next[0].offsetHeight; }
       if (!primeKids.length) { primed = true; primeKids = null; void el.offsetHeight; return true; }

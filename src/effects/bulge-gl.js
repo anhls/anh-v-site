@@ -126,7 +126,7 @@ export function createBulge(parent, box, image, deferTexture = false) {
     };
     if (!deferTexture) setTexture(image); parent.append(canvas);
     let preparation = 0;
-    return { canvas, dispose, setTexture, setViewport(v) { viewport = v; }, cancelPreparation() { preparation++; }, async prepareTexture(im, urgent = false) {
+    return { canvas, dispose, setTexture, setViewport(v) { viewport = v; }, cancelPreparation() { preparation++; }, async prepareTexture(im, urgent = false, cold = false) {
       if (dead || !im.complete || !im.naturalWidth) return false;
       const token = ++preparation, cancelled = () => dead || token !== preparation;
       const parallel = gl.getExtension('KHR_parallel_shader_compile');
@@ -149,6 +149,19 @@ export function createBulge(parent, box, image, deferTexture = false) {
       natural = [width, height];
       // A cancelled partial upload must never masquerade as the old texture.
       textureKey = null;
+      if (cold) {
+        // R41e: a cold back (the page was a new document, no renderer was held): the overlay is a still picture, so nothing moves while this runs. One screen-sized
+        // bitmap resized off the main thread and ONE upload, instead of frame-paced strips (480 ms on the phone).
+        const bmp = await createImageBitmap(im, { resizeWidth: width, resizeHeight: height, resizeQuality: 'high' });
+        if (cancelled()) { bmp.close(); return false; }
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bmp); bmp.close();
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        textureKey = im.currentSrc || im.src;
+        pm('fwd:upload-end');
+        return true;
+      }
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
