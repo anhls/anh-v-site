@@ -58,7 +58,7 @@ const queueEarlyClick = (e) => {
   const a = e.target.closest?.('a.work__frame');
   if (!a || !transitionOK() || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
   e.preventDefault(); e.stopImmediatePropagation(); earlyClick = a;
-  a.style.cursor = 'progress';
+  if (!mode.tap) a.style.cursor = 'progress';
 };
 document.addEventListener('click', queueEarlyClick, true);
 
@@ -72,7 +72,15 @@ const N = projects.length;
 const heroRef = (p) => p.page.blocks.find((b) => b.t === 'hero').img;
 const store = { get: () => { try { return localStorage.getItem('work-mode'); } catch { return null; } }, set: (v) => { try { localStorage.setItem('work-mode', v); } catch { /* private window */ } } };
 // R28: arriving from a project page entered through the R25 transition: the same mode, that project centred, the enlarge played in reverse (below)
-const back = !reduced && params.get('gl') !== '0' ? readBack() : null;
+const back = !reduced && params.get('gl') !== '0' && (!mode.tap || transitionOK()) ? readBack() : null;
+if (mode.tap && !transitionOK()) document.getElementById('pxb')?.remove();
+// Plain lite navigation must retain the project too (including a fresh Work
+// document). Store a slug rather than relying on an old layout's coordinates.
+const litePlace = () => {
+  if (!mode.tap) return null;
+  try { const r = JSON.parse(sessionStorage.getItem('work-lite-place') || 'null'); return r && slugs.includes(r.slug) ? r : null; } catch { return null; }
+};
+const rememberLite = (it, animated) => { if (mode.tap) { try { sessionStorage.setItem('work-lite-place', JSON.stringify({ slug: it.slug, projectIndex: it.proj, mode: vertical ? 'vertical' : 'side', animated })); if (!animated) sessionStorage.removeItem('pxb'); } catch { /* private mode */ } } };
 const perfP = perfOn ? import('../effects/perf-hud.js').then((m) => { m.mountPerf(); return m; }) : null; // R31: ?perf report (own chunk)
 if (back) pm('back:arrive');
 let vertical = mode.initialVertical(back, store);
@@ -97,7 +105,7 @@ app.innerHTML = `
   <div class="work" id="work">
     <div class="work__stage"></div>
   </div>
-  ${v2 ? '' : `<div class="work__name" aria-hidden="true">${projects.map((p) => `<span class="work__title">${[...p.title].map((c) => `<span class="work__char">${c === ' ' ? '&nbsp;' : c}</span>`).join('')}</span>`).join('')}</div>
+  ${v2 ? '' : `${mode.createTitle ? '' : `<div class="work__name" aria-hidden="true">${projects.map((p) => `<span class="work__title">${[...p.title].map((c) => `<span class="work__char">${c === ' ' ? '&nbsp;' : c}</span>`).join('')}</span>`).join('')}</div>`}
   <div class="work__count" aria-live="polite">01 / 0${N}</div>`}
   ${mode.showToggle ? `<button type="button" class="work__toggle" aria-label="Switch to vertical scroll">
     <svg viewBox="0 0 24 24" aria-hidden="true"><g class="work__icon"><rect x="3.5" y="5" width="3" height="14"/><rect x="10.5" y="5" width="3" height="14"/><rect x="17.5" y="5" width="3" height="14"/></g></svg>
@@ -106,10 +114,11 @@ const root = app.querySelector('.work');
 const stage = root.querySelector('.work__stage');
 // R23e: the counter and the toggle are children of the page, not of .work: their own top layer above the canvas and every click anchor
 const ui = v2 ? createV2({ app, projects, reduced }) : null; // R32
+const liteTitle = mode.createTitle?.({ app, projects, reduced });
 if (ui) root.insertBefore(ui.lineEl, stage); // R33d: the scroll line sits in .work, under the canvas
 const countEl = app.querySelector('.work__count') || document.createElement('div');
 const toggleEl = ui ? ui.switchEl : app.querySelector('.work__toggle') || document.createElement('button');
-const nameEl = app.querySelector('.work__name') || document.createElement('div');
+const nameEl = liteTitle?.root || app.querySelector('.work__name') || document.createElement('div');
 const fadeEls = ui ? [ui.root, ui.lineEl] : [countEl, toggleEl, nameEl]; // what the project transition fades out / back in
 const titleEls = [...nameEl.querySelectorAll('.work__title')].map((el) => ({ el, chars: [...el.querySelectorAll('.work__char')], f: -1 }));
 const iconEl = toggleEl.querySelector('.work__icon') || document.createElement('span');
@@ -201,6 +210,7 @@ const layouts = () => {
     it.el.style.width = `${w}px`; it.el.style.height = `${h}px`;
   });
   if (ui) ui.layout(fw, fh);
+  liteTitle?.layout(fw, fh);
 };
 layouts();
 const cur = () => LAY[vertical ? 'vertical' : 'side'];
@@ -461,6 +471,7 @@ let drag = null; // { id, last, total, captured, samples: [[t, pos]] }
 let inertia = null; // { from, v0, F, t0 }
 let dragMoved = false;
 let dragAccum = 0; // S change made by the drag / inertia since the last frame (px): the warp follows it like a wheel scroll
+let tapSpeed = 0; // the last measured strip velocity, available to event handlers
 const axisOf = (e) => (vertical ? e.clientY : e.clientX);
 // x TALL.flingGain; under TALL.flingMin screen lengths / s no coast; friction TALL.dragFriction, at most TALL.dragMaxCoast pitches. Every swipe is logged for the ?perf touch block.
 const touchLog = []; let curSwipe = null, swipePeak = 0;
@@ -479,6 +490,11 @@ const endDrag = (by = 'other') => {
 addEventListener('pointerdown', (e) => {
   if (paused || (e.pointerType === 'mouse' && e.button !== 0) || morph || fading || (drag && e.pointerType !== 'mouse')) return; // R24b: touch and pen share the drag; a second finger is ignored
   if (e.target.closest?.('.work__toggle, .work__count, .w2__hit, .tmenu__btn, .tmenu, [data-tune-panel]') || e.target.closest?.('div[style*="99999"]')) return;
+  if (mode.tap && e.target.closest?.('a.work__frame')) {
+    mode.tap.down({ moving: transitionBusy || !!inertia || !!snap || Math.abs(tapSpeed) > 5 });
+    const it = items.find(it => it.el === e.target.closest('a.work__frame'));
+    if (!transitionBusy && glOn && mode.transitionPolicy.tapFallback) prepareTransition(it.slug, it.ref, it.img, 'tap');
+  }
   dragMoved = false; swipePeak = 0; curSwipe = null;
   drag = { id: e.pointerId, mouse: e.pointerType === 'mouse', thr: e.pointerType === 'mouse' ? 6 : 10, last: axisOf(e), total: 0, captured: false, samples: [[performance.now(), axisOf(e)]] };
   inertia = null; snap = null; snapForce = 0; lastWheel = performance.now(); inputAt = lastWheel; wmScrolled = true; inputRelease();
@@ -491,7 +507,7 @@ addEventListener('pointermove', (e) => {
   drag.last = pos;
   drag.total += Math.abs(dpos);
   if (drag.total > drag.thr) {
-    if (!dragMoved) disposePrepared();
+    if (!dragMoved) disposePrepared(!!mode.tap);
     dragMoved = true;
     root.classList.add('is-dragging');
     if (!drag.captured && drag.mouse) { try { document.documentElement.setPointerCapture(drag.id); drag.captured = true; } catch { /* not capturable */ } } // from here the move / up come even outside the window
@@ -510,16 +526,28 @@ document.documentElement.addEventListener('lostpointercapture', (e) => { if (dra
 document.addEventListener('visibilitychange', () => { if (document.hidden) endDrag(); });
 addEventListener('click', (e) => { if (!paused && dragMoved) { e.preventDefault(); e.stopPropagation(); dragMoved = false; } }, { capture: true });
 // R25: a click on a main image grows that picture into the project page's header (cards keep a plain page load)
-items.forEach((it) => { if (it.kind === 'frame') { it.el.addEventListener('pointerenter', () => { preloadHeader(it.slug, it.ref); if (glOn) prepareTransition(it.slug, it.ref, it.img); }); it.el.addEventListener('pointerleave', leavePrepared); } });
-addEventListener('wheel', () => { if (!paused && !transitionBusy) { disposePrepared(); lastIdx = -1; } }, {passive:true});
+items.forEach((it) => { if (it.kind === 'frame') { it.el.addEventListener('pointerenter', () => { if (mode.tap && !transitionOK()) return; preloadHeader(it.slug, it.ref); if (glOn) prepareTransition(it.slug, it.ref, it.img); }); it.el.addEventListener('pointerleave', leavePrepared); } });
+addEventListener('wheel', () => { if (!paused && !transitionBusy) { disposePrepared(!!mode.tap); lastIdx = -1; } }, {passive:true});
 // R42c: wait for the same-document router on an early click; reduced motion / ?gl=0 / no WebGL retain plain navigation.
 const swap = createPageSwap();
-const openStart = (it) => { transitionBusy = true; loadGate = true; gl?.pauseUploads(true); pm('fwd:click'); lenis.stop(); nameEl.style.zIndex = '9'; TP.q = it.proj; TP.p0 = fPu.x[it.proj]; TP.p = TP.p0; TP.hold = TRANSITION.pushScale > 0 || clearMode(); if (clearMode()) { TC.u = 0; prepareClear(it.proj); } }; // (the project name stays above the growing picture and fades with the rest)
+const openStart = (it) => { if (mode.tap) document.documentElement.style.setProperty('--tap-viewport-height', `${mode.tap.viewport.h}px`); transitionBusy = true; loadGate = true; gl?.pauseUploads(true); pm('fwd:click'); lenis.stop(); nameEl.style.zIndex = '9'; TP.q = it.proj; TP.p0 = fPu.x[it.proj]; TP.p = TP.p0; TP.hold = TRANSITION.pushScale > 0 || clearMode(); if (clearMode()) { TC.u = 0; prepareClear(it.proj); } }; // (the project name stays above the growing picture and fades with the rest)
 stage.addEventListener('click', async (e) => {
   const a = e.target.closest('a.work__frame');
-  if (paused || transitionBusy || !a || morph || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  if (!a || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  if (paused || transitionBusy || morph) { if (mode.tap) e.preventDefault(); return; }
   const it = items.find((q) => q.el === a), i = it.idx;
+  let animateTap = true;
+  if (mode.tap) {
+    const moving = !!drag || !!inertia || !!snap || Math.abs(tapSpeed) > 5;
+    if (!mode.tap.pressed && e.detail === 0) mode.tap.down({ moving }); // keyboard activation
+    const centre = vertical ? (by[i] - H / 2) / H : (bx[i] - W / 2) / W;
+    const intent = { dragMoved, moving, centre };
+    if (!mode.tap.intent(intent)) { e.preventDefault(); return; }
+    animateTap = mode.tap.accept({ ...intent, reduced, degraded: !guard.state.warp }) && transitionOK();
+    rememberLite(it, animateTap); mode.tap.lock();
+  }
   let inPlace = glOn && !reduced && params.get('gl') !== '0';
+  if (mode.tap && !animateTap) inPlace = false;
   if (!inPlace && !(glOn && transitionOK())) return;
   const sc = ui ? 1 : gl.hs[i] || 1; // (R33: v2 reads the UNSCALED frame; the hover growth eases back to 1 as the transition starts)
   e.preventDefault();
@@ -529,10 +557,20 @@ stage.addEventListener('click', async (e) => {
     inPlace = swap.ready();
   }
   const w = bw[i] * sc, h = bh[i] * sc;
-  const flight = transitionOK() ? { slug: it.slug, ref: it.ref, rect: { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, startImage: it.img, startSrc: it.img.currentSrc || it.img.src, fade: fadeEls, fromWork: { mode: vertical ? 'vertical' : 'side', projectIndex: it.proj }, onPush: (p, u) => { if (clearMode()) TC.u = u; else if (TRANSITION.pushScale > 0) TP.p = TP.p0 + (TRANSITION.pushScale - TP.p0) * p; }, onStart: () => openStart(it) } : null;
+  const flight = transitionOK() && animateTap ? { slug: it.slug, ref: it.ref, rect: mode.tap ? mode.tap.rect({ bx: bx[i], by: by[i], bw: bw[i], bh: bh[i], ox: gl.ox[i], oy: gl.oy[i], scale: sc }) : { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, viewport: mode.tap?.viewport, startImage: it.img, startSrc: it.img.currentSrc || it.img.src, fade: fadeEls, fromWork: { mode: vertical ? 'vertical' : 'side', projectIndex: it.proj }, onPush: (p, u) => { if (clearMode()) TC.u = u; else if (TRANSITION.pushScale > 0) TP.p = TP.p0 + (TRANSITION.pushScale - TP.p0) * p; }, onStart: () => openStart(it) } : null;
   if (inPlace && swap.open({ slug: it.slug, ref: it.ref, flight, begin: () => openStart(it), image: it.img })) return;
   if (flight) runProjectTransition(flight); else location.href = a.href;
 });
+// The tall menu survives the in-place project. Its Works link closes that view
+// through the same router, including the bend, rather than loading a new strip.
+if (mode.tap) document.addEventListener('click', e => {
+  const a = e.target.closest?.('a[href]');
+  if (paused && a && new URL(a.href).pathname === '/work/' && !e.button && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+    if (document.documentElement.classList.contains('tmenu-open')) document.querySelector('.tmenu__btn')?.click();
+    e.preventDefault(); swap.back(true);
+  }
+}, true);
+if (mode.saveBack) addEventListener('pagehide', () => { if (paused) mode.saveBack(document.querySelector('.pj-root')); });
 // ---- R42: what the page-swap router needs from the strip (pause / resume it, where a project's image sits, the push on the way back)
 let savedY = 0, workChrome = [];
 const frameOf = (slug) => items.findIndex((it) => it.kind === 'frame' && it.slug === slug);
@@ -573,6 +611,8 @@ swap.attach({
   frameRect(slug) { const fi = frameOf(slug); place(fi, cur(), S); return { x: out.x - bw[fi] / 2, y: out.y - bh[fi] / 2, w: bw[fi], h: bh[fi] }; }, // (read at the rest place resume() set, before any tick)
   backPush: (p, u) => { if (TC.on) TC.u = u; else TP.p = p * TRANSITION.pushScale; },
   finish() {
+    mode.tap?.unlock();
+    if (mode.tap) document.documentElement.style.removeProperty('--tap-viewport-height');
     transitionBusy = false; loadGate = false; gl?.pauseUploads?.(false);
     TP.q = -1; TP.p = 0; TP.hold = false; TC.on = false; TC.u = 0;
     gsap.set(fadeEls, { clearProps: 'opacity' }); nameEl.style.zIndex = '';
@@ -580,11 +620,11 @@ swap.attach({
     idleLoad();
     // the next click must animate like the first: the centred project's renderer + page are prepared again (idle, never in a frame that matters)
     const ci = ((kCount % N) + N) % N, cit = items.find((q) => q.kind === 'frame' && q.proj === ci);
-    if (glOn && cit) setTimeout(() => { if (!paused && !TC.on && TP.q < 0) { prepareIdleTransition(cit.slug, cit.ref, cit.img); swap.prebuild(cit.slug); } }, 400);
+    if (glOn && cit) setTimeout(() => { if (!paused && !TC.on && TP.q < 0 && (!mode.tap || (!drag && !snap && !inertia && Math.abs(tapSpeed) <= 5))) { prepareIdleTransition(cit.slug, cit.ref, cit.img); swap.prebuild(cit.slug); } }, mode.transitionPolicy?.idleMs || 400);
   },
 });
 setTimeout(() => swap.warm(), 0);
-items.forEach((it) => { if (it.kind === 'frame') it.el.addEventListener('pointerenter', () => { swap.warm().then(() => swap.prebuild(it.slug)); }); });
+items.forEach((it) => { if (it.kind === 'frame') it.el.addEventListener('pointerenter', () => { if (!mode.tap || transitionOK()) swap.warm().then(() => swap.prebuild(it.slug)); }); });
 addEventListener('wheel', () => { if (!paused) inertia = null; }, { capture: true, passive: true });
 addEventListener('wheel', () => { if (!paused) cancelSnap(); }, { capture: true, passive: true });
 addEventListener('touchstart', () => { if (!paused) cancelSnap(); }, { capture: true, passive: true });
@@ -644,6 +684,7 @@ const tick = (_time, deltaMs) => {
     }
   } else snap = null;
   prevS = S;
+  if (mode.tap) tapSpeed = vel;
   // focus progress per project
   let focusMoving = false;
   {
@@ -794,6 +835,7 @@ const tick = (_time, deltaMs) => {
   if (morph || Math.abs(pos - kCount) > 0.5 + WORK_COUNTER.counterHysteresis) kCount = Math.round(pos);
   const idx = ((kCount % N) + N) % N;
   if (idx !== lastIdx) { lastIdx = idx; clearTimeout(preT); preT = setTimeout(function warmCentre() {
+    if (mode.tap && !transitionOK()) return;
     if (TC.on || arrivalHold) return;
     if (drag || morph || snap || inertia || performance.now() - lastWheel < 300) { preT = setTimeout(warmCentre, 300); return; }
     const it = items.find(it => it.kind === 'frame' && it.slug === projects[idx].slug);
@@ -812,13 +854,13 @@ const tick = (_time, deltaMs) => {
       };
       (window.requestIdleCallback || ((fn) => setTimeout(fn, 80)))(warmNeighbours);
     }
-  }, 180); /* R42c: the centred project's header image is fetched once it rests */ if (!ui) countEl.textContent = `${String(idx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`; }
+  }, mode.transitionPolicy?.idleMs || 180); /* R42c: the centred project's header image is fetched once it rests */ if (!ui) countEl.textContent = `${String(idx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`; }
 
-  if (ui) { // R32 / R33c: the text field, counter and ruler. SCROLL STOP = no input for scrollStopSec (a coasting drag counts as moving until it is slower than scrollStopSpeed), the strip may still
+  if (ui || liteTitle) { // R32 / R33c: the text field, counter and ruler. SCROLL STOP = no input for scrollStopSec (a coasting drag counts as moving until it is slower than scrollStopSpeed), the strip may still
     // be gliding / snapping to its image: the project it is HEADING to is then the active one.
     const ptn = L.pitch;
     if (drag) inputAt = now;
-    const inSpeed = inertia ? Math.abs(inertia.v0) * Math.exp(-((now - inertia.t0) / 1000) / Math.max(inertia.F || 0.6, 0.05)) : 0;
+    const inSpeed = mode.tap ? Math.abs(vel) : inertia ? Math.abs(inertia.v0) * Math.exp(-((now - inertia.t0) / 1000) / Math.max(inertia.F || 0.6, 0.05)) : 0;
     const stopped = !morph && !drag && TP.q < 0 && !TC.on && now - inputAt > WORK_TEXT.scrollStopSec * 1000 && (!inertia || inSpeed < WORK_TEXT.scrollStopSpeed * L.M.viewAlong);
     let kHead;
     if (snap) kHead = Math.round(snap.to / ptn);
@@ -827,7 +869,7 @@ const tick = (_time, deltaMs) => {
     v2s.pos = pos; v2s.idx = idx; v2s.kHead = kHead; v2s.idxHead = ((kHead % N) + N) % N; v2s.kNum = (stopped ? kHead : kCount) + 1;
     v2s.speedL = Math.abs(vel) / Math.max(L.M.viewAlong, 1); v2s.vertical = morph ? morph.to === 'vertical' : vertical; v2s.morph = !!morph; v2s.dt = dt; v2s.stopped = stopped;
     if (!stopped) v2StopAt = 0; else if (!v2StopAt) { v2StopAt = now; if (window.__stopLog) window.__stopLog.push({ at: now, since: now - inputAt }); }
-    v2s.transitioning = transitionBusy; ui.frame(v2s);
+    v2s.transitioning = transitionBusy; ui?.frame(v2s); liteTitle?.frame(v2s);
   }
   if (ui && glOn && !transitionBusy) { // R33b: the pixel smear on every picture (only with a fine pointer; cards-gl is null on reduced motion / weak devices / ?gl=0)
     ptrFx ||= createPointerFx(gl, N);
@@ -937,9 +979,17 @@ const relayout = () => {
   off += f * cur().pitch - S;
   if (glOn) gl.resize(W, H);
 };
-addEventListener('resize', () => { if (paused) return; clearTimeout(rt); rt = setTimeout(relayout, 120); });
+addEventListener('resize', () => { if (paused || (mode.tap && transitionBusy)) return; clearTimeout(rt); rt = setTimeout(relayout, 120); });
 
 commit(vertical ? 'vertical' : 'side');
+const restoreLitePlace = () => {
+  const r = litePlace(); if (!r) return;
+  const q = slugs.indexOf(r.slug), target = q * cur().pitch;
+  off += target - S; S = target; prevS = target; kCount = q; snap = null; inertia = null;
+  mode.tap.unlock();
+};
+if (mode.tap && !back) restoreLitePlace();
+if (mode.tap) addEventListener('pageshow', e => { if (e.persisted) restoreLitePlace(); });
 // the endless strip passes through 0 at every wrap, so the distance must not drive the wordmark: it reports "scrolled" once and never rest again
 mode.lateNav(data.hero.wordmark, lenis, () => wmScrolled, back);
 // R28: the way back. The overlay (#pxb, painted by the inline script in work/index.html) covers the page with the project's header at the scroll it was
@@ -978,6 +1028,7 @@ if (earlyClick) {
 if (import.meta.env.DEV) {
   window.__SMEAR = WORK_SMEAR; window.__LINE = WORK_LINE; window.__V2 = WORK_V2; window.__TEXT = WORK_TEXT; window.__PTRCFG = WORK_PTR; window.__SCROLL = SCROLL; window.__WORK = WORK; window.__TRANSITION = TRANSITION; window.__TALL = mode.debugSettings; window.__guard = guard; window.__bendP = bendP;
   window.__work = { ui, get ptr() { return ptrFx; }, get hz() { return hzA; }, setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, q: Q, PS,  get snap() { return snap; }, AMB, LEAD, get drag() { return drag; }, get inertia() { return inertia; }, fP, fSc, fPu, get kCount() { return kCount; }, bx, by, bw, bh, vis, hp };
+  if (mode.tap) { window.__work.liteTitle = liteTitle; window.__work.tap = mode.tap; }
   if (params.has('tune')) import('./tune.js').then((m) => m.mountWorkTune({ relayout }));
   if (params.has('overlap')) import('../effects/overlap-debug.js').then((m) => m.mountOverlapDebug('.work__card', () => `focus ${Math.max(...fSc.x).toFixed(2)}${AMB.on ? ', ambient drift on' : ''}${LEAD.moving ? ', lead moving' : ''}${morph ? ', toggle morph' : ''}${TC.on ? ', transition' : ''}${drag ? ', drag' : ''}`));
 }

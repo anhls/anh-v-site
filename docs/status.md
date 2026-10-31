@@ -685,3 +685,10 @@ Undo everything: `git switch work-v2`.
   What you will see now: the open is slower and softer: about 1.27 s (was 0.71 s), the card arrives gently at full screen, then the picture slowly zooms into the header; the inward bend is a faint pull (a quarter of before).
   Still off: number-only change, the builder check set was not run (R41b's desktop-unchanged checks run on top of it); back still uses the full inward bend (-0.045).
   Your decision: whether the back bend should drop to match the softer open.
+
+- 2026-10-31 — R41b implementation checkpoint, lite/r41b (review still pending).
+  What you will see now: phone and tablet taps open with the desktop bend; back returns to the same card, and project titles use the desktop smear.
+  Still off: final visual / desktop checks remain; slowed-CPU motion has hitches, and the first title frame is about 25 ms under 4x slowdown.
+  Your decision: none yet; implementation and verification continue.
+  Readings: the engine read an obsolete lite policy; fallback gestures need their own intent gate; fresh loads need a saved header pose; the tap viewport also fixes header height. Details: docs/codex/R41b-notes.md.
+  Initial matrix 32/32 correct renderer and project, landing <=0.014 px, 0 fades/errors; 12 restore cases pass; long press/fling stop/double tap/20 swipes/menu back pass. Final capped-texture timing and desktop regression checks pending.

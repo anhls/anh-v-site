@@ -4,6 +4,8 @@ import { initNav } from '../effects/nav.js';
 import { buildProjectCards } from './cards.js';
 import { createGuard } from './tall-guard.js';
 import * as strip from './tall.js';
+import { createLiteTitle } from './tall-title.js';
+import { saveLiteBack } from './tall-back.js';
 
 // R41 Part A: the tap-to-open gate for the lite Work strip. Pure state + checks, no listeners of its own (the core owns the pointer stream and the
 // drag threshold; it calls these from its pointerdown / click handlers in Part B). `down` snapshots whether the strip was moving at touchdown,
@@ -12,19 +14,22 @@ import * as strip from './tall.js';
 // the address bar during the motion, so the flight uses this, not live values). Numbers: TRANSITION_POLICY_LITE.
 export function createTapGate(policy = TRANSITION_POLICY_LITE) {
   let downAt = 0, movingAtDown = true, openedAt = -1e9, vp = null;
+  const intent = ({now = performance.now(), dragMoved = false, moving = false, centre = 0}) =>
+    !dragMoved && !moving && !movingAtDown && now - downAt <= policy.maxPressMs && now - openedAt >= policy.lockMs && Math.abs(centre) <= policy.centreTol;
   return {
+    intent,
+    get pressed() { return downAt > 0; },
     down({now = performance.now(), moving}) { downAt = now; movingAtDown = !!moving; },
     // c: { now, drag (the core's dragMoved), moving (inertia/snap/|vel|>5 now), centre: offset of the image centre from the viewport centre, share of the viewport along the strip }
     // reduced: prefers-reduced-motion. degraded: the frame-time guard (tall-guard.js) has already switched the warp off = a slow / low-power device
     // (iOS Low Power Mode has no web API; it shows up as 30 Hz frames, which the guard measures) -> plain page load
     accept({now = performance.now(), dragMoved = false, moving = false, centre = 0, reduced = false, degraded = false}) {
       if (!policy.enabled || reduced || degraded || dragMoved || moving || movingAtDown || navigator.connection?.saveData === true) return false;
-      if (now - downAt > policy.maxPressMs || now - openedAt < policy.lockMs) return false;
-      return Math.abs(centre) <= policy.centreTol;
+      return intent({now, dragMoved, moving, centre});
     },
     lock(now = performance.now()) { openedAt = now; vp = { w: document.documentElement.clientWidth || innerWidth, h: innerHeight }; return vp; },
     get viewport() { return vp || { w: document.documentElement.clientWidth || innerWidth, h: innerHeight }; },
-    unlock() { openedAt = -1e9; vp = null; }, // bfcache restore / failed navigation: the gate opens again
+    unlock() { openedAt = -1e9; downAt = 0; movingAtDown = true; vp = null; }, // bfcache restore / failed navigation: the gate opens again
     rect: ({bx, by, bw, bh, ox = 0, oy = 0, scale = 1}) => ({ x: bx + ox - (bw * scale) / 2, y: by + oy - (bh * scale) / 2, w: bw * scale, h: bh * scale }),
   };
 }
@@ -50,6 +55,8 @@ export function createMode({tall}) {
   const warpSpeed = (v, along) => { const vn = (v * TALL.warpRefPx) / Math.max(along, 1), r = (Math.abs(vn) * TALL.warpGain) / TALL.warpVRef; return Math.sign(vn) * TALL.warpVRef * r ** TALL.warpPow; };
   return {
     tap, transitionPolicy: TRANSITION_POLICY_LITE, // R41: read by the core / engine in Part B
+    createTitle: createLiteTitle,
+    saveBack: saveLiteBack,
     v2:false, geometry:WORK, noCards, showToggle:false, allowPointer:!tall, applyFocus:!tall,
     validateStored:false, rendererOptions:{lite:true}, dragSamples:30,
     diagnosticKind:{lite:true, kind}, debugSettings:TALL, overrides,
