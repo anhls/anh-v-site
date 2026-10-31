@@ -374,8 +374,11 @@ Codex / other agents: read AGENTS.md, then build Part B of docs/codex/R39.md (re
 ## R42b [done 2026-10-11, see docs/codex/R42-notes.md] (DESKTOP, Claude Code, claude/r42-same-page-nav): back from a project opened mid-scroll lands exactly on its card, no cross-fade
 Read CLAUDE.md, AGENTS.md (section 12: busy note first), then docs/codex/R42b.md. Continue on claude/r42-same-page-nav (R42 is not merged yet). Do this before R41 Part B.
 
-## R42c (DESKTOP, Codex Part A/B on codex/r42c-bend; Claude Code Part C on claude/r42c-back): bend shapes match the reference: visible inward bend on open, gentle inward bend + longer settle on back
+## R42c [done, merged 2026-10-31] (DESKTOP, Codex Part A/B on codex/r42c-bend; Claude Code Part C on claude/r42c-back): bend shapes match the reference: visible inward bend on open, gentle inward bend + longer settle on back
 Read CLAUDE.md, AGENTS.md (section 12: busy note first), then docs/codex/R42c.md. New branch codex/r42c-bend from work-v2. Before R41 Part B.
+
+## R42d (DESKTOP, any agent, suggested Codex; branch desktop/r42d-open-lag): no wait before the open animation, a cold click on any Work card starts moving at once
+Read CLAUDE.md, AGENTS.md (section 12: busy note first), then docs/codex/R42d.md. New branch desktop/r42d-open-lag from work-v2 (2b0ade8 or later). Before R41 Part B.
 
 ## R27 (type motion TOOLKIT): paragraph line reveal + label smear reveal, one shared system, built but applied NOWHERE yet (use Sonnet 5.5, no time budget, Anh runs it at home)
 
