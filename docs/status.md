@@ -644,3 +644,29 @@ Undo everything: `git switch work-v2`.
   What you will see now: projects open and close inside the Work page; back lands exactly on its card even mid-scroll.
   Still off: back bends outward and strongly (reference: gentle inward), lands too fast; open's inward bend near full screen not visible. R42c.
   Your decision: none now; eye check R42c, then R41 Part B (phone).
+
+- 2026-10-12 — R42c WIP review candidate, codex/r42c-bend.
+  What you will see now: smaller puff, visible inward opening bend, gentle inward back with a longer settle.
+  Still off: reference match is partial; four-edge reference fit unverified, and the slowed-CPU run has a hitch.
+  Your decision: keep the brief's clear inward silhouette, or fit the video's subtler shape; R42c stays open.
+  Values/ambiguities/evidence/every changed file: docs/codex/R42c-notes.md; open 0.51+0.2s, back 0.75s; tune.js scope approved.
+  Build/clean clone pass; compare542/542 both sizes; 12 landing cases max0.5px/0 fades/0 errors; tall smoke pass; first response4.6ms normal/23.9ms4x.
+  Pushed:84f8614,5a586b3; report checkpoint HEAD pushed immediately after creation. Cloudflare build unverified (Access login).
+  Undo everything: `git switch work-v2`.
+
+- 2026-10-12 — R42c Part B review candidate, codex/r42c-bend.
+  What you will see now: every tested click plays the full clear inward bend, including quick clicks and clicks after scrolling or going back.
+  Still off: a cold click can wait about 1.2 seconds before motion (2.1 seconds on slowed CPU); the first-frame proxy reached 24 ms at 60 Hz.
+  Your decision: eye check the clear version; clear versus subtle stays deferred, and R42c remains open for review.
+  150/150 renderer uses/animations: 50 each at60/144Hz and4x; normalised growth samples identical,0 errors. Full details/evidence/files: docs/codex/R42c-notes.md.
+  Compare542/542 both sizes;12 midscroll cases max0.5px/0 fades; tall smoke pass; clean-clone npm ci/build pass; refreshed sheets/curves inspected, reference match partly.
+  Pushed:100d9d8 (brief merge),1be3b07 (implementation); final review record pushed immediately after commit. Cloudflare unverified (no GitHub status). Homepage/theme/404 checks skipped per brief.
+  Undo branch use: `git switch work-v2`.
+
+- 2026-10-13 — R42c Part C review candidate, claude/r42c-back (from codex/r42c-bend + work-v2).
+  What you will see now: every back plays the same visible inward bend onto the card; if the header is scrolled away the page first glides to the top (~0.3 s) and flows straight into the shrink.
+  Still off: on a 4x slowed CPU the peak bend sampled varies (low frame rate hides the peak; not a gate); real 144 Hz screen not eye-checked; Cloudflare preview build not verified (Access login).
+  Your decision: eye check back (top, scrolled down, Works link, browser back); bend -0.045 is the opening's strength, make it gentler if too much (tune: Back signed edge bow).
+  Cause: back used the single hover/centre renderer (replaced or missing = flat picture), bow was -0.018, a scrolled-away header faded black. Now: the open flight's renderer is handed over as a held back renderer (own slot, watcher rebuilds if lost, playBack waits for it, never flat); backBendAmp -0.045; glideTop (backGlideSec 0.3, shorter when closer).
+  Checks: 50 backs x (60 Hz, 144 Hz, 4x): 150/150 used the renderer, 0 fade-only, 0 fade frames, landing max 0.5 px, bend peak -0.045 (spread 0.2 % / 0 / 29 % at 4x); lost-context rebuild ok; midscroll 6/6; compare 542/542 x2; tall smoke pass. Contact sheet tools/scratch/r42c/contact-back-c.png: looks like the reference: yes (bend direction, timing); biggest difference: ours slightly stronger bow. Skipped: homepage/theme/404 (untouched).
+  Undo: `git switch work-v2`.

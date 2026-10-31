@@ -124,6 +124,12 @@ export function createProjectView({ slug, tall, onBack }) {
       const a = sec.getBoundingClientRect(), b = im.getBoundingClientRect();
       return { W: innerWidth, H: innerHeight, scroll: Math.round(scrollY), mode: a.bottom > 8 && a.top < innerHeight && a.width > 8 ? 'shrink' : 'fade', sec: [a.left, a.top, a.width, a.height], img: [b.left, b.top, b.width, b.height], wm: 0 };
     },
+    // R42c Part C: the page glides to the top (time-based, ends at speed so the shrink that follows is one motion), then done()
+    glideTop(done, sec) {
+      const y = scrollY;
+      if (!real || y <= 1) { done(); return; }
+      real.scrollTo(0, { duration: sec, easing: (t) => t * t, lock: true, force: true, onComplete: () => done() });
+    },
     headerSrc: () => api.heroImg?.currentSrc || api.heroImg?.src || '',
     hide() { el.style.visibility = 'hidden'; },
     destroy() {

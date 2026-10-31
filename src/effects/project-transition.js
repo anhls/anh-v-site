@@ -40,6 +40,7 @@ export function disposePrepared() {
   prepared?.renderer.dispose(); prepared?.host.remove(); prepared = null;
 }
 export function leavePrepared() {
+  if (running) return;
   clearTimeout(leaveTimer); leaveTimer = setTimeout(disposePrepared, T.hoverDisposeMs);
 }
 export function prepareIdleTransition(slug, ref, image) {
@@ -49,20 +50,21 @@ export function prepareIdleTransition(slug, ref, image) {
   }, {timeout:1200});
 }
 export function prepareTransition(slug, ref, image, trigger = 'hover') {
+  if (running && trigger !== 'click') return;
   const policy = transitionPolicy();
-  if (!policy.bulge || (policy.prepare === 'tap' && trigger !== 'tap') || (policy.prepare === 'idle' && trigger === 'hover')) return;
+  if (!policy.bulge || (policy.prepare === 'tap' && trigger !== 'tap' && trigger !== 'click') || (policy.prepare === 'idle' && trigger === 'hover')) return;
   if (!transitionOK() || (transitionPolicy().prepare === 'hover' && !matchMedia('(hover:hover) and (pointer:fine)').matches)) return;
   clearTimeout(leaveTimer);
   if ((prepared?.slug === slug && !prepared.renderer.dead) || pendingSlug === slug) return;
   disposePrepared(); pendingSlug = slug; const token = prepareToken, hdr = preloadHeader(slug, ref);
   prepareTimer = setTimeout(async () => {
     try { await hdr.decode(); } catch { /* use the decoded Work picture */ }
-    if (token !== prepareToken || running) return;
+    if (token !== prepareToken || (running && trigger !== 'click')) return;
     const selected = hdr.complete && hdr.naturalWidth ? hdr : image;
     // Bitmap crop coordinates use source pixels, not srcset's density-corrected naturalWidth.
     const source = new Image(); source.decoding = 'async'; source.src = selected.currentSrc || selected.src;
     try { await source.decode(); } catch { pendingSlug = null; return; }
-    if (token !== prepareToken || running) return;
+    if (token !== prepareToken || (running && trigger !== 'click')) return;
     const host = document.createElement('div'), placeholder = document.createElement('div');
     host.style.cssText = 'position:fixed;inset:0;visibility:hidden;pointer-events:none'; host.append(placeholder); document.body.append(host);
     pm('fwd:prepare-start');
@@ -70,12 +72,21 @@ export function prepareTransition(slug, ref, image, trigger = 'hover') {
     if (!renderer) { pendingSlug = null; host.remove(); return; }
     renderer.canvas.style.visibility = 'hidden';
     const entry = { slug, host, renderer, ready: false }; prepared = entry;
-    try { if (!await renderer.prepareTexture(source) || prepared !== entry) return; } catch { if (prepared === entry) disposePrepared(); return; }
+    try { if (!await renderer.prepareTexture(source) || prepared !== entry) { if (prepared === entry) disposePrepared(); return; } } catch { if (prepared === entry) disposePrepared(); return; }
     renderer.draw({x:0,y:0,w:innerWidth,h:innerHeight});
     await new Promise(requestAnimationFrame);
     if (prepared !== entry || renderer.dead) return;
     pendingSlug = null; entry.ready = true; renderer.canvas.dataset.prepared = 'ready'; pm('fwd:prepared');
-  }, T.hoverPrepareMs);
+  }, trigger === 'click' ? 0 : T.hoverPrepareMs);
+}
+// A cold click finishes the same preparation path; it never selects a flat flight.
+export async function ensurePrepared(slug, ref, image) {
+  if (prepared?.slug === slug && prepared.ready && !prepared.renderer.dead) return;
+  disposePrepared();
+  prepareTransition(slug, ref, image, 'click');
+  const token = prepareToken;
+  while (token === prepareToken && pendingSlug === slug) await new Promise(requestAnimationFrame);
+  if (!(prepared?.slug === slug && prepared.ready && !prepared.renderer.dead)) throw new Error('Bend renderer unavailable');
 }
 function takePrepared(slug, root, box) {
   clearTimeout(prepareTimer); clearTimeout(leaveTimer); prepareToken++; pendingSlug = null;
@@ -84,7 +95,81 @@ function takePrepared(slug, root, box) {
   if (hit.slug !== slug || !hit.ready || hit.renderer.dead) { hit.renderer.dispose(); hit.host.remove(); return null; }
   hit.renderer.adopt(root, box); hit.host.remove(); pm('fwd:prepared-used'); return hit.renderer;
 }
-addEventListener('pagehide', disposePrepared);
+addEventListener('pagehide', () => { disposePrepared(); releaseBack(); });
+
+// R42c Part C: the BACK renderer. While a project is open its renderer is held in its own slot, apart from the hover / centre one (disposePrepared never
+// touches it). The open flight's renderer is handed over at the landing (stashBack); if it is ever lost, a watcher rebuilds it on idle. Back never
+// runs a flat DOM flight: when none is ready, playBack waits for the build (the overlay already shows frame 0, so the wait is invisible).
+let backPrep = null, backHold = null, backWatch = 0, backBuilding = null;
+const dropBackEntry = (e) => { if (!e) return; try { e.renderer.dispose(); } catch { /* */ } e.host.remove(); };
+async function buildBack(slug, src) {
+  const source = new Image(); source.decoding = 'async'; source.src = src;
+  try { await source.decode(); } catch { return null; }
+  const host = document.createElement('div'), placeholder = document.createElement('div');
+  host.style.cssText = 'position:fixed;inset:0;visibility:hidden;pointer-events:none'; host.append(placeholder); document.body.append(host);
+  const renderer = createBulge(host, placeholder, source, true);
+  if (!renderer) { host.remove(); return null; }
+  renderer.canvas.style.visibility = 'hidden';
+  let ok = false;
+  try { ok = await renderer.prepareTexture(source); } catch { /* */ }
+  if (!ok || renderer.dead) { dropBackEntry({ renderer, host }); return null; }
+  renderer.draw({ x: 0, y: 0, w: innerWidth, h: innerHeight });
+  await new Promise(requestAnimationFrame);
+  if (renderer.dead) { host.remove(); return null; }
+  pm('back:prepared');
+  return { slug, host, renderer, ready: true };
+}
+function ensureBack(slug, src) {
+  if (backPrep && (backPrep.slug !== slug || backPrep.renderer.dead)) { dropBackEntry(backPrep); backPrep = null; }
+  if (backPrep) return Promise.resolve(backPrep);
+  if (backBuilding?.slug === slug) return backBuilding.p;
+  const p = buildBack(slug, src).then((e) => {
+    if (backBuilding?.p === p) backBuilding = null;
+    if (!e) return null;
+    if (backHold?.slug !== slug || backPrep) { dropBackEntry(e); return backPrep?.slug === slug ? backPrep : null; }
+    backPrep = e; return e;
+  });
+  backBuilding = { slug, p };
+  return p;
+}
+// A project page is open (or opening): keep its back renderer alive and ready.
+export function holdBack(slug, src) {
+  backHold = { slug, src };
+  ensureBack(slug, src);
+  clearInterval(backWatch);
+  backWatch = setInterval(() => {
+    if (!backHold) { clearInterval(backWatch); return; }
+    if (backPrep?.renderer.dead) { dropBackEntry(backPrep); backPrep = null; }
+    if (!backPrep && !backBuilding) ensureBack(backHold.slug, backHold.src);
+  }, 800);
+}
+export function stashBack(slug, renderer, src) {
+  if (!renderer || renderer.dead) return;
+  if (backPrep) dropBackEntry(backPrep);
+  const host = document.createElement('div'), placeholder = document.createElement('div');
+  host.style.cssText = 'position:fixed;inset:0;visibility:hidden;pointer-events:none'; host.append(placeholder); document.body.append(host);
+  renderer.adopt(host, placeholder); renderer.canvas.style.visibility = 'hidden';
+  backPrep = { slug, host, renderer, ready: true };
+  if (!backHold || backHold.slug !== slug) backHold = { slug, src };
+  holdBack(slug, backHold.src);
+}
+export function releaseBack(keepEntry = false) {
+  clearInterval(backWatch); backWatch = 0; backHold = null;
+  if (!keepEntry) { dropBackEntry(backPrep); backPrep = null; }
+}
+function takeBack(slug, root, box) {
+  const hit = backPrep;
+  if (!hit || hit.slug !== slug || hit.renderer.dead) return null;
+  backPrep = null; releaseBack(true);
+  hit.renderer.adopt(root, box); hit.host.remove(); pm('back:prepared-used');
+  return hit.renderer;
+}
+// resolves with a renderer adopted into root / box, or null when WebGL is unavailable (then the DOM picture alone plays)
+async function awaitBack(slug, src, root, box) {
+  const got = await Promise.race([ensureBack(slug, src), new Promise((r) => setTimeout(() => r(null), 3000))]);
+  const r = got && takeBack(slug, root, box);
+  return r || null;
+}
 
 function wordmarkRecord() {
   const wm = document.querySelector('a.wordmark');
@@ -96,14 +181,14 @@ let running = false;
 // (homepage frame); onPush(p) = the push-away progress 0..1 (Work page: work.js moves the cards); fromWork = { mode, projectIndex } for the way back; imgRect = where the start picture's own box is (the homepage still is a little larger than the frame it is clipped by); fade = elements that fade out with the rest (Work counter / toggle); onStart / onEnd for the caller (Lenis stop etc.).
 // R42: inPlace = { show(): Promise (the project page is built in this document: show it, resolve when its header is decoded), done(), fail(err) }: the flight ends by
 // showing the page under the overlay instead of navigating (no hand-off through sessionStorage, no document switch).
-export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc, startImage, crossfade = false, fade = [], onStart, onPush, fromWork, inPlace }) {
+export async function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc, startImage, crossfade = false, fade = [], onStart, onPush, fromWork, inPlace }) {
   if (running) return;
   running = true;
   onStart?.();
-  const W = innerWidth, H = innerHeight, t0 = Date.now();
+  const W = innerWidth, H = innerHeight; let t0 = Date.now();
   const hdr = preloadHeader(slug, ref);
   const sec = fromWork ? T.workSec : T.sec, pushSec = fromWork ? T.workPushSec : T.pushSec;
-  const flight = fromWork && transitionPolicy().enabled ? workFlight(rect, {w:W,h:H}, false, t0) : null;
+  let flight = null;
   const rel = { x: imgRect.x - rect.x, y: imgRect.y - rect.y, w: imgRect.w, h: imgRect.h }; // the start picture's box in the clip box's coordinates
   const root = document.createElement('div');
   root.className = 'px';
@@ -116,6 +201,18 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
     </div>`;
   document.body.append(root);
   const bg = root.querySelector('.px__bg'), box = root.querySelector('.px__box'), a = root.querySelector('.px__a'), b = root.querySelector('.px__b');
+  if (fromWork && transitionPolicy().bulge) {
+    // Paint feedback before cold texture/shader work. Keep the picture at its original crop.
+    root.style.cursor = 'progress';
+    pm('fwd:ready-wait');
+    if (!(prepared?.slug === slug && prepared.ready && !prepared.renderer.dead)) await new Promise(requestAnimationFrame);
+    try { await ensurePrepared(slug, ref, startImage); }
+    catch (err) { root.remove(); running = false; if (inPlace) inPlace.fail?.(err); else location.href = `/work/${slug}.html`; return; }
+    root.style.cursor = '';
+  }
+  t0 = Date.now();
+  flight = fromWork && transitionPolicy().enabled ? workFlight(rect, {w:W,h:H}, false, t0) : null;
+  pm('fwd:animation-start');
   let bulge = fromWork && transitionPolicy().enabled ? (transitionPolicy().bulge ? takePrepared(slug, root, box) : null) : null;
   bulge?.draw(rect);
   const headerFile = () => hdr.currentSrc || hdr.src;
@@ -175,7 +272,9 @@ export function runProjectTransition({ slug, ref, rect, imgRect = rect, startSrc
     hdr.removeEventListener('load', headerReady);
     pm('fwd:end');
     if (inPlace) {
-      const end = () => { bulge?.dispose(); bulge = null; root.remove(); running = false; pm('fwd:swapped'); inPlace.done?.(); };
+      const end = () => { // R42c: the flight's renderer becomes the back renderer (no dispose + rebuild: "back right after open" is ready at once)
+        if (bulge && !bulge.dead && fromWork) { stashBack(slug, bulge, headerFile()); bulge = null; } else { bulge?.dispose(); bulge = null; }
+        root.remove(); running = false; pm('fwd:swapped'); inPlace.done?.(); };
       Promise.resolve().then(() => inPlace.show()).then(() => requestAnimationFrame(() => requestAnimationFrame(end)), (err) => { bulge?.dispose(); bulge = null; root.remove(); running = false; inPlace.fail?.(err); });
       return;
     }
@@ -249,7 +348,8 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
   const z = rec.zEnd || 1, iw = L.img[2] / z, ih = L.img[3] / z;
   const BI = { x: L.img[0] + (L.img[2] - iw) / 2, y: L.img[1] + (L.img[3] - ih) / 2, w: iw, h: ih };
   const flight = workFlight(target, B, true);
-  bulge = rec.slug ? takePrepared(rec.slug, root, box) : null;
+  bulge = rec.slug ? takeBack(rec.slug, root, box) : null; // R42c: the held back renderer; none ready = wait for it (below), never a flat flight
+  const needRenderer = !bulge && !!rec.slug && transitionPolicy().bulge && transitionOK();
   const A = target, ease = EASES.cubic, bgMax = rec.blackMax ?? 1;
   const duration = flight.total;
   // Reverse uses the decoded DOM image: no context creation/upload on its clock.
@@ -277,6 +377,10 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
   };
   frame(); // the first frame is already the canvas at the header's place (a prepared renderer still holds its full-screen warm-up draw)
   tl.to(prog, { t: 1, duration, ease: 'none', onUpdate: frame }, 0);
+  if (needRenderer) { // overlay = frame 0 already; start the shrink as soon as the renderer is ready
+    tl.pause(); pm('back:renderer-wait');
+    awaitBack(rec.slug, rec.src, root, box).then((r) => { bulge = r; if (r) frame(); pm('back:renderer-late'); tl.play(); }, () => tl.play());
+  }
   if (fade.length) { gsap.set(fade, { opacity: 0 }); tl.to(fade, { opacity: 1, duration: Math.min(T.fadeSec, 0.3), ease: 'none' }, duration - Math.min(T.fadeSec, 0.3)); }
   // the overlay goes only once the canvas has drawn the image in that box: two frames after the last step
   const tailEnd = () => requestAnimationFrame(() => requestAnimationFrame(() => { if (import.meta.env.DEV && window.__pxBackHold) { window.__pxBackGo = finish; return; } finish(); }));

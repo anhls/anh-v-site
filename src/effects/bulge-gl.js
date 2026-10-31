@@ -9,21 +9,34 @@ export const pillowBump = (t) => {
   return Math.sin(Math.PI / 2 * (t < peak ? t / peak : (end - t) / (end - peak))) ** 2;
 };
 
-// The same forward trajectory is sampled in reverse on return. Wall clock survives navigation.
+// Open and back share a clock contract, but have independent edge silhouettes.
 export function workFlight(start, end, back = false, t0 = Date.now()) {
   const record = flightRecord(t0, T);
   if (back) record.tail = T.backZoomSec;
   const land = record.land;
-  const total = land + record.tail, carry = Math.max(0.01, Math.min(2, T.workCarry));
+  const total = back ? T.backSec : land + record.tail, carry = Math.max(0.01, Math.min(2, T.workCarry));
   return { total, land, record, sample(p) {
     p = Math.max(0, Math.min(1, p));
+    if (back) {
+      // playBack samples from 1 to 0. One continuous fast drop / slow settle,
+      // rather than reversing the open's stationary full-screen zoom tail.
+      const t = 1 - p, size = (1 - t) ** T.backSizePow;
+      const u = Math.min(1, t / T.backBendEndAt);
+      const pulse = 6.75 * u * (1 - u) ** 2;
+      return { size, bump: 0, content: { framed: true, zoom: (record.zEnd - 1) * size,
+        bend: T.backBendAmp * pulse, corner: T.backCornerAmp * pulse, lens: 0 } };
+    }
     const time = p * total, u = Math.min(1, time / land);
     const size = (3 - carry) * u * u + (carry - 2) * u * u * u;
     const lensU = Math.max(0, Math.min(1, (time - land) / Math.max(.01, T.lensSec)));
     const lens = back && !T.backRebound ? 0 : -T.bulgeAmp * T.reboundAmp * 6.75 * lensU * (1 - lensU) ** 2;
     // Cover at scale 1 through growth; zoom only inward after landing.
     const zoom = time < land ? 1 : flightZoom(record, t0 + time * 1000);
-    return { size, bump: pillowBump(time / T.workSec), content: { lens, zoom: zoom - 1, framed: true } };
+    const inwardU = Math.max(0, Math.min(1, (time / land - T.inwardStartAt) / (1 - T.inwardStartAt)));
+    const inward = Math.sin(Math.PI * inwardU) ** 2;
+    const bump = pillowBump(time / T.workSec);
+    return { size, bump, content: { lens, zoom: zoom - 1, framed: true,
+      bend: T.bulgeAmp * bump - T.inwardAmp * inward, corner: T.cornerAmp * bump } };
   } };
 }
 
@@ -144,8 +157,8 @@ export function createBulge(parent, box, image, deferTexture = false) {
       if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
       gl.viewport(0, 0, w, h); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
       gl.uniform4f(uniforms.box, b.x, b.y, b.w, b.h); gl.uniform4f(uniforms.imageBox, ib.x, ib.y, ib.w, ib.h);
-      gl.uniform2f(uniforms.viewport, innerWidth, innerHeight); gl.uniform2fv(uniforms.natural, natural); gl.uniform1f(uniforms.bulge, T.bulgeAmp * bump);
-      gl.uniform1f(uniforms.radius, T.cornerAmp * Math.min(b.w, b.h) * bump);
+      gl.uniform2f(uniforms.viewport, innerWidth, innerHeight); gl.uniform2fv(uniforms.natural, natural); gl.uniform1f(uniforms.bulge, content?.bend ?? T.bulgeAmp * bump);
+      gl.uniform1f(uniforms.radius, Math.min(b.w, b.h) * (content?.corner ?? T.cornerAmp * bump));
       gl.uniform1f(uniforms.zoom, content?.framed ? content.zoom : T.zoomAmp * bump + (content?.zoom || 0));
       gl.uniform1f(uniforms.lens, content?.lens || 0);
       gl.uniform1i(uniforms.fullScreen, content && b.w >= innerWidth - .01 && b.h >= innerHeight - .01 ? 1 : 0);
