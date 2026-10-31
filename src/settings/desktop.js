@@ -45,6 +45,8 @@ export const TRANSITION = { workSec: 0.85, workPushSec: 0.48, workLandAt: 0.85, 
   pushClear: 1, clearMargin: 40, clearStagger: 0.1, blackMax: 0,
   // R42e (Anh 2026-10-31, "not too snappy"): open slowed ~1.4x: workSec 0.6 -> 0.85, zoomTailSec 0.2 -> 0.3, workPushSec 0.34 -> 0.48 (open 0.71 -> 1.02 s; back unchanged). Open inward bend halved: inwardAmp 0.045 -> 0.01125, a quarter (back bend backBendAmp unchanged).
   // R42c: signed mesh bow before full screen; lens rebound changes only texture.
+  // R42e variant C: growZoom 1 = picture zooms 1.00 -> zEnd inside the growing frame across the whole open (0 = the old zoom only after full screen).
+  growZoom: 1,
   inwardAmp: 0.01125, inwardStartAt: 0.45,
   // R42d: retain at most three decoded headers (centre and neighbours); no motion tuning.
   headerCacheCount: 3,

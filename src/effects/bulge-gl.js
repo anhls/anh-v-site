@@ -32,7 +32,10 @@ export function workFlight(start, end, back = false, t0 = Date.now()) {
     const lensU = Math.max(0, Math.min(1, (time - land) / Math.max(.01, T.lensSec)));
     const lens = back && !T.backRebound ? 0 : -T.bulgeAmp * T.reboundAmp * 6.75 * lensU * (1 - lensU) ** 2;
     // Cover at scale 1 through growth; zoom only inward after landing.
-    const zoom = time < land ? 1 : flightZoom(record, t0 + time * 1000);
+    // R42e variant C (growZoom 1): the picture zooms inside the frame for the WHOLE flight, 1.00 at the click (matches the strip, no pop)
+    // to zEnd at rest (the header crop), sine in-out, monotonic; the post-landing tail is folded into it.
+    const zoom = T.growZoom ? 1 + (record.zEnd - 1) * (0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, time / total)))
+      : time < land ? 1 : flightZoom(record, t0 + time * 1000);
     const inwardU = Math.max(0, Math.min(1, (time / land - T.inwardStartAt) / (1 - T.inwardStartAt)));
     const inward = Math.sin(Math.PI * inwardU) ** 2;
     const bump = pillowBump(time / T.workSec);
