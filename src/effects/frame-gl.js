@@ -3,6 +3,7 @@ import { BEND, FRAME_WARP as FW, WARP, WARP_DIR } from '../timeline.js';
 import { frameCoverZoom } from './warp-model.js';
 import { frameState, frameLayers } from '../sections/hero.js';
 import { weakDevice } from '../util/device.js';
+import { glOpen } from '../util/gl-ledger.js';
 import { POST_VERT, POST_FRAG } from './warp-shader.js';
 import { imgSrc } from '../util/media.js';
 import { capW } from '../scale.js';
@@ -62,7 +63,7 @@ export function createFrameGL(handles, atEnd) {
   canvas.className = 'hero__gl';
   canvas.setAttribute('aria-hidden', 'true');
   let gl = null;
-  try { gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: true, powerPreference: 'high-performance' }); } catch { gl = null; }
+  gl = glOpen(canvas, 'hero', { alpha: true, premultipliedAlpha: true, antialias: true, powerPreference: 'high-performance' });
   if (!gl) return null;
 
   const compile = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };

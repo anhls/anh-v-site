@@ -7,6 +7,7 @@ import { gsap } from 'gsap';
 import { FLIGHT } from '../settings/shared.js';
 import { TRANSITION as T } from '../timeline.js';
 import { isTall } from '../util/layout-mode.js';
+import { timed } from '../work/rest.js';
 import { runProjectTransition, playBack, transitionOK, holdBack, releaseBack, preloadHeader } from './project-transition.js';
 
 const SLUG = /\/work\/([^/]+?)(?:\.html)?\/?$/;
@@ -98,13 +99,27 @@ export function createPageSwap() {
   // the centred project's page, built hidden while the strip rests (one at a time; replaced when another project is centred)
   let pre = null, preTimer = 0;
   const dropPre = () => { clearTimeout(preTimer); if (pre) { try { pre.view.destroy(); } catch { /* */ } pre = null; } };
-  const prebuild = (slug) => {
-    if (!mod || state !== 'work' || pre?.slug === slug) return;
-    dropPre();
-    preTimer = setTimeout(() => (window.requestIdleCallback || ((f) => setTimeout(f, 0)))(() => {
+  // R41d: `calm()` = the strip is at rest (core's rest signal). The build / prime steps wait for it (re-checked every 100 ms) and cancelPrebuild() (a finger / wheel) drops a step that has not started.
+  let preIdle = 0;
+  const cancelPrebuild = () => { clearTimeout(preTimer); if (preIdle) { (window.cancelIdleCallback || clearTimeout)(preIdle); preIdle = 0; } };
+  const prebuild = (slug, calm = () => true) => {
+    if (!mod || state !== 'work') return;
+    const whenCalm = (fn, tries = 0) => { if (state !== 'work' || tries > 30) return; if (calm()) fn(); else preTimer = setTimeout(() => whenCalm(fn, tries + 1), 100); };
+    const idle = (fn, timeout) => { preIdle = (window.requestIdleCallback || ((f) => setTimeout(f, 0)))(() => { preIdle = 0; whenCalm(fn); }, { timeout }); };
+    if (pre?.slug === slug) { if (pre.next) idle(pre.next, 1500); return; } // (a touch interrupted the stages: carry on from where they stopped)
+    dropPre(); cancelPrebuild();
+    preTimer = setTimeout(() => idle(() => {
       if (state !== 'work' || pre) return;
-      try { const v = mod.createProjectView({ slug, tall, onBack: () => back(true) }); if (v) { v.build(); pre = { slug, view: v }; (window.requestIdleCallback || ((f) => setTimeout(f, 0)))(() => { if (pre?.view === v) v.prime(); }, { timeout: 1500 }); } } catch { pre = null; }
-    }, { timeout: 1500 }), 120);
+      try {
+        const v = mod.createProjectView({ slug, tall, onBack: () => back(true) });
+        if (v) {
+          pre = { slug, view: v, next: null };
+          // R41d: one stage per idle slice (blocks, footer, then the page's sections one at a time), each timed and each waiting for the strip to be calm again
+          const next = () => { if (pre?.view !== v || state !== 'work') return; const done = timed(v.built ? 'pagePrime' : 'pageBuild', () => (v.built ? v.primeStep() : (v.buildStep(), false))); if (done) pre.next = null; else idle(next, 1500); };
+          pre.next = next; next();
+        }
+      } catch { pre = null; }
+    }, 1500), 120);
   };
   const warmNext = () => {};
 
@@ -119,7 +134,7 @@ export function createPageSwap() {
 
   return {
     attach(c) { ctl = c; },
-    warm, prebuild, dropPre,
+    warm, prebuild, cancelPrebuild, dropPre,
     ready: () => !!mod && !!ctl && state === 'work' && 'pushState' in history,
     open,
     back,

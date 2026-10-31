@@ -1,5 +1,6 @@
 import { BEND as BEND_DEF, WARP as WARP_DEF, WARP_DIR, CARD_HOVER } from '../timeline.js';
 import { weakDevice } from '../util/device.js';
+import { glOpen, glClose } from '../util/gl-ledger.js';
 import { POST_VERT, POST_FRAG } from './warp-shader.js';
 import { cylinderMargins } from './warp-model.js';
 import { limitLean } from './lean-limit.js';
@@ -103,7 +104,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
   canvas.className = 'sw__gl';
   canvas.setAttribute('aria-hidden', 'true');
   let gl = null;
-  try { gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: true, powerPreference: 'high-performance' }); } catch { gl = null; }
+  gl = glOpen(canvas, 'strip', { alpha: true, premultipliedAlpha: true, antialias: true, powerPreference: 'high-performance' });
   if (!gl) return null;
 
   const compile = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
@@ -622,7 +623,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     has: (i) => !!tex[i],
     coverRatio: (i) => (aspect[i] ? (bw[i] / bh[i]) * (cover[i * 4 + 1] / cover[i * 4]) / aspect[i] : 0), // R24i check: drawn picture's x scale / y scale (1 = no stretch)
     stats: () => ({ textureMb: used / 1048576, loaded: tex.filter(Boolean).length, bend: bend.x, bendRaw: bend.x }),
-    destroy: () => { canvas.remove(); api.active = false; },
+    destroy: () => { canvas.remove(); api.active = false; glClose(gl, 'strip'); },
   };
   return api;
 }

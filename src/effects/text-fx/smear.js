@@ -8,6 +8,7 @@
 // `visibility` while the overlay plays. Fallbacks: the CSS path (opacity = p) for ?gl=0 / weak devices / a lost context; reduced motion = a plain 0.2 s fade (decided by the caller);
 // ?fx=0 = plain fade. Idle cost: no rAF, no GL call. Used for the Work v2 title only.
 import { weakDevice } from '../../util/device.js';
+import { glOpen } from '../../util/gl-ledger.js';
 
 const VS = `#version 300 es
 in vec2 a;
@@ -107,7 +108,7 @@ export function createSmear({ host, cfg, reduced }) {
     canvas.className = 'w2__smear';
     canvas.setAttribute('aria-hidden', 'true');
     canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;visibility:hidden';
-    try { gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: false }); } catch { gl = null; }
+    gl = glOpen(canvas, 'title', { alpha: true, premultipliedAlpha: true, antialias: false });
     if (!gl) { canvas = null; lost = true; return false; }
     const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
     prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS)); gl.bindAttribLocation(prog, 0, 'a'); gl.linkProgram(prog);

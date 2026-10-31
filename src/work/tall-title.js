@@ -4,8 +4,9 @@ import { createSmear } from '../effects/text-fx/smear.js';
 import { LITE_TITLE } from '../settings/tall.js';
 import { TITLE_SHORT, WORK_TITLE, WORK_SMEAR, WORK_TEXT } from '../timeline.js';
 import { pm } from '../util/perf-mark.js';
+import { timed } from './rest.js';
 
-export function createLiteTitle({ app, projects, reduced }) {
+export function createLiteTitle({ app, projects, reduced, rest }) {
   const root = document.createElement('div'); root.className = 'lite-title'; root.setAttribute('aria-hidden', 'true');
   const el = document.createElement('span'); el.className = 'lite-title__text'; root.append(el); app.append(root);
   const smear = createSmear({ host: root, cfg: WORK_SMEAR, reduced });
@@ -56,11 +57,13 @@ export function createLiteTitle({ app, projects, reduced }) {
   const fadeOut = () => { el.style.transition = `opacity ${WORK_TEXT.titleOutSec}s linear`; el.style.opacity = '0'; opacity = 0; };
   // R41c: build the text textures of the settled project and its neighbours at true rest, ONE per task, so the play after a flick builds nothing. Cancelled when the strip moves again.
   const warmNear = (idx) => {
-    clearTimeout(warmTimer); if (plain || !smear || warmedFor === idx) return; warmedFor = idx;
+    if (plain || !smear || warmedFor === idx) return; warmedFor = idx; cancelWarm();
+    // R41d: each texture is a job on the shared rest queue (>= 250 ms of rest, then 90 ms apart, one per frame); the queue drops them the moment a finger / wheel returns
     const order = [0, 1, -1, 2, -2].map((d) => (idx + d + options.length * 4) % options.length), todo = [...new Set(order)];
-    const step = () => { const i = todo.shift(); if (i === undefined) return; if (last && !last.stopped) return; if (!smear.playing) smear.warm({ ...options[i], alpha: 0 }); warmTimer = setTimeout(step, 90); };
-    warmTimer = setTimeout(step, 250);
+    todo.forEach((i, n) => { const key = 'title' + n; warmKeys.push(key); rest.schedule(key, 'titleTexture', () => { if (!smear.playing && last?.stopped) smear.warm({ ...options[i], alpha: 0 }); }, 250 + n * 90); });
   };
+  const warmKeys = [];
+  const cancelWarm = () => { clearTimeout(warmTimer); warmKeys.splice(0).forEach((k) => rest.cancel(k)); };
   const callbacks = () => ({ done: () => { opacity = 1; }, aborted: () => { opacity = 0; } });
   function play() {
     pm('lite:title-start');
@@ -73,7 +76,7 @@ export function createLiteTitle({ app, projects, reduced }) {
   });
   document.addEventListener('anhv-theme', () => layout());
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { clearTimeout(warmTimer); warmedFor = -1; smear.cancel(); opacity = 0; el.style.transition = 'none'; el.style.opacity = '0'; }
+    if (document.hidden) { cancelWarm(); warmedFor = -1; smear.cancel(); opacity = 0; el.style.transition = 'none'; el.style.opacity = '0'; }
   });
   return {
     root, smear, layout,
@@ -83,7 +86,7 @@ export function createLiteTitle({ app, projects, reduced }) {
       if (import.meta.env.DEV && window.__titleScrub) return;
       const stopped = s.stopped && !s.transitioning;
       if (!stopped) {
-        clearTimeout(warmTimer); warmedFor = -1;
+        cancelWarm(); warmedFor = -1;
         if (smear.playing) smear.abort();
         else if (opacity > 0) { if (plain) { opacity = Math.max(0, opacity - s.dt / WORK_TEXT.titleOutSec); el.style.opacity = String(opacity); } else fadeOut(); }
         return;
@@ -96,7 +99,7 @@ export function createLiteTitle({ app, projects, reduced }) {
           if (shown !== idx) { opacity = Math.max(0, opacity - s.dt / .2); if (!opacity) setTitle(idx); }
           else opacity = Math.min(1, opacity + s.dt / .2);
           el.style.opacity = String(opacity);
-        } else { setTitle(idx); el.style.transition = 'none'; el.style.opacity = '0'; play(); }
+        } else { timed('titleSet', () => setTitle(idx)); el.style.transition = 'none'; el.style.opacity = '0'; timed('titlePlay', play); }
       } else if (!plain && opacity >= .95) warmNear(idx);
     },
     scrubTitle(idx, seconds) {

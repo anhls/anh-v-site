@@ -2,6 +2,7 @@ import { BEND, TRANSITION as T } from '../timeline.js';
 import { transitionPolicy } from './transition-policy.js';
 import { flightZoom, flightRecord } from './flight-curve.js';
 import { pm } from '../util/perf-mark.js';
+import { glOpen, glClose } from '../util/gl-ledger.js';
 
 export const pillowBump = (t) => {
   const end = Math.max(0.02, Math.min(1, T.bulgeEndAt));
@@ -48,7 +49,7 @@ export function createBulge(parent, box, image, deferTexture = false) {
   canvas.className = 'px__bulge';
   canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
   let gl;
-  try { gl = canvas.getContext('webgl2', { alpha: true, antialias: false, depth: false, stencil: false, premultipliedAlpha: false }); } catch { return null; }
+  gl = glOpen(canvas, 'transition', { alpha: true, antialias: false, depth: false, stencil: false, premultipliedAlpha: false });
   if (!gl) return null;
   let viewport = null;
   const size = () => viewport || { w: innerWidth, h: innerHeight };
@@ -61,7 +62,7 @@ export function createBulge(parent, box, image, deferTexture = false) {
     canvas.remove();
     gl.deleteTexture(texture); gl.deleteBuffer(vertex); gl.deleteBuffer(index);
     gl.deleteProgram(program); gl.deleteShader(vs); gl.deleteShader(fs);
-    gl.getExtension('WEBGL_lose_context')?.loseContext();
+    glClose(gl, 'transition');
   };
   canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); dispose(); });
   try {

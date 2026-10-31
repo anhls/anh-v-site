@@ -82,11 +82,20 @@ const blocks = {
 };
 
 // R42: returns a dispose() (observers, video sources) for the in-place Work -> project swap.
+// R41d: a generator so the idle build can append the blocks a few at a time (one yield per chunk, each a short task on a phone); buildProjectPageTall runs it to the end (the same DOM).
 export function buildProjectPageTall(root, page, lenis) {
+  const g = buildProjectPageTallSteps(root, page, lenis);
+  let r; do r = g.next(); while (!r.done);
+  return r.value;
+}
+export function* buildProjectPageTallSteps(root, page, lenis) {
   const offs = [];
   const saveBack = () => saveLiteBack(root);
   addEventListener('pagehide', saveBack); offs.push(() => removeEventListener('pagehide', saveBack));
-  root.innerHTML = `<div class="tp">${page.blocks.map((b) => (blocks[b.t] ? blocks[b.t](b) : '')).join('')}</div><div class="footer pj__footer"></div>`;
+  const html = page.blocks.map((b) => (blocks[b.t] ? blocks[b.t](b) : '')); // (read while the caller has the project's title set: the hero's alt text uses it)
+  root.innerHTML = '<div class="tp"></div><div class="footer pj__footer"></div>';
+  const tp = root.firstElementChild;
+  for (let i = 0; i < html.length; i += 4) { tp.insertAdjacentHTML('beforeend', html.slice(i, i + 4).join('')); yield; }
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   root.style.setProperty('--flight-z', String(FLIGHT.zEnd)); // R41: the zoomed picture IS the header (same value the transition ends on)
 

@@ -1,6 +1,8 @@
 // R31: `?perf` overlay + report. Loaded only with ?perf (see util/perf-mark.js), as its own chunk. One rAF sampler (frame time = the gap between
 // rAF callbacks), the graph is drawn at 10 Hz, phase marks come from `pm()` (performance.mark + a label on the graph). A phase = the frames between two
 // marks of a run. Runs are kept in sessionStorage so the forward run (the page is left right after it) and the back runs are in one report.
+import { gpuProbe, glLedger } from '../util/gl-ledger.js';
+import { perfQuiet } from '../util/perf-mark.js';
 const KEY = 'perfRuns';
 const RUN_START = { 'fwd:click': 'fwd', 'back:arrive': 'back' };
 const RUN_END = { 'fwd:end': 1, 'back:idle-load-end': 1 };
@@ -60,16 +62,8 @@ const mark = (name, t = performance.now()) => {
 const canvasInfo = () => { const c = glApi?.canvas; return c ? { w: c.width, h: c.height, dpr: r2(devicePixelRatio || 1), textures: glApi.stats().loaded, textureMb: r2(glApi.stats().textureMb) } : null; };
 
 const environment = () => {
-  let renderer = 'n/a', version = 'n/a', maxTex = 'n/a';
-  try {
-    const c = document.createElement('canvas'), g = c.getContext('webgl2') || c.getContext('webgl');
-    if (g) {
-      version = g.getParameter(g.VERSION); maxTex = g.getParameter(g.MAX_TEXTURE_SIZE);
-      const e = g.getExtension('WEBGL_debug_renderer_info');
-      renderer = e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER);
-      g.getExtension('WEBGL_lose_context')?.loseContext();
-    }
-  } catch { /* */ }
+  const pr = gpuProbe(); // (R41d: the cached probe; this used to create a context per call)
+  const renderer = pr.renderer || 'n/a', version = pr.version || 'n/a', maxTex = pr.maxTextureSize ?? 'n/a';
   const t0 = performance.now(); let x = 0; for (let i = 0; i < 3e6; i++) x += Math.sqrt(i); const bench = performance.now() - t0;
   return {
     userAgent: navigator.userAgent, screen: `${screen.width}x${screen.height}`, window: `${innerWidth}x${innerHeight}`, dpr: devicePixelRatio,
@@ -89,6 +83,8 @@ const buildReport = () => ({
   baselinePlainScroll5s: saved.base || 'not taken yet (needs 5 s on the Work page with no input right after load)',
   lastForward: saved.fwd[saved.fwd.length - 1] || null, lastBack: saved.back[saved.back.length - 1] || null,
   forwardRuns: saved.fwd, backRuns: saved.back,
+  glLedger: glLedger(),
+  restJobs: window.__restJobs ? window.__restJobs() : 'not the Work page',
   why: window.__why ? window.__why() : 'not the Work page',
   warpDiagnosis: window.__tallDiag ? { ...window.__tallDiag(), ...gapStats(30), gpuNote: gpuNote() } : 'not the Work page',
   tallGuard: window.__tallGuard ? { ...window.__tallGuard, note: 'R24d frame-time guard of the phone / tablet Work page: step 0 = full warp, 1 = warp pass x0.75, 2 = x0.5, 3 = warp off' } : 'not a phone / tablet Work page',
@@ -126,6 +122,22 @@ export function attachGl(api) {
 export function mountPerf() {
   if (window.__pm) return;
   const box = document.createElement('div');
+  if (perfQuiet) { // R41d: no graph, no repaint: one static button
+    box.style.cssText = 'position:fixed;right:8px;bottom:8px;z-index:2147483000;pointer-events:none;font:11px/1.2 ui-monospace,Consolas,monospace';
+    box.innerHTML = '<button style="pointer-events:auto;font:inherit;opacity:.55;cursor:pointer">Copy report</button><textarea hidden readonly style="pointer-events:auto;width:70vw;height:90px;margin-top:4px;font-size:9px"></textarea>';
+    document.body.append(box);
+    const [btn] = box.querySelectorAll('button'), area = box.querySelector('textarea');
+    btn.onclick = async () => {
+      const json = JSON.stringify(buildReport(), null, 1); area.value = json; let ok = false;
+      try { await Promise.race([navigator.clipboard.writeText(json).then(() => { ok = true; }), new Promise((r) => setTimeout(r, 1500))]); } catch { /* shown below */ }
+      if (ok) { btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = 'Copy report'; }, 1500); } else { area.hidden = false; area.select(); }
+    };
+    window.__pm = mark; for (const [n, t] of window.__pmq || []) mark(n, t); window.__pmq = null;
+    let last = 0;
+    const tick = (now) => { if (last) { frames.push([now, now - last]); if (frames.length > 40000) frames = frames.slice(-20000); } last = now; requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+    return;
+  }
   box.style.cssText = 'position:fixed;right:8px;bottom:8px;z-index:2147483000;pointer-events:none;font:11px/1.35 ui-monospace,Consolas,monospace;color:#bff5c8;background:rgba(0,0,0,.78);padding:6px 8px;border-radius:4px;width:262px';
   box.innerHTML = '<canvas width="480" height="104" style="width:240px;height:52px;display:block"></canvas><pre style="margin:4px 0;white-space:pre-wrap;font:inherit"></pre><button style="pointer-events:auto;font:inherit;cursor:pointer">Copy report</button> <button class="r" style="pointer-events:auto;font:inherit;cursor:pointer">Reset</button><textarea hidden readonly style="pointer-events:auto;width:100%;height:90px;margin-top:4px;font-size:9px"></textarea>';
   document.body.append(box);
