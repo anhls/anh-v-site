@@ -3,10 +3,12 @@
 //   pxh = Home -> Work: where the first Work card is (rect), the file it shows, the small wordmark's style; the Work page paints the card on the page colour and removes it once its own strip is up.
 //   pxg = Work -> Home: the homepage skips its loader and paints the hero frame full screen from its first frame, then lets the video take over.
 //   pxhf = the hero's video frame (a jpeg data URL) saved at the click, so the way back grows into the very frame that was left (the poster is the fallback).
+// ?debug=handoff (sticky in localStorage until ?debug=off): console log of every step of the hand-off (prerendering, activation, record found / age / deleted, bfcache, loader decision)
+export const dbg = (...a) => { try { if (localStorage.getItem('dbg-handoff') === '1') console.log('[handoff]', Math.round(performance.now()) + 'ms', ...a); } catch { /* */ } };
 const MAX_AGE = 10000; // localStorage is shared by every tab and survives restarts: a record older than 10 s is ignored, and every read deletes it (no replay from a second tab or tomorrow)
 export function writeHandoff(key, rec) { try { localStorage.setItem(key, JSON.stringify({ ...rec, t: Date.now() })); } catch { /* private window: a plain page load */ } }
 export function readHandoff(key) {
-  try { const r = JSON.parse(localStorage.getItem(key) || 'null'); localStorage.removeItem(key); return r && Date.now() - r.t < MAX_AGE ? r : null; } catch { return null; }
+  try { const r = JSON.parse(localStorage.getItem(key) || 'null'); localStorage.removeItem(key); dbg('read', key, r ? 'age ' + (Date.now() - r.t) + 'ms' : 'none', '-> deleted'); return r && Date.now() - r.t < MAX_AGE ? r : null; } catch { return null; }
 }
 export function clearHandoff(key) { try { if (key) localStorage.removeItem(key); else { localStorage.removeItem('pxh'); localStorage.removeItem('pxg'); } } catch { /* */ } }
 

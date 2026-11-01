@@ -28,6 +28,12 @@ import { createFrameGL } from './effects/frame-gl.js';
 import { initHomeToWork, arriveFromWork } from './effects/home-leave.js';
 import { SCROLL, CARDS, FRAME_WARP, HOME, CONTACT } from './timeline.js';
 import { installScrollGain } from './util/scroll-gain.js';
+import { dbg } from './effects/home-handoff.js';
+
+// R45c follow-up: a PRERENDERED homepage (the Work page asked Chrome for one) starts NOTHING until it is activated: no build, no video, no loader, no timers. At activation the return mark is read and
+// decides (mark -> no loader, landing; no mark -> the normal loader).
+dbg('home start: prerendering', document.prerendering, 'visibility', document.visibilityState);
+if (document.prerendering) { await new Promise((r) => document.addEventListener('prerenderingchange', r, { once: true })); dbg('home prerenderingchange fired (activated)'); }
 
 // R45: hero only (see HOME in settings/shared.js); ?home=full = the full scrolling homepage as before
 const heroOnly = HOME.heroOnly && new URLSearchParams(location.search).get('home') !== 'full';
@@ -83,9 +89,9 @@ lenis?.stop();
 const firstScreen = [data.hero.wordmark, data.hero.ticker];
 // R45: arriving from the Work page flight (#pxg is already painted by the inline script in index.html): no loader; the layer fades once the hero video plays
 // R45c: a prerendered homepage (the Work page asked Chrome for one) is built now, but starts (loader or arrival) only when it is activated
-if (document.prerendering) await new Promise((r) => document.addEventListener('prerenderingchange', r, { once: true }));
 window.__paintPxg?.();
 const arrival = heroOnly && document.getElementById('pxg') ? true : null;
+dbg('loader decision:', arrival ? 'SKIP (return mark found, landing layer up)' : 'RUN loader (no mark)');
 const intro = arrival ? arriveFromWork(hero, hero.loadDeferred) : runLoader(data.loader.text, firstScreen, hero.loadDeferred);
 intro.then(() => {
   lenis?.start();

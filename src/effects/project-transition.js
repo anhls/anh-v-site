@@ -39,7 +39,8 @@ export function preloadHeader(slug, ref) {
 }
 
 // back / forward can restore this page from the cache with the overlay still on it: start clean
-addEventListener('pageshow', (e) => { if (e.persisted && !isLite()) location.reload(); });
+// (not on the hero-only homepage: its own restore (home-leave.js) plays the landing; a reload there would lose the return mark)
+addEventListener('pageshow', (e) => { if (e.persisted && !isLite() && !document.documentElement.classList.contains('home-hero')) location.reload(); });
 
 // Work hover owns at most one hidden, warmed transition renderer.
 let prepared = null, spare = null, prepareTimer = 0, leaveTimer = 0, prepareToken = 0, pendingSlug = null, idleTask = 0, preparation = null, cancelPreparation = null, hoverSlug = null;

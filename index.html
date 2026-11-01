@@ -65,12 +65,15 @@
       /* R45 / R45c: arriving from the Work page (flight, wordmark, Back, or a plain reload of this page after it): paint the hero frame full screen from the first frame; src/main.js skips the loader
          and fades this layer once the hero video plays. The record is read at ACTIVATION too (a prerendered homepage runs this script before the click). */
       (function () {
+        var D = false; try { if (/[?&]debug=handoff/.test(location.search)) localStorage.setItem('dbg-handoff', '1'); if (/[?&]debug=off/.test(location.search)) localStorage.removeItem('dbg-handoff'); D = localStorage.getItem('dbg-handoff') === '1'; } catch (e) {}
+        var log = function () { if (D) console.log.apply(console, ['[handoff]', Math.round(performance.now()) + 'ms'].concat([].slice.call(arguments))); };
         function paint() {
           try {
             if (document.getElementById('pxg')) return;
             var r = JSON.parse(localStorage.getItem('pxg') || 'null');
+            log('home paint(): prerendering', document.prerendering, 'record', r ? 'age ' + (Date.now() - r.t) + 'ms' : 'none');
             if (!r || Date.now() - r.t > 10000 || /[?&](gl=0|home=full)/.test(location.search) || matchMedia('(prefers-reduced-motion: reduce)').matches) { if (r) localStorage.removeItem('pxg'); return; }
-            localStorage.removeItem('pxg');
+            localStorage.removeItem('pxg'); log('home paint(): record valid, deleted, layer up');
             var f = (Date.now() - +localStorage.getItem('pxhft') < 10000 && localStorage.getItem('pxhf')) || '/media/hero/poster.webp';
             localStorage.removeItem('pxhf'); localStorage.removeItem('pxhft');
             document.documentElement.classList.add('pxg-on');
@@ -78,7 +81,7 @@
           } catch (e) {}
         }
         window.__paintPxg = paint;
-        if (document.prerendering) document.addEventListener('prerenderingchange', paint, { once: true }); else paint();
+        if (document.prerendering) document.addEventListener('prerenderingchange', function () { log('home prerenderingchange (inline)'); paint(); }, { once: true }); else paint();
       })();
     </script>
     <a class="skip" href="#app">Skip to content</a>

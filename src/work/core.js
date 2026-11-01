@@ -1086,7 +1086,7 @@ if (back) {
 }
 document.title = 'Work | Anh V';
 // R45: Home <-> Work: the landed card layer from the homepage flight, and the way back (the centred card grows into the hero). Desktop only.
-if (!mode.tap && !back) initHomeReturn({ items, px, py, bw, bh, fadeEls, nav: wmNav, isBusy: () => transitionBusy || TC.on || !!drag, setBusy: (b) => { transitionBusy = b; }, isPaused: () => paused, firstReady: () => { const f = items.find((it) => it.kind === 'frame' && it.proj === 0); return !!(f && f.img.complete && f.img.naturalWidth); } });
+if (!mode.tap && !back) initHomeReturn({ items, px, py, bw, bh, fadeEls, nav: wmNav, isBusy: () => transitionBusy || TC.on || !!drag, setBusy: (b) => { transitionBusy = b; }, push: { start: (q) => { TC.u = 0; prepareClear(q); }, set: (u) => { TC.u = u; } }, isPaused: () => paused, firstReady: () => { const f = items.find((it) => it.kind === 'frame' && it.proj === 0); return !!(f && f.img.complete && f.img.naturalWidth); } });
 document.removeEventListener('click', queueEarlyClick, true);
 if (earlyClick) {
   earlyClick.style.cursor = '';

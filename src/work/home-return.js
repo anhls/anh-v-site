@@ -10,7 +10,7 @@ import { pm } from '../util/perf-mark.js';
 // Also owns the arrival from the homepage flight: the landed card layer (#pxh, painted by work/index.html) fades out once the strip is up.
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-export function initHomeReturn({ items, px, py, bw, bh, fadeEls, nav, isBusy, setBusy, isPaused, firstReady }) {
+export function initHomeReturn({ items, px, py, bw, bh, fadeEls, nav, isBusy, setBusy, isPaused, firstReady, push }) {
   const params = new URLSearchParams(location.search);
   const off = reduced || params.get('gl') === '0' || navigator.connection?.saveData;
   let arrived = false, depth = 0, heroSrc = null;
@@ -83,11 +83,12 @@ export function initHomeReturn({ items, px, py, bw, bh, fadeEls, nav, isBusy, se
     const card = { x: px[it.idx] - bw[it.idx] / 2, y: py[it.idx] - bh[it.idx] / 2, w: bw[it.idx], h: bh[it.idx] };
     const hero = { x: 0, y: 0, w: innerWidth, h: innerHeight };
     fl.setPicture(0, it.img);
+    push?.start(it.proj); // the live strip's cards clear away with the R30 push (work/core.js), driven by the flight's own clock
     fl.host.style.visibility = '';
     gsap.to(fadeEls, { opacity: 0, duration: F.fadeSec, ease: 'none' });
     let lost = false; fl.onLost = () => { lost = true; mod.playFlight.cancel?.(); };
     let vertical = false; try { vertical = localStorage.getItem('work-mode') === 'vertical'; } catch { /* */ }
-    await mod.playFlight(fl, { hero, card, dir: 'out', vertical, onFrame: (s) => nav?.drive(1 - s.size) });
+    await mod.playFlight(fl, { hero, card, dir: 'out', vertical, onFrame: (s, up) => { nav?.drive(1 - s.size); push?.set(up); } });
     if (lost) { goHome(viaHistory); return; }
     goHome(viaHistory); // the host keeps the last frame (the hero frame, full screen) until the document goes
   }

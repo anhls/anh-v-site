@@ -2,7 +2,7 @@ import { gsap } from 'gsap';
 import data from '../data/data.json';
 import { HOME_FLIGHT as F } from '../timeline.js';
 import { createHomeFlight, playFlight, flightState, workStartLayout, cardImage, homeFlightOK, isPixel } from './home-flight.js';
-import { writeHandoff, readHandoff, clearHandoff, saveHeroFrame } from './home-handoff.js';
+import { writeHandoff, readHandoff, clearHandoff, saveHeroFrame, dbg } from './home-handoff.js';
 import { pm } from '../util/perf-mark.js';
 
 // R45 (desktop, hero-only homepage): "Works" is ONE move from the hero to the first Work card (the picture shrinks with the R42 inward bow and a smear along the move, the video frame
@@ -69,10 +69,14 @@ export function initHomeToWork({ hero, nav }) {
     hidden = [];
     document.querySelectorAll('.nav a').forEach((a) => { a.style.opacity = ''; });
     nav?.drive(0);
-    clearHandoff();
+    // bfcache restore after the Work page's Back: the return mark was written before Work left. Mark -> hero frame layer + landing (no reload, no loader); no mark -> the hero as it was.
+    window.__paintPxg?.();
+    const back = !!document.getElementById('pxg');
+    dbg('bfcache restore: return mark', back ? 'found, playing the landing' : 'none, hero as it was');
+    if (back) arriveFromWork(hero, null); else clearHandoff('pxh');
     arm();
   };
-  addEventListener('pageshow', (e) => { if (e.persisted) restore(); });
+  addEventListener('pageshow', (e) => { dbg('pageshow persisted:', e.persisted); if (e.persisted) restore(); });
 
   link.addEventListener('click', async (e) => {
     if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.defaultPrevented || busy) return;

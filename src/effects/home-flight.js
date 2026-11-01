@@ -1,4 +1,5 @@
-import { HOME_FLIGHT as F, WORK_V2, BEND } from '../timeline.js';
+import { HOME_FLIGHT as F, WORK_V2, BEND, TRANSITION } from '../timeline.js';
+import { EASES } from '../util/ease.js';
 import { transitionPolicy } from './transition-policy.js';
 import { glOpen, glClose } from '../util/gl-ledger.js';
 import { imgSet } from '../util/media.js';
@@ -10,7 +11,7 @@ import { imgSet } from '../util/media.js';
 //     `smearCell` px picks its own moments of the trail (the pointer-fx look: blocky streaks, not an even blur), rows tear sideways in proportion to the speed, and the colour
 //     channels are split along the trail. Everything is EXACTLY zero at rest (box now == box a moment ago), so the landing frame equals the page's own pixels,
 //   - the cross-fade: picture A (the start picture) -> picture B (the end picture) over the middle of the flight, both covered into the box like their own end states.
-// R45c: the Work page's neighbour cards slide in as their own layers (same shader, same smear) so the last frame IS the Work page at rest.
+// R45c: the Work page's neighbour cards are their own plain layers (no swipe, no fade): they ease in from their pushed-away positions with the R42 / R30 clearing push (below), so the last frame IS the Work page at rest.
 // This module only draws. The pages (src/main.js on the homepage, src/work/core.js on the Work page) own the DOM around it and the hand-off between the two documents.
 
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -24,7 +25,7 @@ export function firstCardRect(W = innerWidth, H = innerHeight) {
   w = Math.min(w, h * r); h = w / r;
   return { x: (W - w) / 2, y: (H - h) / 2, w, h };
 }
-// the Work page's start layout (strip offset 0): the first card and the neighbours that show, in the mode the Work page opens in. start = where a neighbour slides in from.
+// the Work page's start layout (strip offset 0): the first card and the neighbours that show, in the mode the Work page opens in.
 export function workStartLayout(W = innerWidth, H = innerHeight) {
   let vertical = false; try { vertical = localStorage.getItem('work-mode') === 'vertical'; } catch { /* */ }
   const c = firstCardRect(W, H), gap = vertical ? (WORK_V2.gapVert * H) / 100 : (WORK_V2.gapSide * W) / 100;
@@ -33,8 +34,7 @@ export function workStartLayout(W = innerWidth, H = innerHeight) {
   for (const k of [-1, 1]) {
     const r = at(k);
     if (r.x >= W || r.y >= H || r.x + r.w <= 0 || r.y + r.h <= 0) continue;
-    const start = vertical ? { ...r, y: k > 0 ? H : -r.h } : { ...r, x: k > 0 ? W : -r.w };
-    out.push({ k, rect: r, start });
+    out.push({ k, rect: r });
   }
   return { vertical, first: c, neighbours: out };
 }
@@ -56,8 +56,20 @@ export function flightState(p, dir) {
   return { p, size, bend: F.bendAmp * pulse, mix: q * q * (3 - 2 * q) };
 }
 const lerpBox = (a, b, e) => ({ x: a.x + (b.x - a.x) * e, y: a.y + (b.y - a.y) * e, w: a.w + (b.w - a.w) * e, h: a.h + (b.h - a.h) * e });
-// a neighbour slides in over the last (1 - neighboursFrom) of the flight, an ease-out that lands exactly on its rest rectangle
-const slide = (p) => { const q = Math.max(0, Math.min(1, (p - F.neighboursFrom) / Math.max(1 - F.neighboursFrom, 0.05))); return 1 - (1 - q) ** 3; };
+// R45c follow-up: the neighbours move like the R42 project <-> Work push, with its numbers (TRANSITION.workPushSec / clearMargin / clearStagger, cubic ease on the linear push time, the direction away from
+// the centred card, far enough to be off screen). up = the linear push time 0..1: 'in' (hero -> Work) = the R42 back: pushed away at the start, back at rest over the LAST workPushSec of the flight;
+// 'out' (Work -> hero) = the R42 open: pushed away over the FIRST workPushSec.
+export const pushUp = (p, dir, sec) => Math.min(1, Math.max(0, (dir === 'in' ? 1 - p : p) * sec) / Math.max(TRANSITION.workPushSec, 0.01));
+export const pushAmount = (up, rank) => { const s = Math.min(0.9, Math.max(0, TRANSITION.clearStagger)); return EASES.cubic(Math.min(1, Math.max(0, (up - s * rank) / (1 - s)))); };
+// per neighbour: unit direction away from the centred card and the distance to be fully off screen (the rule of work/core.js prepareClear)
+export function pushPlan(rect, centre, W = innerWidth, H = innerHeight) {
+  const m = TRANSITION.clearMargin * (W / 1920), hw = rect.w * 0.58, hh = rect.h * 0.58, cx = rect.x + rect.w / 2, cy = rect.y + rect.h / 2;
+  const rx = cx - (centre.x + centre.w / 2), ry = cy - (centre.y + centre.h / 2), len = Math.hypot(rx, ry), ux = len > 1 ? rx / len : 0, uy = len > 1 ? ry / len : -1;
+  let t = Infinity;
+  if (ux > 1e-6) t = Math.min(t, (W + m + hw - cx) / ux); else if (ux < -1e-6) t = Math.min(t, (-m - hw - cx) / ux);
+  if (uy > 1e-6) t = Math.min(t, (H + m + hh - cy) / uy); else if (uy < -1e-6) t = Math.min(t, (-m - hh - cy) / uy);
+  return { dx: ux, dy: uy, T: Number.isFinite(t) ? Math.max(0, t) + 2 : 0 };
+}
 
 const VS = `#version 300 es
 void main() { vec2 c = vec2(float(gl_VertexID & 1), float(gl_VertexID >> 1)); gl_Position = vec4(c * 2. - 1., 0., 1.); }`;
@@ -216,7 +228,7 @@ export function createHomeFlight(parent) {
       gl.uniform2f(u.uBend, state.bend, prev.bend); gl.uniform2f(u.uMix, state.mix, prev.mix);
       gl.uniform2f(u.uNatA, nat[slots[0]][0], nat[slots[0]][1]); gl.uniform2f(u.uNatB, nat[slots[1]][0], nat[slots[1]][1]);
       gl.uniform1f(u.uTaps, Math.max(2, Math.min(60, F.smearTaps))); gl.uniform1f(u.uRgb, F.smearStrength > 0 ? F.smearRGB / F.smearStrength : 0);
-      gl.uniform1f(u.uLook, pixel ? 1 : 0); gl.uniform1f(u.uReveal, opts.reveal ? 1 : 0); gl.uniform1f(u.uFront, opts.front ?? 0);
+      gl.uniform1f(u.uLook, pixel && !opts.plain ? 1 : 0); gl.uniform1f(u.uReveal, opts.reveal ? 1 : 0); gl.uniform1f(u.uFront, opts.front ?? 0);
       const bp = V.w / Math.max(4, F.pixelBlocks); gl.uniform1f(u.uBlock, bp); gl.uniform1f(u.uSub, Math.max(2, bp / Math.max(1, F.pixelMosaic))); gl.uniform1f(u.uFw, Math.max(0.02, F.pixelFront)); gl.uniform1f(u.uJit, F.pixelJitter);
       { const a = ((F.pixelAngle + (opts.vertical ? 90 : 0) + (opts.flip ? 180 : 0)) * Math.PI) / 180; gl.uniform2f(u.uDir, Math.cos(a), Math.sin(a)); }
       gl.uniform1f(u.uTear, F.smearTear * mv); gl.uniform1f(u.uCell, Math.max(2, F.smearCell));
@@ -230,13 +242,14 @@ export function createHomeFlight(parent) {
 }
 
 // Plays one flight. hero / card = the two rectangles (css px); dir 'in' (hero -> card) or 'out' (card -> hero). Draws every frame from the clock (time-based, any refresh rate).
-// neighbours (dir 'in' only) = [{ slot, rect, start }]: the Work page's neighbour cards sliding to their rest rectangles over the last part of the flight.
-// onFrame(state) after each draw (the caller drives the wordmark, the Work layers ...); resolves when the last frame (p = 1) has been drawn.
+// neighbours (dir 'in' only) = [{ slot, rect }]: the Work page's neighbour cards, pushed back to their rest rectangles over the last workPushSec of the flight (plain layers: no swipe, no fade).
+// onFrame(state, up) after each draw (up = the push time 0..1, see pushUp; the Work page drives its live strip with it on the way out) (the caller drives the wordmark, the Work layers ...); resolves when the last frame (p = 1) has been drawn.
 export function playFlight(renderer, { hero, card, dir, onFrame, neighbours = [], vertical = false, sec = F.sec }) {
   const at = (st) => lerpBox(card, hero, st.size); // size 1 = the hero's rectangle, 0 = the card's, in both directions
   const peak = Math.max(F.sizePow, 1), dp = F.smearStrength / peak; // the trail = smearStrength of the way travelled at the peak speed
   const px = isPixel();
-  const nbAt = (n, p) => lerpBox(n.start, n.rect, slide(p));
+  const plans = neighbours.map((n) => pushPlan(n.rect, card));
+  const nbAt = (n, i, up) => { const o = plans[i].T * pushAmount(up, F.nbRank); return { x: n.rect.x + plans[i].dx * o, y: n.rect.y + plans[i].dy * o, w: n.rect.w, h: n.rect.h }; };
   return new Promise((resolve) => {
     const t0 = performance.now();
     let raf = 0, done = false;
@@ -246,11 +259,11 @@ export function playFlight(renderer, { hero, card, dir, onFrame, neighbours = []
       if (import.meta.env.DEV && window.__hfAt !== undefined) p = Math.min(0.999, window.__hfAt); // dev checks: freeze the flight at a progress
       const pp = Math.max(0, p - dp), st = flightState(p, dir), pv = flightState(pp, dir);
       renderer.begin();
-      // pixel look: the front runs over the cross window; the neighbours stay at their rest rectangles and are REVEALED by it; smear look: they slide in
-      const front = Math.min(1, Math.max(0, (p - F.crossFrom) / Math.max(F.crossTo - F.crossFrom, 0.01))), fo = { front: front * front * (3 - 2 * front), vertical, flip: dir === 'out' };
-      for (const n of neighbours) { if (px) renderer.layer(n.rect, n.rect, { bend: 0, mix: 1 }, { bend: 0, mix: 1 }, [n.slot, n.slot], { ...fo, reveal: true }); else renderer.layer(nbAt(n, p), nbAt(n, pp), { bend: 0, mix: 1 }, { bend: 0, mix: 1 }, [n.slot, n.slot]); }
+      // the swipe is the travelling picture's alone; the neighbours are plain layers on the push
+      const front = Math.min(1, Math.max(0, (p - F.crossFrom) / Math.max(F.crossTo - F.crossFrom, 0.01))), fo = { front: front * front * (3 - 2 * front), vertical, flip: dir === 'out' }, up = pushUp(p, dir, sec);
+      neighbours.forEach((n, i) => { const r = nbAt(n, i, up); renderer.layer(r, r, { bend: 0, mix: 1 }, { bend: 0, mix: 1 }, [n.slot, n.slot], { plain: true }); });
       renderer.layer(at(st), at(pv), st, pv, [0, 1], fo);
-      onFrame?.(st);
+      onFrame?.(st, up);
       if (p >= 1) { done = true; resolve(); return; }
       raf = requestAnimationFrame(frame);
     };

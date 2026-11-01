@@ -776,3 +776,8 @@ Undo everything: `git switch work-v2`.
   Still off: not seen at real speed on your GPU; the fast landing (Chrome prerender) could not be tested here, so the hold after the flight may still be there; Vertical mode and 144 Hz were not re-checked.
   Your decision: look at it on the 4K screen; tell me if blocks / front width / speed need tuning (?tune -> HOME_FLIGHT), and whether the hold is gone.
   Tech: look 'pixel' | 'smear', pixelBlocks 24, pixelFront 0.25, pixelMosaic 4; compare 542/542 x2; build + tall smoke OK; details in docs/codex/R45-notes.md. Pushed: see commit; undo: git revert it.
+- 2026-11-02, R45c follow-up (desktop, desktop/r45-home-work):
+  What you will see now: only the travelling picture (hero video <-> first card) pixel-swipes; the neighbour cards slide in / out on the same push as a project open / back. Coming back from Work should show no loader, also when the browser restores the homepage from cache (that was the bug: it reloaded and lost the return mark).
+  Still off: I cannot test a real Chrome prerender or a real cache restore here, so please check the return again; if the loader still plays, open the homepage once with ?debug=handoff and send me the console.
+  Your decision: look at the neighbours' push on the 4K screen; tell me if their stagger (nbRank) or the swipe needs tuning.
+  Tech: nbRank 0.4, hand-off records 10 s + deleted on read; compare 542/542 x2, build, tall smoke, R42 open/back OK; details in docs/codex/R45-notes.md. Undo: git revert the commit.
