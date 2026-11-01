@@ -497,12 +497,14 @@ const snapSecNow = () => mode.snapSec(); // (R33c: WORK.snapSec 1 is for the des
 let inputAt = 0; // R33c: the last wheel / key / touch / press / drag movement (the scroll-stop clock)
 let drag = null; // { id, last, total, captured, samples: [[t, pos]] }
 let inertia = null; // { from, v0, F, t0 }
+let frameDown = null, lastClickAt = 0; addEventListener('click', () => { lastClickAt = performance.now(); }, { capture: true });
 let dragMoved = false, tapPrepT = 0, grabDir = 0; // grabDir (R41d): the direction the strip was travelling when a finger stopped it (+1 / -1), 0 = it was not travelling
 let dragAccum = 0; // S change made by the drag / inertia since the last frame (px): the warp follows it like a wheel scroll
 let tapSpeed = 0; // the last measured strip velocity, available to event handlers
 // R41g: "the strip is moving" for the tap gate = the strip's SPEED (> 5 px/s) or a transition running. The inertia / snap OBJECTS stay set for a while after the speed is ~0 (the title already counts that as stopped), and a tap in that window was refused as a grab.
-let stopSpeedPx = 40; // (set every frame from the layout: scrollStopSpeed x the strip's view length)
-const stripMoving = () => transitionBusy || Math.abs(tapSpeed) > Math.max(5, stopSpeedPx); // (same speed the title uses for "stopped": a tap while the title is showing must open)
+// R41h: a touch on a strip faster than a FLING (300 px/s) only stops it (no open, like a list); at or under it the touch stops the snap / coast at once and, if it ends as a tap, opens the picture under the finger.
+const TAP_FLING = 300;
+const stripMoving = () => transitionBusy || Math.abs(tapSpeed) > TAP_FLING;
 const axisOf = (e) => (vertical ? e.clientY : e.clientX);
 // x TALL.flingGain; under TALL.flingMin screen lengths / s no coast; friction TALL.dragFriction, at most TALL.dragMaxCoast pitches. Every swipe is logged for the ?perf touch block.
 const touchLog = []; let curSwipe = null, swipePeak = 0;
@@ -513,7 +515,10 @@ const endDrag = (by = 'other') => {
   drag = null; touchEndAt = performance.now();
   root.classList.remove('is-dragging');
   try { if (d.captured) document.documentElement.releasePointerCapture(d.id); } catch { /* already released */ }
-  if (!d.total || d.total <= d.thr) return;
+  if (!d.total || d.total <= d.thr) { // R41h: a tap on a picture. A browser that eats the tap which stopped a coasting strip sends no click: if none arrives within 90 ms, click it ourselves (the gate and the lock still decide)
+    if (by === 'up' && mode.tap && d.frame && d.total <= d.thr) { const t = performance.now(); setTimeout(() => { if (lastClickAt < t && d.frame.isConnected && !paused) d.frame.click(); }, 90); }
+    return;
+  }
   const result = mode.release(d, performance.now(), by, {S, cur, ampHist, touchLog, swipePeak});
   if (result.inertia) inertia = result.inertia;
   if (result.entry) curSwipe = result.entry;
@@ -525,6 +530,7 @@ addEventListener('pointerdown', (e) => {
     mode.tap.down({ moving: stripMoving() });
     logTap({ what: 'down', transitionBusy, inertia: !!inertia, snap: !!snap, tapSpeed: Math.round(tapSpeed), restFor: Math.round(rest.restFor()) });
     const it = items.find(it => it.el === e.target.closest('a.work__frame'));
+    frameDown = e.target.closest('a.work__frame');
     // R41d: not on the touchdown itself (a flick starts on a picture too: the decode / renderer work would land in its first frames). It starts once the finger has stayed put for tapPrepareMs; a drag cancels it.
     clearTimeout(tapPrepT);
     if (!transitionBusy && glOn && mode.transitionPolicy.tapFallback) tapPrepT = setTimeout(() => { if (drag && !dragMoved && !transitionBusy) timed('prepareTap', () => prepareTransition(it.slug, it.ref, it.img, 'tap')); }, mode.transitionPolicy.tapPrepareMs ?? 70);
@@ -533,8 +539,9 @@ addEventListener('pointerdown', (e) => {
   // R41g: a finger put down on a strip that is AT REST is not movement yet: the title stays, rest is kept, no snap. Everything below that says "input happened" runs at the first move past the drag threshold (`begin`).
   const atRest = !stripMoving() && !!mode.tap;
   dragMoved = false; swipePeak = 0; curSwipe = null; if (!atRest) rest.interrupt();
-  drag = { id: e.pointerId, mouse: e.pointerType === 'mouse', thr: e.pointerType === 'mouse' ? 6 : 10, last: axisOf(e), total: 0, captured: false, samples: [[performance.now(), axisOf(e)]] };
+  drag = { frame: mode.tap ? frameDown : null, id: e.pointerId, mouse: e.pointerType === 'mouse', thr: e.pointerType === 'mouse' ? 6 : 10, last: axisOf(e), total: 0, captured: false, samples: [[performance.now(), axisOf(e)]] };
   inertia = null; snap = null; snapForce = 0;
+  frameDown = null;
   drag.begin = () => { drag.begin = null; rest.interrupt(); lastWheel = performance.now(); inputAt = lastWheel; wmScrolled = true; inputRelease(); };
   if (!atRest) drag.begin();
   e.preventDefault(); // no text selection, no image drag
@@ -910,7 +917,6 @@ const tick = (_time, deltaMs) => {
     // be gliding / snapping to its image: the project it is HEADING to is then the active one.
     const ptn = L.pitch;
     if (drag) inputAt = now;
-    stopSpeedPx = WORK_TEXT.scrollStopSpeed * L.M.viewAlong;
     const inSpeed = mode.tap ? Math.abs(vel) : inertia ? Math.abs(inertia.v0) * Math.exp(-((now - inertia.t0) / 1000) / Math.max(inertia.F || 0.6, 0.05)) : 0;
     const stopped = !morph && !drag && TP.q < 0 && !TC.on && now - inputAt > WORK_TEXT.scrollStopSec * 1000 && (!inertia || inSpeed < WORK_TEXT.scrollStopSpeed * L.M.viewAlong);
     let kHead;

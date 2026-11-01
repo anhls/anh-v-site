@@ -8,6 +8,7 @@ import { FLIGHT } from '../settings/shared.js';
 import { TRANSITION as T } from '../timeline.js';
 import { isTall } from '../util/layout-mode.js';
 import { timed } from '../work/rest.js';
+import { pm } from '../util/perf-mark.js';
 import { runProjectTransition, playBack, transitionOK, holdBack, releaseBack, preloadHeader } from './project-transition.js';
 
 const SLUG = /\/work\/([^/]+?)(?:\.html)?\/?$/;
@@ -64,7 +65,7 @@ export function createPageSwap() {
     if (state === 'opening') { wantBack = true; return; }
     if (state !== 'project') return;
     if (viaHistory) { try { history.back(); return; } catch { /* fall through */ } }
-    state = 'closing';
+    state = 'closing'; pm('back:arrive'); // (R41h: the in-place back is a run in the ?perf report too)
     const v = view, slug = slugNow;
     const animate = !instant && transitionOK(); // (R41f: instant = the browser already played its own swipe transition: land straight in the strip) (lite with the effect off, reduced motion, ?gl=0: back is instant, same project, same place)
     // R42c: header scrolled away: the page glides to the top first (time-based; into the shrink without a stop), then the shrink plays from the full-screen pose
@@ -89,7 +90,7 @@ export function createPageSwap() {
     const rec = { slug, zEnd: FLIGHT.zEnd, blackMax: T.blackMax, src: v.headerSrc(), leave };
     const root = document.createElement('div');
     root.id = 'pxb'; root.setAttribute('aria-hidden', 'true');
-    root.style.cssText = 'position:fixed;inset:0;z-index:8;overflow:hidden';
+    root.style.cssText = 'position:fixed;inset:0;z-index:8;overflow:hidden;pointer-events:none';
     const s = leave.sec, i = leave.img;
     root.innerHTML = `<div class="px__bg" style="position:absolute;inset:0;background:var(--bg);opacity:${shrink && typeof T.blackMax === 'number' ? T.blackMax : 1}"></div>` +
       (shrink ? `<div class="px__box" style="position:absolute;overflow:hidden;left:${s[0]}px;top:${s[1]}px;width:${s[2]}px;height:${s[3]}px"><img alt="" decoding="sync" src="${rec.src}" style="position:absolute;left:${i[0] - s[0]}px;top:${i[1] - s[1]}px;width:${i[2]}px;height:${i[3]}px;object-fit:cover;display:block"></div>` : '');

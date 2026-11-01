@@ -15,7 +15,7 @@ import { saveLiteBack } from './tall-back.js';
 export function createTapGate(policy = TRANSITION_POLICY_LITE) {
   let downAt = 0, movingAtDown = true, openedAt = -1e9, vp = null;
   const intent = ({now = performance.now(), dragMoved = false, moving = false, centre = 0}) =>
-    !dragMoved && !moving && !movingAtDown && now - downAt <= policy.maxPressMs && now - openedAt >= policy.lockMs && Math.abs(centre) <= policy.centreTol;
+    !dragMoved && !moving && !movingAtDown && now - downAt <= policy.maxPressMs && now - openedAt >= policy.lockMs; // R41h: any visible picture opens (no centre rule; `centre` is only logged)
   return {
     intent,
     get pressed() { return downAt > 0; },
