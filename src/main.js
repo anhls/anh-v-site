@@ -26,7 +26,6 @@ import { buildCaptionHover } from './effects/caption-hover.js';
 import { buildTrail } from './effects/trail.js';
 import { createFrameGL } from './effects/frame-gl.js';
 import { initHomeToWork, arriveFromWork } from './effects/home-leave.js';
-import { readHandoff } from './effects/home-handoff.js';
 import { SCROLL, CARDS, FRAME_WARP, HOME, CONTACT } from './timeline.js';
 import { installScrollGain } from './util/scroll-gain.js';
 
@@ -86,7 +85,7 @@ const firstScreen = [data.hero.wordmark, data.hero.ticker];
 // R45c: a prerendered homepage (the Work page asked Chrome for one) is built now, but starts (loader or arrival) only when it is activated
 if (document.prerendering) await new Promise((r) => document.addEventListener('prerenderingchange', r, { once: true }));
 window.__paintPxg?.();
-const arrival = heroOnly && document.getElementById('pxg') ? readHandoff('pxg') : null;
+const arrival = heroOnly && document.getElementById('pxg') ? true : null;
 const intro = arrival ? arriveFromWork(hero, hero.loadDeferred) : runLoader(data.loader.text, firstScreen, hero.loadDeferred);
 intro.then(() => {
   lenis?.start();

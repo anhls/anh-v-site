@@ -69,8 +69,10 @@
           try {
             if (document.getElementById('pxg')) return;
             var r = JSON.parse(localStorage.getItem('pxg') || 'null');
-            if (!r || Date.now() - r.t > 60000 || /[?&](gl=0|home=full)/.test(location.search) || matchMedia('(prefers-reduced-motion: reduce)').matches) { if (r) localStorage.removeItem('pxg'); return; }
-            var f = localStorage.getItem('pxhf') || '/media/hero/poster.webp';
+            if (!r || Date.now() - r.t > 10000 || /[?&](gl=0|home=full)/.test(location.search) || matchMedia('(prefers-reduced-motion: reduce)').matches) { if (r) localStorage.removeItem('pxg'); return; }
+            localStorage.removeItem('pxg');
+            var f = (Date.now() - +localStorage.getItem('pxhft') < 10000 && localStorage.getItem('pxhf')) || '/media/hero/poster.webp';
+            localStorage.removeItem('pxhf'); localStorage.removeItem('pxhft');
             document.documentElement.classList.add('pxg-on');
             document.body.insertAdjacentHTML('afterbegin', '<div id="pxg" aria-hidden="true" style="position:fixed;inset:0;z-index:8;background:var(--bg);overflow:hidden"><img alt="" decoding="sync" src="' + f + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block"></div>');
           } catch (e) {}

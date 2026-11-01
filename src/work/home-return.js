@@ -1,6 +1,6 @@
 import { gsap } from 'gsap';
 import { HOME_FLIGHT as F } from '../timeline.js';
-import { writeHandoff, readHeroFrame, clearHandoff } from '../effects/home-handoff.js';
+import { writeHandoff, readHeroFrame, writeHeroFrame, clearHandoff } from '../effects/home-handoff.js';
 import { pm } from '../util/perf-mark.js';
 
 // R45 (desktop Work page): the way back to the homepage. The CENTRED card smears and grows into the full hero (cross-fading to the hero frame the homepage left), the small wordmark
@@ -13,9 +13,10 @@ const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 export function initHomeReturn({ items, px, py, bw, bh, fadeEls, nav, isBusy, setBusy, isPaused, firstReady }) {
   const params = new URLSearchParams(location.search);
   const off = reduced || params.get('gl') === '0' || navigator.connection?.saveData;
-  let arrived = false, depth = 0;
+  let arrived = false, depth = 0, heroSrc = null;
   // R45c: a prerendered Work page is built long before the click; everything that depends on HOW it was entered (the landed-cards layer, the history entries) happens at ACTIVATION
   const arrive = () => {
+    heroSrc = readHeroFrame(); // read once (it is timestamped + deleted on read); put back fresh when leaving, for the homepage's landing layer
     window.__paintPxh?.();
     const ov = document.getElementById('pxh');
     arrived = !!ov;
@@ -49,7 +50,7 @@ export function initHomeReturn({ items, px, py, bw, bh, fadeEls, nav, isBusy, se
     fl = m.createHomeFlight(host);
     if (!fl) { host.remove(); return null; }
     fl.host = host; fl.onLost = () => { fl = null; };
-    const src = readHeroFrame() || '/media/hero/poster.webp';
+    const src = heroSrc || '/media/hero/poster.webp';
     frameIm = new Image(); frameIm.src = src;
     return frameIm.decode().catch(() => {}).then(() => { if (fl && !fl.dead) { fl.setPicture(1, frameIm, 'hero'); fl.draw({ x: 0, y: 0, w: 1, h: 1 }, { x: 0, y: 0, w: 1, h: 1 }, m.flightState(0, 'out'), m.flightState(0, 'out')); } return fl; });
   });
@@ -65,7 +66,8 @@ export function initHomeReturn({ items, px, py, bw, bh, fadeEls, nav, isBusy, se
   let navigated = false;
   const goHome = (viaHistory) => {
     if (navigated) return; navigated = true;
-    writeHandoff('pxg', { W: innerWidth, H: innerHeight }); // the mark goes in BEFORE leaving, whatever the browser does with its cache: the homepage never shows its loader on a return
+    writeHandoff('pxg', { W: innerWidth, H: innerHeight });
+    if (heroSrc) writeHeroFrame(heroSrc); // the mark goes in BEFORE leaving, whatever the browser does with its cache: the homepage never shows its loader on a return
     if (viaHistory) { try { history.back(); return; } catch { /* */ } }
     plain(); // a normal navigation: Chrome activates the prerendered homepage (below)
   };

@@ -88,7 +88,8 @@
           try {
             if (document.getElementById('pxh')) return;
             var r = JSON.parse(localStorage.getItem('pxh') || 'null');
-            if (!r || Date.now() - r.t > 60000 || r.W !== innerWidth || r.H !== innerHeight || /[?&]gl=0/.test(location.search) || matchMedia('(prefers-reduced-motion: reduce)').matches) { if (r) localStorage.removeItem('pxh'); return; }
+            if (!r || Date.now() - r.t > 10000 || r.W !== innerWidth || r.H !== innerHeight || /[?&]gl=0/.test(location.search) || matchMedia('(prefers-reduced-motion: reduce)').matches) { if (r) localStorage.removeItem('pxh'); return; }
+            localStorage.removeItem('pxh');
             var box = function (c, src) { return '<div class="px__box" style="position:absolute;overflow:hidden;left:' + c[0] + 'px;top:' + c[1] + 'px;width:' + c[2] + 'px;height:' + c[3] + 'px"><img alt="" decoding="sync" src="' + src + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block"></div>'; };
             var h = '<div id="pxh" aria-hidden="true" style="position:fixed;inset:0;z-index:8;overflow:hidden"><div class="px__bg" style="position:absolute;inset:0;background:var(--bg)"></div>';
             (r.cards || []).forEach(function (c) { h += box(c.rect, c.src); });
