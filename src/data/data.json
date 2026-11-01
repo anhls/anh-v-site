@@ -1108,6 +1108,9 @@
           {
             "t": "hero",
             "img": "bitis09/hero",
+            "phone": {
+              "ref": "bitis09/hero-phone"
+            },
             "parallax": {
               "y": 0.25,
               "s": 1,
@@ -2308,6 +2311,9 @@
       "year": 2026,
       "live": true,
       "page": {
+          "phone": {
+            "skip": true
+          },
         "title": "Duhat",
         "blocks": [
           {
@@ -2946,6 +2952,9 @@
       "year": 2024,
       "live": true,
       "page": {
+          "phone": {
+            "skip": true
+          },
         "title": "Nam Long",
         "blocks": [
           {

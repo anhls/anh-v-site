@@ -472,4 +472,4 @@ Structure is ready (vw/vh units, timeline.js, CSS custom properties), but portra
 ## Media checklist note (R14 covers it)
 Waits for Anh's original files. Convert the two GIFs to MP4/WebM loops, serve images as WebP/AVIF sized to display size (srcset), preload only hero media, lazy-load archive and project images, compress the hero video and add a poster frame, preload the Clash Display woff2.
 
-## R44 (LITE, Claude Code or Codex; branch lite/r44-project-page from work-v2): phone / tablet project page layout rules: stack by default, swipe only for sets of 3+, desktop compositions kept, scroll effects translated, phone hero crop. Brief docs/codex/R44.md. Then the new project pages (Duhat / Nam Long redesign, Samsung, Xiaomi) use these rules.
+## R44 [done] (LITE, Claude Code or Codex; branch lite/r44-project-page from work-v2): phone / tablet project page layout rules: stack by default, swipe only for sets of 3+, desktop compositions kept, scroll effects translated, phone hero crop. Brief docs/codex/R44.md. Then the new project pages (Duhat / Nam Long redesign, Samsung, Xiaomi) use these rules.

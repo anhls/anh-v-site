@@ -6547,5 +6547,28 @@
     "bytes": 240720
    }
   ]
+ },
+ "bitis09/hero-phone": {
+  "type": "image",
+  "source": {
+   "width": 1170,
+   "height": 2532
+  },
+  "alpha": false,
+  "sig": "r44-generated",
+  "files": [
+   {
+    "file": "bitis09/hero-phone-600.webp",
+    "width": 600,
+    "height": 1298,
+    "bytes": 20620
+   },
+   {
+    "file": "bitis09/hero-phone-1170.webp",
+    "width": 1170,
+    "height": 2532,
+    "bytes": 53034
+   }
+  ]
  }
 }

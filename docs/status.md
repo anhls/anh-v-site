@@ -765,3 +765,9 @@ Undo everything: `git switch work-v2`.
   What you will see now: on the laptop the first seconds after load are smoother: start-up worst frame 153 -> 76 ms, frames over 50 ms 3 -> 1, over 33 ms 6 -> 1, uploads in that window 7 (52 MB) -> 2 (18 MB), GPU worst 159 -> 12 ms. ?perf records every open and back (3 / 3 with the mouse back button), says "desktop", idle jobs ran while moving 0 (was 107).
   Still off: one 76 ms frame remains in the start-up window (GPU only 12 ms, so it is main-thread or compositor work); small, logged in FLAGS.
   Your decision: none.
+
+- 2026-11-01, R44 (Claude), lite/r44-project-page.
+  What you will see now: on the phone, project pages stack pictures one per row, swipe only for sets of 3+ same-shaped pictures (with "1 / 6"), keep the desktop stage layouts as one composition each, and text and pictures reveal as they enter. Bitis has a portrait hero with the whole title. Nam Long and Duhat are left as they were (you asked to skip them).
+  Still off: stage compositions leave dark gaps where the desktop had space; the tablet check was only for errors; I did not frame-compare the Bitis open flight; the hero focal point option is not built; Bitis hero is a generated blur-fill picture, tell me if you want another look.
+  Your decision: look at Bitis, Sulwhasoo, TCB Priority, Similac, Forbes on the phone (lite-r44-project-page.anh-v-site.pages.dev/work/bitis09.html) and say which compositions to flatten (block hint phone.mode).
+  Chromium 6x scroll: worst frame 27.8-34.8 ms; compare 542/542 x2; restore + gesture ok. Details docs/codex/R44-notes.md. Undo: git revert the R44 commits.

@@ -73,6 +73,8 @@ const projects = data.projects;
 const slugs = projects.map((p) => p.slug);
 const N = projects.length;
 const heroRef = (p) => p.page.blocks.find((b) => b.t === 'hero').img;
+// R44: the header picture the open flight / the project page's hero lands on: the phone crop (hero.phone.ref) when the project has one, else the hero picture. The strip's frame keeps heroRef.
+const headerRef = (p) => (mode.tap && p.page.blocks.find((b) => b.t === 'hero').phone?.ref) || heroRef(p);
 const store = { get: () => { try { return localStorage.getItem('work-mode'); } catch { return null; } }, set: (v) => { try { localStorage.setItem('work-mode', v); } catch { /* private window */ } } };
 // R28: arriving from a project page entered through the R25 transition: the same mode, that project centred, the enlarge played in reverse (below)
 const back = !reduced && params.get('gl') !== '0' && (!mode.tap || transitionOK()) ? readBack() : null;
@@ -150,7 +152,7 @@ if (!storedOK) {
   await fixWorkLayoutIdle(projCards, metricsNow()); // the old time-sliced pass (R22j)
 }
 const items = [];
-projects.forEach((p, i) => items.push({ kind: 'frame', proj: i, slug: p.slug, z: frameZ(), mouse: 20 + 80 * DEPTH.slot, dark: false, ref: heroRef(p) }));
+projects.forEach((p, i) => items.push({ kind: 'frame', proj: i, slug: p.slug, z: frameZ(), mouse: 20 + 80 * DEPTH.slot, dark: false, ref: heroRef(p), hdr: headerRef(p) }));
 projCards.forEach((list, i) => list.forEach((c, j) => items.push({ kind: 'card', proj: i, j, slug: c.slug, z: c.z, mouse: c.mouse, dark: c.dark, src: c.src, card: c })));
 const n = items.length;
 items.forEach((it, i) => {
@@ -533,7 +535,7 @@ addEventListener('pointerdown', (e) => {
     frameDown = e.target.closest('a.work__frame');
     // R41d: not on the touchdown itself (a flick starts on a picture too: the decode / renderer work would land in its first frames). It starts once the finger has stayed put for tapPrepareMs; a drag cancels it.
     clearTimeout(tapPrepT);
-    if (!transitionBusy && glOn && mode.transitionPolicy.tapFallback) tapPrepT = setTimeout(() => { if (drag && !dragMoved && !transitionBusy) timed('prepareTap', () => prepareTransition(it.slug, it.ref, it.img, 'tap')); }, mode.transitionPolicy.tapPrepareMs ?? 70);
+    if (!transitionBusy && glOn && mode.transitionPolicy.tapFallback) tapPrepT = setTimeout(() => { if (drag && !dragMoved && !transitionBusy) timed('prepareTap', () => prepareTransition(it.slug, it.hdr, it.img, 'tap')); }, mode.transitionPolicy.tapPrepareMs ?? 70);
   }
   grabDir = mode.tap && (inertia || Math.abs(tapSpeed) > 60) ? Math.sign(inertia ? inertia.D : tapSpeed) || 0 : 0;
   // R41g: a finger put down on a strip that is AT REST is not movement yet: the title stays, rest is kept, no snap. Everything below that says "input happened" runs at the first move past the drag threshold (`begin`).
@@ -573,7 +575,7 @@ document.documentElement.addEventListener('lostpointercapture', (e) => { if (dra
 document.addEventListener('visibilitychange', () => { if (document.hidden) endDrag(); });
 addEventListener('click', (e) => { if (!paused && dragMoved) { e.preventDefault(); e.stopPropagation(); dragMoved = false; } }, { capture: true });
 // R25: a click on a main image grows that picture into the project page's header (cards keep a plain page load)
-items.forEach((it) => { if (it.kind === 'frame') { it.el.addEventListener('pointerenter', () => { if (mode.tap && !transitionOK()) return; preloadHeader(it.slug, it.ref); if (glOn) prepareTransition(it.slug, it.ref, it.img); }); it.el.addEventListener('pointerleave', leavePrepared); } });
+items.forEach((it) => { if (it.kind === 'frame') { it.el.addEventListener('pointerenter', () => { if (mode.tap && !transitionOK()) return; preloadHeader(it.slug, it.hdr); if (glOn) prepareTransition(it.slug, it.ref, it.img); }); it.el.addEventListener('pointerleave', leavePrepared); } });
 addEventListener('wheel', () => { rest.interrupt(); grabDir = 0; if (!paused && !transitionBusy) { swap.cancelPrebuild(); disposePrepared(); lastIdx = -1; } }, {passive:true});
 // R42c: wait for the same-document router on an early click; reduced motion / ?gl=0 / no WebGL retain plain navigation.
 const swap = createPageSwap();
@@ -606,8 +608,8 @@ stage.addEventListener('click', async (e) => {
     inPlace = swap.ready();
   }
   const w = bw[i] * sc, h = bh[i] * sc;
-  const flight = transitionOK() && animateTap ? { slug: it.slug, ref: it.ref, rect: mode.tap ? mode.tap.rect({ bx: bx[i], by: by[i], bw: bw[i], bh: bh[i], ox: gl.ox[i], oy: gl.oy[i], scale: sc }) : { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, viewport: mode.tap?.viewport, startImage: it.img, startSrc: it.img.currentSrc || it.img.src, fade: fadeEls, fromWork: { mode: vertical ? 'vertical' : 'side', projectIndex: it.proj }, onPush: (p, u) => { if (clearMode()) TC.u = u; else if (TRANSITION.pushScale > 0) TP.p = TP.p0 + (TRANSITION.pushScale - TP.p0) * p; }, onStart: () => openStart(it) } : null;
-  if (inPlace && swap.open({ slug: it.slug, ref: it.ref, flight, begin: () => openStart(it), image: it.img })) return;
+  const flight = transitionOK() && animateTap ? { slug: it.slug, ref: it.hdr, rect: mode.tap ? mode.tap.rect({ bx: bx[i], by: by[i], bw: bw[i], bh: bh[i], ox: gl.ox[i], oy: gl.oy[i], scale: sc }) : { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, viewport: mode.tap?.viewport, startImage: it.img, startSrc: it.img.currentSrc || it.img.src, fade: fadeEls, fromWork: { mode: vertical ? 'vertical' : 'side', projectIndex: it.proj }, onPush: (p, u) => { if (clearMode()) TC.u = u; else if (TRANSITION.pushScale > 0) TP.p = TP.p0 + (TRANSITION.pushScale - TP.p0) * p; }, onStart: () => openStart(it) } : null;
+  if (inPlace && swap.open({ slug: it.slug, ref: it.hdr, flight, begin: () => openStart(it), image: it.img })) return;
   if (flight) runProjectTransition(flight); else location.href = a.href;
 });
 // The tall menu survives the in-place project. Its Works link closes that view
@@ -625,7 +627,7 @@ let savedY = 0, workChrome = [];
 const frameOf = (slug) => items.findIndex((it) => it.kind === 'frame' && it.slug === slug);
 swap.attach({
   fadeEls,
-  refOf: (slug) => { const p = projects.find((q) => q.slug === slug); return p ? heroRef(p) : null; },
+  refOf: (slug) => { const p = projects.find((q) => q.slug === slug); return p ? headerRef(p) : null; },
   imageOf: (slug) => items[frameOf(slug)]?.img,
   begin: (slug) => { const it = items[frameOf(slug)]; if (it) openStart(it); },
   pause() {
@@ -678,7 +680,7 @@ swap.attach({
     const ci = ((kCount % N) + N) % N, cit = items.find((q) => q.kind === 'frame' && q.proj === ci);
     if (glOn && cit) {
       const idle = mode.transitionPolicy?.idleMs || 400;
-      rest.schedule('prepare', 'prepareIdle', () => { if (!paused && !TC.on && TP.q < 0) prepareIdleTransition(cit.slug, cit.ref, cit.img); }, idle);
+      rest.schedule('prepare', 'prepareIdle', () => { if (!paused && !TC.on && TP.q < 0) prepareIdleTransition(cit.slug, cit.hdr, cit.img); }, idle);
       rest.schedule('prebuild', 'prebuild', () => { if (!paused && !TC.on && TP.q < 0) swap.prebuild(cit.slug, rest.ok); }, idle + 120);
     }
   },
@@ -906,15 +908,15 @@ const tick = (_time, deltaMs) => {
     if (!(mode.tap && !transitionOK())) {
       const idle = mode.transitionPolicy?.idleMs || 180, centre = idx, ok = () => !paused && !transitionBusy && !TC.on && !arrivalHold && lastIdx === centre;
       const it = items.find(it => it.kind === 'frame' && it.slug === projects[idx].slug);
-      rest.schedule('centre', 'preloadHeader', () => { if (ok()) preloadHeader(projects[idx].slug, heroRef(projects[idx])); }, idle);
+      rest.schedule('centre', 'preloadHeader', () => { if (ok()) preloadHeader(projects[idx].slug, headerRef(projects[idx])); }, idle);
       if (glOn && it) {
-        rest.schedule('prepare', 'prepareIdle', () => { if (ok()) prepareIdleTransition(it.slug, it.ref, it.img); }, idle + 60);
+        rest.schedule('prepare', 'prepareIdle', () => { if (ok()) prepareIdleTransition(it.slug, it.hdr, it.img); }, idle + 60);
         rest.schedule('prebuild', 'prebuild', () => { if (ok()) swap.prebuild(it.slug, rest.ok); }, idle + 180);
         // R42d: prefetch only at rest, never during scroll / drag / snap, sequentially (one header decode per job)
         [0, -1, 1].forEach((offset, n) => rest.schedule('nb' + n, 'decodeNeighbour', () => {
           if (!ok()) return;
           const p = projects[(centre + offset + N) % N];
-          try { const im = preloadHeader(p.slug, heroRef(p)); im.decode().catch(() => { /* prefetch is optional */ }); } catch { /* prefetch is optional */ }
+          try { const im = preloadHeader(p.slug, headerRef(p)); im.decode().catch(() => { /* prefetch is optional */ }); } catch { /* prefetch is optional */ }
         }, idle + 300 + n * 120));
       }
     }
