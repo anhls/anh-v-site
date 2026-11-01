@@ -49,7 +49,7 @@ export function createPageSwap() {
       ctl.pause();
       await v.show({ wmSmall });
     };
-    const fail = (err) => { try { console.error('[page-swap]', err); } catch { /* */ } releaseBack(); try { v.destroy(); } catch { /* */ } view = null; state = 'work'; hard(slug); };
+    const fail = (err) => { try { console.error('[page-swap]', err); } catch { /* */ } releaseBack(); try { v.destroy(true); } catch { /* */ } view = null; state = 'work'; hard(slug); };
     const done = () => {
       state = 'project';
       holdBack(slug, v.headerSrc()); // R42c: the renderer that draws the way back with the bend stays alive while the page is open (the flight hands its own over)
@@ -82,7 +82,7 @@ export function createPageSwap() {
     const shrink = leave.mode === 'shrink';
     if (!animate) {
       releaseBack();
-      try { v.destroy(); } catch { /* */ }
+      try { v.destroy(true); } catch { /* */ }
       ctl.resume({ slug, shrink: false });
       requestAnimationFrame(() => { ctl.finish(); view = null; state = 'work'; });
       return;
@@ -95,7 +95,7 @@ export function createPageSwap() {
     root.innerHTML = `<div class="px__bg" style="position:absolute;inset:0;background:var(--bg);opacity:${shrink && typeof T.blackMax === 'number' ? T.blackMax : 1}"></div>` +
       (shrink ? `<div class="px__box" style="position:absolute;overflow:hidden;left:${s[0]}px;top:${s[1]}px;width:${s[2]}px;height:${s[3]}px"><img alt="" decoding="sync" src="${rec.src}" style="position:absolute;left:${i[0] - s[0]}px;top:${i[1] - s[1]}px;width:${i[2]}px;height:${i[3]}px;object-fit:cover;display:block"></div>` : '');
     document.body.prepend(root);
-    try { v.destroy(); } catch { /* */ } // before resume: the project's Lenis must not move the window under the strip's new Lenis
+    try { v.destroy(true); } catch { /* */ } // before resume: the project's Lenis must not move the window under the strip's new Lenis
     ctl.resume({ slug, shrink });
     try {
       playBack({ rec, target: ctl.frameRect(slug), fade: ctl.fadeEls, onPush: ctl.backPush, done: () => { ctl.finish(); view = null; state = 'work'; warmNext(); } });
