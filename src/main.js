@@ -83,6 +83,9 @@ lenis?.stop();
 // Images #2/#3 start loading once the loader is ready (hero.loadDeferred).
 const firstScreen = [data.hero.wordmark, data.hero.ticker];
 // R45: arriving from the Work page flight (#pxg is already painted by the inline script in index.html): no loader; the layer fades once the hero video plays
+// R45c: a prerendered homepage (the Work page asked Chrome for one) is built now, but starts (loader or arrival) only when it is activated
+if (document.prerendering) await new Promise((r) => document.addEventListener('prerenderingchange', r, { once: true }));
+window.__paintPxg?.();
 const arrival = heroOnly && document.getElementById('pxg') ? readHandoff('pxg') : null;
 const intro = arrival ? arriveFromWork(hero, hero.loadDeferred) : runLoader(data.loader.text, firstScreen, hero.loadDeferred);
 intro.then(() => {

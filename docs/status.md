@@ -771,3 +771,8 @@ Undo everything: `git switch work-v2`.
   Still off: motion strength and duration are the planner's start values, not tuned by eye; I could not measure real-speed motion or the click response on a real GPU (software-GL checks only), and the homepage coming back from the browser cache is untested.
   Your decision: look at the preview on the 4K screen and the laptop and tune with ?tune (HOME_FLIGHT) on the Work page, then say if Part B can start. Also: should project pages keep their own link-preview image (they now use the share image, as the brief says)?
   Technical: cross-document hand-off (not in-document Work), details + checks in docs/codex/R45-notes.md. `?home=full` compare 542/542 x2. Undo: git revert the R45 commits on desktop/r45-home-work.
+- 2026-11-02, R45c (desktop, branch desktop/r45-home-work):
+  What you will see now: Works flies hero -> first card as a pixel swipe (square blocks flip video to card, neighbour cards revealed by the same front); the way back is the reverse. No loader coming home, no black frame, project pages have their own share image again.
+  Still off: not seen at real speed on your GPU; the fast landing (Chrome prerender) could not be tested here, so the hold after the flight may still be there; Vertical mode and 144 Hz were not re-checked.
+  Your decision: look at it on the 4K screen; tell me if blocks / front width / speed need tuning (?tune -> HOME_FLIGHT), and whether the hold is gone.
+  Tech: look 'pixel' | 'smear', pixelBlocks 24, pixelFront 0.25, pixelMosaic 4; compare 542/542 x2; build + tall smoke OK; details in docs/codex/R45-notes.md. Pushed: see commit; undo: git revert it.

@@ -1,7 +1,7 @@
 import { gsap } from 'gsap';
 import data from '../data/data.json';
 import { HOME_FLIGHT as F } from '../timeline.js';
-import { createHomeFlight, playFlight, flightState, firstCardRect, cardImage, homeFlightOK } from './home-flight.js';
+import { createHomeFlight, playFlight, flightState, workStartLayout, cardImage, homeFlightOK, isPixel } from './home-flight.js';
 import { writeHandoff, readHandoff, clearHandoff, saveHeroFrame } from './home-handoff.js';
 import { pm } from '../util/perf-mark.js';
 
@@ -16,7 +16,9 @@ export function initHomeToWork({ hero, nav }) {
   const project = data.projects[0];
   const cardRef = project.page.blocks.find((b) => b.t === 'hero').img;
   const posterRef = '/media/hero/poster.webp';
-  let root = null, fl = null, cardIm = null, posterIm = null, warmed = false, busy = false, hidden = [];
+  let root = null, fl = null, cardIm = null, posterIm = null, warmed = false, busy = false, hidden = [], nbIms = [];
+  const heroRef = (p) => p.page.blocks.find((b) => b.t === 'hero').img;
+  const N = data.projects.length;
 
   const preloadWork = () => { // the Work page's own files (HTML -> script + styles), fetched now so the page after the flight boots from the cache
     fetch('/work/').then((r) => (r.ok ? r.text() : '')).then((t) => {
@@ -39,10 +41,24 @@ export function initHomeToWork({ hero, nav }) {
       if (!fl) { root.remove(); root = null; return; }
       fl.onLost = () => { fl = null; };
       fl.setPicture(1, cardIm, 'card'); // the end picture is uploaded now; the video frame is uploaded at the click
+      // the neighbours the Work page shows at its start (slots 2 / 3): decoded + uploaded now, with the rest of the warm-up
+      const lay = workStartLayout();
+      nbIms = lay.neighbours.map((n, i) => { const p = data.projects[(n.k + N) % N], im = cardImage(heroRef(p)); im.decode().then(() => fl && !fl.dead && fl.setPicture(2 + i, im, p.slug)).catch(() => {}); return { n, im, slot: 2 + i, slug: p.slug, src: null }; });
       fl.draw({ x: 0, y: 0, w: 1, h: 1 }, { x: 0, y: 0, w: 1, h: 1 }, flightState(0, 'in'), flightState(0, 'in')); // one throw-away draw: the first real frame needs no first-use work
       pm('home:warmed');
     });
     preloadWork();
+    prerenderWork();
+  };
+  // R45c: Chrome prerenders /work/ (Speculation Rules) on idle: the page is built and its strip primed in the background, so the flight's end activates it instead of loading it. Browsers
+  // without prerender simply navigate (the first-paint layer then covers the load).
+  const prerenderWork = () => {
+    try {
+      if (!HTMLScriptElement.supports?.('speculationrules') || document.querySelector('script[data-r45]')) return;
+      const sr = document.createElement('script'); sr.type = 'speculationrules'; sr.dataset.r45 = '1';
+      sr.textContent = JSON.stringify({ prerender: [{ source: 'list', urls: ['/work/'] }] });
+      document.head.append(sr);
+    } catch { /* */ }
   };
   // after the hero has settled and the browser is idle (never before first paint; Save-Data / reduced motion / ?gl=0: never)
   const arm = () => (window.requestIdleCallback || ((f) => setTimeout(f, 600)))(() => setTimeout(warm, 800), { timeout: 3000 });
@@ -63,7 +79,7 @@ export function initHomeToWork({ hero, nav }) {
     if (!homeFlightOK() || !fl || fl.dead || !root) return; // not ready: the plain link
     e.preventDefault(); busy = true;
     pm('home:click');
-    const r = wrapper.getBoundingClientRect(), heroBox = { x: r.left, y: r.top, w: r.width, h: r.height }, card = firstCardRect();
+    const r = wrapper.getBoundingClientRect(), heroBox = { x: r.left, y: r.top, w: r.width, h: r.height }, card = workStartLayout().first;
     const frameOK = video.readyState >= 2 && fl.setPicture(0, video);
     if (!frameOK && !fl.setPicture(0, posterIm, 'poster')) { busy = false; location.href = '/work/'; return; }
     root.style.visibility = '';
@@ -76,9 +92,10 @@ export function initHomeToWork({ hero, nav }) {
     gsap.to(fade, { opacity: 0, duration: F.fadeSec, ease: 'none' });
     saveHeroFrame(video); // the grow flight on the way back starts from this frame (async, off the main thread)
     let lost = false; fl.onLost = () => { lost = true; playFlight.cancel?.(); };
-    await playFlight(fl, { hero: heroBox, card, dir: 'in', onFrame: (st) => nav?.drive(1 - st.size) });
+    const lay = workStartLayout(), nbs = nbIms.filter((x) => fl.has(x.slot)).map((x) => ({ slot: x.slot, rect: x.n.rect, start: x.n.start }));
+    await playFlight(fl, { hero: heroBox, card, dir: 'in', neighbours: nbs, vertical: lay.vertical, onFrame: (st) => nav?.drive(1 - st.size) });
     const wm = document.querySelector('a.wordmark');
-    writeHandoff('pxh', { W: innerWidth, H: innerHeight, rect: [card.x, card.y, card.w, card.h], src: cardIm.currentSrc || cardIm.src, wm: wm ? { src: wm.querySelector('img')?.getAttribute('src'), style: wm.style.cssText + `;position:fixed;left:0;top:0;width:${wm.offsetWidth}px;height:${wm.offsetHeight}px;z-index:9` } : null });
+    writeHandoff('pxh', { W: innerWidth, H: innerHeight, rect: [card.x, card.y, card.w, card.h], src: cardIm.currentSrc || cardIm.src, cards: nbIms.filter((x) => fl && fl.has(x.slot)).map((x) => ({ rect: [x.n.rect.x, x.n.rect.y, x.n.rect.w, x.n.rect.h], src: x.im.currentSrc || x.im.src })), wm: wm ? { src: wm.querySelector('img')?.getAttribute('src'), style: wm.style.cssText + `;position:fixed;left:0;top:0;width:${wm.offsetWidth}px;height:${wm.offsetHeight}px;z-index:9` } : null });
     pm('home:land');
     if (lost) { /* the overlay holds the last drawn frame; the Work page paints its own */ }
     location.href = '/work/';

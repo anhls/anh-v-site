@@ -13,29 +13,30 @@ const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 export function initHomeReturn({ items, px, py, bw, bh, fadeEls, nav, isBusy, setBusy, isPaused, firstReady }) {
   const params = new URLSearchParams(location.search);
   const off = reduced || params.get('gl') === '0' || navigator.connection?.saveData;
-  const arrived = !!document.getElementById('pxh');
-  const st = history.state?.r45;
-  // history: [home, work 'first', work 'dup']: Back from 'dup' lands on 'first' (popstate here) = our cue to fly; the second step (history.back) leaves for the homepage
-  if (arrived) { try { history.replaceState({ r45: 'first' }, ''); history.pushState({ r45: 'dup' }, ''); } catch { /* */ } }
-  else if (st === 'first') { try { history.pushState({ r45: 'dup' }, ''); } catch { /* */ } }
-  let depth = arrived || st === 'first' ? 1 : 0; // how many entries of ours sit above the first one (the wordmark's way home goes back by depth + 1)
-
-  // ---- the arrival layer
-  if (arrived) {
+  let arrived = false, depth = 0;
+  // R45c: a prerendered Work page is built long before the click; everything that depends on HOW it was entered (the landed-cards layer, the history entries) happens at ACTIVATION
+  const arrive = () => {
+    window.__paintPxh?.();
     const ov = document.getElementById('pxh');
-    try { sessionStorage.removeItem('pxh'); } catch { /* */ }
+    arrived = !!ov;
+    const st = history.state?.r45;
+    // history: [home, work 'first', work 'dup']: Back from 'dup' lands on 'first' (popstate here) = our cue to fly; the second step (history.back) leaves for the homepage
+    if (arrived) { try { history.replaceState({ r45: 'first' }, ''); history.pushState({ r45: 'dup' }, ''); } catch { /* */ } }
+    else if (st === 'first') { try { history.pushState({ r45: 'dup' }, ''); } catch { /* */ } }
+    depth = arrived || st === 'first' ? 1 : 0;
+    if (!ov) return;
+    try { localStorage.removeItem('pxh'); } catch { /* */ }
     document.getElementById('pxh-wm')?.remove(); // the real small wordmark is up (lateNav ran before this)
-    const until = (fn, ms) => new Promise((res) => { const t0 = performance.now(); const f = () => (fn() || performance.now() - t0 > ms ? res() : requestAnimationFrame(f)); f(); });
+    // never a black frame: the layer stays until the LIVE strip has drawn (the first card decoded + a few frames of the strip's own renderer after activation / load)
     (async () => {
-      await until(() => firstReady(), 2500);
-      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r))));
+      const t0 = performance.now();
+      while (!firstReady() && performance.now() - t0 < 3000) await new Promise((r) => requestAnimationFrame(r));
+      for (let i = 0; i < 8; i++) await new Promise((r) => requestAnimationFrame(r));
       pm('home:land-strip-ready');
-      const bg = ov.querySelector('.px__bg');
-      gsap.to(bg, { opacity: 0, duration: F.landFadeSec, ease: 'sine.inOut', onComplete: () => { ov.remove(); } });
-      // the card layer goes with the last of the fade (same picture, same rect as the strip's own card)
-      gsap.to(ov.querySelector('.px__box'), { opacity: 0, duration: 0.01, delay: F.landFadeSec });
+      gsap.to(ov, { opacity: 0, duration: F.landFadeSec, ease: 'sine.inOut', onComplete: () => ov.remove() });
     })();
-  }
+  };
+  if (document.prerendering) document.addEventListener('prerenderingchange', arrive, { once: true }); else arrive();
 
   // ---- the flight
   let fl = null, mod = null, building = null, busy = false, frameIm = null;
@@ -52,7 +53,8 @@ export function initHomeReturn({ items, px, py, bw, bh, fadeEls, nav, isBusy, se
     frameIm = new Image(); frameIm.src = src;
     return frameIm.decode().catch(() => {}).then(() => { if (fl && !fl.dead) { fl.setPicture(1, frameIm, 'hero'); fl.draw({ x: 0, y: 0, w: 1, h: 1 }, { x: 0, y: 0, w: 1, h: 1 }, m.flightState(0, 'out'), m.flightState(0, 'out')); } return fl; });
   });
-  if (!off) (window.requestIdleCallback || ((f) => setTimeout(f, 600)))(() => setTimeout(build, 1200), { timeout: 4000 });
+  const prerenderHome = () => { try { if (!HTMLScriptElement.supports?.('speculationrules') || document.querySelector('script[data-r45]')) return; const sr = document.createElement('script'); sr.type = 'speculationrules'; sr.dataset.r45 = '1'; sr.textContent = JSON.stringify({ prerender: [{ source: 'list', urls: ['/'] }] }); document.head.append(sr); } catch { /* */ } };
+  if (!off) (window.requestIdleCallback || ((f) => setTimeout(f, 600)))(() => setTimeout(() => { build(); prerenderHome(); }, 1200), { timeout: 4000 });
 
   const centred = () => { // the project the strip is showing now: the frame nearest the middle of the screen
     let best = null, bd = Infinity;
@@ -63,10 +65,9 @@ export function initHomeReturn({ items, px, py, bw, bh, fadeEls, nav, isBusy, se
   let navigated = false;
   const goHome = (viaHistory) => {
     if (navigated) return; navigated = true;
-    writeHandoff('pxg', { W: innerWidth, H: innerHeight });
+    writeHandoff('pxg', { W: innerWidth, H: innerHeight }); // the mark goes in BEFORE leaving, whatever the browser does with its cache: the homepage never shows its loader on a return
     if (viaHistory) { try { history.back(); return; } catch { /* */ } }
-    if (depth > 0) { try { history.go(-(depth + 1)); return; } catch { /* */ } }
-    plain();
+    plain(); // a normal navigation: Chrome activates the prerendered homepage (below)
   };
 
   async function leave(viaHistory) {
@@ -83,7 +84,8 @@ export function initHomeReturn({ items, px, py, bw, bh, fadeEls, nav, isBusy, se
     fl.host.style.visibility = '';
     gsap.to(fadeEls, { opacity: 0, duration: F.fadeSec, ease: 'none' });
     let lost = false; fl.onLost = () => { lost = true; mod.playFlight.cancel?.(); };
-    await mod.playFlight(fl, { hero, card, dir: 'out', onFrame: (s) => nav?.drive(1 - s.size) });
+    let vertical = false; try { vertical = localStorage.getItem('work-mode') === 'vertical'; } catch { /* */ }
+    await mod.playFlight(fl, { hero, card, dir: 'out', vertical, onFrame: (s) => nav?.drive(1 - s.size) });
     if (lost) { goHome(viaHistory); return; }
     goHome(viaHistory); // the host keeps the last frame (the hero frame, full screen) until the document goes
   }

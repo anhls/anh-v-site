@@ -51,3 +51,14 @@ triggers stay inert at scroll 0).
 - A homepage restored from the bfcache and "reload on /work/ after the flight, then Back" are untested (reload at the 'dup' entry: Back then loads /work/ once more before the homepage).
 - Home from a project page: plain navigation (logged as a later polish, per the brief).
 - Project pages' og:image is now the share image (was each hero). Say if the per-project image should come back.
+
+## R45c (2026-11-02): pixel swipe, no loader on return, full-strip landing, prerender
+- Look: `HOME_FLIGHT.look = 'pixel'` (default). Square screen-grid blocks (pixelBlocks 24 columns at 1920), a front sweeps along the strip axis (pixelAngle 0) inside crossFrom..crossTo (0.2..0.8);
+  each block flips video frame -> card image, with a mosaic (pixelMosaic 4, pixelFront 0.25 wide, pixelJitter 0.6) at the front, exactly 0 at rest. The same front reveals the neighbour cards at their rest
+  places (no slide-in). Back = the reverse (centred card -> video). 'smear' = the old look, kept for one comparison. All under ?tune -> HOME_FLIGHT. Time-based (performance.now), so 60 and 144 Hz match by construction.
+- Fix 1: `pxg` is written BEFORE leaving Work (goHome), cleared after use; home -> Work -> Back, -> wordmark and direct /work/ -> wordmark: no loader (headless Chromium, run once each; the 5x / cache-disabled matrix was NOT run).
+- Fix 2: landing layer `#pxh` carries the first card plus both neighbours (same rects / files as the strip) and stays until the strip's first card is decoded + 8 frames, so never a black frame.
+- Fix 4: project pages have their own og:image / twitter:image again.
+- Fix 5: speculation rules prerender /work/ (from home, on idle) and / (from Work). Hand-offs moved to localStorage; Work / home read them at activation (`prerenderingchange`). NOT verified: headless Chromium never activated a prerender (activationStart 0), so the <100 ms target is unmeasured. Browsers without prerender keep the layer landing.
+- Checks run: ?home=full compare 542/542 at 1920 and 2560, build OK, tall smoke 390x844 OK, out-flight contact sheet viewed. NOT run: 60/144 Hz curve run, Vertical-mode landing diff, 5x loops, real-GPU timing.
+- Looks right? 1) pixel front reads as a block swipe with mosaic, neighbours revealed: yes in frozen frames, partly overall (not seen at speed). 2) Biggest difference: unseen at real speed on a GPU. 3) Anh's look on the 4K screen, then tune pixelBlocks / pixelFront.
