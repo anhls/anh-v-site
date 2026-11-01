@@ -392,7 +392,9 @@ Read CLAUDE.md, AGENTS.md (section 12: busy note first), then docs/codex/R41b.md
 
 ## R41e [done] (queued, LITE, any agent; branch lite/r41e from work-v2): iPhone leftovers (page build while moving, first back after a direct load, title while moving). Brief docs/codex/R41e.md.
 
-## R43 (queued after R41e is merged; DESKTOP, any agent; branch desktop/r43-perf-fixes): start-up texture upload hitch on the laptop, ?perf records every open / back, WHY label, rest signal fed on desktop. Brief docs/codex/R43.md.
+## R41i (LITE, Claude Code; branch lite/r41i from work-v2): no 0.4-0.5 s freeze when a back lands without the shrink (iOS edge swipe). Brief docs/codex/R41i.md. Can run in parallel with R43 (different folders) but both touch src/work/core.js / page-swap.js: run one at a time to avoid a merge clash.
+
+## R43 (ready: R41e-h merged 2026-11-01; DESKTOP, any agent; branch desktop/r43-perf-fixes): start-up texture upload hitch on the laptop, ?perf records every open / back, WHY label, rest signal fed on desktop. Brief docs/codex/R43.md.
 
 ## R27 (type motion TOOLKIT): paragraph line reveal + label smear reveal, one shared system, built but applied NOWHERE yet (use Sonnet 5.5, no time budget, Anh runs it at home)
 
