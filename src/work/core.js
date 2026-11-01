@@ -282,6 +282,9 @@ if (perfOn) window.__tallDiag = () => {
 // R41c: why the phone does / does not play the open transition (the ?perf report field `why`, also shown in the overlay). lastTap is kept in sessionStorage because a plain
 // navigation (the case this explains) unloads the page before anyone can read it; the next Work page load still shows it.
 const gpuName = () => { const p = gpuProbe(); return { webgl: p.webgl, renderer: p.renderer, debugInfoExt: p.debugInfoExt }; }; // (R41d: cached; it used to create a new WebGL context on every call = ten per second under the HUD, which got the strip's own context lost on the iPhone)
+// R41g: EVERY tap's gate decision (touchdown terms, then the click's verdict and the term that refused), the ?perf report field `tapLog`
+const tapLog = []; const logTap = (o) => { if (!perfOn) return; tapLog.push({ at: Math.round(performance.now()), ...o }); if (tapLog.length > 60) tapLog.shift(); };
+if (perfOn) window.__tapLog = () => ({ note: 'down = the terms at touchdown; click = the gate verdict; refused = the term that stopped the open', taps: tapLog });
 let lastTap = null; if (perfOn) { try { lastTap = JSON.parse(sessionStorage.getItem('whyTap') || 'null'); } catch { /* none */ } }
 if (perfOn) window.__why = () => {
   const pol = transitionPolicy(), weak = weakReason();
@@ -497,6 +500,9 @@ let inertia = null; // { from, v0, F, t0 }
 let dragMoved = false, tapPrepT = 0, grabDir = 0; // grabDir (R41d): the direction the strip was travelling when a finger stopped it (+1 / -1), 0 = it was not travelling
 let dragAccum = 0; // S change made by the drag / inertia since the last frame (px): the warp follows it like a wheel scroll
 let tapSpeed = 0; // the last measured strip velocity, available to event handlers
+// R41g: "the strip is moving" for the tap gate = the strip's SPEED (> 5 px/s) or a transition running. The inertia / snap OBJECTS stay set for a while after the speed is ~0 (the title already counts that as stopped), and a tap in that window was refused as a grab.
+let stopSpeedPx = 40; // (set every frame from the layout: scrollStopSpeed x the strip's view length)
+const stripMoving = () => transitionBusy || Math.abs(tapSpeed) > Math.max(5, stopSpeedPx); // (same speed the title uses for "stopped": a tap while the title is showing must open)
 const axisOf = (e) => (vertical ? e.clientY : e.clientX);
 // x TALL.flingGain; under TALL.flingMin screen lengths / s no coast; friction TALL.dragFriction, at most TALL.dragMaxCoast pitches. Every swipe is logged for the ?perf touch block.
 const touchLog = []; let curSwipe = null, swipePeak = 0;
@@ -516,16 +522,21 @@ addEventListener('pointerdown', (e) => {
   if (paused || (e.pointerType === 'mouse' && e.button !== 0) || morph || fading || (drag && e.pointerType !== 'mouse')) return; // R24b: touch and pen share the drag; a second finger is ignored
   if (e.target.closest?.('.work__toggle, .work__count, .w2__hit, .tmenu__btn, .tmenu, [data-tune-panel]') || e.target.closest?.('div[style*="99999"]')) return;
   if (mode.tap && e.target.closest?.('a.work__frame')) {
-    mode.tap.down({ moving: transitionBusy || !!inertia || !!snap || Math.abs(tapSpeed) > 5 });
+    mode.tap.down({ moving: stripMoving() });
+    logTap({ what: 'down', transitionBusy, inertia: !!inertia, snap: !!snap, tapSpeed: Math.round(tapSpeed), restFor: Math.round(rest.restFor()) });
     const it = items.find(it => it.el === e.target.closest('a.work__frame'));
     // R41d: not on the touchdown itself (a flick starts on a picture too: the decode / renderer work would land in its first frames). It starts once the finger has stayed put for tapPrepareMs; a drag cancels it.
     clearTimeout(tapPrepT);
     if (!transitionBusy && glOn && mode.transitionPolicy.tapFallback) tapPrepT = setTimeout(() => { if (drag && !dragMoved && !transitionBusy) timed('prepareTap', () => prepareTransition(it.slug, it.ref, it.img, 'tap')); }, mode.transitionPolicy.tapPrepareMs ?? 70);
   }
   grabDir = mode.tap && (inertia || Math.abs(tapSpeed) > 60) ? Math.sign(inertia ? inertia.D : tapSpeed) || 0 : 0;
-  dragMoved = false; swipePeak = 0; curSwipe = null; rest.interrupt();
+  // R41g: a finger put down on a strip that is AT REST is not movement yet: the title stays, rest is kept, no snap. Everything below that says "input happened" runs at the first move past the drag threshold (`begin`).
+  const atRest = !stripMoving() && !!mode.tap;
+  dragMoved = false; swipePeak = 0; curSwipe = null; if (!atRest) rest.interrupt();
   drag = { id: e.pointerId, mouse: e.pointerType === 'mouse', thr: e.pointerType === 'mouse' ? 6 : 10, last: axisOf(e), total: 0, captured: false, samples: [[performance.now(), axisOf(e)]] };
-  inertia = null; snap = null; snapForce = 0; lastWheel = performance.now(); inputAt = lastWheel; wmScrolled = true; inputRelease();
+  inertia = null; snap = null; snapForce = 0;
+  drag.begin = () => { drag.begin = null; rest.interrupt(); lastWheel = performance.now(); inputAt = lastWheel; wmScrolled = true; inputRelease(); };
+  if (!atRest) drag.begin();
   e.preventDefault(); // no text selection, no image drag
 }, { capture: true });
 addEventListener('pointermove', (e) => {
@@ -535,6 +546,7 @@ addEventListener('pointermove', (e) => {
   drag.last = pos;
   drag.total += Math.abs(dpos);
   if (drag.total > drag.thr) {
+    drag.begin?.();
     if (!dragMoved) { grabDir = 0; clearTimeout(tapPrepT); swap.cancelPrebuild(); disposePrepared(); } // R41c: lite no longer RELEASES the spare renderer here: destroying a WebGL context at the first drag move stalled iOS (~170 ms) and the next rest built a new one
     dragMoved = true;
     root.classList.add('is-dragging');
@@ -562,15 +574,16 @@ const openStart = (it) => { if (mode.tap) document.documentElement.style.setProp
 stage.addEventListener('click', async (e) => {
   const a = e.target.closest('a.work__frame');
   if (!a || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-  if (paused || transitionBusy || morph) { if (mode.tap) e.preventDefault(); return; }
+  if (paused || transitionBusy || morph) { logTap({ what: 'click', refused: paused ? 'paused' : transitionBusy ? 'transitionBusy' : 'morph' }); if (mode.tap) e.preventDefault(); return; }
   const it = items.find((q) => q.el === a), i = it.idx;
   let animateTap = true;
   if (mode.tap) {
-    const moving = !!drag || !!inertia || !!snap || Math.abs(tapSpeed) > 5;
+    const moving = !!drag || stripMoving();
     if (!mode.tap.pressed && e.detail === 0) mode.tap.down({ moving }); // keyboard activation
     const centre = vertical ? (by[i] - H / 2) / H : (bx[i] - W / 2) / W;
     const intent = { dragMoved, moving, centre };
-    if (!mode.tap.intent(intent)) { if (perfOn) { lastTap = { at: Math.round(performance.now()), rejected: 'gesture intent (drag / moving / long press / off-centre / locked)', gate: mode.tap.explain({ ...intent, reduced, degraded: !guard.state.warp }) }; try { sessionStorage.setItem('whyTap', JSON.stringify(lastTap)); } catch { /* private mode */ } } e.preventDefault(); return; }
+    if (!mode.tap.intent(intent)) { const g = mode.tap.explain({ ...intent, reduced, degraded: !guard.state.warp }); logTap({ what: 'click', refused: g.dragMoved ? 'dragMoved' : g.moving ? 'moving(now)' : g.movingAtDown ? 'movingAtDown' : g.pressMs > g.maxPressMs ? 'longPress' : g.sinceOpenMs < g.lockMs ? 'locked' : 'off-centre', gate: g }); if (perfOn) { lastTap = { at: Math.round(performance.now()), rejected: 'gesture intent (drag / moving / long press / off-centre / locked)', gate: mode.tap.explain({ ...intent, reduced, degraded: !guard.state.warp }) }; try { sessionStorage.setItem('whyTap', JSON.stringify(lastTap)); } catch { /* private mode */ } } e.preventDefault(); return; }
+    logTap({ what: 'click', accepted: true, glOn: !!glOn, gate: mode.tap.explain({ ...intent, reduced, degraded: !guard.state.warp }) });
     animateTap = glOn && mode.tap.accept({ ...intent, reduced, degraded: !guard.state.warp }) && transitionOK();
     if (perfOn) { lastTap = { at: Math.round(performance.now()), glOn: !!glOn, transitionOK: transitionOK(), animateTap, guardStep: guard.state.step, guardWarp: guard.state.warp, tapSpeed: Math.round(tapSpeed), policy: transitionPolicy().enabled, gate: mode.tap.explain({ ...intent, reduced, degraded: !guard.state.warp }) }; try { sessionStorage.setItem('whyTap', JSON.stringify(lastTap)); } catch { /* private mode */ } }
     rememberLite(it, animateTap); mode.tap.lock();
@@ -897,6 +910,7 @@ const tick = (_time, deltaMs) => {
     // be gliding / snapping to its image: the project it is HEADING to is then the active one.
     const ptn = L.pitch;
     if (drag) inputAt = now;
+    stopSpeedPx = WORK_TEXT.scrollStopSpeed * L.M.viewAlong;
     const inSpeed = mode.tap ? Math.abs(vel) : inertia ? Math.abs(inertia.v0) * Math.exp(-((now - inertia.t0) / 1000) / Math.max(inertia.F || 0.6, 0.05)) : 0;
     const stopped = !morph && !drag && TP.q < 0 && !TC.on && now - inputAt > WORK_TEXT.scrollStopSec * 1000 && (!inertia || inSpeed < WORK_TEXT.scrollStopSpeed * L.M.viewAlong);
     let kHead;
@@ -1066,7 +1080,7 @@ if (earlyClick) {
 if (import.meta.env.DEV) {
   window.__SMEAR = WORK_SMEAR; window.__LINE = WORK_LINE; window.__V2 = WORK_V2; window.__TEXT = WORK_TEXT; window.__PTRCFG = WORK_PTR; window.__SCROLL = SCROLL; window.__WORK = WORK; window.__TRANSITION = TRANSITION; window.__TALL = mode.debugSettings; window.__guard = guard; window.__bendP = bendP;
   window.__work = { ui, get ptr() { return ptrFx; }, get hz() { return hzA; }, setOff: (v) => { off = v; }, get off() { return off; }, get S() { return S; }, get virt() { return virt; }, get mode() { return vertical ? 'vertical' : 'side'; }, lenis, setMode, relayout, items, LAY, projCards, gl: () => gl, get morph() { return morph; }, q: Q, PS,  get snap() { return snap; }, AMB, LEAD, get drag() { return drag; }, get inertia() { return inertia; }, fP, fSc, fPu, get kCount() { return kCount; }, bx, by, bw, bh, vis, hp };
-  if (mode.tap) { window.__work.liteTitle = liteTitle; window.__work.tap = mode.tap; }
+  if (mode.tap) { window.__work.liteTitle = liteTitle; window.__work.tap = mode.tap; Object.defineProperty(window.__work, 'speed', { get: () => tapSpeed }); }
   if (params.has('tune')) import('./tune.js').then((m) => m.mountWorkTune({ relayout }));
   if (params.has('overlap')) import('../effects/overlap-debug.js').then((m) => m.mountOverlapDebug('.work__card', () => `focus ${Math.max(...fSc.x).toFixed(2)}${AMB.on ? ', ambient drift on' : ''}${LEAD.moving ? ', lead moving' : ''}${morph ? ', toggle morph' : ''}${TC.on ? ', transition' : ''}${drag ? ', drag' : ''}`));
 }

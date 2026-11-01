@@ -13,7 +13,7 @@ export function createLiteTitle({ app, projects, reduced, rest }) {
   const measure = document.createElement('canvas').getContext('2d');
   const family = '"Clash Display", system-ui, sans-serif';
   const plain = reduced || new URLSearchParams(location.search).get('fx') === '0';
-  let ready = false, warmed = false, shown = -1, opacity = 0, fw = 0, fh = 0, options = [], last = null, warmTimer = 0, warmedFor = -1;
+  let moveLogged = false, ready = false, warmed = false, shown = -1, opacity = 0, fw = 0, fh = 0, options = [], last = null, warmTimer = 0, warmedFor = -1;
 
   // R41f: every title start / cancel with its trigger (the ?perf report field titlePlays)
   const plays = []; const logT = (what, why, extra) => { plays.push({ at: Math.round(performance.now()), what, why, idx: shown, restFor: rest.restFor?.() || 0, ...extra }); if (plays.length > 80) plays.shift(); };
@@ -89,9 +89,10 @@ export function createLiteTitle({ app, projects, reduced, rest }) {
       last = s; smear.sweep();
       if (import.meta.env.DEV && window.__titleScrub) return;
       const stopped = s.stopped && !s.transitioning;
+      if (stopped) moveLogged = false;
       if (!stopped) {
         cancelWarm(); warmedFor = -1;
-        if (smear.playing) { logT('cancel', 'strip moving (abort)'); smear.abort(); }
+        if (smear.playing) { if (!moveLogged) { moveLogged = true; logT('cancel', 'strip moving (abort)'); } smear.abort(); }
         else if (opacity > 0) { if (plain) { opacity = Math.max(0, opacity - s.dt / WORK_TEXT.titleOutSec); el.style.opacity = String(opacity); } else { logT('hide', 'strip moving'); el.style.transition = 'none'; el.style.opacity = '0'; opacity = 0; } }
         return;
       }

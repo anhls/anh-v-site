@@ -84,6 +84,7 @@ const buildReport = () => ({
   lastForward: saved.fwd[saved.fwd.length - 1] || null, lastBack: saved.back[saved.back.length - 1] || null,
   forwardRuns: saved.fwd, backRuns: saved.back,
   glLedger: glLedger(),
+  tapLog: window.__tapLog ? window.__tapLog() : 'not the Work page',
   titlePlays: window.__titlePlays ? window.__titlePlays() : 'not the Work page',
   restJobs: window.__restJobs ? window.__restJobs() : 'not the Work page',
   why: window.__why ? window.__why() : 'not the Work page',
