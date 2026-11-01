@@ -466,3 +466,11 @@ export const FRAME_WARP = {
 
 
 export const TRANSITION_POLICY = { enabled: true, bulge: true, prepare: 'hover', maxDpr: 2 };
+
+// R45: the Home <-> Work flight (src/effects/home-flight.js). The hero picture shrinks into the first Work card (the R42 back family: fast drop, slow settle,
+// edges bow inward) while a motion smear runs along the move; the video frame cross-fades into the card image over the middle of the flight. All start values (Anh tunes by eye):
+//   sec = flight time (the R42e open feel, 1.27 s); sizePow = the drop / settle curve (size = (1 - p) ^ sizePow on the way in, 1 - (1 - p) ^ sizePow on the way out); bendAmp / bendEndAt / cornerAmp = the inward edge bow;
+//   smearStrength = the trail length as a share of the picture size at peak speed (exactly 0 at rest); smearRGB = the colour split at peak speed; smearTaps = samples per pixel;
+//   crossFrom / crossTo = the share of the flight the cross-fade covers (0.2 .. 0.8 = the middle 60 %); fadeSec = the spawned pictures, the trail, the ticker and the captions fade out in this time at the start;
+//   landFadeSec = the Work page's own layers (the dark layer under the landed card) fade in this time.
+export const HOME_FLIGHT = { sec: 1.27, sizePow: 3, bendAmp: -0.045, bendEndAt: 0.85, cornerAmp: 0.003, smearStrength: 0.08, smearRGB: 0.006, smearTaps: 14, crossFrom: 0.2, crossTo: 0.8, fadeSec: 0.15, landFadeSec: 0.35 };

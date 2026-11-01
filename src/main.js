@@ -25,23 +25,33 @@ import { initFrameOpen } from './effects/project-transition.js';
 import { buildCaptionHover } from './effects/caption-hover.js';
 import { buildTrail } from './effects/trail.js';
 import { createFrameGL } from './effects/frame-gl.js';
-import { SCROLL, CARDS, FRAME_WARP } from './timeline.js';
+import { initHomeToWork, arriveFromWork } from './effects/home-leave.js';
+import { readHandoff } from './effects/home-handoff.js';
+import { SCROLL, CARDS, FRAME_WARP, HOME, CONTACT } from './timeline.js';
 import { installScrollGain } from './util/scroll-gain.js';
+
+// R45: hero only (see HOME in settings/shared.js); ?home=full = the full scrolling homepage as before
+const heroOnly = HOME.heroOnly && new URLSearchParams(location.search).get('home') !== 'full';
+if (heroOnly) document.documentElement.classList.add('home-hero');
 
 gsap.registerPlugin(ScrollTrigger);
 ScrollTrigger.config({ ignoreMobileResize: true }); // R24a: the mobile address bar must not refresh every trigger
 
 // Lenis drives the scroll; GSAP's ticker feeds it so pinned sections stay in sync.
-const lenis = new Lenis({ duration: SCROLL.duration, easing: SCROLL.easing }); // Framer "Intensity 30"; tune in timeline.js
-lenis.on('scroll', ScrollTrigger.update);
-const scrollGain = installScrollGain(lenis);
-gsap.ticker.add((time) => lenis.raf(time * 1000));
+const lenis = heroOnly ? null : new Lenis({ duration: SCROLL.duration, easing: SCROLL.easing }); // (R45: none when the page does not scroll) Framer "Intensity 30"; tune in timeline.js
+if (lenis) {
+  lenis.on('scroll', ScrollTrigger.update);
+  installScrollGain(lenis);
+  gsap.ticker.add((time) => lenis.raf(time * 1000));
+}
 gsap.ticker.lagSmoothing(0);
 
 // Sections are added here one by one.
 const app = document.getElementById('app');
 const hero = buildHero(app, data.hero);
-const frameGL = createFrameGL(hero.frame, () => lenis.targetScroll <= 0.5 || lenis.targetScroll >= lenis.limit - 0.5); // R22j: no swing past flat while the target is at an end; R16c: the centre frame's own canvas (null = DOM frame only)
+const frameGL = createFrameGL(hero.frame, () => !lenis || lenis.targetScroll <= 0.5 || lenis.targetScroll >= lenis.limit - 0.5); // R22j: no swing past flat while the target is at an end; R16c: the centre frame's own canvas (null = DOM frame only)
+let cardsApi = null;
+if (!heroOnly) {
 buildAbout(app, data.about);
 buildPlaceholders(app);
 buildIndex(app, data.projects);
@@ -51,28 +61,34 @@ let homeCards = null;
 const homeStored = pickHome(layoutsData, innerWidth, innerHeight);
 if (homeStored) { try { homeCards = generateCards(workPool, homeRows, undefined, undefined, { stored: homeStored }); } catch (e) { if (import.meta.env.DEV) console.warn('[layouts] stored home layout unusable:', e.message); } }
 if (!homeCards) homeCards = generateCards(workPool, homeRows);
-const cardsApi = buildSelectedWork(app, homeCards);
+cardsApi = buildSelectedWork(app, homeCards);
 buildMoreProjects(app, data.moreProjects);
 buildFooter(app, data.footer, lenis);
-initNav(data.hero.wordmark, lenis, { onHome: true });
+}
+const nav = initNav(data.hero.wordmark, lenis, { onHome: !heroOnly, gateFrame: !heroOnly });
+if (heroOnly) { const c = document.querySelector('.nav a[data-link="Contact"]'); if (c && CONTACT.email) c.href = `mailto:${CONTACT.email}`; }
 buildSpawner(app, data.spawnerImages);
 buildCaptionHover(app, data.hero.captions);
 const trail = buildTrail(app, data.trailImages);
 if (import.meta.env.DEV) { window.__frame = frameGL; window.__FW = FRAME_WARP; window.__heroState = hero.frame; window.__trail = trail; window.__cards = cardsApi; window.__CARDS = CARDS; window.__lenis = lenis; window.__layers = springLayers; } // dev only: the tuning panel and tools/scratch checks
 initClickSound(data.hero.clickSound);
+if (heroOnly) initHomeToWork({ hero, nav }); // R45: Works = the hero shrinks into the first Work card
 
 // Loader first: hold scrolling until what is visible on the first screen is ready.
 window.scrollTo(0, 0);
 watchDpr();
-initFrameOpen({ hero, projects: data.projects, lenis });
-lenis.stop();
+if (!heroOnly) initFrameOpen({ hero, projects: data.projects, lenis });
+lenis?.stop();
 // The loader only waits for the wordmark, ticker, font and the hero video's first frame (the <video> is on the page already).
 // Images #2/#3 start loading once the loader is ready (hero.loadDeferred).
 const firstScreen = [data.hero.wordmark, data.hero.ticker];
-runLoader(data.loader.text, firstScreen, hero.loadDeferred).then(() => {
-  lenis.start();
+// R45: arriving from the Work page flight (#pxg is already painted by the inline script in index.html): no loader; the layer fades once the hero video plays
+const arrival = heroOnly && document.getElementById('pxg') ? readHandoff('pxg') : null;
+const intro = arrival ? arriveFromWork(hero, hero.loadDeferred) : runLoader(data.loader.text, firstScreen, hero.loadDeferred);
+intro.then(() => {
+  lenis?.start();
   frameGL?.preload();
-  ScrollTrigger.refresh();
+  if (!heroOnly) ScrollTrigger.refresh();
   window.__siteReady = true; // tools/compare.mjs waits for this instead of a fixed delay
 });
 

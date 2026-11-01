@@ -765,3 +765,9 @@ Undo everything: `git switch work-v2`.
   What you will see now: on the laptop the first seconds after load are smoother: start-up worst frame 153 -> 76 ms, frames over 50 ms 3 -> 1, over 33 ms 6 -> 1, uploads in that window 7 (52 MB) -> 2 (18 MB), GPU worst 159 -> 12 ms. ?perf records every open and back (3 / 3 with the mouse back button), says "desktop", idle jobs ran while moving 0 (was 107).
   Still off: one 76 ms frame remains in the start-up window (GPU only 12 ms, so it is main-thread or compositor work); small, logged in FLAGS.
   Your decision: none.
+
+- 2026-11-02, Claude Code: R45 Part 0 + A (desktop, branch desktop/r45-home-work).
+  What you will see now: the homepage is the hero only (no scrolling, About hidden, Contact = your email); "Works" makes the hero shrink with a smear into the first Work card, and Back / the wordmark grows the centred card back into the hero; the wordmark is always small on Work and project pages. Favicon, iOS icon and share image are in.
+  Still off: motion strength and duration are the planner's start values, not tuned by eye; I could not measure real-speed motion or the click response on a real GPU (software-GL checks only), and the homepage coming back from the browser cache is untested.
+  Your decision: look at the preview on the 4K screen and the laptop and tune with ?tune (HOME_FLIGHT) on the Work page, then say if Part B can start. Also: should project pages keep their own link-preview image (they now use the share image, as the brief says)?
+  Technical: cross-document hand-off (not in-document Work), details + checks in docs/codex/R45-notes.md. `?home=full` compare 542/542 x2. Undo: git revert the R45 commits on desktop/r45-home-work.

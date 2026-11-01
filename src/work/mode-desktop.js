@@ -22,7 +22,7 @@ export function createMode() {
       document.body.prepend(nav);
     },
     earlyNav: async () => {},
-    lateNav: (wordmark, lenis, scrolled, back) => initNav(wordmark, lenis, {gateFrame:false, position:() => scrolled() ? 1e9 : 0, startBig:!!back && !back.leave.wm}),
+    lateNav: (wordmark, lenis, scrolled, back) => initNav(wordmark, lenis, {gateFrame:false, alwaysSmall:true}),
     cards: (pool, slugs) => v2 ? slugs.map(() => []) : buildProjectCards(pool, slugs),
     metrics: (W, H) => workMetrics(W, H, capW() / 1920),
     pick: (LD, W, H) => pickSize(LD, W, H), signature: ruleSignature,

@@ -130,7 +130,7 @@ export function createProjectView({ slug, tall, onBack }) {
         const works = nav.querySelector('a[data-link="Works"]');
         works?.addEventListener('click', (e) => { if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); onBack?.(); });
       }
-      navApi = initNav(data.hero.wordmark, lenis, tall ? { gateFrame: false, startSmall: wmSmall, small: { x: 5, y: 3.4, width: 28 } } : { gateFrame: false, startSmall: wmSmall });
+      navApi = initNav(data.hero.wordmark, lenis, tall ? { gateFrame: false, startSmall: wmSmall, small: { x: 5, y: 3.4, width: 28 } } : { gateFrame: false, alwaysSmall: true }); // R45
       ScrollTrigger.refresh(); // (the footer trigger the nav just made)
       try { el.focus({ preventScroll: true }); } catch { /* */ }
       staticHead(slug).then((tags) => {

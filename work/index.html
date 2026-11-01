@@ -44,7 +44,9 @@
     <script>window.__anhvThemeSync(); delete window.__anhvThemeSync;</script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="description" content="Works by Anh V, art director." />
-    <link rel="icon" href="data:," />
+    <link rel="icon" type="image/png" href="/icons/favicon-light-glyph.png" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" type="image/png" href="/icons/favicon-dark-glyph.png" media="(prefers-color-scheme: light)" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <title>Work | Anh V</title>
     <link rel="canonical" href="https://www.anh-v.com/work/" />
     <meta property="og:type" content="website" />
@@ -52,11 +54,13 @@
     <meta property="og:title" content="Work | Anh V" />
     <meta property="og:description" content="Works by Anh V, art director." />
     <meta property="og:url" content="https://www.anh-v.com/work/" />
-    <meta property="og:image" content="https://www.anh-v.com/media/hero/poster.jpg" />
+    <meta property="og:image" content="https://www.anh-v.com/icons/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Work | Anh V" />
     <meta name="twitter:description" content="Works by Anh V, art director." />
-    <meta name="twitter:image" content="https://www.anh-v.com/media/hero/poster.jpg" />
+    <meta name="twitter:image" content="https://www.anh-v.com/icons/og-image.jpg" />
     <link rel="preload" href="/media/brand/wordmark.svg" as="image" type="image/svg+xml" />
     <link rel="preload" href="/fonts/ClashDisplay-Variable.woff2" as="font" type="font/woff2" crossorigin />
       <style>html { background: var(--bg); }</style>
@@ -72,6 +76,18 @@
           var h = '<div id="pxb" aria-hidden="true" style="position:fixed;inset:0;z-index:8;overflow:hidden"><div class="px__bg" style="position:absolute;inset:0;background:var(--bg);opacity:' + (ok && typeof r.blackMax === 'number' ? r.blackMax : 1) + '"></div>';
           if (ok) h += '<div class="px__box" style="position:absolute;overflow:hidden;left:' + s[0] + 'px;top:' + s[1] + 'px;width:' + s[2] + 'px;height:' + s[3] + 'px"><img alt="" decoding="sync" src="' + r.src + '" style="position:absolute;left:' + (i[0] - s[0]) + 'px;top:' + (i[1] - s[1]) + 'px;width:' + i[2] + 'px;height:' + i[3] + 'px;object-fit:cover;display:block"></div>';
           document.body.insertAdjacentHTML('afterbegin', h + '</div>');
+        } catch (e) {}
+      })();
+    </script>
+    <script>
+      /* R45: arriving from the homepage flight: paint the landed first card (and the small wordmark) on the page colour from the first frame; work/core.js fades the layer out once the strip is up */
+      (function () {
+        try {
+          var r = JSON.parse(sessionStorage.getItem('pxh') || 'null');
+          if (!r || Date.now() - r.t > 30000 || r.W !== innerWidth || r.H !== innerHeight || /[?&]gl=0/.test(location.search) || matchMedia('(prefers-reduced-motion: reduce)').matches) { sessionStorage.removeItem('pxh'); return; }
+          var c = r.rect, h = '<div id="pxh" aria-hidden="true" style="position:fixed;inset:0;z-index:8;overflow:hidden"><div class="px__bg" style="position:absolute;inset:0;background:var(--bg)"></div><div class="px__box" style="position:absolute;overflow:hidden;left:' + c[0] + 'px;top:' + c[1] + 'px;width:' + c[2] + 'px;height:' + c[3] + 'px"><img alt="" decoding="sync" src="' + r.src + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block"></div></div>';
+          if (r.wm) h += '<a id="pxh-wm" aria-hidden="true" tabindex="-1" style="' + r.wm.style + '"><img alt="" src="' + r.wm.src + '" style="width:100%;height:100%;display:block"></a>';
+          document.body.insertAdjacentHTML('afterbegin', h);
         } catch (e) {}
       })();
     </script>
