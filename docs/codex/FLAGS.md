@@ -37,3 +37,6 @@ Performance is fine: 144 Hz (median 6.9 ms), both opens 180 frames with max 7.1 
 
 ## iOS edge swipe-back (2026-11-01, R41i)
 After an iOS edge swipe the Work page gets no frames / touches for ~390 ms (constant, no script of ours running; our landing JS takes 5-8 ms). Read as Safari completing its own swipe slide. Not fixable from the page; revisit only if a later iOS changes it. Our own backs (Back button, in-page swipe right) have no gap.
+
+## Laptop start-up after R43 (2026-11-01; docs/reference/perf-fhd-laptop-r43-baseline-2026-11-01.json)
+Baseline 5 s right after load: worst 76.4 ms (was 152.8), 1 frame over 50 ms (was 3). GPU worst 11.7 ms, so the remaining frame is main-thread / compositor work, not an upload. Low priority; look again only if Anh notices it.

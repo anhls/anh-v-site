@@ -761,3 +761,7 @@ Undo everything: `git switch work-v2`.
   Still off: I could not make the laptop's 150 ms frame happen here (it is your integrated GPU), so the gain is the removed burst, not a measured 150 -> 0. I also could not reproduce the empty back list or the "ran while moving" jobs; the report now says which terms blocked rest (blockedBy).
   Your decision: re-run ?perf on the laptop (scroll right after load, 3 open + back rounds, mouse back button) and paste it.
   Chromium 4x: three uploads within 40 ms (69 ms frame) -> spaced >= 170 ms. compare 542/542 x2, clicks 150/150, midscroll 0 over 1 px, tall smoke ok, lite restore + gesture ok. Details docs/codex/R43-notes.md. Undo: git revert the R43 commits.
+- 2026-11-01 17:10, Cowork: R43 merged into work-v2 (desktop/r43-perf-fixes daf4a04). Laptop (AMD iGPU) reports before / after.
+  What you will see now: on the laptop the first seconds after load are smoother: start-up worst frame 153 -> 76 ms, frames over 50 ms 3 -> 1, over 33 ms 6 -> 1, uploads in that window 7 (52 MB) -> 2 (18 MB), GPU worst 159 -> 12 ms. ?perf records every open and back (3 / 3 with the mouse back button), says "desktop", idle jobs ran while moving 0 (was 107).
+  Still off: one 76 ms frame remains in the start-up window (GPU only 12 ms, so it is main-thread or compositor work); small, logged in FLAGS.
+  Your decision: none.
