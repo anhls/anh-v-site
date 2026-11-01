@@ -51,7 +51,7 @@ export function createPageSwap() {
     };
     const fail = (err) => { try { console.error('[page-swap]', err); } catch { /* */ } releaseBack(); try { v.destroy(true); } catch { /* */ } view = null; state = 'work'; hard(slug); };
     const done = () => {
-      state = 'project';
+      state = 'project'; if (!flight) pm('fwd:end'); // (R43: a forward through the history has no flight: its run ends here)
       holdBack(slug, v.headerSrc()); // R42c: the renderer that draws the way back with the bend stays alive while the page is open (the flight hands its own over)
       if (wantBack) back();
     };
@@ -169,7 +169,7 @@ export function createPageSwap() {
     if (!slug) { if (state === 'project' || state === 'opening') back(false, !!e.hasUAVisualTransition); return; }
     if (state === 'work' && mod && ctl) {
       const ref = ctl.refOf(slug);
-      if (!ref || !open({ slug, ref, flight: null, begin: () => ctl.begin(slug), image: ctl.imageOf(slug), push: false })) location.reload();
+      if (!ref || !open({ slug, ref, flight: null, begin: () => { pm('fwd:click'); ctl.begin(slug); }, image: ctl.imageOf(slug), push: false })) location.reload();
     } else if (state === 'work') location.reload();
   });
 
