@@ -13,25 +13,27 @@ export function timed(name, fn) {
   const t0 = performance.now();
   try { return fn(); } finally {
     const ms = performance.now() - t0, c = ctx();
-    log.push({ name, ms: +ms.toFixed(2), stripSpeed: c.speed, sinceTouchEnd: c.sinceTouchEnd, restForMs: c.restFor, moving: !!c.moving });
+    log.push({ name, ms: +ms.toFixed(2), stripSpeed: c.speed, sinceTouchEnd: c.sinceTouchEnd, restForMs: c.restFor, moving: !!c.moving, flight: !!c.flight, ...(c.moving ? { blockedBy: c.blockedBy } : {}) });
     if (log.length > 150) log.shift();
   }
 }
 export const restJobs = () => {
   const by = {};
-  for (const j of log) { const b = (by[j.name] ||= { count: 0, maxMs: 0, ranWhileMoving: 0 }); b.count++; b.maxMs = Math.max(b.maxMs, j.ms); if (j.moving) b.ranWhileMoving++; }
-  return { note: 'ms = main-thread time of the synchronous part of each job; moving = the strip was not at rest when it ran (should stay 0)', summary: by, worstMs: log.reduce((a, j) => Math.max(a, j.ms), 0), ranWhileMoving: log.filter((j) => j.moving).length, jobs: log.slice(-60) };
+  for (const j of log) { const b = (by[j.name] ||= { count: 0, maxMs: 0, ranWhileMoving: 0, ranInFlight: 0 }); b.count++; b.maxMs = Math.max(b.maxMs, j.ms); if (j.moving) b.ranWhileMoving++; if (j.flight) b.ranInFlight++; }
+  return { note: 'ms = main-thread time of the synchronous part of each job; moving = the strip was not at rest when it ran (should stay 0); flight = it ran as a step of an open / back flight (the page is built one step per frame while the picture grows: expected, not idle work)', summary: by, worstMs: log.reduce((a, j) => Math.max(a, j.ms), 0), ranWhileMoving: log.filter((j) => j.moving).length, ranInFlight: log.filter((j) => j.flight).length, jobs: log.slice(-60) };
 };
 
 export function createRest({ holdMs = 150, speedMax = 12, gapMs = 45 } = {}) {
-  let stillSince = 0, lastRun = 0;
+  let stillSince = 0, lastRun = 0, blockedBy = '';
   const jobs = new Map(); // key -> { name, fn, after }
   const api = {
     holdMs,
     // call once per frame with the state of the strip
     update(now, { speed = 0, touching = false, snap = false, inertia = false, morph = false } = {}) {
-      if (touching || snap || inertia || morph || Math.abs(speed) > speedMax) stillSince = 0; else if (!stillSince) stillSince = now;
+      if (touching || snap || inertia || morph || Math.abs(speed) > speedMax) { stillSince = 0; blockedBy = [touching && 'touching', snap && 'snap', inertia && 'inertia', morph && 'morph', Math.abs(speed) > speedMax && 'speed'].filter(Boolean).join('+'); } else { blockedBy = ''; if (!stillSince) stillSince = now; }
     },
+    // why rest is not ok right now ('' = it is, or an interrupt() ended it): which term of update() held it (the ?perf report restJobs.jobs[].blockedBy)
+    why() { return blockedBy || (stillSince ? '' : 'interrupt'); },
     restFor(now = performance.now()) { return stillSince ? now - stillSince : 0; },
     ok(now = performance.now()) { return stillSince > 0 && now - stillSince >= holdMs; },
     interrupt() { stillSince = 0; }, // a finger / wheel / key: rest is over at once

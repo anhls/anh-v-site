@@ -120,7 +120,7 @@ const ui = v2 ? createV2({ app, projects, reduced }) : null; // R32
 // R41d: ONE "at rest" signal (work/rest.js) for every job that must not run while the strip moves: the title textures, the header decode, the transition renderer, the project page build, the picture loads
 const rest = createRest({ holdMs: mode.transitionPolicy?.restHoldMs || 150 });
 let touchEndAt = 0;
-setRestContext(() => { const now = performance.now(); return { speed: Math.round(tapSpeed), sinceTouchEnd: touchEndAt ? Math.round(now - touchEndAt) : null, restFor: Math.round(rest.restFor(now)), moving: !rest.ok(now) }; });
+setRestContext(() => { const now = performance.now(); return { speed: Math.round(tapSpeed), sinceTouchEnd: touchEndAt ? Math.round(now - touchEndAt) : null, restFor: Math.round(rest.restFor(now)), moving: !rest.ok(now) && !transitionBusy, flight: transitionBusy, blockedBy: rest.why() }; }); // (R43: the page steps an open flight runs one per frame are 'flight' jobs, not idle jobs that ran while the strip moved)
 if (perfOn) { window.__restJobs = restJobs; window.__glLedger = glLedger; gpuProbe(); } // (the one throw-away GPU probe happens here, before the strip's own context exists: the live count never passes 3)
 const liteTitle = mode.createTitle?.({ app, projects, reduced, rest });
 if (ui) root.insertBefore(ui.lineEl, stage); // R33d: the scroll line sits in .work, under the canvas
@@ -288,7 +288,7 @@ if (perfOn) window.__tapLog = () => ({ note: 'down = the terms at touchdown; cli
 let lastTap = null; if (perfOn) { try { lastTap = JSON.parse(sessionStorage.getItem('whyTap') || 'null'); } catch { /* none */ } }
 if (perfOn) window.__why = () => {
   const pol = transitionPolicy(), weak = weakReason();
-  return { chosen: pol.enabled ? 'lite (animated)' : 'PLAIN (no transition)', policyEnabled: pol.enabled, policyBulge: pol.bulge, weakReason: weak || 'not weak', appleGpu: appleGpu(), cores: navigator.hardwareConcurrency, deviceMemoryGb: navigator.deviceMemory ?? 'n/a',
+  return { chosen: pol.enabled ? `${mode.diagnosticKind.kind} (animated)` : 'PLAIN (no transition)', policyEnabled: pol.enabled, policyBulge: pol.bulge, weakReason: weak || 'not weak', appleGpu: appleGpu(), cores: navigator.hardwareConcurrency, deviceMemoryGb: navigator.deviceMemory ?? 'n/a',
     saveData: navigator.connection?.saveData === true, reducedMotion: !!reduced, gl: !!gl, glParam: params.get('gl'), ...gpuName(), transitionOK: transitionOK(),
     guard: { enabled: guard.state.enabled, step: guard.state.step, warp: guard.state.warp, history: guard.state.history }, lastTap };
 };
@@ -961,13 +961,14 @@ const tick = (_time, deltaMs) => {
 };
 gsap.ticker.add(tick);
 // the pictures that are not near yet are requested a moment after load (one at a time, so a scroll never waits for a first upload)
-if (!back) setTimeout(() => items.forEach((it, i) => setTimeout(() => { if (!transitionBusy) activate(it); }, i * 15)), 800);
+// R43: on the desktop the far pictures load one per slice at rest (idleLoad), nearest to the centre first: the old 15 ms stagger uploaded 7 textures in the first seconds, right under the first scroll (152 ms frame on an integrated GPU)
+if (!back) setTimeout(() => { if (mode.tap) items.forEach((it, i) => setTimeout(() => { if (!transitionBusy) activate(it); }, i * 15)); else idleLoad(true); }, 800);
 // R31: the way back loads the rest after the transition: one picture per slice while the page is idle, the one nearest to the view centre along the strip first
-const idleLoad = () => {
-  pm('back:idle-load-start');
+const idleLoad = (first = false) => {
+  if (!first) pm('back:idle-load-start');
   const step = () => {
     const left = items.filter((it) => !it.active);
-    if (!left.length) { pm('back:idle-load-end'); return; }
+    if (!left.length) { if (!first) pm('back:idle-load-end'); return; }
     if (TC.on || TP.q >= 0 || !rest.ok()) { setTimeout(step, 60); return; } // (R41d: a picture upload only at rest)
     const c = vertical ? H / 2 : W / 2, a = vertical ? py : px;
     let best = left[0], bd = Infinity;

@@ -755,3 +755,9 @@ Undo everything: `git switch work-v2`.
   What you will see now: the back landing does the project-page cleanup over later frames; our landing script finishes in 5-8 ms on the iPhone.
   Still off (not ours): after an iOS EDGE swipe the page gets no frames for ~390 ms (382-454 ms, same every time, no script running): Safari finishing its own swipe slide. The Back button and the in-page swipe-right play our shrink without that gap. Evidence docs/reference/r41i-iphone-perf-report.json.
   Your decision: none. Next: R43 (desktop).
+
+- 2026-11-01, R43 (Claude), desktop/r43-perf-fixes.
+  What you will see now: the far Work pictures load one at a time when the page is still, no longer in a burst under the first scroll; ?perf lists a forward through the browser history too, and the WHY line says "desktop".
+  Still off: I could not make the laptop's 150 ms frame happen here (it is your integrated GPU), so the gain is the removed burst, not a measured 150 -> 0. I also could not reproduce the empty back list or the "ran while moving" jobs; the report now says which terms blocked rest (blockedBy).
+  Your decision: re-run ?perf on the laptop (scroll right after load, 3 open + back rounds, mouse back button) and paste it.
+  Chromium 4x: three uploads within 40 ms (69 ms frame) -> spaced >= 170 ms. compare 542/542 x2, clicks 150/150, midscroll 0 over 1 px, tall smoke ok, lite restore + gesture ok. Details docs/codex/R43-notes.md. Undo: git revert the R43 commits.

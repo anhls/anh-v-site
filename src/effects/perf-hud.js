@@ -35,7 +35,20 @@ const stats = (t0, t1) => {
   };
 };
 
-const persist = () => { try { sessionStorage.setItem(KEY, JSON.stringify(saved)); } catch { /* */ } };
+// R43: write = merge. A page that stays alive in the background (bfcache / another document of the same tab) holds an older copy of the runs; writing it back as is would
+// erase the runs recorded since. So every write first reads what is stored and keeps any run (by id) this copy does not have, then writes the union (oldest first, 24 per kind).
+const persist = () => {
+  try {
+    const stored = JSON.parse(sessionStorage.getItem(KEY) || 'null');
+    if (stored) for (const kind of ['fwd', 'back']) {
+      const have = new Set(saved[kind].map((r) => r.id));
+      const extra = (stored[kind] || []).filter((r) => !have.has(r.id));
+      if (extra.length) saved[kind] = [...saved[kind], ...extra].sort((a, b) => (a.startedAt > b.startedAt ? 1 : -1)).slice(-24);
+    }
+    if (!saved.base && stored?.base) saved.base = stored.base;
+    sessionStorage.setItem(KEY, JSON.stringify(saved));
+  } catch { /* */ }
+};
 const pushRun = (run) => {
   const list = saved[run.kind];
   const i = list.findIndex((r) => r.id === run.id);
@@ -152,7 +165,7 @@ export function mountPerf() {
     try { await Promise.race([navigator.clipboard.writeText(json).then(() => { ok = true; }), new Promise((r) => setTimeout(r, 1500))]); } catch { /* shown below */ }
     if (ok) { copyBtn.textContent = 'Copied'; setTimeout(() => { copyBtn.textContent = 'Copy report'; }, 1500); } else { ta.hidden = false; ta.select(); }
   };
-  resetBtn.onclick = () => { saved = { fwd: [], back: [], base: null }; persist(); ta.hidden = true; };
+  resetBtn.onclick = () => { saved = { fwd: [], back: [], base: null }; try { sessionStorage.removeItem(KEY); } catch { /* */ } persist(); ta.hidden = true; };
 
   try {
     new PerformanceObserver((l) => { for (const e of l.getEntries()) longTasks.push({ t: e.startTime, dur: e.duration, attr: (e.attribution || []).map((a) => a.containerType || a.name).join(',') || 'self' }); }).observe({ type: 'longtask', buffered: true });
