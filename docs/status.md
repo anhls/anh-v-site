@@ -734,3 +734,9 @@ Undo everything: `git switch work-v2`.
   Still off: nothing is confirmed on the phone; my tap test passed on the old build too (Chromium settles faster), so the cause is from reading the code and your report numbers.
   Your decision: record once more: 10 taps on centred pictures at rest (each must open), back each time (some by the right swipe), paste the report (new field tapLog).
   Cause: the title says "stopped" under about 42 px/s, the tap gate said "moving" over 5 px/s; one definition now (stripMoving). Touch at rest = no rest reset. Details docs/codex/R41g-notes.md. Undo: git revert the R41g commits (ef68788, 98de06e).
+
+- 2026-11-01, R41h (Claude), lite/r41e.
+  What you will see now: a tap on any visible picture (not only the centred one) opens it and back brings that project to the centre; a tap while the strip is only gliding slowly (under 300 px/s) opens, while a touch on a fast fling just stops it; the back animation no longer takes your touches.
+  Still off: the "cannot scroll right after the swipe-back" delay is not reproduced in Chromium (a drag 50 ms after landing always moved); the fix (the overlay ignores touches) is a best guess for the phone. Nothing confirmed on the iPhone.
+  Your decision: test on the iPhone: taps on neighbouring pictures, taps right after a flick, then swipe-back / Back and immediately drag the strip; paste the report (backRuns now holds up to 24).
+  Values: TAP_FLING 300 px/s; centre rule removed; click fallback 90 ms. Details docs/codex/R41h-notes.md. Undo: git revert 2d9b7dc and the final R41h commit.

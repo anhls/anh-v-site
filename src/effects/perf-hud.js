@@ -40,7 +40,7 @@ const pushRun = (run) => {
   const list = saved[run.kind];
   const i = list.findIndex((r) => r.id === run.id);
   if (i >= 0) list[i] = run; else list.push(run);
-  if (list.length > 8) list.shift();
+  if (list.length > 24) list.shift(); // (R41h: 24 runs, was 8: a 20-back test must be fully in the report)
   persist();
 };
 
