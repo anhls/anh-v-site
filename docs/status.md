@@ -751,3 +751,7 @@ Undo everything: `git switch work-v2`.
   Still off: the freeze on your iPhone may be browser rendering work, not script; this build only removes the biggest script piece I could find.
   Your decision: test on the iPhone: edge swipe-back, then drag the strip at once; paste the report: the back run now lists each landing step (destroy-*, resume-*, finish-*) with its ms.
   Chromium 6x: no-shrink back worst frame 25-30 ms (before 22-34, never slow here), drag 50 ms after landing 240 px every time. Details docs/codex/R41i-notes.md. Undo: git revert the R41i commits.
+- 2026-11-01 15:45, Cowork: R41i merged into work-v2 (lite/r41i c315fc8). Anh approved.
+  What you will see now: the back landing does the project-page cleanup over later frames; our landing script finishes in 5-8 ms on the iPhone.
+  Still off (not ours): after an iOS EDGE swipe the page gets no frames for ~390 ms (382-454 ms, same every time, no script running): Safari finishing its own swipe slide. The Back button and the in-page swipe-right play our shrink without that gap. Evidence docs/reference/r41i-iphone-perf-report.json.
+  Your decision: none. Next: R43 (desktop).

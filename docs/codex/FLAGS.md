@@ -34,3 +34,6 @@ Performance is fine: 144 Hz (median 6.9 ms), both opens 180 frames with max 7.1 
 - Open: 176 frames, median 6.9 ms, one 20.9 ms frame; first flight frame 12 ms after the click. Fine.
 - Start-up hitch: during the 5 s baseline right after load, 3 frames over 50 ms, worst 152.8 ms (GPU 158.7 ms), while 7 textures (51.7 MB) uploaded. On the integrated GPU the first scroll after load can hitch while the card textures upload; spread the uploads (one per frame, smaller first) or finish them before the first interaction.
 - Anh confirmed the backs DID animate on both machines (only the report misses them). Same report bugs as the 4K desktop: backRuns empty (Anh did 3 Work -> project -> back rounds but only 1 forward run and 0 backs are recorded: the recorder may reset on the in-page swap), WHY label "lite" on desktop, rest signal not fed on desktop (pageBuild up to 10.8 ms flagged ranWhileMoving at speed 0).
+
+## iOS edge swipe-back (2026-11-01, R41i)
+After an iOS edge swipe the Work page gets no frames / touches for ~390 ms (constant, no script of ours running; our landing JS takes 5-8 ms). Read as Safari completing its own swipe slide. Not fixable from the page; revisit only if a later iOS changes it. Our own backs (Back button, in-page swipe right) have no gap.
