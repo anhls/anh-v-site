@@ -390,7 +390,7 @@ Read CLAUDE.md, AGENTS.md (section 12: busy note first), then docs/codex/R41b.md
 
 ## R41d [done, merged 2026-10-31] (LITE, Claude Code, lite/r41b): one rest signal for idle work, sliced page build, WebGL context ledger, ?perf=quiet. Brief docs/codex/R41d.md.
 
-## R41e (queued, LITE, any agent; branch lite/r41e from work-v2): iPhone leftovers (page build while moving, first back after a direct load, title while moving). Brief docs/codex/R41e.md.
+## R41e [done] (queued, LITE, any agent; branch lite/r41e from work-v2): iPhone leftovers (page build while moving, first back after a direct load, title while moving). Brief docs/codex/R41e.md.
 
 ## R43 (queued after R41e is merged; DESKTOP, any agent; branch desktop/r43-perf-fixes): start-up texture upload hitch on the laptop, ?perf records every open / back, WHY label, rest signal fed on desktop. Brief docs/codex/R43.md.
 

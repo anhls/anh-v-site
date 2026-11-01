@@ -40,7 +40,7 @@ const pushRun = (run) => {
   const list = saved[run.kind];
   const i = list.findIndex((r) => r.id === run.id);
   if (i >= 0) list[i] = run; else list.push(run);
-  if (list.length > 8) list.shift();
+  if (list.length > 24) list.shift(); // (R41h: 24 runs, was 8: a 20-back test must be fully in the report)
   persist();
 };
 
@@ -84,6 +84,8 @@ const buildReport = () => ({
   lastForward: saved.fwd[saved.fwd.length - 1] || null, lastBack: saved.back[saved.back.length - 1] || null,
   forwardRuns: saved.fwd, backRuns: saved.back,
   glLedger: glLedger(),
+  tapLog: window.__tapLog ? window.__tapLog() : 'not the Work page',
+  titlePlays: window.__titlePlays ? window.__titlePlays() : 'not the Work page',
   restJobs: window.__restJobs ? window.__restJobs() : 'not the Work page',
   why: window.__why ? window.__why() : 'not the Work page',
   warpDiagnosis: window.__tallDiag ? { ...window.__tallDiag(), ...gapStats(30), gpuNote: gpuNote() } : 'not the Work page',

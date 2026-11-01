@@ -155,7 +155,7 @@ for (const event of ['resize', 'visibilitychange']) addEventListener(event, () =
 // runs a flat DOM flight: when none is ready, playBack waits for the build (the overlay already shows frame 0, so the wait is invisible).
 let backPrep = null, backHold = null, backWatch = 0, backBuilding = null;
 const dropBackEntry = (e) => { if (!e) return; try { e.renderer.dispose(); } catch { /* */ } e.host.remove(); };
-async function buildBack(slug, src) {
+async function buildBack(slug, src, cold = false) {
   const source = new Image(); source.decoding = 'async'; source.src = src;
   try { await source.decode(); } catch { return null; }
   const host = document.createElement('div'), placeholder = document.createElement('div');
@@ -164,7 +164,7 @@ async function buildBack(slug, src) {
   if (!renderer) { host.remove(); return null; }
   renderer.canvas.style.visibility = 'hidden';
   let ok = false;
-  try { ok = await renderer.prepareTexture(source); } catch { /* */ }
+  try { ok = await renderer.prepareTexture(source, false, cold); } catch { /* */ }
   if (!ok || renderer.dead) { dropBackEntry({ renderer, host }); return null; }
   renderer.draw({ x: 0, y: 0, w: innerWidth, h: innerHeight });
   await new Promise(requestAnimationFrame);
@@ -172,11 +172,11 @@ async function buildBack(slug, src) {
   pm('back:prepared');
   return { slug, host, renderer, ready: true };
 }
-function ensureBack(slug, src) {
+function ensureBack(slug, src, cold = false) {
   if (backPrep && (backPrep.slug !== slug || backPrep.renderer.dead)) { dropBackEntry(backPrep); backPrep = null; }
   if (backPrep) return Promise.resolve(backPrep);
   if (backBuilding?.slug === slug) return backBuilding.p;
-  const p = buildBack(slug, src).then((e) => {
+  const p = buildBack(slug, src, cold).then((e) => {
     if (backBuilding?.p === p) backBuilding = null;
     if (!e) return null;
     if (backHold?.slug !== slug || backPrep) { dropBackEntry(e); return backPrep?.slug === slug ? backPrep : null; }
@@ -186,9 +186,9 @@ function ensureBack(slug, src) {
   return p;
 }
 // A project page is open (or opening): keep its back renderer alive and ready.
-export function holdBack(slug, src) {
+export function holdBack(slug, src, cold = false) {
   backHold = { slug, src };
-  ensureBack(slug, src);
+  ensureBack(slug, src, cold);
   clearInterval(backWatch);
   backWatch = setInterval(() => {
     if (!backHold) { clearInterval(backWatch); return; }
@@ -219,7 +219,7 @@ function takeBack(slug, root, box) {
 }
 // resolves with a renderer adopted into root / box, or null when WebGL is unavailable (then the DOM picture alone plays)
 async function awaitBack(slug, src, root, box) {
-  const got = await Promise.race([ensureBack(slug, src), new Promise((r) => setTimeout(() => r(null), 3000))]);
+  const got = await Promise.race([ensureBack(slug, src), new Promise((r) => setTimeout(() => r(null), 400))]);
   const r = got && takeBack(slug, root, box);
   return r || null;
 }
@@ -438,7 +438,7 @@ export function playBack({ rec, target, onPush, fade = [], done }) {
   tl.to(prog, { t: 1, duration, ease: 'none', onUpdate: frame }, 0);
   if (needRenderer) { // overlay = frame 0 already; start the shrink as soon as the renderer is ready
     tl.pause(); pm('back:renderer-wait');
-    if (isLite()) holdBack(rec.slug, rec.src);
+    if (isLite()) holdBack(rec.slug, rec.src, true);
     awaitBack(rec.slug, rec.src, root, box).then((r) => { bulge = r; if (isLite()) r?.setViewport({ w: W, h: H }); if (r) frame(); pm('back:renderer-late'); tl.play(); }, () => tl.play());
   }
   if (fade.length) { gsap.set(fade, { opacity: 0 }); tl.to(fade, { opacity: 1, duration: Math.min(T.fadeSec, 0.3), ease: 'none' }, duration - Math.min(T.fadeSec, 0.3)); }

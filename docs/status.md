@@ -715,3 +715,33 @@ Undo everything: `git switch work-v2`.
   Still off: a 40 ms page-build step sometimes runs while the strip moves; the first back after a direct project page load waits ~0.8 s; R41e (queued) covers both.
   Your decision: none. Evidence: docs/reference/r41*-iphone-* (recordings, sheets, ?perf reports).
 - 2026-10-31 23:12, Cowork: decision: the back keeps the FULL inward bend (backBendAmp -0.045); Anh compared the halved version (branch desktop/r42f-back-bend, not merged) and prefers the full strength.
+
+- 2026-10-31, R41e (Claude), lite/r41e.
+  What you will see now: the project page is no longer built while the strip moves (the 40 ms steps are gone in tests: 0 of 15 build steps and the title ran while moving), and the first back after a reloaded project page gets its renderer in about 50 ms instead of about 320 ms (at 6x CPU).
+  Still off: two page-prepare slices still take 12-14 ms at 6x CPU (target 8); I could not find what caused the single 95 ms frame inside one open (the iPhone has no long-task data, no repro in Chromium). Nothing is confirmed on a phone.
+  Your decision: record once more on the iPhone with https://lite-r41e.anh-v-site.pages.dev/work/?perf=quiet (flick, open, back, then also reload a project page and press back).
+  Cause 1: the hover path called prebuild with "always calm"; now it passes rest.ok and every step re-checks calm. Build slices 2 blocks (was 4); prime slices down to 5 levels, with the hide and the display:block as their own steps. Title set/play wait for rest.ok (delay = the gap between the title's own "stopped" and 150 ms of rest, at most about 0.15 s; unmeasured on a phone).
+  Cause 2: a reloaded project page is a new document, so no renderer can be held across the back; instead a cold back uploads ONE screen-sized bitmap (was frame-paced strips). The 280 ms from renderer-late to "fly-start" is the timeline's own design (push starts late), not a wait; so "shrink starts within 100 ms" holds from renderer-late.
+  Checks: rest.mjs 14 flicks 6x (0 stalls, ranWhileMoving 0, pageBuild max 3.8-9 ms, pagePrime 2 outliers 14 ms), cycles (live 3, 20 cycles), compare 542/542 x2, clean-clone build. Skipped: R41b-c suites, clicks, midscroll (no desktop code touched except shared bulge-gl cold flag). Undo: git revert 347f79e.
+
+- 2026-11-01, R41f (Claude), lite/r41e.
+  What you will see now: swipe-back on iOS should land straight in the strip (no 1.1 s glide, no hold, no shrink: Safari already played its own animation); the title disappears the same frame the strip starts to move.
+  Still off: nothing is confirmed on the phone. Chromium at 6x CPU still shows one frame of 51-87 ms at the start of an open (before: 62-80, up to 3 frames); the title "plays twice" was not reproduced, it is now logged.
+  Your decision: record once more with ?perf=quiet: flick, open, back by SWIPE, open, back by the Back button; paste the report (new field titlePlays).
+  Details and the black-on-reload explanation: docs/codex/R41f-notes.md. Page build / prime and show() are sliced over frames; back renderer wait capped at 400 ms; layout skips unchanged sizes. Checks: compare 542/542 x2, flicks 6x (0 stalls), cycles; Undo: git revert <this commit>.
+
+- 2026-11-01, R41g (Claude), lite/r41e.
+  What you will see now: a tap on the centred picture opens on the first try, even right after the title appears (before, the strip still counted as "moving" and the tap was refused; the title then replayed). A swipe to the right on a project page (not from the screen edge) goes back with the glide and the shrink; the edge swipe stays Safari's.
+  Still off: nothing is confirmed on the phone; my tap test passed on the old build too (Chromium settles faster), so the cause is from reading the code and your report numbers.
+  Your decision: record once more: 10 taps on centred pictures at rest (each must open), back each time (some by the right swipe), paste the report (new field tapLog).
+  Cause: the title says "stopped" under about 42 px/s, the tap gate said "moving" over 5 px/s; one definition now (stripMoving). Touch at rest = no rest reset. Details docs/codex/R41g-notes.md. Undo: git revert the R41g commits (ef68788, 98de06e).
+
+- 2026-11-01, R41h (Claude), lite/r41e.
+  What you will see now: a tap on any visible picture (not only the centred one) opens it and back brings that project to the centre; a tap while the strip is only gliding slowly (under 300 px/s) opens, while a touch on a fast fling just stops it; the back animation no longer takes your touches.
+  Still off: the "cannot scroll right after the swipe-back" delay is not reproduced in Chromium (a drag 50 ms after landing always moved); the fix (the overlay ignores touches) is a best guess for the phone. Nothing confirmed on the iPhone.
+  Your decision: test on the iPhone: taps on neighbouring pictures, taps right after a flick, then swipe-back / Back and immediately drag the strip; paste the report (backRuns now holds up to 24).
+  Values: TAP_FLING 300 px/s; centre rule removed; click fallback 90 ms. Details docs/codex/R41h-notes.md. Undo: git revert 2d9b7dc and the final R41h commit.
+- 2026-11-01 14:20, Cowork: R41e + R41f + R41g + R41h merged into work-v2 (lite/r41e 785a808). Anh approved after iPhone tests.
+  What you will see now: on phone and tablet any visible picture opens; a tap while the strip only glides slowly opens, a touch on a fast fling stops it; taps open on the first try; a swipe right on a project page goes back with the shrink; opens are smooth on the iPhone (slowest frames 20-34 ms).
+  Still off: a back that lands without the shrink (iOS edge swipe) freezes for one 0.4-0.5 s frame before the strip responds (R41i).
+  Your decision: none. Next: R41i, then R43.

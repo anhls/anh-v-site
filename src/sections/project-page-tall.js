@@ -95,7 +95,7 @@ export function* buildProjectPageTallSteps(root, page, lenis) {
   const html = page.blocks.map((b) => (blocks[b.t] ? blocks[b.t](b) : '')); // (read while the caller has the project's title set: the hero's alt text uses it)
   root.innerHTML = '<div class="tp"></div><div class="footer pj__footer"></div>';
   const tp = root.firstElementChild;
-  for (let i = 0; i < html.length; i += 4) { tp.insertAdjacentHTML('beforeend', html.slice(i, i + 4).join('')); yield; }
+  for (let i = 0; i < html.length; i += 2) { tp.insertAdjacentHTML('beforeend', html.slice(i, i + 2).join('')); yield; }
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   root.style.setProperty('--flight-z', String(FLIGHT.zEnd)); // R41: the zoomed picture IS the header (same value the transition ends on)
 

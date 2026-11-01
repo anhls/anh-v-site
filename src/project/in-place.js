@@ -82,13 +82,16 @@ export function createProjectView({ slug, tall, onBack }) {
     },
     // the one-off style + layout pass of the whole page, paid on idle (before any click) instead of in the landing frame.
     // R41d: sliced: every top-level section starts display:none and is switched on one per call, each forcing only its own layout (86 ms in one go at 6x CPU on the phone strip). primeStep() returns true when done.
+    primeLeft: () => !primed && !shown && !dead,
     primeStep() {
       if (shown || dead || primed) return true;
       if (!primeKids) {
-        primeKids = [...el.children].flatMap((n) => (n.children.length > 4 ? [...n.children] : [n])).map((n) => [n, n.style.display]); // (the tall page is one wrapper with ~30 sections: those are the slices)
+        const slices = (n, d = 0) => (n.children.length > 1 && d < 5 ? [...n.children].flatMap((c) => slices(c, d + 1)) : [n]); // (R41e: down to five levels, so one image-heavy section is several slices)
+        primeKids = [...el.children].flatMap((n) => slices(n)).map((n) => [n, n.style.display]); // (the tall page is one wrapper with ~30 sections: those are the slices)
         primeKids.forEach(([n]) => { n.style.display = 'none'; });
-        el.style.display = 'block'; el.style.visibility = 'hidden';
+        return false; // (R41e: its own step; the display:block below is the next one, so neither carries a page-wide style pass with real content)
       }
+      if (el.style.display !== "block") { el.style.display = "block"; el.style.visibility = "hidden"; return false; }
       const next = primeKids.shift();
       if (next) { next[0].style.display = next[1]; void next[0].offsetHeight; }
       if (!primeKids.length) { primed = true; primeKids = null; void el.offsetHeight; return true; }
@@ -102,7 +105,8 @@ export function createProjectView({ slug, tall, onBack }) {
       return new Promise((r) => { hi.addEventListener('load', () => hi.decode().then(r, r), { once: true }); hi.addEventListener('error', r, { once: true }); });
     },
     // the Work page is paused and detached from the flow by now: this page becomes the document
-    show({ wmSmall }) {
+    // R41f: async: the landing is three frames (page + Lenis, then the re-measure, then the nav) instead of one 90 ms block under the overlay
+    async show({ wmSmall }) {
       if (shown || dead) return;
       shown = true;
       if (primeKids) { primeKids.forEach(([n, d]) => { n.style.display = d; }); primeKids = null; } // (shown while the sliced prime was half done: switch the rest on)
@@ -117,7 +121,9 @@ export function createProjectView({ slug, tall, onBack }) {
       real = realLenis;
       handlers.forEach((h) => { h.off = real.on(h.ev, h.fn); });
       ScrollTrigger.refresh();
+      await new Promise(requestAnimationFrame); if (dead) return;
       window.dispatchEvent(new Event('resize')); // the builders' fades / parallax / scrollers re-measure in the live flow (before the nav exists: its resize handler snaps the wordmark)
+      await new Promise(requestAnimationFrame); if (dead) return;
       if (!tall) {
         nav = createDesktopNav();
         const works = nav.querySelector('a[data-link="Works"]');
