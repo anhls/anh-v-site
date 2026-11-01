@@ -640,14 +640,18 @@ swap.attach({
     app.style.display = 'none';
   },
   resume({ slug, shrink }) {
+    pm('back:resume-start');
     app.style.display = '';
     [...workChrome].reverse().forEach((n) => document.body.prepend(n)); workChrome = [];
+    pm('back:resume-shown');
     window.scrollTo(0, savedY);
+    pm('back:resume-scroll');
     lenis = makeLenis(); lenisLast = null; scrollGain = installScrollGain(lenis);
     rawPrev = lenis.animatedScroll; prevVirt = virt;
     gsap.ticker.add(lenisStep); gsap.ticker.add(tick);
     paused = false;
-    if (innerWidth !== W || innerHeight !== H) relayout();
+    pm('back:resume-lenis');
+    if (innerWidth !== W || innerHeight !== H) { relayout(); pm('back:resume-relayout'); }
     const fi = frameOf(slug), q = fi >= 0 ? items[fi].proj : 0;
     // R42b: the strip comes back at its FINAL RESTING place for this project (centred, the place the soft snap would settle on), not at the raw mid-scroll
     // value it was opened from: the flight then aims at the card where it will really be (a project opened mid-scroll / mid-snap used to cross-fade)
@@ -656,10 +660,12 @@ swap.attach({
     if (shrink) { TP.q = q; TP.p = clearMode() ? 0 : TRANSITION.pushScale; if (clearMode()) { TC.u = 0; prepareClear(q); TC.u = 1; } gsap.set(fadeEls, { opacity: 0 }); }
     else { TP.q = -1; TP.p = 0; TC.on = false; TC.u = 0; gsap.set(fadeEls, { opacity: 1 }); }
     gl?.markDirty?.();
+    pm('back:resume-end');
   },
   frameRect(slug) { const fi = frameOf(slug); place(fi, cur(), S); return { x: out.x - bw[fi] / 2, y: out.y - bh[fi] / 2, w: bw[fi], h: bh[fi] }; }, // (read at the rest place resume() set, before any tick)
   backPush: (p, u) => { if (TC.on) TC.u = u; else TP.p = p * TRANSITION.pushScale; },
   finish() {
+    pm('back:finish-start');
     mode.tap?.unlock();
     if (mode.tap) document.documentElement.style.removeProperty('--tap-viewport-height');
     transitionBusy = false; loadGate = false; gl?.pauseUploads?.(false);
@@ -667,6 +673,7 @@ swap.attach({
     gsap.set(fadeEls, { clearProps: 'opacity' }); nameEl.style.zIndex = '';
     gl?.markDirty?.();
     idleLoad();
+    pm('back:finish-end');
     // the next click must animate like the first: the centred project's renderer + page are prepared again (idle, never in a frame that matters)
     const ci = ((kCount % N) + N) % N, cit = items.find((q) => q.kind === 'frame' && q.proj === ci);
     if (glOn && cit) {

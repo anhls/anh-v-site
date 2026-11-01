@@ -745,3 +745,9 @@ Undo everything: `git switch work-v2`.
   What you will see now: on phone and tablet any visible picture opens; a tap while the strip only glides slowly opens, a touch on a fast fling stops it; taps open on the first try; a swipe right on a project page goes back with the shrink; opens are smooth on the iPhone (slowest frames 20-34 ms).
   Still off: a back that lands without the shrink (iOS edge swipe) freezes for one 0.4-0.5 s frame before the strip responds (R41i).
   Your decision: none. Next: R41i, then R43.
+
+- 2026-11-01, R41i (Claude), lite/r41i.
+  What you will see now: the back landing (swipe-back or Back) no longer tears the whole project page down in the same frame as the strip appears; that work now follows one piece per frame. I could not reproduce the half-second freeze in Chromium, so it is not confirmed as fixed.
+  Still off: the freeze on your iPhone may be browser rendering work, not script; this build only removes the biggest script piece I could find.
+  Your decision: test on the iPhone: edge swipe-back, then drag the strip at once; paste the report: the back run now lists each landing step (destroy-*, resume-*, finish-*) with its ms.
+  Chromium 6x: no-shrink back worst frame 25-30 ms (before 22-34, never slow here), drag 50 ms after landing 240 px every time. Details docs/codex/R41i-notes.md. Undo: git revert the R41i commits.

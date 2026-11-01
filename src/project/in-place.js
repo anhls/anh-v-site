@@ -6,6 +6,7 @@
 import '../styles/project.css';
 import Lenis from 'lenis';
 import { gsap } from 'gsap';
+import { pm } from '../util/perf-mark.js';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import data from '../data/data.json';
 import { SCROLL } from '../timeline.js';
@@ -158,21 +159,27 @@ export function createProjectView({ slug, tall, onBack }) {
     },
     headerSrc: () => api.heroImg?.currentSrc || api.heroImg?.src || '',
     hide() { el.style.visibility = 'hidden'; },
-    destroy() {
+    // R41i: destroy(true) = the back landing: only what the strip needs gone NOW (hidden, Lenis, nav, classes, title) is done in this frame; the triggers, the block / footer disposers and the
+    // removal of the (large) page DOM follow one per frame, so the landing frame does not pay for tearing the project page down.
+    destroy(defer = false) {
       if (dead) return;
       dead = true;
-      offs.splice(0).forEach((f) => f());
-      disposeBlocks?.(); disposeFooter?.();
+      pm('back:destroy-start');
+      el.style.display = 'none';
       navApi?.destroy(); nav?.remove();
       if (tick) gsap.ticker.remove(tick);
       gain?.destroy();
       handlers.splice(0);
       real = null;
       realLenis?.destroy();
-      el.remove();
+      pm('back:destroy-lenis');
       document.documentElement.classList.remove('pj-open');
       document.title = saved.title;
       saved.meta.forEach(([node, attr, v]) => node.setAttribute(attr, v));
+      const steps = [() => offs.splice(0).forEach((f) => f()), () => disposeBlocks?.(), () => disposeFooter?.(), () => el.remove()];
+      if (!defer) { steps.forEach((f) => f()); pm('back:destroy-end'); return; }
+      const next = () => { const f = steps.shift(); if (!f) return; try { f(); } catch { /* */ } pm('back:destroy-step'); requestAnimationFrame(next); };
+      requestAnimationFrame(() => requestAnimationFrame(next));
     },
   };
   return api;
