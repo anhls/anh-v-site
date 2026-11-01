@@ -728,3 +728,9 @@ Undo everything: `git switch work-v2`.
   Still off: nothing is confirmed on the phone. Chromium at 6x CPU still shows one frame of 51-87 ms at the start of an open (before: 62-80, up to 3 frames); the title "plays twice" was not reproduced, it is now logged.
   Your decision: record once more with ?perf=quiet: flick, open, back by SWIPE, open, back by the Back button; paste the report (new field titlePlays).
   Details and the black-on-reload explanation: docs/codex/R41f-notes.md. Page build / prime and show() are sliced over frames; back renderer wait capped at 400 ms; layout skips unchanged sizes. Checks: compare 542/542 x2, flicks 6x (0 stalls), cycles; Undo: git revert <this commit>.
+
+- 2026-11-01, R41g (Claude), lite/r41e.
+  What you will see now: a tap on the centred picture opens on the first try, even right after the title appears (before, the strip still counted as "moving" and the tap was refused; the title then replayed). A swipe to the right on a project page (not from the screen edge) goes back with the glide and the shrink; the edge swipe stays Safari's.
+  Still off: nothing is confirmed on the phone; my tap test passed on the old build too (Chromium settles faster), so the cause is from reading the code and your report numbers.
+  Your decision: record once more: 10 taps on centred pictures at rest (each must open), back each time (some by the right swipe), paste the report (new field tapLog).
+  Cause: the title says "stopped" under about 42 px/s, the tap gate said "moving" over 5 px/s; one definition now (stripMoving). Touch at rest = no rest reset. Details docs/codex/R41g-notes.md. Undo: git revert the R41g commits (ef68788, 98de06e).
