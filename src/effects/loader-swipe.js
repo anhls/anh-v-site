@@ -4,7 +4,7 @@ import { isTall } from '../util/layout-mode.js';
 import { createPointerFx } from '../work/pointer-fx.js';
 
 // R49: the loader's ending = the Home <-> Work pixel swipe (home-flight.js 'pixel' look: the Work page's hover smear driven by a synthetic brush) over the whole screen. Picture A = the loader's own
-// snapshot (digits + top text, drawn by loader.js), picture B = the hero video, uploaded every frame so it keeps playing under the swipe. The brush front sweeps left -> right (the counter's travel
+// snapshot (background, digits, top text, drawn by loader.js); the swiped-away cells are TRANSPARENT, so the live homepage (the hero video with its own dim, everything on it) shows through the gaps: no copy of the hero is drawn, so it cannot differ from the settled page. The brush front sweeps left -> right (the counter's travel
 // direction); each screen cell flips A -> B behind the front, hidden by the displacement; the grid, block size, strength, RGB split and time are the flight's (HOME_FLIGHT, WORK_PTR). The smear is
 // exactly zero at rest: the displacement fades out over the last stretch, so the last frame is the plain video. Time-based (fixed 1/60 s brush steps), same at 60 and 144 Hz.
 const FULL = (W, H) => ({ x: 0, y: 0, w: W, h: H });
@@ -26,8 +26,8 @@ export function prepareSwipe() {
   return {
     ok: () => !lost && !r.dead,
     dispose,
-    // snap = the loader's 2D canvas, video = the playing hero <video>, onFirstFrame() runs right after the first frame (identical to the loader) is drawn. Resolves after the last frame.
-    play({ snap, video, onFirstFrame, onProgress }) {
+    // snap = the loader's 2D canvas, onFirstFrame() runs right after the first frame (identical to the loader) is drawn. Resolves after the last frame.
+    play({ snap, onFirstFrame, onProgress }) {
       const W2 = innerWidth, H2 = innerHeight, box = FULL(W2, H2), sec = F.sec;
       r.setPicture(0, snap, 'loader-snap');
       // tall screens: block size / brush / pull in css px (LOADER.swipe*); wide screens: the flight's own numbers
@@ -50,9 +50,8 @@ export function prepareSwipe() {
           const target = p * sec, SD = 1 / 60;
           while (simT + SD <= target + 1e-6) { simT += SD; stepBrush(Math.min(1, simT / sec), SD); }
           const gain = 1 - Math.min(1, Math.max(0, (p - F.crossTo) / Math.max(1 - F.crossTo, 0.01)));
-          r.setPicture(1, video); // the live video frame (no key: re-uploaded every frame)
           r.setGrid(grid ? grid.data : zero, cols, rows, [WORK_PTR.pixelStrength * pull, WORK_PTR.pixelRgb]);
-          r.begin(); r.layer(box, box, REST, REST, [0, 1], { frontPx: frontAt(p), gain, vertical: false, jitterPx: jit });
+          r.begin(); r.layer(box, box, REST, REST, [0, 1], { frontPx: frontAt(p), gain, vertical: false, jitterPx: jit, clear: true });
           onProgress?.(p, frontAt(p), cellPx);
           if (first) { first = false; onFirstFrame?.(); }
           if (p >= 1) { WORK_PTR.pixelGrid = savedGrid; dispose(); resolve(); return; }

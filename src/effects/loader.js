@@ -164,7 +164,7 @@ export function runLoader({ urls = [], onReady, wordmark } = {}) {
     if (!sw || !video || video.readyState < 2 || !sw.ok()) { sw?.dispose(); fade(); return; }
     const snap = snapshot();
     await sw.play({
-      snap, video,
+      snap,
       onFirstFrame: () => { wmMask(0); el.style.visibility = 'hidden'; root.classList.remove('loader-wm'); },
       onProgress: (t, front, cell) => wmMask(Math.min(innerWidth, Math.max(0, Math.ceil(front / cell - 0.5)) * cell)), // the cells whose centre the front has passed have flipped
     });

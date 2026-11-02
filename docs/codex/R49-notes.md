@@ -30,3 +30,8 @@ NOT run (time): Slow 4G run, 12 s cap run, 144 Hz motion curve, Home->Work->Back
 - Shared edits: home-flight.js shader gets uJit (a per-cell random offset of the flip front, 0 = the old straight edge; the flights never set it). WORK_PTR.pixelGrid is set for the tall swipe's length and put back at its end (pointer-fx reads the grid size there).
 - R48's menu-smear.js is still not merged: this is the flight's smear with a wider zone and a ragged front, not that module.
 - Sheets: docs/reference/r49-r3-ending-*.png.
+
+## Fix 04:00 (no hero in the swipe)
+- The swipe draws only the loader (snapshot: background, top text, digits); the swiped-away cells are transparent (new shader flag uClear, set only by loader-swipe.js), so the live homepage with its own dim shows through. No hero copy, no video upload during the swipe, nothing to keep in sync with the page's CSS.
+- Check (hero video paused so its own motion does not count; mean luma of a hero patch, 30-70 % x 25-55 %): 1920: last swipe frame 7.00, settled +0.4 s 7.40 (the +0.1 s value 11.1 contains the growing wordmark crossing the patch, not the hero); 390x844: 57.23 -> 57.23 (identical). The video unpaused changes by more than that between any two frames, so only a paused video can show the dim.
+- Lost on purpose: the dragged hero picture under the front (only the loader's pixels are dragged now).
