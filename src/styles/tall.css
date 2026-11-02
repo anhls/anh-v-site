@@ -1,5 +1,5 @@
 /* R24a: the TALL mode (phones, tablet portrait). Loaded only by tall entry points (tall-home.js, effects/tall-menu.js). */
-:root { --safe-t: env(safe-area-inset-top, 0px); --safe-r: env(safe-area-inset-right, 0px); --safe-b: env(safe-area-inset-bottom, 0px); --safe-l: env(safe-area-inset-left, 0px); }
+:root { --tall-small: clamp(11px, 2.7vw, 13px); /* R48 r2: the ONE small-text size of the phone UI (Work description, menu flavour) */ --safe-t: env(safe-area-inset-top, 0px); --safe-r: env(safe-area-inset-right, 0px); --safe-b: env(safe-area-inset-bottom, 0px); --safe-l: env(safe-area-inset-left, 0px); }
 
 /* ---- the hero-only home */
 html.tall-home, html.tall-home body { height: 100%; overflow: hidden; overscroll-behavior: none; }
@@ -13,21 +13,23 @@ html.tall-home, html.tall-home body { height: 100%; overflow: hidden; overscroll
 .twm:focus-visible { outline: 2px solid #f04a0e; outline-offset: 4px; }
 
 /* ---- burger + menu (R48: burger top-left, pixel-swipe panel) */
-.tmenu__btn { position: fixed; z-index: 60; top: calc(8px + var(--safe-t)); left: calc(8px + var(--safe-l)); width: 48px; height: 48px; padding: 0; border: 0; background: none; cursor: pointer; color: var(--fg); mix-blend-mode: difference; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
-.tmenu__btn span { position: absolute; left: 12px; top: 50%; width: 24px; height: 1.5px; margin-top: -0.75px; background: #fff; transition: transform 0.4s cubic-bezier(0.65, 0, 0.35, 1); transform-origin: 50% 50%; }
+/* R48 r2: the burger as measured on huyml.co at 390x844: two 60 x 1 px white lines (radius 1 px), centres 8 px apart, each pivots about its own centre (transform-origin 50 % 50 %); open = the lines go to the same centre and turn +20 deg / -20 deg (a shallow, wide X; the length stays 60 px); 0.3 s cubic-bezier(0.22, 1, 0.36, 1) (transform); close = reverse. */
+.tmenu__btn { position: fixed; z-index: 60; top: calc(4px + var(--safe-t)); left: calc(10px + var(--safe-l)); width: 72px; height: 48px; padding: 0; border: 0; background: none; cursor: pointer; color: var(--fg); mix-blend-mode: difference; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.tmenu__btn span { position: absolute; left: 6px; top: 50%; width: 60px; height: 1px; margin-top: -0.5px; border-radius: 1px; background: #fff; transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1); transform-origin: 50% 50%; will-change: transform; pointer-events: none; }
 .tmenu__btn span:first-child { transform: translateY(-4px) rotate(0deg); }
 .tmenu__btn span:last-child { transform: translateY(4px) rotate(0deg); }
-.tmenu-open .tmenu__btn span:first-child { transform: translateY(0) rotate(45deg); }
-.tmenu-open .tmenu__btn span:last-child { transform: translateY(0) rotate(-45deg); }
+.tmenu-open .tmenu__btn span:first-child { transform: translateY(0) rotate(20deg); }
+.tmenu-open .tmenu__btn span:last-child { transform: translateY(0) rotate(-20deg); }
 .tmenu { position: fixed; inset: 0; z-index: 50; color: var(--fg); overscroll-behavior: none; touch-action: none; }
 .tmenu[hidden] { display: none; }
 .tmenu__panel { position: absolute; inset: 0; background: var(--bg); will-change: clip-path; }
 .tmenu__veil { position: absolute; inset: 0; background: rgba(0,0,0,0.0); backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px); opacity: 0; pointer-events: none; will-change: clip-path; }
-.tmenu__time { position: absolute; top: calc(22px + var(--safe-t)); right: calc(20px + var(--safe-r)); font-size: 11px; letter-spacing: 0.05em; font-variant-numeric: tabular-nums; }
-.tmenu__flav { position: absolute; left: calc(20px + var(--safe-l)); top: 33%; margin: 0; font-size: 13px; line-height: 1.5; letter-spacing: 0.02em; opacity: 0.9; }
+.tmenu__time { position: absolute; top: calc(19px + var(--safe-t)); right: calc(20px + var(--safe-r)); margin: 0; font-size: var(--tall-small); line-height: 1.4; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; text-align: right; font-style: normal; }
+.tmenu__time span { display: block; }
+.tmenu__flav { position: absolute; left: calc(20px + var(--safe-l)); top: calc((52px + var(--safe-t) + 60vh) / 2); transform: translateY(-50%); margin: 0; font-size: var(--tall-small); line-height: 1.5; letter-spacing: 0.02em; opacity: 0.9; } /* centred between the burger and the top of Work */
 .tmenu__flav span { display: block; }
-.tmenu__list { position: absolute; left: calc(20px + var(--safe-l)); bottom: calc(81.875vw * 345 / 1572 + var(--safe-b) + 28px); list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
-.tmenu__list a, .tmenu__list button { font: inherit; font-size: clamp(2.6rem, 14vw, 5.5rem); line-height: 1.08; letter-spacing: -0.01em; font-weight: 500; color: inherit; background: none; border: 0; padding: 2px 0; cursor: pointer; text-align: left; display: block; min-height: 48px; touch-action: manipulation; -webkit-tap-highlight-color: transparent; text-decoration: none; }
+.tmenu__list { position: absolute; left: calc(20px + var(--safe-l)); top: calc(60vh - var(--nav-cap, 0.2em)); font-size: clamp(1.95rem, 10.5vw, 4.125rem); list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; } /* R48 r2: 75 % of the first size; the top of the "Work" letters sits at 60 % of the height */
+.tmenu__list a, .tmenu__list button { font: inherit; font-size: 1em; line-height: 1.08; letter-spacing: -0.01em; font-weight: 500; color: inherit; background: none; border: 0; padding: 2px 0; cursor: pointer; text-align: left; display: block; min-height: 44px; touch-action: manipulation; -webkit-tap-highlight-color: transparent; text-decoration: none; }
 .tmenu__arr { display: inline-block; margin-right: 0.18em; font-weight: 400; }
 .tmenu__wm { position: absolute; left: 0; bottom: var(--safe-b); width: 81.875vw; aspect-ratio: 1572 / 345; object-fit: fill; pointer-events: none; }
 html[data-theme="light"] .tmenu__wm { filter: invert(1); }

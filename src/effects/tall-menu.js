@@ -16,7 +16,7 @@ const hash = (n) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return
 const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2); // in-out cubic
 const hcmcTime = () => {
   const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date());
-  return `HCMC, ${p}`;
+  return `${p} GMT+7`;
 };
 
 export function mountTallMenu() {
@@ -29,7 +29,7 @@ export function mountTallMenu() {
     <div class="tmenu" id="tmenu" role="dialog" aria-modal="true" aria-label="Menu" data-view="list" hidden>
       <div class="tmenu__veil" aria-hidden="true"></div>
       <div class="tmenu__panel">
-        <time class="tmenu__time tmenu__fx" data-d="2" aria-label="Local time in Ho Chi Minh City"></time>
+        <address class="tmenu__time tmenu__fx" data-d="2" aria-label="Local time in Ho Chi Minh City"><span>HCMC, Vietnam</span><span class="tmenu__clock"></span></address>
         <p class="tmenu__flav tmenu__fx" data-d="0">${flavour.map((l) => `<span>${l}</span>`).join('')}</p>
         <ul class="tmenu__list tmenu__fx" data-d="1">
           <li><a href="/work/"><span class="tmenu__arr" aria-hidden="true" hidden>→</span>Work</a></li>
@@ -41,7 +41,7 @@ export function mountTallMenu() {
       </div>
     </div>`;
   const btn = wrap.querySelector('.tmenu__btn'), menu = wrap.querySelector('.tmenu');
-  const panel = menu.querySelector('.tmenu__panel'), veil = menu.querySelector('.tmenu__veil'), timeEl = menu.querySelector('.tmenu__time'), wmImg = menu.querySelector('.tmenu__wm');
+  const panel = menu.querySelector('.tmenu__panel'), veil = menu.querySelector('.tmenu__veil'), timeEl = menu.querySelector('.tmenu__clock'), wmImg = menu.querySelector('.tmenu__wm');
   document.body.append(...wrap.children);
   const pageEls = () => [document.getElementById('app'), document.querySelector('a.wordmark'), document.querySelector('a.twm'), document.querySelector('nav.nav'), document.querySelector('.skip')].filter(Boolean);
   const focusables = () => (menu.dataset.view === 'about' ? [btn, menu.querySelector('.tmenu__text')] : [btn, ...menu.querySelectorAll('a[href], button')]);
@@ -49,7 +49,7 @@ export function mountTallMenu() {
 
   // ---- time: HCMC, 24 h, updates on the minute
   let timeT = 0;
-  const tick = () => { timeEl.textContent = hcmcTime(); timeEl.dateTime = new Date().toISOString(); timeT = setTimeout(tick, 60000 - (Date.now() % 60000) + 50); };
+  const tick = () => { timeEl.textContent = hcmcTime(); timeT = setTimeout(tick, 60000 - (Date.now() % 60000) + 50); };
   const stopTime = () => { clearTimeout(timeT); timeT = 0; };
 
   // ---- the pixel swipe front
