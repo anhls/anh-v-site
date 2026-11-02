@@ -4,14 +4,12 @@
 /* The address bar can resize the window while the captured flight is moving. */
 .pj-root .tp-hero, .pj-root .pj__hero { height: var(--tap-viewport-height, 100svh); }
 
-/* R48 Part B (round 2): the phone details row (src/work/tall-details.js). Under the canvas (the cards scroll over it); the old "01 / 05" counter is replaced by it. The counter CSS is the desktop's (work.css .w2__*), same em proportions. */
+/* R48 Part B (round 3): the phone details (src/work/tall-details.js; sizes and positions are set from TALL_DETAILS in px by layout()). Under the canvas (the cards scroll over it). The counter CSS is the desktop's (work.css .w2__*). */
 [data-layout='tall'] .work__count { display: none; }
 .td { --td-c: var(--fg); position: absolute; inset: 0; z-index: 0; pointer-events: none; color: var(--td-c); font-family: var(--font-body); }
-.td__line { position: absolute; inset: 0; overflow: hidden; }
-.td__line i { position: absolute; left: 0; top: 0; display: block; width: 100%; height: 1px; background: var(--td-c); opacity: 0; will-change: transform; }
-.td__row { position: absolute; left: var(--td-left, 0px); width: var(--td-w, 100%); top: var(--td-row-y, 0px); height: calc(48px * var(--td-s, 1)); }
+.td__row { position: absolute; inset: 0; }
 .td__counter { position: absolute; left: 0; top: 0; display: flex; align-items: baseline; }
-.td__num { position: relative; display: flex; font-size: calc(42px * var(--td-s, 1)); font-weight: 200; line-height: 0.74; letter-spacing: 0; height: 0.74em; }
+.td__num { position: relative; display: flex; font-size: 52px; font-weight: 200; line-height: 0.74; letter-spacing: 0; height: 0.74em; }
 .td__slot { position: relative; display: block; width: 0.7em; height: 0.74em; overflow: hidden; clip-path: inset(0 0 1.5px 0); }
 .td__drum { position: absolute; left: 0; top: 0; width: 100%; will-change: transform; }
 .td__wrapc { display: none; }
@@ -19,11 +17,11 @@
 .td__tens .td__drum span { text-align: right; }
 .td__units { margin-left: -0.02em; }
 .td__units .td__drum span { text-align: left; }
-.td__total { position: absolute; left: 0; top: var(--td-tot-top, 0px); font-size: var(--tall-small); line-height: 1; opacity: 0.45; white-space: nowrap; will-change: transform; }
-.td__col { position: absolute; top: var(--td-col-top, 0px); font-size: var(--tall-small); line-height: 1.55; letter-spacing: 0.02em; white-space: nowrap; }
-.td__year { left: 50%; }
-.td__desc { left: 63%; right: 0; white-space: normal; opacity: 0.55; }
-.td__ln { display: block; overflow: hidden; height: 1.55em; }
+.td__total { position: absolute; left: 0; top: 0; line-height: 1; white-space: nowrap; will-change: transform; }
+.td__col { position: absolute; top: var(--td-col-top, 0px); font-size: var(--td-fs, 11px); line-height: var(--td-pitch, 17px); letter-spacing: 0.02em; white-space: nowrap; }
+.td__year { left: var(--td-left, 0px); }
+.td__tags { right: var(--td-left, 0px); text-align: left; opacity: var(--td-tag-op, 0.25); }
+.td__ln { display: block; overflow: hidden; height: var(--td-pitch, 17px); }
 .td__rin { display: block; transition: transform 0.5s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.4s ease, filter 0.4s ease; will-change: transform, opacity; }
 .td__rin.is-out { transform: translateY(-110%); opacity: 0; filter: blur(3px); }
 .td__rin.is-in { transform: none; opacity: 1; filter: none; }

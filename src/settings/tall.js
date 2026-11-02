@@ -43,15 +43,17 @@ export const TRANSITION_POLICY_LITE = {
   maxPressMs: 500, centreTol: 0.25, lockMs: 700,
 };
 // R41b: same title treatment as desktop, sized to the lite picture.
-export const LITE_TITLE = { minSize: 28, maxSize: 84, frameShare: 120 / 1055, fitFrac: .93 };
+export const LITE_TITLE = { minSize: 28, maxSize: 84, frameShare: 120 / 1055, fitFrac: .93, sidePad: 0.04, minFullScale: 0.6 }; // R48 r3: sidePad = the space left and right of the title inside the card (share of the card width); minFullScale = the smallest share of the base size at which the FULL title is still used (else the short one)
 // the tall image warp: the wide image warp with the strength scaled (read live: ?tune)
 TALL.frameWarp = { ...WORK.frameWarp, strength: 1.39 * TALL.warpStrength, curl: 0.5, camDown: 1.25, camUp: 1.25, bowDown: 0, bowUp: 0.06, reach: 1, riseSec: 0.5, leanBuf: 0.15, leanSignDown: 1 }; // (R33: the phone / tablet pages keep the lean toward the motion in both directions) // (R24i: leanBuf = extra offscreen overscan along the strip for the axis lean, in screen lengths; the lean is capped by what it holds)
 // R24e: tablet LANDSCAPE (R24b's test: layout-store.js isTabletAspect): the wide-style strip, no cards (cards: 0), the image `frameH` of the viewport height (width from the desktop ratio, at most 90 % of the width)
 // R48: the phone / tablet-portrait project page's SMALL wordmark: top CENTRE (the burger owns top-left). x / y / width as nav.js small = capped vw / vh / vw; y centres it on the 48 px burger. Easy to move.
 TALL.wmSmall = { x: 36, y: 2.4, width: 28 };
-// R48 Part B: the phone Work page's details row. rowGap = the gap under the centred card (share of the card height; the mock's proportion is ~0.1, the brief's "~48 px" would run into the next card), lineInset = the
-// line's distance inside the card's top edge (share of the card height), stagger = s between lines of a roll, descLines / descChars = the description clamp.
-export const TALL_DETAILS = { rowGap: 0.1, lineInset: 0.07, stagger: 0.06, descLines: 3, descChars: 120 };
+// R48 round 3 (Anh's iPhone mock 03.11 01:21, 430x932 CSS px; every length is vw = px / 4.3 so it scales with the screen). COUNTER above the centred card: the big number's ink is numCapVw tall with its ink
+// bottom numGapVw above the card's top edge, its ink left on the card's left edge; the small "/N" has its ink top on the big number's ink top, totGapVw after the big number's right ink edge, totCapVw tall,
+// totOpacity. BELOW the card: one row whose ink top is rowGapVw under the card's bottom edge: the YEAR (left edge on the card's left edge, smallCapVw tall) and the TAGS (the desktop "Role" tags, max 3, one
+// per line every tagPitchVw, tagOpacity, left-aligned, the widest line ending on the card's right edge). smallMinPx = the smallest font size of the small text. stagger = s between lines of a roll.
+export const TALL_DETAILS = { numCapVw: 12.26, numGapVw: 3.49, totCapVw: 1.93, totGapVw: 3.42, totOpacity: 0.25, rowGapVw: 3.72, smallCapVw: 1.86, tagPitchVw: 4.07, tagOpacity: 0.25, smallMinPx: 10.5, stagger: 0.06, tags: 3 };
 export const TABLET = { cards: 0, frameH: 0.62 };
 
 export const TRANSITION_POLICY = TRANSITION_POLICY_LITE;

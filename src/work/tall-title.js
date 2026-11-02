@@ -27,17 +27,20 @@ export function createLiteTitle({ app, projects, reduced, rest }) {
     const color = getComputedStyle(root).color;
     const baseSize = Math.max(LITE_TITLE.minSize, Math.min(LITE_TITLE.maxSize, fw * LITE_TITLE.frameShare));
     options = projects.map(p => {
-      let size = baseSize;
+      // R48 r3: the title must fit INSIDE the card with LITE_TITLE.sidePad on each side. The desktop short-title rule: the full title when it fits at a size not under minFullScale of the base size,
+      // else the short one; either way scaled down to fit (the letter-spacing counted).
+      const wAt = (t, sz) => { measure.font = `${WORK_TITLE.weight} ${sz}px ${family}`; return measure.measureText(t).width + (WORK_TITLE.tracking || 0) * sz * t.length; };
+      const avail = fw * (1 - 2 * LITE_TITLE.sidePad), full = p.title, short = p.titleShort || TITLE_SHORT[p.slug] || full;
+      const fitSize = (t) => Math.min(baseSize, baseSize * avail / Math.max(wAt(t, baseSize), 1));
+      const fullSize = fitSize(full);
+      const useFull = fullSize >= baseSize * LITE_TITLE.minFullScale || short === full;
+      const text = useFull ? full : short;
+      const size = useFull ? fullSize : fitSize(short);
       measure.font = `${WORK_TITLE.weight} ${size}px ${family}`;
-      const full = p.title, short = p.titleShort || TITLE_SHORT[p.slug] || full;
-      const text = measure.measureText(full).width <= fw * LITE_TITLE.fitFrac ? full : short;
-      const width = measure.measureText(text).width;
-      size *= Math.min(1, fw * LITE_TITLE.fitFrac / Math.max(width, 1));
-      measure.font = `${WORK_TITLE.weight} ${size}px ${family}`;
-      const m = measure.measureText(text), asc = m.fontBoundingBoxAscent ?? size * .9, desc = m.fontBoundingBoxDescent ?? size * .25;
+      const m = measure.measureText(text), asc = m.fontBoundingBoxAscent ?? size * .9, desc = m.fontBoundingBoxDescent ?? size * .25, tw = m.width + (WORK_TITLE.tracking || 0) * size * text.length;
       const top = innerHeight / 2 - size / 2;
       return { el, text, size, weight: WORK_TITLE.weight, family, color, tracking: WORK_TITLE.tracking,
-        x: (innerWidth - m.width) / 2, baseline: top + (size - asc - desc) / 2 + asc, top };
+        x: (innerWidth - tw) / 2, baseline: top + (size - asc - desc) / 2 + asc, top };
     });
     if (shown >= 0) setTitle(shown);
     el.style.visibility = ''; el.style.opacity = String(opacity);
