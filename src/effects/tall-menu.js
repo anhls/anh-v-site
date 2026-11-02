@@ -151,10 +151,11 @@ export function mountTallMenu() {
   let curLink = null; // the link that has the line at rest (Work on /work/, none on Home)
   const links = () => [...menu.querySelectorAll('.tmenu__list a, .tmenu__list button')];
   const arrOf = (el) => el.querySelector('.tmenu__arr'), wordOf = (el) => el.querySelector('.tmenu__w');
-  let lineTw = []; // (only OUR line tweens are killed: killTweensOf would also kill the entrance timeline's push tween, which is reused between opens)
-  const lineKill = () => { lineTw.forEach((t) => t.kill()); lineTw = []; };
-  const lineSet = (el, on) => { lineKill(); gsap.set(arrOf(el), { scaleX: on ? 1 : 0, transformOrigin: '0 50%' }); gsap.set(wordOf(el), { x: on ? wordShift() : 0 }); el.classList.toggle('is-cur', on); };
-  const lineMove = (el, on, delay, dur) => { lineKill(); const o = { duration: dur, delay, ease: TM.pushEase }; lineTw.push(gsap.to(arrOf(el), { scaleX: on ? 1 : 0, transformOrigin: '0 50%', ...o }), gsap.to(wordOf(el), { x: on ? wordShift() : 0, ...o })); el.classList.toggle('is-cur', on); };
+  const lineTw = new Map(); // link -> its own line tweens (only OUR line tweens are killed: killTweensOf would also kill the entrance timeline's push tween, which is reused between opens)
+  // R48 merge fix (Cowork): kill only THIS link's tweens; killing all of them made the Contact tap stop Work's pull-back (both lines stayed drawn)
+  const lineKill = (el) => { (el ? [el] : [...lineTw.keys()]).forEach((k) => { (lineTw.get(k) || []).forEach((t) => t.kill()); lineTw.delete(k); }); };
+  const lineSet = (el, on) => { lineKill(el); gsap.set(arrOf(el), { scaleX: on ? 1 : 0, transformOrigin: '0 50%' }); gsap.set(wordOf(el), { x: on ? wordShift() : 0 }); el.classList.toggle('is-cur', on); };
+  const lineMove = (el, on, delay, dur) => { lineKill(el); const o = { duration: dur, delay, ease: TM.pushEase }; lineTw.set(el, [gsap.to(arrOf(el), { scaleX: on ? 1 : 0, transformOrigin: '0 50%', ...o }), gsap.to(wordOf(el), { x: on ? wordShift() : 0, ...o })]); el.classList.toggle('is-cur', on); };
   const lineNow = () => links().forEach((a) => lineSet(a, false));
   let fromMenu = false;
   document.addEventListener('contact:tap', (e) => { // Contact tapped in the open menu: the line pulls back from the current word and draws out before Contact (one move, the same duration / ease)
