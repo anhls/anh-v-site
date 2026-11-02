@@ -88,7 +88,7 @@ export const SECTIONS = {
 // bottom gap 2.35 vw. On tall screens the pair of digits fills the width minus a gutter each side.
 // PROGRESS = fonts + the images the first screen needs + the hero video (buffered seconds, 'can play' = full). maxMs = stall cap: after it every step is allowed (go to 99, continue with what is ready).
 // TOP TEXT (R49 r2): the two blocks form ONE group centred on the screen (groupGapVw between them) on wide screens, first-line ink top level with the small wordmark's ink top (inkTopOfWmH = that offset as a share of the wordmark height; inkInLine = the first line's ink top below its line box, in em); tall: stacked, left edge at tallLeftPct of the width.
-// WORDMARK: the page's own AV wordmark (one element) is shown SMALL top-left from the first frame and grows to its big place with the swipe (nav.drive on wide screens, the phone's .twm).
+// WORDMARK: the page's own AV wordmark (one element) is shown SMALL top-left from the first frame and grows to its big place AFTER the swipe (nav.drive on wide screens, the phone's .twm).
 // ENDING: holdSec after 99 settles, then the Home <-> Work pixel swipe (src/effects/loader-swipe.js, look / grid / strength / time = HOME_FLIGHT + WORK_PTR) left -> right over the hero video.
 // Reduced motion, ?gl=0, Save-Data, a weak device or no WebGL2: the digits change by fade (fadeSec), no travel, and the loader ends with a fade (endFadeSec).
 export const LOADER = {
@@ -108,7 +108,10 @@ export const LOADER = {
   holdSec: 0.3,
   fadeSec: 0.35,
   endFadeSec: 0.45,
-  enter: { sec: 0.6, delaySec: 1.1, blurPx: 8 }, // the nav / ticker / burger come in once the swipe has passed (the wordmark is on screen all along and grows with the swipe) (CSS animation, base.css; delay counted from the swipe start)
+  overlayOpacity: 0.7, // layers while loading (bottom -> top): hero, black background, small wordmark + top text, this veil (page background colour), the digits. The swipe takes background + veil + digits (and the top text); the wordmark is not swiped: it goes from dimmed to full as the swipe front passes it.
+  wmAfterSwipeDelay: 0, // s: the wordmark's grow (small -> big) starts this long after the swipe has FULLY finished (nothing of it before)
+  wmGrowSec: 1, // the grow's length; its curve is the flight's size curve (project -> Home)
+  enter: { sec: 0.6, delaySec: 0.2, blurPx: 8 }, // the nav / ticker / burger come in after the swipe, with the grow (delay counted from the swipe's end) (CSS animation, base.css; delay counted from the swipe start)
   brushFrame: 1.5, // the swipe's brush radius = pixelBrush x (this x the screen height): the Work card is ~half the height, the swipe covers the whole screen
 };
 

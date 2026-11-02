@@ -93,16 +93,12 @@ html.lenis, html.lenis body { height: auto; }
 #app { position: relative; }
 
 /* Loader (R49): bottom digit columns (a mask each; the digits slide through it), the phone menu's small text on top. Sizes are set by src/effects/loader.js from LOADER (settings). */
-.loader {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  background: var(--bg);
-  color: var(--fg);
-  pointer-events: none;
-}
+.loader { color: var(--fg); pointer-events: none; } /* a plain container: every layer below is fixed with its own z-index */
+.loader__bg { position: fixed; inset: 0; z-index: 100; background: var(--bg); }
+.loader__veil { position: fixed; inset: 0; z-index: 102; background: var(--bg); opacity: var(--l-veil); }
 .loader__top {
-  position: absolute;
+  position: fixed;
+  z-index: 100;
   left: var(--l-left);
   top: var(--l-top);
   display: flex;
@@ -118,7 +114,8 @@ html.lenis, html.lenis body { height: auto; }
 .loader__clock { opacity: var(--l-clock-op); }
 .loader[data-tall='1'] .loader__top { flex-direction: column; }
 .loader__counter {
-  position: absolute;
+  position: fixed;
+  z-index: 103;
   left: 0;
   bottom: var(--l-bottom);
   display: flex;
@@ -132,7 +129,7 @@ html.lenis, html.lenis body { height: auto; }
 /* The swipe's canvas sits above the hero and below the wordmark / nav, which come in as the swipe passes (loader-out). */
 .loader-swipe { position: fixed; inset: 0; z-index: 8; pointer-events: none; }
 html.is-loading :is(.nav, .tmenu__btn, .ticker__track) { opacity: 0; }
-html.is-loading :is(.wordmark, .twm) { z-index: 101; } /* the real wordmark stays above the loader (small, top-left) and drops under the swipe canvas when the swipe starts */
+html.loader-wm :is(.wordmark, .twm) { z-index: 101; } /* the real wordmark sits between the loader's background (100) and its veil (102) while loading; at the swipe's start it goes back above the swipe canvas (8) */
 html.loader-out :is(.nav, .tmenu__btn, .ticker__track) { animation: loader-in var(--l-in-sec, 0.6s) ease-out var(--l-in-delay, 0.25s) backwards; }
 @keyframes loader-in { from { opacity: 0; filter: blur(var(--l-in-blur, 8px)); } }
 

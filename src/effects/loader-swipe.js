@@ -48,7 +48,7 @@ export function prepareSwipe() {
           r.setPicture(1, video); // the live video frame (no key: re-uploaded every frame)
           r.setGrid(grid ? grid.data : zero, cols, rows, grid ? grid.params : [WORK_PTR.pixelStrength, WORK_PTR.pixelRgb]);
           r.begin(); r.layer(box, box, REST, REST, [0, 1], { frontPx: frontAt(p), gain, vertical: false });
-          onProgress?.(p);
+          onProgress?.(p, frontAt(p), cellPx);
           if (first) { first = false; onFirstFrame?.(); }
           if (p >= 1) { dispose(); resolve(); return; }
           requestAnimationFrame(draw);

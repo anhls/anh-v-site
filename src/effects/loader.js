@@ -19,7 +19,7 @@ const measure = document.createElement('canvas').getContext('2d');
 export function runLoader({ urls = [], onReady, wordmark } = {}) {
   const tall = isTall(), root = document.documentElement, flavour = data.menu?.flavour ?? [];
   const slide = !plainFx(), N = L.steps.length, sec = L.stepSec;
-  root.classList.add('is-loading');
+  root.classList.add('is-loading', 'loader-wm');
   root.style.setProperty('--l-in-sec', `${L.enter.sec}s`); root.style.setProperty('--l-in-delay', `${L.enter.delaySec}s`); root.style.setProperty('--l-in-blur', `${L.enter.blurPx}px`);
 
   const el = document.createElement('div');
@@ -29,10 +29,12 @@ export function runLoader({ urls = [], onReady, wordmark } = {}) {
   el.setAttribute('aria-label', 'Loading');
   const colHtml = (k) => `<div class="loader__col">${L.steps.map((s) => `<span class="loader__d">${s[k]}</span>`).join('')}</div>`;
   el.innerHTML = `
+    <div class="loader__bg"></div>
     <div class="loader__top">
       <p class="loader__tl">${flavour.map((t) => `<span class="loader__t">${t}</span>`).join('')}</p>
       <address class="loader__tr"><span class="loader__t">HCMC, Vietnam</span><span class="loader__t loader__clock"></span></address>
     </div>
+    <div class="loader__veil"></div>
     <div class="loader__counter" aria-hidden="true">${colHtml(0)}${colHtml(1)}</div>`;
   document.body.prepend(el);
 
@@ -61,6 +63,7 @@ export function runLoader({ urls = [], onReady, wordmark } = {}) {
     el.style.setProperty('--l-w', `${maskW}px`);
     el.style.setProperty('--l-h', `${baseline}px`);
     el.style.setProperty('--l-bottom', `${tall ? L.tall.bottomPx : (L.bottomVw / 100) * W}px`);
+    el.style.setProperty('--l-veil', String(L.overlayOpacity));
     el.style.setProperty('--l-weight', String(L.fontWeight));
     // the group: its first-line ink top level with the small wordmark's ink top; wide = centred as one group, tall = stacked with its left edge at the centre
     const wr = wordmark.el.getBoundingClientRect(), inkTop = wr.top + L.top.inkTopOfWmH * wr.height, groupW = tall ? 0 : widths();
@@ -138,15 +141,23 @@ export function runLoader({ urls = [], onReady, wordmark } = {}) {
   // ---- the ending
   let resolveDone;
   const done = new Promise((r) => { resolveDone = r; });
-  const cleanup = () => {
-    stopClock(); removeEventListener('resize', onResize); el.remove(); root.classList.remove('is-loading'); resolveDone();
-    setTimeout(() => root.classList.remove('loader-out'), (L.enter.delaySec + L.enter.sec) * 1000 + 200); // (the entrance animation of the wordmark / nav runs on after the swipe)
+  const cleanup = () => { stopClock(); removeEventListener('resize', onResize); el.remove(); resolveDone(); };
+  // the wordmark is dimmed by the veil while loading; once the veil is gone (the swipe) a mask keeps it dimmed to the right of the swipe front and full to the left of it
+  const wmMask = (cut) => {
+    const w = wordmark.el, r = w.getBoundingClientRect(), local = cut === null ? null : (cut - r.left) * (w.offsetWidth / r.width);
+    const v = local === null ? '' : `linear-gradient(to right, #000 ${local}px, rgba(0,0,0,${1 - L.overlayOpacity}) ${local}px)`;
+    w.style.maskImage = v; w.style.webkitMaskImage = v;
+  };
+  // the swipe is over: the page's entrance (nav / ticker / burger) and, nothing earlier, the wordmark's grow small -> big
+  const enterPage = () => {
+    wmMask(null);
+    root.classList.remove('is-loading', 'loader-wm'); root.classList.add('loader-out');
+    setTimeout(() => root.classList.remove('loader-out'), (L.enter.delaySec + L.enter.sec) * 1000 + 200);
+    const g = { t: 0 };
+    gsap.to(g, { t: 1, duration: L.wmGrowSec, delay: L.wmAfterSwipeDelay, ease: 'none', onUpdate: () => wordmark.set((1 - g.t) ** HF.sizePow), onComplete: () => wordmark.release() }); // the flight's size curve (card -> hero = small -> big)
   };
   const fade = () => {
-    root.classList.remove('is-loading');
-    const w = { p: 1 };
-    gsap.to(w, { p: 0, duration: L.endFadeSec * 1.5, ease: 'power2.inOut', onUpdate: () => wordmark.set(w.p), onComplete: () => wordmark.release() });
-    gsap.to(el, { opacity: 0, duration: L.endFadeSec, ease: 'power1.out', onComplete: cleanup });
+    gsap.to([...el.children], { opacity: 0, duration: L.endFadeSec, ease: 'power1.out', onComplete: () => { cleanup(); enterPage(); } });
   };
   const finish = async () => {
     const sw = slide && swipeP ? await swipeP : null;
@@ -154,11 +165,11 @@ export function runLoader({ urls = [], onReady, wordmark } = {}) {
     const snap = snapshot();
     await sw.play({
       snap, video,
-      onFirstFrame: () => { el.style.visibility = 'hidden'; root.classList.remove('is-loading'); root.classList.add('loader-out'); },
-      onProgress: (t) => wordmark.set((1 - t) ** HF.sizePow), // the flight's own size curve (card -> hero = small -> big)
+      onFirstFrame: () => { wmMask(0); el.style.visibility = 'hidden'; root.classList.remove('loader-wm'); },
+      onProgress: (t, front, cell) => wmMask(Math.min(innerWidth, Math.max(0, Math.ceil(front / cell - 0.5)) * cell)), // the cells whose centre the front has passed have flipped
     });
-    wordmark.release();
     cleanup();
+    enterPage();
   };
 
   // the loader's own picture (what is on screen at rest on the last step) drawn into a 2D canvas: the swipe smears it as one layer
@@ -166,7 +177,7 @@ export function runLoader({ urls = [], onReady, wordmark } = {}) {
     const W = innerWidth, H = innerHeight, dpr = Math.min(devicePixelRatio || 1, 2), cs = getComputedStyle(el);
     const c = document.createElement('canvas'); c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
     const g = c.getContext('2d'); g.scale(dpr, dpr);
-    g.fillStyle = cs.backgroundColor; g.fillRect(0, 0, W, H);
+    g.fillStyle = getComputedStyle(el.querySelector('.loader__bg')).backgroundColor; g.fillRect(0, 0, W, H);
     g.fillStyle = cs.color; g.textBaseline = 'alphabetic'; g.textAlign = 'center';
     g.font = `${L.fontWeight} ${geo.fs}px "Clash Display"`;
     el.querySelectorAll('.loader__col').forEach((col, k) => { const r = col.getBoundingClientRect(); g.fillText(String(L.steps[N - 1][k]), r.left + r.width / 2, r.bottom); });
@@ -175,7 +186,7 @@ export function runLoader({ urls = [], onReady, wordmark } = {}) {
     const fa = g.measureText('0').fontBoundingBoxAscent;
     el.querySelectorAll('.loader__t').forEach((t) => {
       const rg = document.createRange(); rg.selectNodeContents(t); const r = rg.getBoundingClientRect();
-      g.globalAlpha = t.classList.contains('loader__clock') ? L.top.clockOpacity : 1;
+      g.globalAlpha = (t.classList.contains('loader__clock') ? L.top.clockOpacity : 1) * (1 - L.overlayOpacity); // (the top text sits under the veil)
       g.fillText(t.textContent, r.left, r.top + fa);
     });
     return c;

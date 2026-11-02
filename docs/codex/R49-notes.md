@@ -16,3 +16,10 @@ NOT run (time): Slow 4G run, 12 s cap run, 144 Hz motion curve, Home->Work->Back
 - Anh's screenshot numbers (ink x 2.15-11.4 %) are wider than the Work pages' small wordmark at 1920 (3.1-11.9 %): I used the same element/state as the Work pages, so they match by construction; check his window size if it still looks off.
 - Item 4 (menu-smear for the phone ending): not done, R48 is not merged; the phone keeps the flight look.
 - Sheets: docs/reference/r49-r2-*. NOT run: Home -> Work -> Back (loader code path untouched), Slow 4G, 144 Hz.
+
+## Round 2 add-on (layers + wordmark after the swipe)
+- Layers while loading: hero < black background (z100) + top text (100) < wordmark (101, class loader-wm) < veil (102, --bg at LOADER.overlayOpacity 0.7) < digits (103). The swipe snapshot = background + top text (drawn at 30 %: under the veil) + digits at 100 %; the wordmark is not in it.
+- At the swipe's first frame the veil is gone, so the wordmark gets a CSS mask: dimmed (30 %) right of the swipe front, full left of it, cut on the flip grid's cell edges (the cells whose centre the front passed). Measured wordmark brightness: 70 dimmed while loading, 232 once the front passed.
+- The grow (small -> big, the flight's size curve, LOADER.wmGrowSec 1 s) starts only after the swipe has fully ended (+ LOADER.wmAfterSwipeDelay 0); nav / ticker / burger enter with it (enter.delaySec 0.2 from the swipe's end). Fade fallback: same order (fade, then grow).
+- Fixed on the way: the snapshot's background read a transparent container (A showed through); it now reads .loader__bg.
+- Sheets: docs/reference/r49-r2b-ending-*.png (rest, swipe at 0 / .25 / .45 / .65 / .999, grow at +0.45 / +0.95 / +2.15 s).
