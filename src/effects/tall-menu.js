@@ -18,8 +18,9 @@ import { weakReason } from '../util/device.js';
 // (z-index in tall.css); on the pages where it is small (Work, projects) the menu grows THAT element small -> big on open (big -> small on close). Reduced motion, ?gl=0, Save-Data, a weak device or no WebGL2 = a plain fade.
 export const MENU_FX = { blurPx: 10, itemSec: 0.45 }; // itemSec = how long an item takes to blur in; the sweep itself (time, block size, strength, RGB split) is menu-smear.js MENU_SWEEP + HOME_FLIGHT + WORK_PTR
 
+let hcmcFmt = null; // (made once: constructing an Intl formatter costs ~10 ms on a phone, never in the tap frame)
 const hcmcTime = () => {
-  const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date());
+  const p = (hcmcFmt ||= new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })).format(new Date());
   return `${p} GMT+7`;
 };
 const sm = (q) => { q = Math.min(1, Math.max(0, q)); return q * q * (3 - 2 * q); };
@@ -68,7 +69,9 @@ export function mountTallMenu() {
     im.onload = () => { try { const w = 786, h = Math.max(1, Math.round(w * (im.naturalHeight || 345) / (im.naturalWidth || 1572))), c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0, w, h); const d = x.getImageData(0, 0, w, h).data; let r = -1; for (let i = w - 1; i >= 0 && r < 0; i--) for (let j = 0; j < h; j++) if (d[(j * w + i) * 4 + 3] > 40) { r = i; break; } vInk = r >= 0 ? (r + 1) / w : 0; placeMenu(); } catch { vInk = 0; } };
     im.src = wmSrc;
   };
-  const placeMenu = () => {
+  let placedKey = '';
+  const placeMenu = (force) => {
+    const key = innerWidth + 'x' + innerHeight + ':' + (document.fonts?.status || ''); if (!force && key === placedKey) return; placedKey = key;
     const W = innerWidth, H = innerHeight, vw = (n) => (n * W) / 100, links = [...menu.querySelectorAll('.tmenu__list a, .tmenu__list button')];
     if (!links.length) return;
     const cs = getComputedStyle(links[0]), font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`, P = vw(TM.navPitchVw), k = inkOf(font, 'Work');
@@ -100,7 +103,20 @@ export function mountTallMenu() {
     try { smear = createMenuSmear(); } catch (e) { smear = null; smearWhy = `renderer error: ${e.message}`; }
     if (!smear && !smearWhy) smearWhy = 'no WebGL2';
   };
-  (window.requestIdleCallback || ((fn) => setTimeout(fn, 1200)))(warmSmear, { timeout: 4000 });
+  // R48 r12: warm-up in slices on idle (never in the tap frame): the renderer, then the page snapshot, then one throw-away draw; and the snapshot again on pointerdown (the ~50-100 ms before the click)
+  const idle = (fn, t = 2000) => (window.requestIdleCallback || ((f) => setTimeout(f, 300)))(fn, { timeout: t });
+  // pointerdown / touchstart on the burger (the ~50-100 ms before the click): the page snapshot, the clock text, the layout of the menu, the timeline: everything the tap frame would otherwise do
+  let prepped = 0;
+  const prep = () => {
+    if (open || sweeping || performance.now() - prepped < 300) return; prepped = performance.now();
+    prepWork();
+  };
+  const IS_WORK = /^\/work\/?$/;
+  const prepWork = () => { smear?.prime(); timeEl.textContent = hcmcTime(); placeMenu(); curLink = IS_WORK.test(location.pathname) ? workLink : null; if (smear) buildTl(false); };
+  // idle, in slices (each its own idle callback): clock formatter + renderer, snapshot, menu layout + timeline, the throw-away draw
+  idle(() => { hcmcTime(); warmSmear(); idle(() => { smear?.prime(); idle(() => { prepWork(); idle(() => smear?.warmDraw()); }); }); }, 4000);
+  btn.addEventListener('pointerdown', prep, { passive: true });
+  btn.addEventListener('touchstart', prep, { passive: true });
   const useSweep = () => { warmSmear(); const r = noSmearReason(); if (r) { smearWhy = r; return false; } if (smear && smear.lost) { smearWhy = 'WebGL context lost'; return false; } return !!smear && !smear.playing; };
 
   // the items, in Anh's order: flavour 1, flavour 2, clock, Work, About, Contact; then the line push
@@ -108,7 +124,11 @@ export function mountTallMenu() {
   // R48 r10: the whole entrance is ONE GSAP timeline (items: opacity 0 -> 1, blur -> 0, y +8 -> 0, each itemSec with itemEase; their STARTS spread over staggerAmount with staggerEase; then the line push with pushEase).
   // It starts when the sweep band has passed startShare of the width. Close = the same timeline reversed at closeSpeed (the band waits for the reversed timeline to reach the sweep's length).
   let tl = null;
-  const buildTl = () => {
+  let tlKey = '';
+  const buildTl = (reuse) => {
+    const key = innerWidth + '|' + (curLink ? curLink.textContent : '');
+    if (reuse && tl && key === tlKey) { tl.pause(0); return tl; }
+    tlKey = key;
     tl?.kill();
     const list = items(), t30 = frontTime(TM.startShare * innerWidth, MENU_SWEEP.openSec), cur = curLink;
     gsap.set(list, { opacity: 0, filter: 'blur(' + TM.blurPx + 'px)', y: TM.riseY });
@@ -168,6 +188,7 @@ export function mountTallMenu() {
   const finishSweep = () => { sweeping = false; restoreText(); if (pending) { const q = pending; pending = null; set(q[0], q[1]); } };
   const afterReflow = (fn) => { void menu.offsetWidth; fn(); };
   const set = (on, view = 'list') => {
+    const tapT = performance.now();
     if (sweeping && on !== open) { pending = [on, view]; return; } // (a tap during the sweep waits for it to end)
     if (on === open && menu.dataset.view === view) return;
     const wasOpen = open;
@@ -182,19 +203,19 @@ export function mountTallMenu() {
     if (on) {
       if (wasOpen) { menu.dataset.view = view; (menu.querySelector(view === 'about' ? '.tmenu__text' : 'a[href], button') || btn).focus({ preventScroll: true }); return; }
       curLink = /^\/work\/?$/.test(location.pathname) ? workLink : null; fromMenu = false;
-      tick();
+      timeEl.textContent = hcmcTime(); timeT = setTimeout(tick, 60000 - (Date.now() % 60000) + 50);
       menu.classList.toggle('is-plain', !sw);
       lineNow();
       if (sw) panel.style.clipPath = 'polygon(0 0, 0 0, 0 0)'; else panel.style.clipPath = 'none';
       menu.hidden = false; menu.dataset.view = view; placeMenu();
-      if (sw) { buildTl(); collectText(); } else showPlain();
+      if (sw) { buildTl(true); collectText(); } else showPlain();
       afterReflow(() => {
         menu.classList.add('is-open');
         if (sw) tl.timeScale(1).play(0); else if (curLink) lineSet(curLink, true);
       });
       if (sw) {
         sweeping = true; wmRun(true, secOpen, 0);
-        const ok = smear.play({ open: true, sec: secOpen, onFrame: ({ clip, f }) => { panel.style.clipPath = clip; fadeText(f); }, onDone: finishSweep });
+        const ok = smear.play({ open: true, sec: secOpen, tapT, onFrame: ({ clip, f }) => { panel.style.clipPath = clip; fadeText(f); }, onDone: finishSweep });
         if (ok) setPagePaused(true);
         if (!ok) { sweeping = false; restoreText(); menu.classList.add('is-plain'); panel.style.clipPath = 'none'; showPlain(); if (curLink) lineSet(curLink, true); wmRun(true, 0.25, 0); }
       } else wmRun(true, 0.25, 0);
@@ -237,10 +258,11 @@ export function mountTallMenu() {
     box.style.cssText = 'position:fixed;left:4px;right:4px;top:60px;z-index:99999;margin:0;padding:6px 8px;background:rgba(0,0,0,.78);color:#9f9;font:10px/1.35 ui-monospace,Menlo,monospace;pointer-events:none;white-space:pre-wrap';
     document.body.append(box);
     const show = () => {
-      const r = noSmearReason(), st = smear?.stats, g = sweepGeom();
+      const r = noSmearReason(), st = smear?.stats, lo = smear?.lastOpen, g = sweepGeom();
       box.textContent = [`smear: ${smear && !r ? 'ON' : 'FALLBACK (plain fade)'}${r ? ' - ' + r : smear ? '' : ' - ' + (smearTried ? smearWhy || 'renderer not made' : 'renderer not made yet (idle)')}`,
         `GL context: ${smear ? (smear.lost ? 'LOST' : 'ok') : '-'}   canvas dpr ${smear ? smear.dpr.toFixed(2) : '-'} (device ${devicePixelRatio})`,
         `grid: ${gridBlockPx().toFixed(1)} px blocks (MENU_SWEEP.blockPx ${MENU_SWEEP.blockPx} @430)   zone: ${g.zone.toFixed(0)} px   jag: ${g.jag.toFixed(0)} px   sweep ${MENU_SWEEP.openSec.toFixed(2)} s / close ${(MENU_SWEEP.openSec / MENU_SWEEP.closeDiv).toFixed(2)} s`,
+        `last OPEN: tap -> sweep frame 0 ${lo && lo.tapSync != null ? lo.tapSync : '-'} ms, -> first painted ${lo && lo.tapToFirst != null ? lo.tapToFirst : '-'} ms, first 3 frame times ${lo ? lo.first3.join(' / ') : '-'} ms, snapshot ${lo ? (lo.usedPrimed ? 'taken ' + lo.primedAgo + ' ms before the tap (prime cost ' + (lo.primeMs ?? 0).toFixed(1) + ' ms)' : 'taken IN the tap (not primed)') : '-'}`,
         `last sweep: ${st && st.frames ? `${st.frames} frames, ${st.avgMs.toFixed(1)} ms avg, ${st.maxMs.toFixed(1)} ms max, ${st.long} frames > 20 ms (page loop paused under the sweep: ${isPagePaused() ? "yes" : "no"})` : '-'}`].join('\n');
     };
     setInterval(show, 300); show();

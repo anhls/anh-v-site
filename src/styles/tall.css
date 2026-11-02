@@ -21,7 +21,8 @@ html.tall-home, html.tall-home body { height: 100%; overflow: hidden; overscroll
 .tmenu-open .tmenu__btn span:first-child { transform: translateY(0) rotate(20deg); }
 .tmenu-open .tmenu__btn span:last-child { transform: translateY(0) rotate(-20deg); }
 .tmenu { position: fixed; inset: 0; z-index: 50; color: var(--fg); overscroll-behavior: none; touch-action: none; }
-.tmenu[hidden] { display: none; }
+/* R48 r12: closed = laid out but invisible (no display change at the tap: the unhide cost ~24 ms at 4x CPU) */
+.tmenu[hidden] { display: block; visibility: hidden; pointer-events: none; }
 .tmenu__panel { position: absolute; inset: 0; background: var(--bg); will-change: clip-path; }
 .tmenu__time { position: absolute; top: var(--tm-flav-top, 33vh); right: var(--tm-clock-right, 20px); margin: 0; font-size: var(--tall-small); line-height: 1.5; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; text-align: right; font-style: normal; } /* R48 r5: on the flavour text's rows, right ink edge on the wordmark's V (placeMenu) */
 .tmenu__time span { display: block; opacity: var(--tm-clock-op, 0.25); }

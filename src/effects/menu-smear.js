@@ -10,7 +10,7 @@ import { createHomeFlight } from './home-flight.js';
 //     at the zone's leading edge; a cell the zone does not touch stays transparent = the page itself (smear exactly 0 at rest).
 //   - open: the edge sweeps left -> right; close: the exact reverse (right -> left), the sweep time is given by the caller (the close is twice as fast).
 // What is smeared: the page's pictures taken from the DOM at the tap (the hero video on Home, the Work cards, the media of a project page). Everything is time-based.
-const MAX_SRC = 5;
+const MAX_SRC = 5, PRIME_MAX_AGE = 2500;
 const smooth = (q) => { q = Math.min(1, Math.max(0, q)); return q * q * (3 - 2 * q); };
 export const unsmooth = (s) => { s = Math.min(1, Math.max(0, s)); let lo = 0, hi = 1; for (let i = 0; i < 22; i++) { const m = (lo + hi) / 2; if (smooth(m) < s) lo = m; else hi = m; } return (lo + hi) / 2; };
 // the sweep time of the open (the flight's own cross-fade stretch), the close is twice as fast
@@ -53,19 +53,34 @@ export function createMenuSmear() {
   const canvas = fl.canvas;
   canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:49;display:none';
   let raf = 0, active = null;
-  const stats = { frames: 0, avgMs: 0, maxMs: 0, last: 0, long: 0 };
+  const stats = { frames: 0, avgMs: 0, maxMs: 0, last: 0, long: 0, first3: [], tapToFirst: null, primeMs: null, primedAgo: null, usedPrimed: false };
+  let primed = null;
   fl.onLost = () => { api.lost = true; };
   const api = {
-    lost: false, stats,
+    lost: false, stats, lastOpen: null,
+    // R48 r12: everything that costs is done BEFORE the tap: prime() takes the page snapshot (the on-screen pictures; images are uploaded once per file, the hero / card video frame at every call) and is called on idle,
+    // on pointerdown of the burger and never in the tap frame. play() uses a snapshot at most PRIME_MAX_AGE ms old; with none it takes it itself.
+    prime() {
+      if (api.lost || fl.dead || active) return false;
+      const t = performance.now(), src = collectSources();
+      src.forEach((q, i) => { q.slot = i; fl.setPicture(i, q.el, q.el.tagName === 'IMG' ? q.el.currentSrc || q.el.src : undefined); });
+      primed = { src, t: performance.now() }; stats.primeMs = performance.now() - t; return true;
+    },
+    // one throw-away draw with a zero grid: the shader / texture paths are finished before the first real frame (does nothing visible: the canvas stays display:none)
+    warmDraw() {
+      if (api.lost || fl.dead || active || !primed) return;
+      try { const cols = gridCols(), rows = Math.max(4, Math.round((cols * innerHeight) / innerWidth)), g = new Float32Array(cols * rows * 4); for (let i = 3; i < g.length; i += 4) g[i] = 1; fl.begin(); fl.setGrid(g, cols, rows, [WORK_PTR.pixelStrength, WORK_PTR.pixelRgb]); primed.src.forEach((q) => fl.layer(q.box, q.box, { bend: 0, mix: 0 }, { bend: 0, mix: 0 }, [q.slot, q.slot], { frontPx: -1e9, gain: 1, skipZero: false })); fl.begin(); } catch { /* */ }
+    },
     get playing() { return !!active; },
     get dpr() { return canvas.width / Math.max(1, innerWidth); },
     // open = true: the edge sweeps left -> right; false: right -> left (the exact reverse). sec = the sweep time; delay = seconds to wait first (the panel stays whole).
     // onFrame({ s, f, clip }) every frame: s = the open-equivalent progress 0..1, f = the mean edge x (px), clip = the panel's clip-path (css string); onDone() after the last frame.
-    play({ open, sec, delay = 0, onFrame, onDone }) {
+    play({ open, sec, delay = 0, onFrame, onDone, tapT }) {
       if (api.lost || fl.dead) return false;
       api.cancel();
-      const src = collectSources();
-      src.forEach((s, i) => { s.slot = i; fl.setPicture(i, s.el); });
+      const tPlay = performance.now(); let src;
+      if (primed && tPlay - primed.t < PRIME_MAX_AGE) { src = primed.src; stats.usedPrimed = true; stats.primedAgo = Math.round(tPlay - primed.t); } else { stats.usedPrimed = false; stats.primedAgo = null; src = collectSources(); src.forEach((q, i) => { q.slot = i; fl.setPicture(i, q.el, q.el.tagName === 'IMG' ? q.el.currentSrc || q.el.src : undefined); }); }
+      primed = null; stats.first3 = []; stats.tapToFirst = null;
       const W = innerWidth, H = innerHeight, G = sweepGeom(W), cols = gridCols(), rows = Math.max(4, Math.round((cols * H) / W)), cell = W / cols, rh = H / rows;
       const grid = new Float32Array(cols * rows * 4); for (let i = 3; i < grid.length; i += 4) grid[i] = 1;
       const rowOff = Array.from({ length: rows }, (_, r) => hash(r * 1.913 + 4.1)); // 0..1: how far behind the mean edge each row's own edge sits
@@ -73,8 +88,10 @@ export function createMenuSmear() {
       canvas.style.display = 'block';
       stats.frames = 0; stats.avgMs = 0; stats.maxMs = 0; stats.last = 0; stats.long = 0;
       const t0 = performance.now() + delay * 1000;
+      let nFr = 0;
       const frame = (now) => {
-        if (stats.last) { const ms = now - stats.last; stats.frames++; stats.avgMs += (ms - stats.avgMs) / stats.frames; stats.maxMs = Math.max(stats.maxMs, ms); if (ms > 20) stats.long++; } stats.last = now;
+        if (tapT) { if (nFr === 0) stats.tapSync = +(performance.now() - tapT).toFixed(1); else if (nFr === 1) stats.tapToFirst = +(performance.now() - tapT).toFixed(1); } nFr++;
+        if (stats.last) { const ms = now - stats.last; if (stats.first3.length < 3) stats.first3.push(+ms.toFixed(1)); stats.frames++; stats.avgMs += (ms - stats.avgMs) / stats.frames; stats.maxMs = Math.max(stats.maxMs, ms); if (ms > 20) stats.long++; } stats.last = now;
         const t = (now - t0) / 1000, u = Math.min(1, Math.max(0, t / sec)), s = open ? smooth(u) : 1 - smooth(u), f = G.from + (G.to - G.from) * s;
         const waiting = t < 0;
         const pts = []; let nZero = 0, nFull = 0;
@@ -101,7 +118,7 @@ export function createMenuSmear() {
         if (t >= sec) { finish(); return; }
         raf = requestAnimationFrame(frame);
       };
-      const finish = () => { cancelAnimationFrame(raf); raf = 0; active = null; fl.begin(); canvas.style.display = 'none'; onFrame?.({ s: open ? 1 : 0, f: open ? G.to : G.from, clip: open ? 'none' : 'polygon(0 0, 0 0, 0 0)' }); onDone?.(); };
+      const finish = () => { if (open) api.lastOpen = { tapSync: stats.tapSync, tapToFirst: stats.tapToFirst, first3: stats.first3.slice(), usedPrimed: stats.usedPrimed, primedAgo: stats.primedAgo, primeMs: stats.primeMs }; cancelAnimationFrame(raf); raf = 0; active = null; fl.begin(); canvas.style.display = 'none'; onFrame?.({ s: open ? 1 : 0, f: open ? G.to : G.from, clip: open ? 'none' : 'polygon(0 0, 0 0, 0 0)' }); onDone?.(); };
       active = { finish };
       frame(performance.now());
       return true;
