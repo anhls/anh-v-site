@@ -1,3 +1,4 @@
+import './util/modal.js'; // R46c: must stay the first import (its input blocker has to be registered before any page listener)
 import './styles/base.css';
 import './styles/desktop.css';
 import './styles/work.css';

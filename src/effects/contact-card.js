@@ -2,6 +2,7 @@ import '../styles/contact.css';
 import data from '../data/data.json';
 import { CONTACT } from '../timeline.js';
 import { CONTACT_CARD as K } from '../settings/shared.js';
+import { modal, lockPage, unlockPage } from '../util/modal.js';
 
 // R46 Part A + R46b: the contact card. Opened by contact-trigger.js from every [data-contact] link. Two cards: the main card (the content) and a BACK card behind it (plain dark, or contact.backCard image / video).
 // On open both are thrown in from a random direction, spinning, and settle with a spring; a click / tap outside slides them out the way they came; both drag (Pointer Events, 6 px threshold) with a little tilt and
@@ -12,7 +13,7 @@ const C = data.contact || {};
 const email = C.email || CONTACT.email;
 const STEP = 1 / 240, rnd = (a, b) => a + Math.random() * (b - a), clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
-let root = null, card = null, back = null, open = false, trigger = null, pushed = false, copyTimer = 0, raf = 0, last = 0, acc = 0, hideT = 0, closing = false, dragging = null, suppressClick = false;
+let dimDown = null, root = null, card = null, back = null, open = false, trigger = null, pushed = false, copyTimer = 0, raf = 0, last = 0, acc = 0, hideT = 0, closing = false, dragging = null, suppressClick = false;
 const cards = []; // {el, main, x, y, r, vx, vy, vr, tx, ty, tr, rest, mode, entry:{x,y,r}, ...}
 
 function build() {
@@ -41,23 +42,20 @@ function build() {
   card = root.querySelector('.cc__card'); back = root.querySelector('.cc__back');
   document.body.append(root);
   cards.push({ el: card, main: true }, { el: back, main: false });
-  // nothing behind the card scrolls, spawns or plays a sound: wheel / touch / clicks stop here
-  root.addEventListener('wheel', (e) => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
-  root.addEventListener('touchmove', (e) => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
-  root.addEventListener('click', (e) => { if (suppressClick) { suppressClick = false; e.preventDefault(); e.stopPropagation(); } }, true); // the click that ends a drag is not a click
-  root.addEventListener('click', (e) => { e.stopPropagation(); if (!e.target.closest('.cc__card, .cc__back')) close(); });
-  root.addEventListener('pointerdown', (e) => { e.stopPropagation(); onDown(e); });
-  root.addEventListener('dragstart', (e) => e.preventDefault());
-  root.querySelector('.cc__close').addEventListener('click', () => close());
-  const copy = root.querySelector('.cc__copy');
-  copy?.addEventListener('click', async () => {
-    const label = root.querySelector('.cc__label[data-label]');
-    try {
-      await navigator.clipboard.writeText(email);
-      if (label) { label.textContent = C.copied || 'Copied'; clearTimeout(copyTimer); copyTimer = setTimeout(() => { label.textContent = label.dataset.label; }, 1600); }
-    } catch { location.href = `mailto:${email}`; } // clipboard denied / unavailable: the mail link still works
+  // R46c: while it is open util/modal.js swallows every input event before the page sees it and calls these traps instead (so only the cards react)
+  modal.trap('click', (e) => {
+    if (suppressClick) { suppressClick = false; e.preventDefault(); return; } // the click that ends a drag is not a click
+    if (!open) return;
+    const t = e.target;
+    if (t.closest?.('.cc__copy')) { doCopy(); return; }
+    if (t.closest?.('.cc__close')) { close(); return; }
+    if (!t.closest?.('.cc__card, .cc__back')) { if (!dimDown || Math.hypot(e.clientX - dimDown.x, e.clientY - dimDown.y) < K.dragStart) close(); } // (a drag over the dim is not a click)
   });
-  addEventListener('keydown', (e) => {
+  modal.trap('pointerdown', (e) => onDown(e));
+  modal.trap('pointermove', (e) => onMove(e));
+  modal.trap('pointerup', (e) => onUp(e));
+  modal.trap('pointercancel', (e) => onUp(e));
+  modal.trap('keydown', (e) => {
     if (!open) return;
     if (e.key === 'Escape') { e.preventDefault(); close(); return; }
     if (e.key !== 'Tab') return;
@@ -69,6 +67,14 @@ function build() {
   });
   addEventListener('popstate', () => { if (open && !(history.state && history.state.cc)) { pushed = false; exit(); } else pushed = !!(history.state && history.state.cc); });
   addEventListener('resize', () => { if (open) sizeBack(); });
+}
+
+async function doCopy() {
+  const label = root.querySelector('.cc__label[data-label]');
+  try {
+    await navigator.clipboard.writeText(email);
+    if (label) { label.textContent = C.copied || 'Copied'; clearTimeout(copyTimer); copyTimer = setTimeout(() => { label.textContent = label.dataset.label; }, 1600); }
+  } catch { location.href = `mailto:${email}`; } // clipboard denied / unavailable: the mail link still works
 }
 
 const draw = (c) => { c.el.style.transform = `translate(-50%, -50%) translate(${c.x.toFixed(2)}px, ${c.y.toFixed(2)}px) rotate(${c.r.toFixed(3)}deg)`; };
@@ -106,9 +112,14 @@ function exit(fling) {
     c.pe = { x: ex, y: ey, r: c.r + (c.entry.r - c.rest) * 0.5 };
   });
   const total = rm ? 0.25 : K.outSec + K.outLag + 0.05;
-  clearTimeout(hideT); hideT = setTimeout(() => { closing = false; if (!open) { root.classList.remove('is-on'); cancelAnimationFrame(raf); raf = 0; } }, total * 1000);
   const t = trigger; trigger = null;
-  if (t && t.isConnected) t.focus({ preventScroll: true });
+  clearTimeout(hideT); hideT = setTimeout(() => {
+    closing = false;
+    if (open) return;
+    root.classList.remove('is-on'); cancelAnimationFrame(raf); raf = 0;
+    unlockPage(); modal.set(false); // the page wakes up exactly where it was
+    if (t && t.isConnected) t.focus({ preventScroll: true });
+  }, total * 1000);
   tick0();
 }
 
@@ -158,10 +169,10 @@ function tick0() { if (!raf) { last = performance.now(); acc = 0; raf = requestA
 // ---- drag ----
 function onDown(e) {
   if (!open || e.button > 0 || dragging) return;
-  const el = e.target.closest('.cc__card, .cc__back'); if (!el) return;
+  const el = e.target.closest('.cc__card, .cc__back'); if (!el) { dimDown = { x: e.clientX, y: e.clientY }; return; }
+  dimDown = null;
   const c = cards.find((k) => k.el === el);
   dragging = { c, id: e.pointerId, sx: e.clientX, sy: e.clientY, lx: e.clientX, ly: e.clientY, lt: performance.now(), on: false, vx: 0, vy: 0, gx: 0, gy: 0 };
-  addEventListener('pointermove', onMove); addEventListener('pointerup', onUp); addEventListener('pointercancel', onUp);
 }
 function onMove(e) {
   const d = dragging; if (!d || e.pointerId !== d.id) return;
@@ -185,7 +196,6 @@ function onMove(e) {
 }
 function onUp(e) {
   const d = dragging; if (!d || e.pointerId !== d.id) return;
-  removeEventListener('pointermove', onMove); removeEventListener('pointerup', onUp); removeEventListener('pointercancel', onUp);
   dragging = null;
   if (!d.on) return; // a plain click: the links / buttons work as usual
   suppressClick = true; setTimeout(() => { suppressClick = false; }, 0); // the click that follows a drag is not a click
@@ -205,6 +215,7 @@ export function openContact(from) {
   open = true;
   root.classList.toggle('cc--rm', reduced());
   root.classList.add('is-on');
+  lockPage(root); modal.set(true);
   sizeBack(); launch();
   void root.offsetWidth;
   root.classList.add('is-open'); // the dim fades in with the throw

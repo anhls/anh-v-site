@@ -1,3 +1,4 @@
+import { modal } from './util/modal.js'; // R46c: must stay the first import (its input blocker has to be registered before any page listener)
 import './styles/base.css';
 import './styles/desktop.css';
 import './effects/contact-trigger.js';
@@ -46,6 +47,7 @@ ScrollTrigger.config({ ignoreMobileResize: true }); // R24a: the mobile address 
 // Lenis drives the scroll; GSAP's ticker feeds it so pinned sections stay in sync.
 const lenis = heroOnly ? null : new Lenis({ duration: SCROLL.duration, easing: SCROLL.easing }); // (R45: none when the page does not scroll) Framer "Intensity 30"; tune in timeline.js
 if (lenis) {
+  modal.on((o) => { if (o) lenis.stop(); else lenis.start(); }); // R46c: the page does not scroll under the contact card
   lenis.on('scroll', ScrollTrigger.update);
   installScrollGain(lenis);
   gsap.ticker.add((time) => lenis.raf(time * 1000));
