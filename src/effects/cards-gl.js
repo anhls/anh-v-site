@@ -381,7 +381,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     if (lite) { canvas.style.width = `${w}px`; canvas.style.height = `${h}px`; }
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
-    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     cards.forEach((_, i) => { if (aspect[i]) setCover(i, aspect[i] * 1000, 1000); }); // card sizes may have changed
     computeWeights();
     dirty = true;
@@ -418,7 +418,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb.res);
     gl.blitFramebuffer(0, 0, fb.w, fb.h, 0, 0, fb.w, fb.h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     if (!over) gl.disable(gl.BLEND);
     const WP = img ? layers.warp : WARP, Pu = img ? PF : P;
     gl.useProgram(img ? postF : post);
@@ -426,7 +426,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, fb.tex);
     gl.uniform1i(Pu.uScene, 0);
-    gl.uniform2f(Pu.uRes, canvas.width, canvas.height);
+    gl.uniform2f(Pu.uRes, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.uniform1f(Pu.uAmt, Math.max(-1, Math.min(1, amt)));
     gl.uniform4f(Pu.uShape, img ? WP.curl * (WP.shapeK ?? 1) : WP.curl, ...(WARP_DIR > 0 ? [WP.camDown, WP.camUp] : [WP.camUp, WP.camDown]), WP.reach); // the shader's first camera / bow slot belongs to its positive (recede) side // R16e: cylinder parameters
     gl.uniform2f(Pu.uBow, ...(WARP_DIR > 0 ? [WP.bowDown, WP.bowUp] : [WP.bowUp, WP.bowDown]));
@@ -555,7 +555,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
       bendI.amt = amtI;
       if (Math.abs(amtI) <= 0.0015) { shift = 0; leanPrev = 0; leanPrevAmt = 0; } // (no image pass this frame: the axis is centred)
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
       gl.clear(gl.COLOR_BUFFER_BIT);
       for (let L = 0; L < 3; L++) {
         const ids = layerIds[L];
@@ -569,7 +569,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
           postPass(a, grainAmt, seed, L === 1, true);
         } else {
           gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-          gl.viewport(0, 0, canvas.width, canvas.height);
+          gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
           paintCards(grainAmt, seed, scale, sy, 0, 0, ids, false);
         }
       }
@@ -598,6 +598,8 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     markDirty: () => { dirty = true; },
     holdWarp: (a) => { holdAmt = a; dirty = true; }, // dev only
     diag: () => ({ postOk, shift, ...fbInfo, warpScale, passCount, lastPass }), // R24f: what the ?perf diagnosis line shows
+    // R48 r9: the DRAWN truth for ?debug=layout: the drawing buffer, the viewport, the widths the shader maths uses, and where card i's left / right edges land on screen (css px, the flat position through the shader's own maths)
+    probe: (i) => { const vp = gl.getParameter(gl.VIEWPORT), cssW = canvas.clientWidth || W, k = vp[2] / cssW; return { dbw: gl.drawingBufferWidth, dbh: gl.drawingBufferHeight, cw: canvas.width, vp: [vp[0], vp[1], vp[2], vp[3]], W, H, cssW, left: i == null ? null : ((bx[i] + ox[i] - bw[i] / 2) / W) * vp[2] / (canvas.width / cssW), right: i == null ? null : ((bx[i] + ox[i] + bw[i] / 2) / W) * vp[2] / (canvas.width / cssW), k }; },
     setWarpScale: (k) => { warpScale = Math.max(0.25, Math.min(1, k)); dirty = true; },
     // R33b: the pixel grid. amt = Float32Array (per picture: its share of the effect, 0 = untouched), params = [strength, rgb], data = RGBA32F cells (cols x rows, screen space, row 0 = top),
     // pad = [px, py] spill margin. amt null = off (nothing is uploaded or sampled; every picture is exactly as before).

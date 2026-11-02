@@ -279,6 +279,7 @@ const startRenderer = () => {
     rendererPending = !!back;
     if (!rendererPending) root.classList.add('work--gl');
     gl.resize(W, H);
+    if (new URLSearchParams(location.search).get('debug') === 'layout') window.__workGl = { probeEl: (el) => (gl ? gl.probe(items.findIndex((it) => it.el === el)) : null) }; // (R48 r9 readout)
     gl.setAxis(vertical ? 0 : 1);
     gl.show(!rendererPending);
     items.forEach((it, i) => { gl.hd[i] = it.dark && fine ? CARD_HOVER.darkRest : 0; });
@@ -1072,7 +1073,11 @@ const relayout = () => {
   off += f * cur().pitch - S;
   if (glOn) gl.resize(W, H);
 };
-addEventListener('resize', () => { if (paused || (mode.tap && transitionBusy)) return; clearTimeout(rt); rt = setTimeout(relayout, 120); });
+const schedRelayout = () => { if (paused || (mode.tap && transitionBusy)) return; clearTimeout(rt); rt = setTimeout(relayout, 120); };
+addEventListener('resize', schedRelayout);
+// R48 r9: Safari changes the visual / layout viewport (toolbar collapse, zoom-to-fit settling) without always sending a window resize: the visual viewport's resize and a slow check of the width the strip was laid out with also relayout
+window.visualViewport?.addEventListener('resize', schedRelayout);
+setInterval(() => { if (!paused && (viewW() !== W || innerHeight !== H)) schedRelayout(); }, 500);
 
 commit(vertical ? 'vertical' : 'side');
 const restoreLitePlace = () => {
