@@ -6444,5 +6444,29 @@
     "bytes": 240720
    }
   ]
+ },
+ "tcb-priority/b19a-card": {
+  "type": "video",
+  "width": 1476,
+  "height": 1028,
+  "alpha": false,
+  "webm": "tcb-priority/b19a-card.webm",
+  "mp4": "tcb-priority/b19a-card.mp4",
+  "poster": "tcb-priority/b19a-card-poster.webp",
+  "sig": "r47fix2-crop-of-b19a",
+  "files": [
+   {
+    "file": "tcb-priority/b19a-card.webm",
+    "bytes": 581311
+   },
+   {
+    "file": "tcb-priority/b19a-card.mp4",
+    "bytes": 570561
+   },
+   {
+    "file": "tcb-priority/b19a-card-poster.webp",
+    "bytes": 69826
+   }
+  ]
  }
 }
