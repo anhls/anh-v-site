@@ -479,3 +479,5 @@ Waits for Anh's original files. Convert the two GIFs to MP4/WebM loops, serve im
 ## [done] R45c (DESKTOP, same branch desktop/r45-home-work; brief docs/codex/R45c.md): fixes after Anh's first look: no loader when coming back from Work, Home -> Work lands on the full strip (neighbours slide in, no black), a smear that reads (directional, Work-page smear language), per-project share images back.
 
 ## [done] R45b (LITE; brief docs/codex/R45b.md; branch lite/r45b-home-work from work-v2 at 113f1ee+): phone / tablet Home <-> Work, the same move as desktop R45 / R45c (pixel swipe, neighbours on the push, view-transition hold both ways, no loader on return). Runs BEFORE R44 in anh-v-site-mobile (Anh: Home + Work first).
+
+## R46 (DESKTOP + lite smoke; brief docs/codex/R46.md; branch desktop/r46-launch-prep): launch prep: contact card (default design, placeholder links hidden until filled), hide Duhat + Nam Long (one switch), self-host all Framer media, clean URLs, docs/LAUNCH.md. The live push + domain are done by Cowork + Anh after his OK.
