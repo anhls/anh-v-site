@@ -87,6 +87,8 @@ export const SECTIONS = {
 // SIZE (measured on the reference recordings in docs/reference/r49-*): the digit cap height is 20.9 % of the WIDTH on wide screens (1440x900 and 1920x1080 agree), capped at capMaxVh of the height;
 // bottom gap 2.35 vw. On tall screens the pair of digits fills the width minus a gutter each side.
 // PROGRESS = fonts + the images the first screen needs + the hero video (buffered seconds, 'can play' = full). maxMs = stall cap: after it every step is allowed (go to 99, continue with what is ready).
+// TOP TEXT (R49 r2): the two blocks form ONE group centred on the screen (groupGapVw between them) on wide screens, first-line ink top level with the small wordmark's ink top (inkTopOfWmH = that offset as a share of the wordmark height; inkInLine = the first line's ink top below its line box, in em); tall: stacked, left edge at tallLeftPct of the width.
+// WORDMARK: the page's own AV wordmark (one element) is shown SMALL top-left from the first frame and grows to its big place with the swipe (nav.drive on wide screens, the phone's .twm).
 // ENDING: holdSec after 99 settles, then the Home <-> Work pixel swipe (src/effects/loader-swipe.js, look / grid / strength / time = HOME_FLIGHT + WORK_PTR) left -> right over the hero video.
 // Reduced motion, ?gl=0, Save-Data, a weak device or no WebGL2: the digits change by fade (fadeSec), no travel, and the loader ends with a fade (endFadeSec).
 export const LOADER = {
@@ -102,11 +104,11 @@ export const LOADER = {
   capVw: 20.9, capMaxVh: 42, bottomVw: 2.35,
   tall: { gutterPx: 16, bottomPx: 16 },
   marginVw: 3.125, // side margin of the top text and the travel (the nav's 60 px at 1920)
-  top: { sizeVw: 0.7, minPx: 11, maxPx: 15, topVw: 1.6, tallTopPx: 24, tallGapEm: 1.5, clockOpacity: 0.25, inSec: 0.7, blurPx: 8 },
+  top: { sizeVw: 0.7, minPx: 11, maxPx: 15, groupGapVw: 6.5, inkTopOfWmH: 0.03, inkInLine: 0.3, tallLeftPct: 50, tallGapEm: 1.5, clockOpacity: 0.25, inSec: 0.7, blurPx: 8 },
   holdSec: 0.3,
   fadeSec: 0.35,
   endFadeSec: 0.45,
-  enter: { sec: 0.6, delaySec: 1.1, blurPx: 8 }, // the wordmark / nav / ticker / burger come in once the swipe has passed (CSS animation, base.css; delay counted from the swipe start)
+  enter: { sec: 0.6, delaySec: 1.1, blurPx: 8 }, // the nav / ticker / burger come in once the swipe has passed (the wordmark is on screen all along and grows with the swipe) (CSS animation, base.css; delay counted from the swipe start)
   brushFrame: 1.5, // the swipe's brush radius = pixelBrush x (this x the screen height): the Work card is ~half the height, the swipe covers the whole screen
 };
 

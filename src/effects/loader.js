@@ -1,5 +1,5 @@
 import { gsap } from 'gsap';
-import { LOADER as L } from '../timeline.js';
+import { LOADER as L, HOME_FLIGHT as HF } from '../timeline.js';
 import data from '../data/data.json';
 import { isTall } from '../util/layout-mode.js';
 import { mountClock } from '../util/clock.js';
@@ -10,12 +10,13 @@ import { transitionPolicy } from './transition-policy.js';
 // it AND the previous step's slide has ended, so a fast load is one continuous chain and a slow one waits on a number (no fake creep). After 99 the loader leaves with the Home <-> Work pixel swipe
 // (loader-swipe.js) over the playing hero video; reduced motion / ?gl=0 / Save-Data / weak device = digits fade, the end is a fade. All numbers: LOADER in src/settings/desktop.js.
 // `urls` = the images the first screen needs; `onReady(...)` is called as soon as the last step may start (everything needed has loaded) so the caller can start the rest.
+// `wordmark` = { el, set(p), release() }: the page's own AV wordmark (p 1 = small top-left, 0 = its big place). It is small while loading and grows to big with the swipe (or the fade).
 // Returns a promise that resolves once the loader is gone.
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const plainFx = () => reduced || new URLSearchParams(location.search).get('gl') === '0' || !!navigator.connection?.saveData || !transitionPolicy().enabled;
 const measure = document.createElement('canvas').getContext('2d');
 
-export function runLoader({ urls = [], onReady } = {}) {
+export function runLoader({ urls = [], onReady, wordmark } = {}) {
   const tall = isTall(), root = document.documentElement, flavour = data.menu?.flavour ?? [];
   const slide = !plainFx(), N = L.steps.length, sec = L.stepSec;
   root.classList.add('is-loading');
@@ -41,6 +42,7 @@ export function runLoader({ urls = [], onReady } = {}) {
   const video = document.querySelector('.hero__video');
 
   // ---- layout: sizes come from the font's own ink metrics (cap height of the digits, widest digit), so the numbers in LOADER stay in vw / vh
+  const widths = () => { el.style.setProperty('--l-fs-top', `${geo.topPx}px`); return el.querySelector('.loader__tl').offsetWidth + el.querySelector('.loader__tr').offsetWidth + (L.top.groupGapVw / 100) * innerWidth; };
   const geo = { fs: 0, maskW: 0, startX: 0, u: 0, topPx: 0 };
   const layout = () => {
     const W = innerWidth, H = innerHeight, font = `${L.fontWeight} 100px "Clash Display"`;
@@ -52,7 +54,7 @@ export function runLoader({ urls = [], onReady } = {}) {
     const fs = tall ? (W - 2 * gutter) / (2 * adv) : Math.min((L.capVw / 100) * W, (L.capMaxVh / 100) * H) / cap;
     const maskW = adv * fs, baseline = ((1 - (fa + fd)) / 2 + fa) * fs; // line-height 1: the baseline's distance from the top of the digit box
     const topPx = Math.min(L.top.maxPx, Math.max(L.top.minPx, (L.top.sizeVw / 100) * W));
-    geo.fs = fs; geo.maskW = maskW; geo.topPx = topPx;
+    geo.fs = fs; geo.maskW = maskW; geo.topPx = topPx; // (before widths(): it reads topPx)
     geo.startX = tall ? gutter : margin;
     geo.u = tall ? 0 : (W - 2 * margin - 2 * maskW) / (N - 1);
     el.style.setProperty('--l-fs', `${fs}px`);
@@ -60,12 +62,15 @@ export function runLoader({ urls = [], onReady } = {}) {
     el.style.setProperty('--l-h', `${baseline}px`);
     el.style.setProperty('--l-bottom', `${tall ? L.tall.bottomPx : (L.bottomVw / 100) * W}px`);
     el.style.setProperty('--l-weight', String(L.fontWeight));
-    el.style.setProperty('--l-m', `${margin}px`);
-    el.style.setProperty('--l-top', `${tall ? L.top.tallTopPx : (L.top.topVw / 100) * W}px`);
+    // the group: its first-line ink top level with the small wordmark's ink top; wide = centred as one group, tall = stacked with its left edge at the centre
+    const wr = wordmark.el.getBoundingClientRect(), inkTop = wr.top + L.top.inkTopOfWmH * wr.height, groupW = tall ? 0 : widths();
+    el.style.setProperty('--l-top', `${inkTop - L.top.inkInLine * topPx}px`);
+    el.style.setProperty('--l-left', `${tall ? (L.top.tallLeftPct / 100) * W : (W - groupW) / 2}px`);
     el.style.setProperty('--l-fs-top', `${topPx}px`);
-    el.style.setProperty('--l-gap', `${L.top.tallGapEm}em`);
+    el.style.setProperty('--l-gap', tall ? `${L.top.tallGapEm}em` : `${(L.top.groupGapVw / 100) * W}px`);
     el.style.setProperty('--l-clock-op', String(L.top.clockOpacity));
   };
+  wordmark.set(1);
   layout();
   let step = -1; // the step whose digit is (arriving at) the screen
   const place = () => gsap.set(counter, { x: tall ? geo.startX : geo.startX + geo.u * Math.max(step, 0) });
@@ -139,6 +144,8 @@ export function runLoader({ urls = [], onReady } = {}) {
   };
   const fade = () => {
     root.classList.remove('is-loading');
+    const w = { p: 1 };
+    gsap.to(w, { p: 0, duration: L.endFadeSec * 1.5, ease: 'power2.inOut', onUpdate: () => wordmark.set(w.p), onComplete: () => wordmark.release() });
     gsap.to(el, { opacity: 0, duration: L.endFadeSec, ease: 'power1.out', onComplete: cleanup });
   };
   const finish = async () => {
@@ -148,7 +155,9 @@ export function runLoader({ urls = [], onReady } = {}) {
     await sw.play({
       snap, video,
       onFirstFrame: () => { el.style.visibility = 'hidden'; root.classList.remove('is-loading'); root.classList.add('loader-out'); },
+      onProgress: (t) => wordmark.set((1 - t) ** HF.sizePow), // the flight's own size curve (card -> hero = small -> big)
     });
+    wordmark.release();
     cleanup();
   };
 

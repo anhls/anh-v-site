@@ -9,3 +9,10 @@ Shared edits for the merge with R48:
 - Entrance: the wordmark / nav / ticker / burger are hidden while loading (html.is-loading) and fade in after the swipe (loader-out, base.css).
 Ambiguities: ?skipLoader does not exist in the code (not added); wide-screen top text is one right block.
 NOT run (time): Slow 4G run, 12 s cap run, 144 Hz motion curve, Home->Work->Back never-shows run, compare 542/542 at 1920 + 2560, clean-clone build, Cloudflare preview check. Build passes; ?gl=0 ends with siteReady.
+
+## Round 2
+- Wordmark: the page's own wordmark (desktop: nav.drive(1), the Work pages' small state; phone: .twm moved to x 5vw / y 3.4vh / 28vw wide, the project pages' phone small box) is on screen small from the first frame (z-index above the loader while html.is-loading) and grows to big with the swipe (the flight's own size curve, (1-t)^sizePow), released to the normal scroll logic at the end (new nav.release(), shared edit in nav.js). No loader copy, no entrance for it.
+- Top text: one group, centred (gap 6.5 vw), first-line ink top level with the wordmark's ink top (measured: ink top = box top + 3 % of its height; my first guess from Anh's percentages was 37 %, which put the text 12 px too low). Phone: stacked, left edge at 50 % of the width. Burger hidden while loading.
+- Anh's screenshot numbers (ink x 2.15-11.4 %) are wider than the Work pages' small wordmark at 1920 (3.1-11.9 %): I used the same element/state as the Work pages, so they match by construction; check his window size if it still looks off.
+- Item 4 (menu-smear for the phone ending): not done, R48 is not merged; the phone keeps the flight look.
+- Sheets: docs/reference/r49-r2-*. NOT run: Home -> Work -> Back (loader code path untouched), Slow 4G, 144 Hz.

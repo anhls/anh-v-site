@@ -26,7 +26,7 @@ export function prepareSwipe() {
     ok: () => !lost && !r.dead,
     dispose,
     // snap = the loader's 2D canvas, video = the playing hero <video>, onFirstFrame() runs right after the first frame (identical to the loader) is drawn. Resolves after the last frame.
-    play({ snap, video, onFirstFrame }) {
+    play({ snap, video, onFirstFrame, onProgress }) {
       const W2 = innerWidth, H2 = innerHeight, box = FULL(W2, H2), sec = F.sec;
       r.setPicture(0, snap, 'loader-snap');
       const cols = Math.max(8, Math.round(WORK_PTR.pixelGrid)), rows = Math.max(4, Math.round((cols * H2) / W2)), zero = new Float32Array(cols * rows * 4);
@@ -48,6 +48,7 @@ export function prepareSwipe() {
           r.setPicture(1, video); // the live video frame (no key: re-uploaded every frame)
           r.setGrid(grid ? grid.data : zero, cols, rows, grid ? grid.params : [WORK_PTR.pixelStrength, WORK_PTR.pixelRgb]);
           r.begin(); r.layer(box, box, REST, REST, [0, 1], { frontPx: frontAt(p), gain, vertical: false });
+          onProgress?.(p);
           if (first) { first = false; onFirstFrame?.(); }
           if (p >= 1) { dispose(); resolve(); return; }
           requestAnimationFrame(draw);

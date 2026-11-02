@@ -136,5 +136,5 @@ export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe,
     a.addEventListener('mouseleave', () => { t.y = 0; });
   });
   // R45: the flight drives the big <-> small move from its own progress (p 0 = big, 1 = small), frame by frame, no spring lag
-  return { drive(p) { driven = true; state.p = p; layer.snap(); }, destroy() { offs.splice(0).forEach((f) => f()); img.remove(); } };
+  return { drive(p) { driven = true; state.p = p; layer.snap(); }, release() { driven = false; check(); }, destroy() { offs.splice(0).forEach((f) => f()); img.remove(); } };
 }
