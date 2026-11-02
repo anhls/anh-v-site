@@ -1109,7 +1109,7 @@
         "blocks": [
           {
             "t": "hero",
-            "img": "bitis09/hero",
+            "img": "bitis09/billboard",
             "parallax": {
               "y": 0.25,
               "s": 1,
