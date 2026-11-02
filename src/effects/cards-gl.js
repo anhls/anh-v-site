@@ -242,6 +242,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
   const posterImgs = new Array(n).fill(null);
   let used = 0;
   let dirty = true;
+  let drawSeq = 0; const firstDrawn = []; // R45b round 2: draw() calls so far, and the call in which card i's texture was first drawn (api.drawn)
   let W = 1;
   let H = 1;
   let lost = false;
@@ -470,6 +471,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
       const cx = bx[i] + ox[i];
       const cy = by[i] - sy + oy[i];
       if (cy + bh[i] / 2 + arcMax < -my || cy - bh[i] / 2 - arcMax > H + my || cx + bw[i] / 2 < -mx || cx - bw[i] / 2 > W + mx) continue;
+      if (t && firstDrawn[i] === undefined) firstDrawn[i] = drawSeq;
       const bendPx = Math.max(-bh[i] * 0.3, Math.min(bh[i] * 0.3, bend.x * arcMax * bendW[i]));
       gl.uniform2f(U.uCenter, cx + mx, cy + my);
       gl.uniform1f(U.uBend, bendPx);
@@ -496,6 +498,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
   // Called once per frame by the loop, after setOffset for every card. sy = scroll position, dt in s, vel = signed scroll speed (px/s),
   // scale = layout scale (capW / 1920), near(i) is true when a card is close enough to be worth uploading.
   const draw = (sy, dt, vel, scale, velImg = vel) => {
+    drawSeq++;
     if (lost) return false;
     // Bend spring. target = tanh(speed / ref) signed; overshoot -> damping ratio (the usual 2nd-order step response).
     const os = Math.min(Math.max(BEND.overshoot, 0.001), 0.95);
@@ -621,6 +624,8 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     bendImg: () => bendI,
     pauseUploads: (paused) => { uploadsPaused = paused; },
     has: (i) => !!tex[i],
+    // R45b round 2: how many draw() calls ago the picture of card i was first drawn with its texture (-1 = not yet): the landing layer waits for >= 2
+    drawn: (i) => (firstDrawn[i] === undefined ? -1 : drawSeq - firstDrawn[i]),
     coverRatio: (i) => (aspect[i] ? (bw[i] / bh[i]) * (cover[i * 4 + 1] / cover[i * 4]) / aspect[i] : 0), // R24i check: drawn picture's x scale / y scale (1 = no stretch)
     stats: () => ({ textureMb: used / 1048576, loaded: tex.filter(Boolean).length, bend: bend.x, bendRaw: bend.x }),
     destroy: () => { canvas.remove(); api.active = false; glClose(gl, 'strip'); },

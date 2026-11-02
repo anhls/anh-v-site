@@ -1085,8 +1085,8 @@ if (back) {
   })();
 }
 document.title = 'Work | Anh V';
-// R45: Home <-> Work: the landed card layer from the homepage flight, and the way back (the centred card grows into the hero). Desktop only.
-if (!mode.tap && !back) initHomeReturn({ items, px, py, bw, bh, fadeEls, nav: wmNav, isBusy: () => transitionBusy || TC.on || !!drag, setBusy: (b) => { transitionBusy = b; }, push: { start: (q) => { TC.u = 0; prepareClear(q); }, set: (u) => { TC.u = u; } }, isPaused: () => paused, firstReady: () => { const f = items.find((it) => it.kind === 'frame' && it.proj === 0); return !!(f && f.img.complete && f.img.naturalWidth); } });
+// R45 / R45b: Home <-> Work: the landed card layer from the homepage flight, and the way back (the centred card grows into the hero). Desktop and phone / tablet (touch: also the swipe-right back).
+if (!back) initHomeReturn({ items, px, py, bw, bh, touch: !!mode.tap, rectOf: mode.tap ? (i) => ({ x: bx[i] + (gl?.ox?.[i] || 0) - bw[i] / 2, y: by[i] + (gl?.oy?.[i] || 0) - bh[i] / 2, w: bw[i], h: bh[i] }) : null, fadeEls, nav: wmNav, isBusy: () => transitionBusy || TC.on || !!drag, setBusy: (b) => { transitionBusy = b; }, push: { start: (q) => { TC.u = 0; prepareClear(q); }, set: (u) => { TC.u = u; } }, isPaused: () => paused, firstReady: () => { const f = items.find((it) => it.kind === 'frame' && it.proj === 0); if (!(f && f.img.complete && f.img.naturalWidth)) return false; return glOn && gl ? gl.drawn(f.idx) >= 2 : true; } }); // R45b round 2: 'the strip drew' = the renderer drew this card's texture, then 2 more frames (not just img.complete)
 document.removeEventListener('click', queueEarlyClick, true);
 if (earlyClick) {
   earlyClick.style.cursor = '';

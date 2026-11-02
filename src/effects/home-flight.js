@@ -1,4 +1,5 @@
-import { HOME_FLIGHT as F, WORK_V2, BEND, TRANSITION, WORK_PTR } from '../timeline.js';
+import { HOME_FLIGHT as F, WORK_V2, BEND, TRANSITION, WORK_PTR, WORK, TALL, TABLET } from '../timeline.js';
+import { isLite, isTall } from '../util/layout-mode.js';
 import { createPointerFx } from '../work/pointer-fx.js';
 import { EASES } from '../util/ease.js';
 import { transitionPolicy } from './transition-policy.js';
@@ -20,7 +21,20 @@ export const isPixel = () => F.look === 'pixel' || F.look === 1;
 export const homeFlightOK = () => !reduced && new URLSearchParams(location.search).get('gl') !== '0' && !navigator.connection?.saveData && transitionPolicy().enabled;
 
 // the first Work card at rest: the frame size of the Work page (WORK_V2), centred. (mode-desktop.js frame(): the vertical strip centres it the same way)
+// R45b: the phone / tablet Work page (src/work/tall.js liteFrame / liteMetrics): tall = a VERTICAL strip (image TALL.frame of the width, the gap TALL.gapV of the image height), tablet landscape = a side strip.
+// The same numbers, inlined so the homepage chunk does not pull the Work engine in.
+const liteKind = () => (isTall() ? 'tall' : 'tablet');
+const liteRatio = () => (WORK.frameW * 1920) / (WORK.frameH * 1080);
+function liteGeom(W, H) {
+  const r = liteRatio();
+  if (liteKind() === 'tablet') { const w = Math.min(r * TABLET.frameH * H, 0.9 * W); return { w, h: w / r, vertical: false, gap: (WORK.gapSide / WORK.frameW) * w }; }
+  const w = TALL.frame * W, h = w / r;
+  return { w, h, vertical: true, gap: TALL.gapV * h };
+}
+export const liteImageVw = () => Math.round((liteKind() === 'tall' ? TALL.frame : 0.75) * 100);
+// the first Work card at rest: the frame size of the Work page, centred. (mode-desktop.js frame(): the vertical strip centres it the same way)
 export function firstCardRect(W = innerWidth, H = innerHeight) {
+  if (isLite()) { const g = liteGeom(W, H); return { x: (W - g.w) / 2, y: (H - g.h) / 2, w: g.w, h: g.h }; }
   let w = (WORK_V2.frameW * W) / 100, h = (WORK_V2.frameH * H) / 100;
   const r = (WORK_V2.frameW * 1920) / (WORK_V2.frameH * 1080);
   w = Math.min(w, h * r); h = w / r;
@@ -28,8 +42,10 @@ export function firstCardRect(W = innerWidth, H = innerHeight) {
 }
 // the Work page's start layout (strip offset 0): the first card and the neighbours that show, in the mode the Work page opens in.
 export function workStartLayout(W = innerWidth, H = innerHeight) {
-  let vertical = false; try { vertical = localStorage.getItem('work-mode') === 'vertical'; } catch { /* */ }
-  const c = firstCardRect(W, H), gap = vertical ? (WORK_V2.gapVert * H) / 100 : (WORK_V2.gapSide * W) / 100;
+  let vertical = false, gap;
+  if (isLite()) { const g = liteGeom(W, H); vertical = g.vertical; gap = g.gap; }
+  else { try { vertical = localStorage.getItem('work-mode') === 'vertical'; } catch { /* */ } gap = vertical ? (WORK_V2.gapVert * H) / 100 : (WORK_V2.gapSide * W) / 100; }
+  const c = firstCardRect(W, H);
   const at = (k) => (vertical ? { x: c.x, y: c.y + k * (c.h + gap), w: c.w, h: c.h } : { x: c.x + k * (c.w + gap), y: c.y, w: c.w, h: c.h });
   const out = [];
   for (const k of [-1, 1]) {
@@ -43,7 +59,7 @@ export function workStartLayout(W = innerWidth, H = innerHeight) {
 export function cardImage(ref) {
   const { src, srcset } = imgSet(ref);
   const im = new Image(); im.decoding = 'async';
-  if (srcset) { im.sizes = `${Math.round(WORK_V2.frameW)}vw`; im.srcset = srcset; }
+  if (srcset) { im.sizes = `${isLite() ? liteImageVw() : Math.round(WORK_V2.frameW)}vw`; im.srcset = srcset; }
   im.src = src;
   return im;
 }

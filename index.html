@@ -8,7 +8,22 @@
       ::view-transition-group(root) { animation: none; }
       ::view-transition-old(root) { animation: none; opacity: 1; }
       ::view-transition-new(root) { animation: none; opacity: 1; }
+      /* R45b: the way back (Work -> Home), same rule as the Work page: the view transition HOLDS the Work page's last flight frame until the hero video plays (arriveFromWork calls skipTransition()); 1.5 s is only the cap */
+      @keyframes r45-old { from, to { opacity: 1; } }
+      @keyframes r45-new { from, to { opacity: 0; } }
+      html.r45-hold::view-transition-old(root) { animation: r45-old 1.5s linear both; }
+      html.r45-hold::view-transition-new(root) { animation: r45-new 1.5s linear both; }
     </style>
+    <script>
+      addEventListener('pagereveal', function (e) {
+        try {
+          if (!e.viewTransition || !document.getElementById('pxg')) return;
+          document.documentElement.classList.add('r45-hold');
+          window.__r45vt = e.viewTransition;
+          e.viewTransition.finished.finally(function () { document.documentElement.classList.remove('r45-hold'); });
+        } catch (err) {}
+      });
+    </script>
     <!-- R45c3: render-block the first paint until the hand-off layer (#pxg, painted by the inline script at the start of <body>) is in the DOM, so the first frame IS the hero layer, never the bare page (Chrome 124+; a page without a layer is unblocked when parsing ends) -->
     <link rel="expect" href="#pxg" blocking="render" />
     <script>
