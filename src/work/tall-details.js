@@ -108,6 +108,7 @@ export function createTallDetails({ projects, reduced, title }) {
     fw = w; fh = h;
     const W = innerWidth, H = innerHeight, L = (W - w) / 2, cardTop = H / 2 - h / 2, cardBottom = H / 2 + h / 2, vw = (n) => (n * W) / 100;
     const csN = getComputedStyle(numEl), fam = csN.fontFamily, wt = csN.fontWeight;
+    if (document.fonts?.load && !layout.asked) { layout.asked = true; const csT0 = getComputedStyle(totalEl), csY0 = getComputedStyle(yearEl); Promise.all([`${wt} 100px ${fam}`, `${csT0.fontWeight} 12px ${csT0.fontFamily}`, `${csY0.fontWeight} 12px ${csY0.fontFamily}`].map((ff) => document.fonts.load(ff, '0123456789/H').catch(() => {}))).then(again); }
     // the big number: the font size is fitted so that the ink of "0" (top to bottom) is numCapVw tall
     const u = ink(`${wt} 100px ${fam}`, '0'), fsN = vw(D.numCapVw) / ((u.asc + u.desc) / 100);
     numEl.style.fontSize = `${fsN.toFixed(3)}px`;
@@ -119,7 +120,7 @@ export function createTallDetails({ projects, reduced, title }) {
     // ONE small text size for "/NN", the year and the tags: the cap height smallCapVw (never under smallMinPx)
     const csY = getComputedStyle(yearEl), h100 = ink(`${csY.fontWeight} 100px ${csY.fontFamily}`, 'H'), fsS = Math.max(D.smallMinPx, vw(D.smallCapVw) / (h100.asc / 100)), pitch = vw(D.tagPitchVw);
     const csT = getComputedStyle(totalEl);
-    totalEl.style.fontSize = `${fsS.toFixed(3)}px`;
+    totalEl.style.fontSize = `${fsS.toFixed(3)}px`; totalEl.style.opacity = String(D.totOpacity);
     const tot = ink(`${csT.fontWeight} ${fsS}px ${csT.fontFamily}`, '05'), slash = ink(`${csT.fontWeight} ${fsS}px ${csT.fontFamily}`, '/');
     const relT = (fsS - (tot.fa + tot.fd)) / 2 + tot.fa - tot.asc; // line-height 1: the ink top measured from the top of the box
     totalEl.style.top = `${(inkTop - T0 - relT).toFixed(2)}px`;
@@ -134,7 +135,11 @@ export function createTallDetails({ projects, reduced, title }) {
     root.style.setProperty('--td-left', `${L}px`); root.style.setProperty('--td-tag-op', String(D.tagOpacity));
     if (shown >= 0 && state !== 'out') { const keep = state; fill(shown); if (keep === 'in') [...yearLines(), ...tagLines()].forEach((el) => { el.classList.remove('is-out'); el.classList.add('is-in'); }); }
   };
-  document.fonts?.ready?.then(() => { if (fw) layout(fw, fh); });
+  // (R48 r5: fonts.ready can resolve BEFORE a lazily-loaded weight is requested (iOS), so measuring then would use a fallback font and "/NN" would sit at a wrong, fixed spot:
+  // ask for the exact fonts, and measure again when they have really loaded)
+  const again = () => { if (fw) layout(fw, fh); };
+  document.fonts?.addEventListener?.('loadingdone', again);
+  document.fonts?.ready?.then(again);
 
   return {
     root, front,

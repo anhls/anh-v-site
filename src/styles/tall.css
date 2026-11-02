@@ -24,13 +24,14 @@ html.tall-home, html.tall-home body { height: 100%; overflow: hidden; overscroll
 .tmenu[hidden] { display: none; }
 .tmenu__panel { position: absolute; inset: 0; background: var(--bg); will-change: clip-path; }
 .tmenu__veil { position: absolute; inset: 0; background: rgba(0,0,0,0.0); backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px); opacity: 0; pointer-events: none; will-change: clip-path; }
-.tmenu__time { position: absolute; top: calc(19px + var(--safe-t)); right: calc(20px + var(--safe-r)); margin: 0; font-size: var(--tall-small); line-height: 1.4; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; text-align: right; font-style: normal; }
-.tmenu__time span { display: block; }
-.tmenu__flav { position: absolute; left: calc(20px + var(--safe-l)); top: calc((52px + var(--safe-t) + 60vh) / 2); transform: translateY(-50%); margin: 0; font-size: var(--tall-small); line-height: 1.5; letter-spacing: 0.02em; opacity: 0.9; } /* centred between the burger and the top of Work */
+.tmenu__time { position: absolute; top: var(--tm-flav-top, 33vh); right: var(--tm-clock-right, 20px); margin: 0; font-size: var(--tall-small); line-height: 1.5; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; text-align: right; font-style: normal; } /* R48 r5: on the flavour text's rows, right ink edge on the wordmark's V (placeMenu) */
+.tmenu__time span { display: block; opacity: var(--tm-clock-op, 0.25); }
+.tmenu__flav { position: absolute; left: calc(20px + var(--safe-l)); top: var(--tm-flav-top, 33vh); margin: 0; font-size: var(--tall-small); line-height: 1.5; letter-spacing: 0.02em; } /* R48 r5: ink top at flavTopPct (placeMenu) */
 .tmenu__flav span { display: block; }
-.tmenu__list { position: absolute; left: calc(20px + var(--safe-l)); top: calc(60vh - var(--nav-cap, 0.2em)); font-size: clamp(1.95rem, 10.5vw, 4.125rem); list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; } /* R48 r2: 75 % of the first size; the top of the "Work" letters sits at 60 % of the height */
-.tmenu__list a, .tmenu__list button { font: inherit; font-size: 1em; line-height: 1.08; letter-spacing: -0.01em; font-weight: 500; color: inherit; background: none; border: 0; padding: 2px 0; cursor: pointer; text-align: left; display: block; min-height: 44px; touch-action: manipulation; -webkit-tap-highlight-color: transparent; text-decoration: none; }
-.tmenu__arr { display: inline-block; margin-right: 0.18em; font-weight: 400; }
+.tmenu__list { position: absolute; left: calc(20px + var(--safe-l)); top: var(--tm-list-top, 53.7vh); font-size: clamp(1.95rem, 10.5vw, 4.125rem); list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; } /* R48 r5: placeMenu() sets the top (cap top at navTopPct) and --tm-pitch */
+.tmenu__list a, .tmenu__list button { position: relative; font: inherit; font-size: 1em; line-height: var(--tm-pitch, 0.886em); height: var(--tm-pitch, 0.886em); letter-spacing: -0.01em; font-weight: 500; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; display: block; white-space: nowrap; touch-action: manipulation; -webkit-tap-highlight-color: transparent; text-decoration: none; }
+.tmenu__arr { position: absolute; left: 0; top: var(--tm-line-y, 50%); width: var(--tm-line-len, 30px); height: var(--tm-line-h, 1px); background: currentColor; } /* the current-page line (was an arrow) */
+.tmenu__arr[hidden] { display: none; }
 .tmenu__wm { position: absolute; left: 0; bottom: var(--safe-b); width: 81.875vw; aspect-ratio: 1572 / 345; object-fit: fill; pointer-events: none; }
 html[data-theme="light"] .tmenu__wm { filter: invert(1); }
 .tmenu[data-view='about'] .tmenu__list, .tmenu[data-view='about'] .tmenu__flav { display: none; }
