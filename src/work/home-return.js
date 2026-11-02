@@ -43,7 +43,7 @@ export function initHomeReturn({ items, px, py, bw, bh, fadeEls, nav, isBusy, se
       missing++; // not decoded yet (rare): draw it as soon as it is (the layer stays until the live strip has drawn anyway)
       const im = new Image(); im.src = c.src; im.decode().then(() => coverDraw(ctx, im, x, y, w, h)).catch(() => {});
     });
-    host.append(cv); document.body.prepend(host);
+    host.append(cv); document.body.prepend(host); window.__r45arrive = true;
     dbg('work canvas layer up, pictures from the strip', (r.cards || []).length + 1 - missing, 'missing', missing);
   };
   const arrive = () => {
@@ -64,6 +64,7 @@ export function initHomeReturn({ items, px, py, bw, bh, fadeEls, nav, isBusy, se
       const t0 = performance.now();
       while (!firstReady() && performance.now() - t0 < 3000) await new Promise((r) => requestAnimationFrame(r));
       for (let i = 0; i < 8; i++) await new Promise((r) => requestAnimationFrame(r));
+      try { window.__r45vt?.skipTransition(); } catch { /* */ } // round 5: release the held homepage frame now that the live strip is on screen
       pm('home:land-strip-ready'); dbg('work layer: strip ready', firstReady(), 'after', Math.round(performance.now() - t0), 'ms since activation; fading the layer');
       gsap.to(ov, { opacity: 0, duration: F.landFadeSec, ease: 'sine.inOut', onComplete: () => ov.remove() });
     })();

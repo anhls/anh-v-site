@@ -7,7 +7,26 @@
       ::view-transition-group(root) { animation: none; }
       ::view-transition-old(root) { animation: none; opacity: 1; }
       ::view-transition-new(root) { animation: none; opacity: 1; }
+      /* R45c round 5: arriving from the homepage flight, the view transition HOLDS the homepage's last flight frame (the landed strip) until this page's live strip has drawn,
+         then src/work/home-return.js calls skipTransition(). 1.5 s is only the safety cap. (Anh's recording 10:38: ~3 black frames after the strip settled.) */
+      @keyframes r45-old { from, to { opacity: 1; } }
+      @keyframes r45-new { from, to { opacity: 0; } }
+      html.r45-hold::view-transition-old(root) { animation: r45-old 1.5s linear both; }
+      html.r45-hold::view-transition-new(root) { animation: r45-new 1.5s linear both; }
     </style>
+    <script>
+      addEventListener('pagereveal', function (e) {
+        try {
+          var r = JSON.parse(localStorage.getItem('pxh') || 'null'), fresh = r && Date.now() - r.t < 10000;
+          var D = localStorage.getItem('dbg-handoff') === '1';
+          if (D) console.log('[handoff] work pagereveal: viewTransition', !!e.viewTransition, 'record', !!fresh, 'arrive flag', !!window.__r45arrive);
+          if (!e.viewTransition || !(fresh || window.__r45arrive || document.getElementById('pxh'))) return;
+          document.documentElement.classList.add('r45-hold');
+          window.__r45vt = e.viewTransition;
+          e.viewTransition.finished.finally(function () { document.documentElement.classList.remove('r45-hold'); if (D) console.log('[handoff] work view transition finished'); });
+        } catch (err) {}
+      });
+    </script>
     <script>
       /* Private preview: apply the stored theme before any stylesheet can paint. */
       (function () {
@@ -99,7 +118,7 @@
             (r.cards || []).forEach(function (c) { h += box(c.rect, c.src); });
             h += box(r.rect, r.src) + '</div>';
             if (r.wm) h += '<a id="pxh-wm" aria-hidden="true" tabindex="-1" style="' + r.wm.style + '"><img alt="" src="' + r.wm.src + '" style="width:100%;height:100%;display:block"></a>';
-            document.body.insertAdjacentHTML('afterbegin', h);
+            document.body.insertAdjacentHTML('afterbegin', h); window.__r45arrive = true;
           } catch (e) {}
         }
         window.__paintPxh = paint;
