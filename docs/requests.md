@@ -480,4 +480,8 @@ Waits for Anh's original files. Convert the two GIFs to MP4/WebM loops, serve im
 
 ## [done] R45b (LITE; brief docs/codex/R45b.md; branch lite/r45b-home-work from work-v2 at 113f1ee+): phone / tablet Home <-> Work, the same move as desktop R45 / R45c (pixel swipe, neighbours on the push, view-transition hold both ways, no loader on return). Runs BEFORE R44 in anh-v-site-mobile (Anh: Home + Work first).
 
-## [done] R46 (DESKTOP + lite smoke; brief docs/codex/R46.md; branch desktop/r46-launch-prep): launch prep: contact card (default design, placeholder links hidden until filled), hide Duhat + Nam Long (one switch), self-host all Framer media, clean URLs, docs/LAUNCH.md. The live push + domain are done by Cowork + Anh after his OK.
+## [done, merged] R46 (DESKTOP + lite smoke; brief docs/codex/R46.md; branch desktop/r46-launch-prep): launch prep: contact card (default design, placeholder links hidden until filled), hide Duhat + Nam Long (one switch), self-host all Framer media, clean URLs, docs/LAUNCH.md. The live push + domain are done by Cowork + Anh after his OK.
+
+## [done, merged] R46b + R46c (desktop/r46-launch-prep, desktop/r46c-modal-lock): contact cards thrown in (random side, tilt limits, back card slot, drag + fling, outside-click close); everything under the card locked (src/util/modal.js); every close path removes the card's history entry; tests never open the mail app (tools/lib/no-mailto.mjs).
+
+## NEXT (Anh's go needed): go live per docs/LAUNCH.md (Cowork puts work-v2 on `live`; Anh adds the domains in Cloudflare and switches the PA Vietnam nameservers). Later: social links + 'Available for' copy + back-card graphic; iPhone returns cut to the hero (Safari's own back); ~1 s phone landing hold (in-document Work); R44 phone project pages; About / Archive pages.
