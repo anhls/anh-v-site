@@ -27,3 +27,4 @@
 .td__rin.is-in { transform: none; opacity: 1; filter: none; }
 .td__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 @media (prefers-reduced-motion: reduce) { .td__rin { transition: none; } }
+.td--front { position: fixed; z-index: 4; } /* R48 r4: the counter is drawn in front of the cards (the title is 5) */

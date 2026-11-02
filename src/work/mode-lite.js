@@ -1,4 +1,4 @@
-import { WORK, TALL, TRANSITION_POLICY_LITE } from '../timeline.js';
+import { WORK, TALL, TRANSITION_POLICY_LITE, wmHomeWork } from '../timeline.js';
 import { perfOn } from '../util/perf-mark.js';
 import { initNav } from '../effects/nav.js';
 import { buildProjectCards } from './cards.js';
@@ -81,11 +81,13 @@ export function createMode({tall}) {
     async earlyNav(wordmark, lenis) {
       if (!tall) return;
       // R48: the phone Work page keeps the BIG wordmark at the bottom (as the home); Home <-> Work flights do not animate it (noDrive); a project open / back does (page-swap / grow)
-      liteNav = initNav(wordmark, lenis, {gateFrame:false, position:() => 0, startBig:true, noDrive:true, small:TALL.wmSmall});
+      // VARIANT (TALL.wmHomeWork / ?wm=fly): the wordmark also plays Home <-> Work: Work shows the SMALL one (top-centre), grown big -> small when it is entered from the home flight (#pxh), and the way back drives it small -> big
+      if (wmHomeWork()) liteNav = initNav(wordmark, lenis, {gateFrame:false, alwaysSmall:true, startBig:!!document.getElementById('pxh'), small:TALL.wmSmall});
+      else liteNav = initNav(wordmark, lenis, {gateFrame:false, position:() => 0, startBig:true, noDrive:true, small:TALL.wmSmall});
       await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
     },
-    wordmarkGrow() { liteNav?.grow(); }, // R48: back from a project page: small -> big
-    lateNav(wordmark,lenis,scrolled,back) { if (!tall) initNav(wordmark,lenis,{gateFrame:false,position:() => scrolled() ? 1e9 : 0,startBig:!!back && !back.leave.wm}); },
+    wordmarkGrow() { if (!wmHomeWork()) liteNav?.grow(); }, // R48: back from a project page: small -> big
+    lateNav(wordmark,lenis,scrolled,back) { if (tall) return wmHomeWork() ? liteNav : undefined; if (!tall) initNav(wordmark,lenis,{gateFrame:false,position:() => scrolled() ? 1e9 : 0,startBig:!!back && !back.leave.wm}); },
     cards: (pool,slugs) => strip.liteCards(buildProjectCards,pool,slugs,WORK.seed,cardsMax),
     metrics: (W,H) => strip.liteMetrics(kind,W,H), pick:strip.pickTall, signature:strip.tallSignature,
     imageWidth: () => Math.round((tall ? TALL.frame : .75) * 100),

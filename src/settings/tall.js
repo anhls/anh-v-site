@@ -49,11 +49,24 @@ TALL.frameWarp = { ...WORK.frameWarp, strength: 1.39 * TALL.warpStrength, curl: 
 // R24e: tablet LANDSCAPE (R24b's test: layout-store.js isTabletAspect): the wide-style strip, no cards (cards: 0), the image `frameH` of the viewport height (width from the desktop ratio, at most 90 % of the width)
 // R48: the phone / tablet-portrait project page's SMALL wordmark: top CENTRE (the burger owns top-left). x / y / width as nav.js small = capped vw / vh / vw; y centres it on the 48 px burger. Easy to move.
 TALL.wmSmall = { x: 36, y: 2.4, width: 28 };
-// R48 round 3 (Anh's iPhone mock 03.11 01:21, 430x932 CSS px; every length is vw = px / 4.3 so it scales with the screen). COUNTER above the centred card: the big number's ink is numCapVw tall with its ink
-// bottom numGapVw above the card's top edge, its ink left on the card's left edge; the small "/N" has its ink top on the big number's ink top, totGapVw after the big number's right ink edge, totCapVw tall,
-// totOpacity. BELOW the card: one row whose ink top is rowGapVw under the card's bottom edge: the YEAR (left edge on the card's left edge, smallCapVw tall) and the TAGS (the desktop "Role" tags, max 3, one
-// per line every tagPitchVw, tagOpacity, left-aligned, the widest line ending on the card's right edge). smallMinPx = the smallest font size of the small text. stagger = s between lines of a roll.
-export const TALL_DETAILS = { numCapVw: 12.26, numGapVw: 3.49, totCapVw: 1.93, totGapVw: 3.42, totOpacity: 0.25, rowGapVw: 3.72, smallCapVw: 1.86, tagPitchVw: 4.07, tagOpacity: 0.25, smallMinPx: 10.5, stagger: 0.06, tags: 3 };
+// R48 rounds 3 + 4 (Anh's iPhone mock 03.11 01:21, 430x932 CSS px; every length is vw = px / 4.3 so it scales with the screen). COUNTER above the centred card AND IN FRONT of the cards (they pass under it):
+// the big number's ink is numCapVw tall with its ink bottom numGapVw above the card's top edge, its ink left on the card's left edge; the small "/N" follows the CURRENT big number: its ink top is on the big
+// number's ink top, totGapVw after the number's right ink edge. ONE text size for "/N", year and tags (smallCapVw, cap height; smallMinPx = the smallest font size). BELOW the card (under the cards): one row whose
+// ink top is rowGapVw under the card's bottom edge: the YEAR (left edge on the card's left edge) and the TAGS (the desktop "Role" tags, max 3, one per line every tagPitchVw, tagOpacity, left-aligned, the widest
+// line ending on the card's right edge). ENTRANCE when a card settles: title smear -> year (titleToYear s after the title starts) -> tags (yearToTags s after the year); lines inside a column keep `stagger`.
+// LEAVE = the reverse (tags -> year), leaveScale x the entrance timing, all time-based.
+export const TALL_DETAILS = { numCapVw: 12.26, numGapVw: 3.49, totGapVw: 3.42, rowGapVw: 3.72, smallCapVw: 1.86, tagPitchVw: 4.07, tagOpacity: 0.25, smallMinPx: 10.5, stagger: 0.06, tags: 3, titleToYear: 0.12, yearToTags: 0.12, leaveScale: 0.5 };
+// R48 r4 VARIANT (default OFF): the wordmark also plays on Home <-> Work (big -> small into Work, small -> big back; Work then shows the small wordmark top-centre like the project pages).
+// Switch: TALL.wmHomeWork, or ?wm=fly on any page for this browser session (sessionStorage 'wm-fly'; ?wm=off clears it).
+TALL.wmHomeWork = false;
+export function wmHomeWork() {
+  try {
+    const q = new URLSearchParams(location.search).get('wm');
+    if (q === 'fly') sessionStorage.setItem('wm-fly', '1'); else if (q === 'off') sessionStorage.removeItem('wm-fly');
+    if (sessionStorage.getItem('wm-fly') === '1') return true;
+  } catch { /* */ }
+  return !!TALL.wmHomeWork;
+}
 export const TABLET = { cards: 0, frameH: 0.62 };
 
 export const TRANSITION_POLICY = TRANSITION_POLICY_LITE;

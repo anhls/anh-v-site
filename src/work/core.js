@@ -130,13 +130,14 @@ let touchEndAt = 0;
 setRestContext(() => { const now = performance.now(); return { speed: Math.round(tapSpeed), sinceTouchEnd: touchEndAt ? Math.round(now - touchEndAt) : null, restFor: Math.round(rest.restFor(now)), moving: !rest.ok(now) && !transitionBusy, flight: transitionBusy, blockedBy: rest.why() }; }); // (R43: the page steps an open flight runs one per frame are 'flight' jobs, not idle jobs that ran while the strip moved)
 if (perfOn) { window.__restJobs = restJobs; window.__glLedger = glLedger; gpuProbe(); } // (the one throw-away GPU probe happens here, before the strip's own context exists: the live count never passes 3)
 const liteTitle = mode.createTitle?.({ app, projects, reduced, rest });
-const liteDetails = mode.createDetails?.({ projects, reduced }); // R48 Part B
+const liteDetails = mode.createDetails?.({ projects, reduced, title: liteTitle }); // R48 Part B
 if (ui) root.insertBefore(ui.lineEl, stage); // R33d: the scroll line sits in .work, under the canvas
-if (liteDetails) root.insertBefore(liteDetails.root, stage); // R48: the details row + line sit under the canvas too (the cards scroll over them)
+if (liteDetails) { root.insertBefore(liteDetails.root, stage); app.append(liteDetails.front); } // (R48 r4: year + tags under the cards; the counter in front of them)
+// // R48: the details row + line sit under the canvas too (the cards scroll over them)
 const countEl = app.querySelector('.work__count') || document.createElement('div');
 const toggleEl = ui ? ui.switchEl : app.querySelector('.work__toggle') || document.createElement('button');
 const nameEl = liteTitle?.root || app.querySelector('.work__name') || document.createElement('div');
-const fadeEls = ui ? [ui.root, ui.lineEl] : [countEl, toggleEl, nameEl, ...(liteDetails ? [liteDetails.root] : [])]; // what the project transition fades out / back in
+const fadeEls = ui ? [ui.root, ui.lineEl] : [countEl, toggleEl, nameEl, ...(liteDetails ? [liteDetails.root, liteDetails.front] : [])]; // what the project transition fades out / back in
 const titleEls = [...nameEl.querySelectorAll('.work__title')].map((el) => ({ el, chars: [...el.querySelectorAll('.work__char')], f: -1 }));
 const iconEl = toggleEl.querySelector('.work__icon') || document.createElement('span');
 await mode.earlyNav(data.hero.wordmark, lenis);

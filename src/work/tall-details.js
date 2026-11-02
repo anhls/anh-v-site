@@ -1,8 +1,9 @@
-// R48 Part B (round 3, Anh's iPhone mock 03.11 01:21): the phone / tablet-portrait Work page's details, UNDER the cards layer (core puts it in .work before the canvas stage: the cards scroll over it).
-// ABOVE the centred card, left on its left edge: the counter (big current number + small "/NN", NN = the visible projects). BELOW the card: the YEAR (left edge) and the TAGS (the desktop "Role"
-// tags, max 3, one per line, the widest line ending on the card's right edge). No description, no line. Every size and gap is in TALL_DETAILS (src/settings/tall.js, vw of a 430 px screen) and
-// is placed by INK (the glyph edges, not the text boxes). The counter is the DESKTOP drum (v2-ui.js setCounter, same WORK_COUNTER numbers): it rolls DURING the scroll. Year / tags roll out
-// line by line when the strip moves and in at scroll stop (CSS transitions; the desktop rolls them on springs: logged). Reduced motion = a plain swap.
+// R48 Part B (rounds 3 + 4, Anh's iPhone mock 03.11 01:21): the phone / tablet-portrait Work page's details. TWO layers: `front` = the counter, drawn IN FRONT of the cards (they pass under it), and `root` =
+// year + tags, UNDER the cards (core puts it in .work before the canvas stage). ABOVE the centred card, left on its left edge: the counter (big current number + small "/NN" that FOLLOWS the current number's
+// right ink edge, NN = the visible projects). BELOW the card: the YEAR (left edge) and the TAGS (the desktop "Role" tags, max 3, one per line, the widest line ending on the card's right edge). Every size and gap
+// is in TALL_DETAILS (src/settings/tall.js, vw of a 430 px screen) and placed by INK. The counter is the DESKTOP drum (v2-ui.js setCounter, same WORK_COUNTER numbers): it rolls DURING the scroll.
+// Entrance when a card settles: the title smear (tall-title.js) starts, then the year (titleToYear s later), then the tags (yearToTags s later); leaving = the reverse, faster (leaveScale). CSS transitions
+// (the desktop rolls these lines on springs: logged). Reduced motion = a plain swap.
 import '../styles/tall-work.css';
 import { projectInfo } from './v2-ui.js';
 import { TALL_DETAILS as D } from '../settings/tall.js';
@@ -11,26 +12,28 @@ import { WORK_COUNTER } from '../timeline.js';
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const pad = (n) => String(n).padStart(2, '0');
 
-export function createTallDetails({ projects, reduced }) {
+export function createTallDetails({ projects, reduced, title }) {
   const N = projects.length;
   const infos = projects.map((p) => projectInfo(p));
   const root = document.createElement('div'); root.className = 'td'; root.setAttribute('aria-hidden', 'true');
   root.innerHTML = `
     <div class="td__row">
-      <div class="td__counter"><span class="td__num"><span class="td__slot td__tens"><span class="td__drum"></span><span class="td__drum td__wrapc"></span></span><span class="td__slot td__units"><span class="td__drum"></span><span class="td__drum td__wrapc"></span></span></span><span class="td__total">/${pad(N)}</span></div>
       <div class="td__year td__col"></div>
       <div class="td__tags td__col"></div>
     </div>
     <div class="td__sr" role="status" aria-live="polite"></div>`;
-  const row = root.querySelector('.td__row'), numEl = root.querySelector('.td__num'), totalEl = root.querySelector('.td__total'), counterEl = root.querySelector('.td__counter');
+  const front = document.createElement('div'); front.className = 'td td--front'; front.setAttribute('aria-hidden', 'true');
+  front.innerHTML = `<div class="td__counter"><span class="td__num"><span class="td__slot td__tens"><span class="td__drum"></span><span class="td__drum td__wrapc"></span></span><span class="td__slot td__units"><span class="td__drum"></span><span class="td__drum td__wrapc"></span></span></span><span class="td__total">/${pad(N)}</span></div>`;
+  const row = root.querySelector('.td__row'), numEl = front.querySelector('.td__num'), totalEl = front.querySelector('.td__total'), counterEl = front.querySelector('.td__counter');
   const yearEl = root.querySelector('.td__year'), tagsEl = root.querySelector('.td__tags'), srEl = root.querySelector('.td__sr');
-  let shown = -1, state = 'out', fw = 0, fh = 0, token = 0;
+  let shown = -1, state = 'out', fw = 0, fh = 0;
 
   // ---- counter: the desktop drum (v2-ui.js): two slots, each a drum of the digits 0-9 three times + a two-face column for the wrap step
-  const slots = [...root.querySelectorAll('.td__slot')].map((slot) => { const [drum, wrapc] = slot.querySelectorAll('.td__drum'); drum.innerHTML = Array.from({ length: 30 }, (_, i) => `<span>${i % 10}</span>`).join(''); wrapc.innerHTML = '<span></span><span></span>'; return { slot, drum, wrapc, last: NaN, wrapKey: '', wrapShown: false }; });
+  const slots = [...front.querySelectorAll('.td__slot')].map((slot) => { const [drum, wrapc] = slot.querySelectorAll('.td__drum'); drum.innerHTML = Array.from({ length: 30 }, (_, i) => `<span>${i % 10}</span>`).join(''); wrapc.innerHTML = '<span></span><span></span>'; return { slot, drum, wrapc, last: NaN, wrapKey: '', wrapShown: false }; });
   const labelNum = (n) => (((n - 1) % N) + N) % N + 1;
   const label = (n) => String(labelNum(n)).padStart(2, '0');
   let Dn = 0, DV = 0, Dinit = false;
+  let unitsR = null, totBase = 0, totX = NaN; // "/NN" follows the number: the ink right edge of each units digit (px from the units slot's left) and the x where "/NN" stands for ink edge 0
   const setCounter = (dt, target, stopped) => {
     if (!Dinit) { Dn = target; Dinit = true; }
     const C = WORK_COUNTER;
@@ -60,24 +63,37 @@ export function createTallDetails({ projects, reduced }) {
         if (Math.abs(v - sl.last) > 0.0005 || Number.isNaN(sl.last)) { sl.last = v; sl.drum.style.transform = `translate3d(0,${(-((v + 10) / 30) * 100).toFixed(4)}%,0)`; }
       }
     }
+    if (unitsR) { // "/NN" moves with the number's right ink edge (the units digit, interpolated while the drum turns); transform only
+      const u0 = +a[1], u1 = +b2[1], r = fr > 0 && u0 !== u1 ? unitsR[u0] + (unitsR[u1] - unitsR[u0]) * fr : unitsR[u0], x = totBase + r;
+      if (Math.abs(x - totX) > 0.01 || Number.isNaN(totX)) { totX = x; totalEl.style.transform = `translate3d(${x.toFixed(2)}px,0,0)`; }
+    }
   };
 
-  // ---- year / tags lines (rolled with CSS transitions)
-  const lineHtml = (txt) => `<span class="td__ln"><span class="td__rin">${esc(txt)}</span></span>`;
-  const colLines = () => [...yearEl.querySelectorAll('.td__rin'), ...tagsEl.querySelectorAll('.td__rin')];
+  // ---- year / tags lines (CSS transitions): entrance = title -> year -> tags, leave = tags -> year, faster
+  const lineHtml = (txt) => `<span class="td__ln"><span class="td__rin is-out">${esc(txt)}</span></span>`;
+  const yearLines = () => [...yearEl.querySelectorAll('.td__rin')], tagLines = () => [...tagsEl.querySelectorAll('.td__rin')];
   const fill = (idx) => { yearEl.innerHTML = infos[idx].year ? lineHtml(infos[idx].year) : ''; tagsEl.innerHTML = infos[idx].tags.slice(0, D.tags).map(lineHtml).join(''); };
-  const rollOut = () => {
-    if (state === 'out') return; state = 'out'; token++;
-    colLines().forEach((el, i) => { el.style.transitionDelay = `${i * D.stagger}s`; el.classList.add('is-out'); el.classList.remove('is-in'); });
+  const roll = (els, kind, t0 = 0, dur = '') => els.forEach((el, i) => { el.style.transitionDuration = dur; el.style.transitionDelay = `${(t0 + i * D.stagger * (kind === 'out' ? D.leaveScale : 1)).toFixed(3)}s`; el.classList.toggle('is-out', kind === 'out'); el.classList.toggle('is-in', kind === 'in'); });
+  let seenSeq = 0, pendSeq = 0, waitSince = 0, yearAt = 0, tagsAt = 0, yearShown = false, tagsShown = false;
+  const leave = () => {
+    if (state === 'out') return; state = 'out';
+    const dur = `${(0.5 * D.leaveScale).toFixed(3)}s`;
+    roll(tagLines(), 'out', 0, dur); roll(yearLines(), 'out', D.yearToTags * D.leaveScale, dur); // the reverse of the entrance: tags first, then the year (the title leaves with the strip move)
   };
-  const rollIn = (idx) => {
-    shown = idx; state = 'in'; const my = ++token;
-    fill(idx);
+  const begin = (idx) => {
+    shown = idx; state = 'wait'; fill(idx); // the new lines wait hidden
     srEl.textContent = `${pad(idx + 1)} of ${pad(N)}. ${infos[idx].year}`;
-    const ls = colLines();
-    ls.forEach((el) => { el.style.transitionDelay = '0s'; el.classList.add('is-out'); el.classList.remove('is-in'); });
-    void row.offsetWidth;
-    requestAnimationFrame(() => { if (my !== token) return; ls.forEach((el, i) => { el.style.transitionDelay = `${i * D.stagger}s`; el.classList.remove('is-out'); el.classList.add('is-in'); }); });
+    pendSeq = seenSeq; waitSince = performance.now(); yearAt = tagsAt = 0; yearShown = tagsShown = false;
+  };
+  const step = (now) => { // state 'wait' -> 'in': follow the title's start
+    if (!yearAt) {
+      if (!title) yearAt = now; else if (title.seq !== pendSeq) yearAt = title.at + D.titleToYear * 1000; else if (now - waitSince > 2500) yearAt = now; // (the title never started: do not hold the row back for good)
+      if (reduced && yearAt) yearAt = now;
+      if (yearAt) tagsAt = yearAt + (reduced ? 0 : D.yearToTags * 1000);
+    }
+    if (yearAt && !yearShown && now >= yearAt) { yearShown = true; roll(yearLines(), 'in', 0, ''); }
+    if (yearAt && !tagsShown && now >= tagsAt) { tagsShown = true; roll(tagLines(), 'in', 0, ''); }
+    if (yearShown && tagsShown) state = 'in';
   };
 
   // ---- layout: every element is placed by its INK (see TALL_DETAILS)
@@ -100,35 +116,41 @@ export function createTallDetails({ projects, reduced }) {
     const T0 = base - ((0.74 * fsN - (big.fa + big.fd)) / 2 + big.fa), inkTop = base - big.asc;
     const inkLeftInSlot = 0.7 * fsN - big.adv - big.left; // the tens slot is right-aligned: the ink's left edge measured from the slot's left edge
     counterEl.style.left = `${(L - inkLeftInSlot).toFixed(2)}px`; counterEl.style.top = `${T0.toFixed(2)}px`;
-    // the small "/NN": ink top on the big number's ink top, totGapVw after the widest big numeral's right ink edge
-    const csT = getComputedStyle(totalEl), t100 = ink(`${csT.fontWeight} 100px ${csT.fontFamily}`, '05'), fsT = vw(D.totCapVw) / (t100.asc / 100);
-    totalEl.style.fontSize = `${fsT.toFixed(3)}px`; totalEl.style.opacity = String(D.totOpacity);
-    const tot = ink(`${csT.fontWeight} ${fsT}px ${csT.fontFamily}`, '05'), slash = ink(`${csT.fontWeight} ${fsT}px ${csT.fontFamily}`, '/');
-    const relT = (fsT - (tot.fa + tot.fd)) / 2 + tot.fa - tot.asc; // line-height 1: the ink top measured from the top of the box
-    const s1 = slots[1].slot.getBoundingClientRect(), cr = counterEl.getBoundingClientRect();
-    let wMax = 0; for (let n = 1; n <= N; n++) wMax = Math.max(wMax, ink(`${wt} ${fsN}px ${fam}`, label(n)[1], 1).right); // the widest units digit that can occur (1..N): the "/NN" stays put while the number rolls
-    totalEl.style.top = `${(inkTop - T0 - relT).toFixed(2)}px`;
-    if (s1.width) totalEl.style.transform = `translate3d(${(s1.left - cr.left + wMax + vw(D.totGapVw) - slash.left).toFixed(2)}px,0,0)`;
-    // below the card: year + tags, the ink top of the first line rowGapVw under the card's bottom edge
+    // ONE small text size for "/NN", the year and the tags: the cap height smallCapVw (never under smallMinPx)
     const csY = getComputedStyle(yearEl), h100 = ink(`${csY.fontWeight} 100px ${csY.fontFamily}`, 'H'), fsS = Math.max(D.smallMinPx, vw(D.smallCapVw) / (h100.asc / 100)), pitch = vw(D.tagPitchVw);
+    const csT = getComputedStyle(totalEl);
+    totalEl.style.fontSize = `${fsS.toFixed(3)}px`;
+    const tot = ink(`${csT.fontWeight} ${fsS}px ${csT.fontFamily}`, '05'), slash = ink(`${csT.fontWeight} ${fsS}px ${csT.fontFamily}`, '/');
+    const relT = (fsS - (tot.fa + tot.fd)) / 2 + tot.fa - tot.asc; // line-height 1: the ink top measured from the top of the box
+    totalEl.style.top = `${(inkTop - T0 - relT).toFixed(2)}px`;
+    // the ink right edge of every units digit (measured once per resize), "/NN" starts totGapVw after the CURRENT number's edge
+    const s1 = slots[1].slot.getBoundingClientRect(), cr = counterEl.getBoundingClientRect();
+    unitsR = Array.from({ length: 10 }, (_, d) => ink(`${wt} ${fsN}px ${fam}`, String(d), 1).right);
+    totBase = s1.left - cr.left + vw(D.totGapVw) - slash.left; totX = NaN;
+    // below the card: year + tags, the ink top of the first line rowGapVw under the card's bottom edge
     const cap = ink(`${csY.fontWeight} ${fsS}px ${csY.fontFamily}`, 'H'), capTop = (pitch - (cap.fa + cap.fd)) / 2 + cap.fa - cap.asc;
     root.style.setProperty('--td-fs', `${fsS.toFixed(3)}px`); root.style.setProperty('--td-pitch', `${pitch.toFixed(2)}px`);
     root.style.setProperty('--td-col-top', `${(cardBottom + vw(D.rowGapVw) - capTop).toFixed(2)}px`);
     root.style.setProperty('--td-left', `${L}px`); root.style.setProperty('--td-tag-op', String(D.tagOpacity));
-    if (shown >= 0 && state === 'in') { fill(shown); colLines().forEach((el) => el.classList.add('is-in')); }
+    if (shown >= 0 && state !== 'out') { const keep = state; fill(shown); if (keep === 'in') [...yearLines(), ...tagLines()].forEach((el) => { el.classList.remove('is-out'); el.classList.add('is-in'); }); }
   };
   document.fonts?.ready?.then(() => { if (fw) layout(fw, fh); });
 
   return {
-    root,
+    root, front,
     layout,
     // s = core's per-frame state (the desktop UI's): stopped, idxHead, kNum (the unwrapped number the counter heads to), dt, transitioning
     frame(s) {
       if (!fw) return;
       if (s.transitioning) return;
       setCounter(s.dt, s.kNum, s.stopped);
-      if (!s.stopped) { if (shown >= 0) rollOut(); return; }
-      if (shown !== s.idxHead || state === 'out') rollIn(s.idxHead);
+      const now = performance.now();
+      if (!s.stopped) leave();
+      else {
+        if (state === 'out' || shown !== s.idxHead) begin(s.idxHead);
+        if (state === 'wait') step(now);
+      }
+      if (title) seenSeq = title.seq;
     },
     get state() { return { shown, state, D: Dn }; },
   };

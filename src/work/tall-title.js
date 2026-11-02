@@ -72,7 +72,9 @@ export function createLiteTitle({ app, projects, reduced, rest }) {
   const warmKeys = [];
   const cancelWarm = () => { clearTimeout(warmTimer); warmKeys.splice(0).forEach((k) => rest.cancel(k)); };
   const callbacks = () => ({ done: () => { opacity = 1; }, aborted: () => { opacity = 0; } });
+  let startSeq = 0, startAt = 0; // R48 r4: counts every title entrance (a smear play, or the plain fade-in) and when it began: the details row follows it
   function play() {
+    startSeq++; startAt = performance.now();
     pm('lite:title-start'); logT('play', 'settle+rest.ok', { stopped: !!last?.stopped });
     smear.play({ ...options[shown], ...callbacks() });
     pm('lite:title-scheduled');
@@ -105,7 +107,7 @@ export function createLiteTitle({ app, projects, reduced, rest }) {
       if (shown !== idx || opacity < .95) {
         if (!plain && !rest.ok()) return; // R41e: the set / play wait for the shared rest signal (checked again next frame)
         if (plain) {
-          if (shown !== idx) { opacity = Math.max(0, opacity - s.dt / .2); if (!opacity) setTitle(idx); }
+          if (shown !== idx) { opacity = Math.max(0, opacity - s.dt / .2); if (!opacity) { setTitle(idx); startSeq++; startAt = performance.now(); } }
           else opacity = Math.min(1, opacity + s.dt / .2);
           el.style.opacity = String(opacity);
         } else { timed('titleSet', () => setTitle(idx)); el.style.transition = 'none'; el.style.opacity = '0'; timed('titlePlay', play); }
@@ -117,6 +119,7 @@ export function createLiteTitle({ app, projects, reduced, rest }) {
       const u = .5 * (1 - (1 - Math.min(1, seconds / WORK_SMEAR.enterSec)) ** WORK_SMEAR.enterPow);
       smear.scrub(options[idx], u);
     },
+    get seq() { return startSeq; }, get at() { return startAt; },
     get state() { return { shown, opacity, playing: smear.playing, gl: smear.gl, ready, stopped: last?.stopped }; },
   };
 }

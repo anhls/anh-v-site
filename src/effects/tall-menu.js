@@ -1,6 +1,6 @@
 import '../styles/tall.css';
 import data from '../data/data.json';
-import { CONTACT, WORK_PTR } from '../timeline.js';
+import { CONTACT, WORK_PTR, wmHomeWork } from '../timeline.js';
 
 // R24a / R48: the burger + full-screen menu of the tall mode (phones, tablet portrait).
 // R48 layout: burger TOP-LEFT (two thin lines that pivot from their centre into an X), HCMC time top-right, two flavour lines at ~1/3 of the height, the nav (Clash Display,
@@ -20,6 +20,7 @@ const hcmcTime = () => {
 };
 
 export function mountTallMenu() {
+  wmHomeWork(); // R48 r4: reads ?wm=fly / ?wm=off on any tall page and stores it for the session
   const about = data.about;
   const flavour = data.menu?.flavour || [];
   const wmSrc = data.hero.wordmark;
