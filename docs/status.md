@@ -793,3 +793,8 @@ Undo everything: `git switch work-v2`.
   Your decision: none.
   Tech: work/index.html pagereveal + html.r45-hold view-transition keyframes (1.5 s cap) + skipTransition() in src/work/home-return.js once the strip drew; the round 4 canvas layer and the work/ <link rel=expect> were removed (superseded). Headless: hold + release OK, build OK.
 
+
+- 2026-11-02, R45b (Claude Code, lite). What you will see now: on the phone, burger menu -> Work shrinks the hero picture into the first Work card, the Work page's hover-smear swipe flips the video to the card, and the cards above and below push in; Back, swipe-right and the wordmark play the same flight in reverse and the homepage never shows its loader (20 of 20 returns in a test, also 9 of 9 with the cache off).
+  Still off: not tried on a real iPhone (only Chrome with a phone-sized screen). In that emulation one 190 ms fully black gap shows between the landing and the Work page; with a plain window of the same size there is none, so I think it is an emulation effect, but only your iPhone can confirm. The small wordmark on Work does not grow with the flight (it just appears / disappears).
+  Your decision: open lite-r45b-home-work.anh-v-site.pages.dev on the iPhone, try menu -> Work and Back, record it, and send the ?perf report.
+  Tech: home-flight.js lite geometry (vertical strip, TALL.frame), initHomeToWork / initHomeReturn parametrised (menu link, touch swipe-right), tall-home.js (no loader on return, flight loaded after the loader), pagereveal hold added to index.html (Work -> Home). Compare ?home=full 542/542 x2; desktop round trip 0 black frames; build OK. Details: docs/codex/R45b-notes.md. Undo: git revert the commit.

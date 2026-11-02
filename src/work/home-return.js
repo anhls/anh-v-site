@@ -10,7 +10,7 @@ import { pm } from '../util/perf-mark.js';
 // Also owns the arrival from the homepage flight: the landed card layer (#pxh, painted by work/index.html) fades out once the strip is up.
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-export function initHomeReturn({ items, px, py, bw, bh, fadeEls, nav, isBusy, setBusy, isPaused, firstReady, push }) {
+export function initHomeReturn({ items, px, py, bw, bh, touch, rectOf, fadeEls, nav, isBusy, setBusy, isPaused, firstReady, push }) {
   const params = new URLSearchParams(location.search);
   const off = reduced || params.get('gl') === '0' || navigator.connection?.saveData;
   let arrived = false, depth = 0, heroSrc = null;
@@ -81,14 +81,14 @@ export function initHomeReturn({ items, px, py, bw, bh, fadeEls, nav, isBusy, se
     const it = centred();
     if (!fl || fl.dead || !it || !it.img?.complete || !it.img.naturalWidth) { goHome(viaHistory); return; }
     pm('home:leave-click');
-    const card = { x: px[it.idx] - bw[it.idx] / 2, y: py[it.idx] - bh[it.idx] / 2, w: bw[it.idx], h: bh[it.idx] };
+    const card = rectOf ? rectOf(it.idx) : { x: px[it.idx] - bw[it.idx] / 2, y: py[it.idx] - bh[it.idx] / 2, w: bw[it.idx], h: bh[it.idx] };
     const hero = { x: 0, y: 0, w: innerWidth, h: innerHeight };
     fl.setPicture(0, it.img);
     push?.start(it.proj); // the live strip's cards clear away with the R30 push (work/core.js), driven by the flight's own clock
     fl.host.style.visibility = '';
     gsap.to(fadeEls, { opacity: 0, duration: F.fadeSec, ease: 'none' });
     let lost = false; fl.onLost = () => { lost = true; mod.playFlight.cancel?.(); };
-    let vertical = false; try { vertical = localStorage.getItem('work-mode') === 'vertical'; } catch { /* */ }
+    let vertical = false; try { vertical = touch ? mod.workStartLayout().vertical : localStorage.getItem('work-mode') === 'vertical'; } catch { /* */ }
     await mod.playFlight(fl, { hero, card, dir: 'out', vertical, onFrame: (s, up) => { nav?.drive(1 - s.size); push?.set(up); } });
     if (lost) { goHome(viaHistory); return; }
     goHome(viaHistory); // the host keeps the last frame (the hero frame, full screen) until the document goes
@@ -98,6 +98,13 @@ export function initHomeReturn({ items, px, py, bw, bh, fadeEls, nav, isBusy, se
   // restored from the cache with the flight still on screen (the Forward button, or a failed Back): start clean
   addEventListener('pageshow', (e) => { if (!e.persisted) return; navigated = false; busy = false; setBusy(false); fl?.host?.remove(); fl?.dispose(); fl = null; building = null; gsap.set(fadeEls, { clearProps: 'opacity' }); nav?.drive(1); clearHandoff('pxg'); if (!off) (window.requestIdleCallback || ((f) => setTimeout(f, 600)))(() => setTimeout(build, 1200), { timeout: 4000 }); });
 
+  // R45b: on touch screens a swipe to the right (starting away from the edge, which stays Safari's own back) goes home like the Back button: horizontal intent = dx > 2 x |dy|
+  if (touch && !off) {
+    let t = null;
+    addEventListener('touchstart', (e) => { const q = e.touches[0]; t = e.touches.length === 1 && q.clientX > 24 ? { x: q.clientX, y: q.clientY, dx: 0, dy: 0 } : null; }, { passive: true });
+    addEventListener('touchmove', (e) => { if (!t) return; const q = e.touches[0]; t.dx = q.clientX - t.x; t.dy = q.clientY - t.y; if (Math.abs(t.dy) > 12 && Math.abs(t.dy) > Math.abs(t.dx) / 2) t = null; }, { passive: true });
+    addEventListener('touchend', () => { const g = t; t = null; if (g && g.dx > 70 && g.dx > 2 * Math.abs(g.dy) && !isBusy()) leave(false); }, { passive: true });
+  }
   const wm = document.querySelector('a.wordmark');
   wm?.addEventListener('click', (e) => { if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || off) return; e.preventDefault(); leave(false); });
   return { leave };

@@ -44,5 +44,7 @@ export function mountTallMenu() {
     e.preventDefault();
     f[i < 0 ? 0 : (i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
   });
-  return { open: () => set(true), close: () => set(false), isOpen: () => open };
+  // R45b: close with no animation (the Home -> Work flight starts from the tapped link and IS the transition)
+  const closeNow = () => { open = false; btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-label', 'Open menu'); document.documentElement.classList.remove('tmenu-open'); inertEls().forEach((el) => el.removeAttribute('inert')); menu.classList.remove('is-open'); menu.hidden = true; };
+  return { open: () => set(true), close: () => set(false), closeNow, isOpen: () => open, link: menu.querySelector('a[href="/work/"]') };
 }

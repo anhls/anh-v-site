@@ -26,7 +26,14 @@ wm.innerHTML = `<img src="${hero.wordmark}" alt="" draggable="false">`;
 document.body.prepend(wm);
 const skip = document.querySelector('.skip'); if (skip) document.body.prepend(skip);
 document.querySelector('nav.nav')?.remove(); // the desktop nav links are not used in tall mode: the burger replaces them
-mountTallMenu();
+const menu = mountTallMenu();
 buildSpawner(app, data.spawnerImages, { touch: true, sizeScale: TALL.spawnScale });
 document.title = 'Anh V';
-runLoader(data.loader.text, [hero.wordmark], () => {}).then(() => { window.__siteReady = true; });
+// R45b: Home <-> Work on the phone = the desktop flight (src/effects/home-leave.js): the menu's Work link starts it (the menu closes at once); coming back from Work (#pxg painted by index.html)
+// there is NO loader: the hero frame the flight ended on is up, the video takes over and the layer fades.
+const video = app.querySelector('.thero__video');
+const flight = () => import('./effects/home-leave.js').then((m) => { m.initHomeToWork({ hero: { frame: { video } }, link: menu.link, video, wrapper: document.getElementById('hero'), lift: '.spawner, .twm, .tmenu__btn', beforeFlight: () => menu.closeNow() }); return m; });
+window.__paintPxg?.();
+const arrival = !!document.getElementById('pxg');
+if (arrival) flight().then((m) => m.arriveFromWork({ frame: { video } }, null)).then(() => { window.__siteReady = true; });
+else runLoader(data.loader.text, [hero.wordmark], () => {}).then(() => { window.__siteReady = true; flight(); }); // (the flight code loads after the loader: the first load stays light)

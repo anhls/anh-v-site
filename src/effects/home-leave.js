@@ -9,10 +9,12 @@ import { pm } from '../util/perf-mark.js';
 // cross-fades into the card image, the big wordmark goes small), then the Work page loads and paints the card where the flight left it (src/work/core.js removes that overlay).
 // Everything heavy (WebGL context, shader compile, the card's texture, the Work page's files) is prepared on idle after the hero has settled; a click before that is a plain navigation.
 // This is the cross-document hand-off (R25 style): the Work page is not built inside the homepage document (see docs/codex/R45-notes.md).
-export function initHomeToWork({ hero, nav }) {
-  const link = document.querySelector('.nav a[data-link="Works"]');
+// R45b: the phone / tablet home (src/tall-home.js) uses the same flight: opts.link = the menu's Work link, opts.video = the hero video, opts.wrapper = the full-screen hero element, opts.lift = the
+// layers above the flight that fade out (the tap spawner, the AV wordmark, the burger), opts.beforeFlight = closes the menu at once (no close animation: the flight IS the transition).
+export function initHomeToWork({ hero, nav, link: linkOpt, video: videoOpt, wrapper: wrapperOpt, lift: liftSel, beforeFlight }) {
+  const link = linkOpt || document.querySelector('.nav a[data-link="Works"]');
   if (!link) return null;
-  const video = hero.frame.video, wrapper = hero.frame.pin.querySelector('.hero__wrapper');
+  const video = videoOpt || hero.frame.video, wrapper = wrapperOpt || hero.frame.pin.querySelector('.hero__wrapper');
   const project = data.projects[0];
   const cardRef = project.page.blocks.find((b) => b.t === 'hero').img;
   const posterRef = '/media/hero/poster.webp';
@@ -82,23 +84,25 @@ export function initHomeToWork({ hero, nav }) {
     if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.defaultPrevented || busy) return;
     if (!homeFlightOK() || !fl || fl.dead || !root) return; // not ready: the plain link
     e.preventDefault(); busy = true;
+    beforeFlight?.();
     pm('home:click');
     const r = wrapper.getBoundingClientRect(), heroBox = { x: r.left, y: r.top, w: r.width, h: r.height }, card = workStartLayout().first;
     const frameOK = video.readyState >= 2 && fl.setPicture(0, video);
     if (!frameOK && !fl.setPicture(0, posterIm, 'poster')) { busy = false; location.href = '/work/'; return; }
     root.style.visibility = '';
     // the covered hero layers above the flight fade out in fadeSec; the ticker band is cloned (it lives inside the hero's own layer)
-    const ticker = hero.frame.pin.querySelector('.ticker'); let clone = null;
+    const ticker = hero?.frame?.pin?.querySelector('.ticker'); let clone = null;
     if (ticker) { clone = ticker.cloneNode(true); const tr = ticker.getBoundingClientRect(); clone.style.cssText += `;position:fixed;left:${tr.left}px;top:${tr.top}px;width:${tr.width}px;height:${tr.height}px;transform:none;opacity:${getComputedStyle(ticker).opacity};z-index:7;pointer-events:none`; document.body.append(clone); }
-    const lift = [...document.querySelectorAll('.spawner, .trail, .hero__captions, .caption-hover')];
+    const lift = [...document.querySelectorAll(liftSel || '.spawner, .trail, .hero__captions, .caption-hover')];
     lift.forEach((el) => { hidden.push({ el, z: el.style.zIndex }); el.style.zIndex = '7'; });
     const fade = [...lift, ...(clone ? [clone] : []), ...document.querySelectorAll('.nav a')];
     gsap.to(fade, { opacity: 0, duration: F.fadeSec, ease: 'none' });
+    try { sessionStorage.removeItem('work-lite-place'); } catch { /* */ } // the phone Work page opens on the first card, not on the place it was left at
     saveHeroFrame(video); // the grow flight on the way back starts from this frame (async, off the main thread)
     let lost = false; fl.onLost = () => { lost = true; playFlight.cancel?.(); };
     const lay = workStartLayout(), nbs = nbIms.filter((x) => fl.has(x.slot)).map((x) => ({ slot: x.slot, rect: x.n.rect, start: x.n.start }));
     await playFlight(fl, { hero: heroBox, card, dir: 'in', neighbours: nbs, vertical: lay.vertical, onFrame: (st) => nav?.drive(1 - st.size) });
-    const wm = document.querySelector('a.wordmark');
+    const wm = liftSel ? null : document.querySelector('a.wordmark'); // (the phone Work page's own small wordmark appears with the strip)
     writeHandoff('pxh', { W: innerWidth, H: innerHeight, rect: [card.x, card.y, card.w, card.h], slug: project.slug, src: cardIm.currentSrc || cardIm.src, cards: nbIms.filter((x) => fl && fl.has(x.slot)).map((x) => ({ rect: [x.n.rect.x, x.n.rect.y, x.n.rect.w, x.n.rect.h], slug: x.slug, src: x.im.currentSrc || x.im.src })), wm: wm ? { src: wm.querySelector('img')?.getAttribute('src'), style: wm.style.cssText + `;position:fixed;left:0;top:0;width:${wm.offsetWidth}px;height:${wm.offsetHeight}px;z-index:9` } : null });
     pm('home:land');
     if (lost) { /* the overlay holds the last drawn frame; the Work page paints its own */ }
@@ -115,6 +119,7 @@ export function arriveFromWork(hero, loadDeferred) {
   const layer = document.getElementById('pxg'), video = hero.frame.video;
   return new Promise((resolve) => {
     const done = () => {
+      try { window.__r45vt?.skipTransition(); } catch { /* */ } // R45b: release the held Work frame; the layer (same picture) is still up under it
       gsap.to(layer, { opacity: 0, duration: F.landFadeSec, ease: 'sine.inOut', onComplete: () => { layer.remove(); document.documentElement.classList.remove('pxg-on'); resolve(); } });
     };
     let fired = false; const go = () => { if (fired) return; fired = true; requestAnimationFrame(() => requestAnimationFrame(done)); };
