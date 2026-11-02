@@ -105,8 +105,8 @@ export function mountTallMenu() {
   const items = () => [...menu.querySelectorAll('.tmenu__flav .tmenu__fx'), menu.querySelector('.tmenu__time'), ...menu.querySelectorAll('.tmenu__list > li')];
   const plan = (open) => {
     const W = innerWidth, t30 = frontTime(TM.startShare * W, MENU_SWEEP.openSec), list = items(), D = MENU_SWEEP.closeDiv;
-    const wins = list.map((el, i) => ({ el, a: t30 + i * TM.step, b: t30 + i * TM.step + MENU_FX.itemSec }));
-    const push = { a: t30 + list.length * TM.step, b: t30 + list.length * TM.step + TM.pushSec };
+    const wins = list.map((el, i) => ({ el, a: t30 + i * TM.stepSec, b: t30 + i * TM.stepSec + TM.itemSec }));
+    const push = { a: t30 + list.length * TM.stepSec, b: t30 + list.length * TM.stepSec + TM.pushSec };
     const T = Math.max(MENU_SWEEP.openSec, push.b, ...wins.map((w) => w.b));
     const at = (w) => (open ? { d: w.a, u: w.b - w.a } : { d: (T - w.b) / D, u: (w.b - w.a) / D }); // close = the exact reverse, twice as fast
     wins.forEach((w) => { const q = at(w); w.el.style.setProperty('--tm-delay', `${q.d.toFixed(3)}s`); w.el.style.setProperty('--tm-dur', `${q.u.toFixed(3)}s`); });
@@ -226,7 +226,7 @@ export function mountTallMenu() {
       const r = noSmearReason(), st = smear?.stats, g = sweepGeom();
       box.textContent = [`smear: ${smear && !r ? 'ON' : 'FALLBACK (plain fade)'}${r ? ' - ' + r : smear ? '' : ' - ' + (smearTried ? smearWhy || 'renderer not made' : 'renderer not made yet (idle)')}`,
         `GL context: ${smear ? (smear.lost ? 'LOST' : 'ok') : '-'}   canvas dpr ${smear ? smear.dpr.toFixed(2) : '-'} (device ${devicePixelRatio})`,
-        `grid: ${gridBlockPx().toFixed(2)} px blocks   zone: ${g.zone.toFixed(0)} px   jag: ${g.jag.toFixed(0)} px   sweep ${MENU_SWEEP.openSec.toFixed(2)} s / close ${(MENU_SWEEP.openSec / MENU_SWEEP.closeDiv).toFixed(2)} s`,
+        `grid: ${gridBlockPx().toFixed(1)} px blocks (MENU_SWEEP.blockPx ${MENU_SWEEP.blockPx} @430)   zone: ${g.zone.toFixed(0)} px   jag: ${g.jag.toFixed(0)} px   sweep ${MENU_SWEEP.openSec.toFixed(2)} s / close ${(MENU_SWEEP.openSec / MENU_SWEEP.closeDiv).toFixed(2)} s`,
         `last sweep: ${st && st.frames ? `${st.frames} frames, ${st.avgMs.toFixed(1)} ms avg, ${st.maxMs.toFixed(1)} ms max` : '-'}`].join('\n');
     };
     setInterval(show, 300); show();

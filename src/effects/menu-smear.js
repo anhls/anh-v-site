@@ -14,13 +14,14 @@ const MAX_SRC = 5;
 const smooth = (q) => { q = Math.min(1, Math.max(0, q)); return q * q * (3 - 2 * q); };
 export const unsmooth = (s) => { s = Math.min(1, Math.max(0, s)); let lo = 0, hi = 1; for (let i = 0; i < 22; i++) { const m = (lo + hi) / 2; if (smooth(m) < s) lo = m; else hi = m; } return (lo + hi) / 2; };
 // the sweep time of the open (the flight's own cross-fade stretch), the close is twice as fast
-export const MENU_SWEEP = { openSec: F.sec * (F.crossTo - F.crossFrom), closeDiv: 2 };
-export const gridCols = () => Math.max(8, Math.round(WORK_PTR.pixelGrid));
+// R48 r9: the MENU has its own block size (blockPx, css px at the 430 px reference width, scaling with the screen width; ~4 columns across a phone), no longer the flight's grid
+export const MENU_SWEEP = { openSec: F.sec * (F.crossTo - F.crossFrom), closeDiv: 2, blockPx: 113 };
+export const gridCols = () => Math.max(2, Math.round(430 / Math.max(8, MENU_SWEEP.blockPx))); // whole columns across the screen
 export const gridBlockPx = (W = innerWidth) => W / gridCols(); // one smear block in CSS px (the flight uses the same grid)
 const hash = (n) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
 
 // the geometry of the sweep for a screen width: the mean edge position f runs from -zone (all of it off the left side) to W + jag (all of it off the right side)
-export const sweepGeom = (W = innerWidth) => { const cell = gridBlockPx(W), zone = TM.zoneShare * W, jag = TM.jagCells * cell; return { cell, zone, jag, from: -zone, to: W + jag }; };
+export const sweepGeom = (W = innerWidth) => { const cell = gridBlockPx(W), zone = Math.max(1, Math.round((TM.zoneShare * W) / cell)) * cell, jag = Math.max(1, TM.jagCells) * cell; return { cell, zone, jag, from: -zone, to: W + jag }; };
 export const frontAt = (s, W = innerWidth) => { const g = sweepGeom(W); return g.from + (g.to - g.from) * s; }; // s = the open-equivalent progress 0..1 (eased)
 export const frontTime = (x, sec, W = innerWidth) => { const g = sweepGeom(W); return unsmooth((x - g.from) / (g.to - g.from)) * sec; }; // when (s into the open sweep) the mean edge reaches x
 

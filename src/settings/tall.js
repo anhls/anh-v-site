@@ -79,7 +79,7 @@ export const TALL_DETAILS = { numCapVw: 12.26, numGapVw: 3.49, totGapVw: 3.42, r
 export const TALL_MENU = { flavTopPct: 33.98, navTopPct: 53.7, navPitchVw: 9.3, lineLenPx: 30, lineThickPx: 1, lineGapVw: 3.163, clockOpacity: 0.25, leftPx: 20,
   // R48 r7 (sweep + stagger): zoneShare = the smear zone's width ahead of the panel edge (share of the screen width); jagCells = how far (in grid cells) the per-row ragged panel edge may sit behind the mean edge;
   // startShare = the items start once the edge has passed this share of the width; step = seconds between the items; pushSec = the current-page line's push (it draws out from the left and pushes the word)
-  zoneShare: 0.3, jagCells: 5, startShare: 0.3, step: 0.06, pushSec: 0.45 };
+  zoneShare: 0.5, jagCells: 2, startShare: 0.3, stepSec: 0.15, itemSec: 0.35, pushSec: 0.45 };
 // R48 r5: the wordmark also plays on Home <-> Work (big -> small into Work, small -> big back; Work shows the small wordmark top-centre like the project pages). false = big on Home and Work.
 TALL.wmHomeWork = true;
 export function wmHomeWork() { return !!TALL.wmHomeWork; }
