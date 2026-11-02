@@ -9,6 +9,7 @@ import { projectInfo } from './v2-ui.js';
 import { TALL_DETAILS as D } from '../settings/tall.js';
 import { WORK_COUNTER, WORK_LINE, TALL } from '../timeline.js';
 import { viewW } from '../util/viewport.js';
+import { createScrollLine } from '../util/scroll-line.js';
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const pad = (n) => String(n).padStart(2, '0');
@@ -31,16 +32,13 @@ export function createTallDetails({ projects, reduced, title }) {
   let shown = -1, state = 'out', fw = 0, fh = 0;
   // ---- R48 r7: the thin line (the desktop scroll line / ruler): full width, behind the cards, one line per card at its top edge + lineInset, travelling with the strip (eased after it like the desktop, WORK_LINE).
   const linesEl = root.querySelector('.td__lines');
-  let lineP = NaN, linePitch = 0, lineBase = 0, lineLastY = NaN, lineOp = NaN;
+  const scrollLine = createScrollLine(); let lineH = innerHeight, lineLast = [NaN, NaN], lineOp = NaN;
+  // R48 r10: the desktop's scroll line as is (src/util/scroll-line.js): it follows the PROGRESS through the project list over the whole screen height, eased after the strip, two instances so it wraps
   const setLine = (dt, pos) => {
-    if (!linePitch) return;
-    if (Number.isNaN(lineP)) lineP = pos; else if (reduced) lineP = pos; else lineP += (pos - lineP) * (1 - Math.exp((-dt * 3) / Math.max(WORK_LINE.scrollLineFollowSec, 0.05)));
-    if (Math.abs(pos - lineP) < 0.0005) lineP = pos;
-    // R48 r9: ONE line only: just inside the top edge of the card nearest the centre, travelling with the strip; at the half-way point (where the nearest card changes) it fades out and back in at the next card
-    const fr = lineP - Math.round(lineP), y = lineBase - fr * linePitch, k = Math.min(1, Math.max(0, (0.5 - Math.abs(fr)) / 0.14)), fade = k * k * (3 - 2 * k);
-    if (Math.abs(y - lineLastY) > 0.05 || Number.isNaN(lineLastY)) { lineLastY = y; linesEl.style.transform = `translate3d(0,${y.toFixed(2)}px,0)`; }
-    const op = WORK_LINE.scrollLineOn ? WORK_LINE.scrollLineOpacity * fade : 0;
-    if (Math.abs(op - lineOp) > 0.002 || Number.isNaN(lineOp)) { lineOp = op; linesEl.style.opacity = String(op); }
+    const xs = scrollLine.step(dt, pos, N, lineH, reduced);
+    for (let k = 0; k < 2; k++) if (xs[k] !== lineLast[k] && linesEl.children[k]) { lineLast[k] = xs[k]; linesEl.children[k].style.transform = `translate3d(0,${xs[k].toFixed(2)}px,0)`; }
+    const op = WORK_LINE.scrollLineOn ? WORK_LINE.scrollLineOpacity : 0;
+    if (op !== lineOp) { lineOp = op; linesEl.style.opacity = String(op); }
   };
 
   // ---- counter: the desktop drum (v2-ui.js): two slots, each a drum of the digits 0-9 three times + a two-face column for the wrap step
@@ -132,8 +130,8 @@ export function createTallDetails({ projects, reduced, title }) {
   const layout = (w, h) => {
     fw = w; fh = h;
     const W = viewW(), H = innerHeight, L = (W - w) / 2, cardTop = H / 2 - h / 2, cardBottom = H / 2 + h / 2, vw = (n) => (n * W) / 100;
-    { const gap = TALL.gapV * h; linePitch = h + gap; lineBase = cardTop + vw(D.lineInsetVw); if (linesEl.children.length !== 1) linesEl.innerHTML = '<i></i>'; lineLastY = NaN; lineOp = NaN; }
-    const csN = getComputedStyle(numEl), fam = csN.fontFamily, wt = csN.fontWeight;
+    lineH = H; if (linesEl.children.length !== 2) linesEl.innerHTML = '<i></i><i></i>'; lineLast = [NaN, NaN];
+        const csN = getComputedStyle(numEl), fam = csN.fontFamily, wt = csN.fontWeight;
     if (document.fonts?.load && !layout.asked) { layout.asked = true; const csT0 = getComputedStyle(totalEl), csY0 = getComputedStyle(yearEl); Promise.all([`${wt} 100px ${fam}`, `${csT0.fontWeight} 12px ${csT0.fontFamily}`, `${csY0.fontWeight} 12px ${csY0.fontFamily}`].map((ff) => document.fonts.load(ff, '0123456789/H').catch(() => {}))).then(again); }
     // the big number: the font size is fitted so that the ink of "0" (top to bottom) is numCapVw tall
     const u = ink(`${wt} 100px ${fam}`, '0'), fsN = vw(D.numCapVw) / ((u.asc + u.desc) / 100);

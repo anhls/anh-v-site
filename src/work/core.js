@@ -1,4 +1,5 @@
 import { viewW } from '../util/viewport.js';
+import { isPagePaused } from '../util/page-pause.js';
 // Shared strip engine. Mode interface (selected once, no rotation switching):
 // values: geometry, v2, noCards, layouts, showToggle, allowPointer, applyFocus,
 // rendererOptions, dragSamples, validateStored, diagnosticKind, debugSettings, overrides.
@@ -279,7 +280,7 @@ const startRenderer = () => {
     rendererPending = !!back;
     if (!rendererPending) root.classList.add('work--gl');
     gl.resize(W, H);
-    if (new URLSearchParams(location.search).get('debug') === 'layout') window.__workGl = { probeEl: (el) => (gl ? gl.probe(items.findIndex((it) => it.el === el)) : null) }; // (R48 r9 readout)
+    if (new URLSearchParams(location.search).get('debug') === 'layout') window.__workGl = { probeEl: (el) => (gl ? gl.probe(items.findIndex((it) => it.el === el)) : null), probePx: (y) => (gl ? gl.probePixels(y) : null) }; // (R48 r9 readout)
     gl.setAxis(vertical ? 0 : 1);
     gl.show(!rendererPending);
     items.forEach((it, i) => { gl.hd[i] = it.dark && fine ? CARD_HOVER.darkRest : 0; });
@@ -733,6 +734,7 @@ const updateNames = () => {
 let ptrFx = null, v2StopAt = 0; const hzA = new Float64Array(N); // R33: the last time the strip moved / the hover growth (0..1)
 const v2s = { pos: 0, idx: 0, kHead: 0, idxHead: 0, kNum: 1, vertical: false, morph: false, stopped: false, dt: 0.016 };
 const tick = (_time, deltaMs) => {
+  if (isPagePaused()) return; // R48 r10: the menu sweep owns the screen (one snapshot taken, no per-frame page work)
   if (import.meta.env.DEV && window.__guardBusy) { const t0 = performance.now(); while (performance.now() - t0 < window.__guardBusy); } // dev only: a test hook that makes every frame slow (the frame-time guard test)
   const dt = Math.min(deltaMs, 50) / 1000;
   const now = performance.now();

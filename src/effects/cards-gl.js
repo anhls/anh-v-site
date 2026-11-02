@@ -588,18 +588,31 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     return bendNow;
   };
 
+  let probeReq = null, probeRes = null;
+  const runProbe = () => {
+    try {
+      const cssW = canvas.clientWidth || W, k = canvas.width / cssW, bw0 = gl.drawingBufferWidth, bh0 = gl.drawingBufferHeight, row = new Uint8Array(bw0 * 4), yy = Math.max(0, Math.min(bh0 - 1, bh0 - 1 - Math.round(probeReq.y * k)));
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.readPixels(0, yy, bw0, 1, gl.RGBA, gl.UNSIGNED_BYTE, row);
+      let a = -1, b = -1; for (let x = 0; x < bw0; x++) { if (row[x * 4] + row[x * 4 + 1] + row[x * 4 + 2] > 40) { if (a < 0) a = x; b = x; } }
+      probeRes = { y: probeReq.y, first: a < 0 ? null : a / k, last: b < 0 ? null : (b + 1) / k };
+    } catch { probeRes = null; }
+    probeReq = null;
+  };
   const api = {
     canvas,
     active: true,
     ox, oy, hs, hd, hp, darkCard,
     resize,
-    draw,
+    draw: (...a) => { const r = draw(...a); if (probeReq) runProbe(); return r; },
+    // R48 r10: PIXEL probe for ?debug=layout: the next frame reads the final framebuffer along one row (css y) and reports the first / last lit x (css px)
+    probePixels: (y) => { probeReq = { y }; dirty = true; return probeRes; },
     show: (on) => { canvas.style.visibility = on ? 'visible' : 'hidden'; if (on) dirty = true; },
     markDirty: () => { dirty = true; },
     holdWarp: (a) => { holdAmt = a; dirty = true; }, // dev only
     diag: () => ({ postOk, shift, ...fbInfo, warpScale, passCount, lastPass }), // R24f: what the ?perf diagnosis line shows
     // R48 r9: the DRAWN truth for ?debug=layout: the drawing buffer, the viewport, the widths the shader maths uses, and where card i's left / right edges land on screen (css px, the flat position through the shader's own maths)
-    probe: (i) => { const vp = gl.getParameter(gl.VIEWPORT), cssW = canvas.clientWidth || W, k = vp[2] / cssW; return { dbw: gl.drawingBufferWidth, dbh: gl.drawingBufferHeight, cw: canvas.width, vp: [vp[0], vp[1], vp[2], vp[3]], W, H, cssW, left: i == null ? null : ((bx[i] + ox[i] - bw[i] / 2) / W) * vp[2] / (canvas.width / cssW), right: i == null ? null : ((bx[i] + ox[i] + bw[i] / 2) / W) * vp[2] / (canvas.width / cssW), k }; },
+    probe: (i) => { const vp = gl.getParameter(gl.VIEWPORT), cssW = canvas.clientWidth || W, k = vp[2] / cssW; return { dbw: gl.drawingBufferWidth, dbh: gl.drawingBufferHeight, cw: canvas.width, vp: [vp[0], vp[1], vp[2], vp[3]], W, H, cssW, left: i == null ? null : ((bx[i] + ox[i] - bw[i] / 2) / W) * vp[2] / (canvas.width / cssW), right: i == null ? null : ((bx[i] + ox[i] + bw[i] / 2) / W) * vp[2] / (canvas.width / cssW), k, i, hs: i == null ? null : hs[i], ox: i == null ? null : ox[i], bxi: i == null ? null : bx[i], bwi: i == null ? null : bw[i], fb: fb ? { w: fb.w, h: fb.h, mx: fb.mx, my: fb.my } : null, warpScale, fx: typeof fxOn !== 'undefined' ? !!fxOn : null, fxa: i == null || !fxAmt ? null : fxAmt[i] }; },
     setWarpScale: (k) => { warpScale = Math.max(0.25, Math.min(1, k)); dirty = true; },
     // R33b: the pixel grid. amt = Float32Array (per picture: its share of the effect, 0 = untouched), params = [strength, rgb], data = RGBA32F cells (cols x rows, screen space, row 0 = top),
     // pad = [px, py] spill margin. amt null = off (nothing is uploaded or sampled; every picture is exactly as before).

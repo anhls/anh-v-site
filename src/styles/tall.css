@@ -30,21 +30,18 @@ html.tall-home, html.tall-home body { height: 100%; overflow: hidden; overscroll
 .tmenu__list { position: absolute; left: calc(20px + var(--safe-l)); top: var(--tm-list-top, 53.7vh); font-size: clamp(1.95rem, 10.5vw, 4.125rem); list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; } /* R48 r5: placeMenu() sets the top (cap top at navTopPct) and --tm-pitch */
 .tmenu__list a, .tmenu__list button { position: relative; font: inherit; font-size: 1em; line-height: var(--tm-pitch, 0.886em); height: var(--tm-pitch, 0.886em); letter-spacing: -0.01em; font-weight: 500; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; display: block; white-space: nowrap; touch-action: manipulation; -webkit-tap-highlight-color: transparent; text-decoration: none; }
 /* the current-page line: it draws out from the left (scaleX 0 -> 1) and pushes the word from flush left to its rest position; line and word use the same duration / delay / ease, so the word follows the line's tip */
-.tmenu__arr { position: absolute; left: 0; top: var(--tm-line-y, 50%); width: var(--tm-line-len, 30px); height: var(--tm-line-h, 1px); background: currentColor; transform: scaleX(0); transform-origin: 0 50%; transition: transform var(--tm-push-dur, 0.45s) cubic-bezier(0.65, 0, 0.35, 1) var(--tm-push-delay, 0s); }
-.tmenu__w { display: inline-block; transition: transform var(--tm-push-dur, 0.45s) cubic-bezier(0.65, 0, 0.35, 1) var(--tm-push-delay, 0s); }
-.tmenu__list .is-cur .tmenu__arr { transform: scaleX(1); }
-.tmenu__list .is-cur .tmenu__w { transform: translateX(var(--tm-word-shift, 43px)); }
+.tmenu__arr { position: absolute; left: 0; top: var(--tm-line-y, 50%); width: var(--tm-line-len, 30px); height: var(--tm-line-h, 1px); background: currentColor; transform: scaleX(0); transform-origin: 0 50%;  }
+.tmenu__w { display: inline-block; will-change: transform; }
 .tmenu[data-view='about'] .tmenu__list, .tmenu[data-view='about'] .tmenu__flav { display: none; }
 .tmenu__about { display: none; position: absolute; left: calc(20px + var(--safe-l)); right: calc(20px + var(--safe-r)); top: calc(88px + var(--safe-t)); }
 .tmenu[data-view='about'] .tmenu__about { display: block; }
 .tmenu__label { margin: 0 0 20px; font-size: 0.75rem; letter-spacing: 0.08em; opacity: 0.6; }
 .tmenu__text { margin: 0; font-size: clamp(1.4rem, 6vw, 2.4rem); line-height: 1.12; letter-spacing: -0.01em; max-width: 24em; outline: none; }
 /* content blurs in one item after the other (tall-menu.js plan(): flavour 1, flavour 2, clock, Work, About, Contact); out = the reverse */
-.tmenu__fx { filter: blur(10px); opacity: 0; transition: filter var(--tm-dur, 0.45s) cubic-bezier(0.4, 0, 0.2, 1) var(--tm-delay, 0s), opacity var(--tm-dur, 0.45s) cubic-bezier(0.4, 0, 0.2, 1) var(--tm-delay, 0s); } /* R48 r6: --tm-delay = when the sweep band passes the item's x (tall-menu.js stagger) */
-.tmenu.is-open .tmenu__fx { filter: blur(0); opacity: 1; }
+/* R48 r10: the items are animated by one GSAP timeline in tall-menu.js buildTl() (no CSS transitions) */
 html.tmenu-open { overflow: hidden; }
 .tmenu.is-plain .tmenu__panel { opacity: 0; transition: opacity 0.25s ease; } .tmenu.is-plain.is-open .tmenu__panel { opacity: 1; }
-@media (prefers-reduced-motion: reduce) { .tmenu__btn span, .tmenu__fx { transition: none; } .tmenu__fx { filter: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .tmenu__btn span { transition: none; } }
 
 /* R48 r7: the page's ONE wordmark is above everything (the menu panel is 50, its smear canvas 49, the burger 60; the contact card, 90, stays above it) */
 html[data-layout='tall'] .wordmark { z-index: 55; }

@@ -8,7 +8,7 @@
 [data-layout='tall'] .work__count { display: none; }
 .td { --td-c: var(--fg); position: absolute; inset: 0; z-index: 0; pointer-events: none; color: var(--td-c); font-family: var(--font-body); }
 .td__line { position: absolute; inset: 0; overflow: hidden; }
-.td__lines { position: absolute; left: 0; top: 0; width: 100%; height: 1px; opacity: 0; will-change: transform; }
+.td__lines { position: absolute; left: 0; top: 0; width: 100%; height: 100%; opacity: 0; will-change: transform; }
 .td__lines i { position: absolute; left: 0; top: 0; display: block; width: 100%; height: 1px; background: var(--td-c); }
 .td__row { position: absolute; inset: 0; }
 .lite-title, .td__year, .td__counter { opacity: var(--tm-fade, 1); } /* R48 r7: the menu sweep fades the page's text under its smear zone */

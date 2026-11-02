@@ -1,3 +1,4 @@
+import { gsap } from 'gsap';
 import '../styles/tall.css';
 import data from '../data/data.json';
 import { CONTACT } from '../timeline.js';
@@ -5,6 +6,7 @@ import { TALL_MENU as TM } from '../settings/tall.js';
 import { transitionPolicy } from './transition-policy.js';
 import { MENU_SWEEP, frontTime, sweepGeom, gridBlockPx, createMenuSmear } from './menu-smear.js';
 import { getWm } from '../util/wm-handle.js';
+import { setPagePaused, isPagePaused } from '../util/page-pause.js';
 import { weakReason } from '../util/device.js';
 
 // R24a / R48: the burger + full-screen menu of the tall mode (phones, tablet portrait).
@@ -103,23 +105,33 @@ export function mountTallMenu() {
 
   // the items, in Anh's order: flavour 1, flavour 2, clock, Work, About, Contact; then the line push
   const items = () => [...menu.querySelectorAll('.tmenu__flav .tmenu__fx'), menu.querySelector('.tmenu__time'), ...menu.querySelectorAll('.tmenu__list > li')];
-  const plan = (open) => {
-    const W = innerWidth, t30 = frontTime(TM.startShare * W, MENU_SWEEP.openSec), list = items(), D = MENU_SWEEP.closeDiv;
-    const wins = list.map((el, i) => ({ el, a: t30 + i * TM.stepSec, b: t30 + i * TM.stepSec + TM.itemSec }));
-    const push = { a: t30 + list.length * TM.stepSec, b: t30 + list.length * TM.stepSec + TM.pushSec };
-    const T = Math.max(MENU_SWEEP.openSec, push.b, ...wins.map((w) => w.b));
-    const at = (w) => (open ? { d: w.a, u: w.b - w.a } : { d: (T - w.b) / D, u: (w.b - w.a) / D }); // close = the exact reverse, twice as fast
-    wins.forEach((w) => { const q = at(w); w.el.style.setProperty('--tm-delay', `${q.d.toFixed(3)}s`); w.el.style.setProperty('--tm-dur', `${q.u.toFixed(3)}s`); });
-    const pq = at(push);
-    return { T, push: pq, bandDelay: open ? 0 : (T - MENU_SWEEP.openSec) / D };
+  // R48 r10: the whole entrance is ONE GSAP timeline (items: opacity 0 -> 1, blur -> 0, y +8 -> 0, each itemSec with itemEase; their STARTS spread over staggerAmount with staggerEase; then the line push with pushEase).
+  // It starts when the sweep band has passed startShare of the width. Close = the same timeline reversed at closeSpeed (the band waits for the reversed timeline to reach the sweep's length).
+  let tl = null;
+  const buildTl = () => {
+    tl?.kill();
+    const list = items(), t30 = frontTime(TM.startShare * innerWidth, MENU_SWEEP.openSec), cur = curLink;
+    gsap.set(list, { opacity: 0, filter: 'blur(' + TM.blurPx + 'px)', y: TM.riseY });
+    tl = gsap.timeline({ paused: true });
+    tl.to({}, { duration: MENU_SWEEP.openSec }, 0);
+    tl.to(list, { opacity: 1, filter: 'blur(0px)', y: 0, duration: TM.itemSec, ease: TM.itemEase, stagger: { amount: TM.staggerAmount, ease: TM.staggerEase } }, t30);
+    if (cur) {
+      const at = t30 + TM.staggerAmount + TM.pushLag;
+      tl.fromTo(cur.querySelector('.tmenu__arr'), { scaleX: 0 }, { scaleX: 1, duration: TM.pushSec, ease: TM.pushEase }, at);
+      tl.fromTo(cur.querySelector('.tmenu__w'), { x: 0 }, { x: wordShift(), duration: TM.pushSec, ease: TM.pushEase }, at);
+    }
+    return tl;
   };
-  const plainItems = () => panel.querySelectorAll('.tmenu__fx').forEach((el) => { el.style.removeProperty('--tm-delay'); el.style.removeProperty('--tm-dur'); });
+  const wordShift = () => parseFloat(getComputedStyle(menu).getPropertyValue('--tm-word-shift')) || 43;
+  const showPlain = () => { tl?.kill(); tl = null; gsap.set(items(), { opacity: 1, filter: 'none', y: 0 }); };
 
   // ---- the current-page line: .is-cur on a link = the line drawn out and the word pushed to its rest position (CSS transitions with the same duration / ease, so the word follows the line's tip)
   let curLink = null; // the link that has the line at rest (Work on /work/, none on Home)
   const links = () => [...menu.querySelectorAll('.tmenu__list a, .tmenu__list button')];
-  const lineMove = (el, on, delay, dur) => { el.style.setProperty('--tm-push-delay', `${delay.toFixed(3)}s`); el.style.setProperty('--tm-push-dur', `${dur.toFixed(3)}s`); el.classList.toggle('is-cur', on); };
-  const lineNow = () => links().forEach((a) => { a.style.setProperty('--tm-push-delay', '0s'); a.style.setProperty('--tm-push-dur', '0s'); a.classList.remove('is-cur'); });
+  const arrOf = (el) => el.querySelector('.tmenu__arr'), wordOf = (el) => el.querySelector('.tmenu__w');
+  const lineSet = (el, on) => { gsap.killTweensOf([arrOf(el), wordOf(el)]); gsap.set(arrOf(el), { scaleX: on ? 1 : 0, transformOrigin: '0 50%' }); gsap.set(wordOf(el), { x: on ? wordShift() : 0 }); el.classList.toggle('is-cur', on); };
+  const lineMove = (el, on, delay, dur) => { gsap.killTweensOf([arrOf(el), wordOf(el)]); const o = { duration: dur, delay, ease: TM.pushEase, overwrite: 'auto' }; gsap.to(arrOf(el), { scaleX: on ? 1 : 0, transformOrigin: '0 50%', ...o }); gsap.to(wordOf(el), { x: on ? wordShift() : 0, ...o }); el.classList.toggle('is-cur', on); };
+  const lineNow = () => links().forEach((a) => lineSet(a, false));
   let fromMenu = false;
   document.addEventListener('contact:tap', (e) => { // Contact tapped in the open menu: the line pulls back from the current word and draws out before Contact (one move, the same duration / ease)
     if (!open || !contactLink || e.detail !== contactLink || fromMenu) return;
@@ -175,30 +187,32 @@ export function mountTallMenu() {
       lineNow();
       if (sw) panel.style.clipPath = 'polygon(0 0, 0 0, 0 0)'; else panel.style.clipPath = 'none';
       menu.hidden = false; menu.dataset.view = view; placeMenu();
-      let pl = null;
-      if (sw) { pl = plan(true); collectText(); } else plainItems();
+      if (sw) { buildTl(); collectText(); } else showPlain();
       afterReflow(() => {
         menu.classList.add('is-open');
-        if (curLink) { if (sw) lineMove(curLink, true, pl.push.d, pl.push.u); else { lineMove(curLink, true, 0, 0); } }
+        if (sw) tl.timeScale(1).play(0); else if (curLink) lineSet(curLink, true);
       });
       if (sw) {
         sweeping = true; wmRun(true, secOpen, 0);
         const ok = smear.play({ open: true, sec: secOpen, onFrame: ({ clip, f }) => { panel.style.clipPath = clip; fadeText(f); }, onDone: finishSweep });
-        if (!ok) { sweeping = false; restoreText(); menu.classList.add('is-plain'); panel.style.clipPath = 'none'; plainItems(); wmRun(true, 0.25, 0); }
+        if (ok) setPagePaused(true);
+        if (!ok) { sweeping = false; restoreText(); menu.classList.add('is-plain'); panel.style.clipPath = 'none'; showPlain(); if (curLink) lineSet(curLink, true); wmRun(true, 0.25, 0); }
       } else wmRun(true, 0.25, 0);
       (menu.querySelector(view === 'about' ? '.tmenu__text' : 'a[href], button') || btn).focus({ preventScroll: true });
     } else {
-      const done = () => { if (!open) { menu.hidden = true; stopTime(); lineNow(); } };
+      const done = () => { if (!open) { menu.hidden = true; stopTime(); lineNow(); setPagePaused(false); } };
       menu.classList.toggle('is-plain', !sw);
       fromMenu = false;
       if (sw) {
-        const pl = plan(false); collectText();
-        links().forEach((a) => { if (a.classList.contains('is-cur')) lineMove(a, false, pl.push.d, pl.push.u); });
+        if (!tl) { buildTl(); tl.progress(1); }
+        const bandDelay = Math.max(0, (tl.duration() - secOpen) / MENU_SWEEP.closeDiv);
+        collectText();
         menu.classList.remove('is-open');
-        sweeping = true; panel.style.clipPath = 'none'; wmRun(false, secClose, pl.bandDelay);
-        const ok = smear.play({ open: false, sec: secClose, delay: pl.bandDelay, onFrame: ({ clip, f }) => { panel.style.clipPath = clip; fadeText(f); }, onDone: () => { done(); finishSweep(); } });
-        if (!ok) { sweeping = false; restoreText(); menu.classList.add('is-plain'); plainItems(); hideT = setTimeout(done, 260); wmRun(false, 0.25, 0); }
-      } else { plainItems(); menu.classList.remove('is-open'); hideT = setTimeout(done, 260); wmRun(false, 0.25, 0); }
+        tl.timeScale(MENU_SWEEP.closeDiv).reverse();
+        sweeping = true; panel.style.clipPath = 'none'; wmRun(false, secClose, bandDelay);
+        const ok = smear.play({ open: false, sec: secClose, delay: bandDelay, onFrame: ({ clip, f }) => { panel.style.clipPath = clip; fadeText(f); }, onDone: () => { done(); finishSweep(); } });
+        if (!ok) { sweeping = false; restoreText(); tl?.kill(); menu.classList.add('is-plain'); hideT = setTimeout(done, 260); wmRun(false, 0.25, 0); }
+      } else { tl?.kill(); menu.classList.remove('is-open'); hideT = setTimeout(done, 260); wmRun(false, 0.25, 0); }
       btn.focus({ preventScroll: true });
     }
   };
@@ -215,7 +229,7 @@ export function mountTallMenu() {
   });
   addEventListener('resize', () => { placeMenu(); });
   // R45b: close with no animation (the Home -> Work flight starts from the tapped link and IS the transition)
-  const closeNow = () => { smear?.cancel(); sweeping = false; pending = null; restoreText(); clearTimeout(hideT); cancelAnimationFrame(wmRaf); open = false; btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-label', 'Open menu'); document.documentElement.classList.remove('tmenu-open'); pageEls().forEach((el) => el.removeAttribute('inert')); menu.classList.remove('is-open'); menu.hidden = true; stopTime(); lineNow(); };
+  const closeNow = () => { smear?.cancel(); sweeping = false; pending = null; restoreText(); clearTimeout(hideT); cancelAnimationFrame(wmRaf); setPagePaused(false); tl?.kill(); open = false; btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-label', 'Open menu'); document.documentElement.classList.remove('tmenu-open'); pageEls().forEach((el) => el.removeAttribute('inert')); menu.classList.remove('is-open'); menu.hidden = true; stopTime(); lineNow(); };
 
   // ---- ?debug=menu: what the sweep does on this device (for Anh's phone)
   if (params.get('debug') === 'menu') {
@@ -227,7 +241,7 @@ export function mountTallMenu() {
       box.textContent = [`smear: ${smear && !r ? 'ON' : 'FALLBACK (plain fade)'}${r ? ' - ' + r : smear ? '' : ' - ' + (smearTried ? smearWhy || 'renderer not made' : 'renderer not made yet (idle)')}`,
         `GL context: ${smear ? (smear.lost ? 'LOST' : 'ok') : '-'}   canvas dpr ${smear ? smear.dpr.toFixed(2) : '-'} (device ${devicePixelRatio})`,
         `grid: ${gridBlockPx().toFixed(1)} px blocks (MENU_SWEEP.blockPx ${MENU_SWEEP.blockPx} @430)   zone: ${g.zone.toFixed(0)} px   jag: ${g.jag.toFixed(0)} px   sweep ${MENU_SWEEP.openSec.toFixed(2)} s / close ${(MENU_SWEEP.openSec / MENU_SWEEP.closeDiv).toFixed(2)} s`,
-        `last sweep: ${st && st.frames ? `${st.frames} frames, ${st.avgMs.toFixed(1)} ms avg, ${st.maxMs.toFixed(1)} ms max` : '-'}`].join('\n');
+        `last sweep: ${st && st.frames ? `${st.frames} frames, ${st.avgMs.toFixed(1)} ms avg, ${st.maxMs.toFixed(1)} ms max, ${st.long} frames > 20 ms (page loop paused under the sweep: ${isPagePaused() ? "yes" : "no"})` : '-'}`].join('\n');
     };
     setInterval(show, 300); show();
   }

@@ -15,7 +15,7 @@ const smooth = (q) => { q = Math.min(1, Math.max(0, q)); return q * q * (3 - 2 *
 export const unsmooth = (s) => { s = Math.min(1, Math.max(0, s)); let lo = 0, hi = 1; for (let i = 0; i < 22; i++) { const m = (lo + hi) / 2; if (smooth(m) < s) lo = m; else hi = m; } return (lo + hi) / 2; };
 // the sweep time of the open (the flight's own cross-fade stretch), the close is twice as fast
 // R48 r9: the MENU has its own block size (blockPx, css px at the 430 px reference width, scaling with the screen width; ~4 columns across a phone), no longer the flight's grid
-export const MENU_SWEEP = { openSec: F.sec * (F.crossTo - F.crossFrom), closeDiv: 2, blockPx: 113 };
+export const MENU_SWEEP = { openSec: F.sec * (F.crossTo - F.crossFrom), closeDiv: TM.closeSpeed || 2, blockPx: 113 };
 export const gridCols = () => Math.max(2, Math.round(430 / Math.max(8, MENU_SWEEP.blockPx))); // whole columns across the screen
 export const gridBlockPx = (W = innerWidth) => W / gridCols(); // one smear block in CSS px (the flight uses the same grid)
 const hash = (n) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
@@ -53,7 +53,7 @@ export function createMenuSmear() {
   const canvas = fl.canvas;
   canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:49;display:none';
   let raf = 0, active = null;
-  const stats = { frames: 0, avgMs: 0, maxMs: 0, last: 0 };
+  const stats = { frames: 0, avgMs: 0, maxMs: 0, last: 0, long: 0 };
   fl.onLost = () => { api.lost = true; };
   const api = {
     lost: false, stats,
@@ -71,10 +71,10 @@ export function createMenuSmear() {
       const rowOff = Array.from({ length: rows }, (_, r) => hash(r * 1.913 + 4.1)); // 0..1: how far behind the mean edge each row's own edge sits
       const dir = open ? 1 : -1, amp = WORK_PTR.pixelVelMax;
       canvas.style.display = 'block';
-      stats.frames = 0; stats.avgMs = 0; stats.maxMs = 0; stats.last = 0;
+      stats.frames = 0; stats.avgMs = 0; stats.maxMs = 0; stats.last = 0; stats.long = 0;
       const t0 = performance.now() + delay * 1000;
       const frame = (now) => {
-        if (stats.last) { const ms = now - stats.last; stats.frames++; stats.avgMs += (ms - stats.avgMs) / stats.frames; stats.maxMs = Math.max(stats.maxMs, ms); } stats.last = now;
+        if (stats.last) { const ms = now - stats.last; stats.frames++; stats.avgMs += (ms - stats.avgMs) / stats.frames; stats.maxMs = Math.max(stats.maxMs, ms); if (ms > 20) stats.long++; } stats.last = now;
         const t = (now - t0) / 1000, u = Math.min(1, Math.max(0, t / sec)), s = open ? smooth(u) : 1 - smooth(u), f = G.from + (G.to - G.from) * s;
         const waiting = t < 0;
         const pts = []; let nZero = 0, nFull = 0;
