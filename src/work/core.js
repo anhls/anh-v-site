@@ -712,7 +712,7 @@ setTimeout(() => swap.warm(), 0);
 items.forEach((it) => { if (it.kind === 'frame') it.el.addEventListener('pointerenter', () => { if (!mode.tap || transitionOK()) swap.warm().then(() => swap.prebuild(it.slug, rest.ok)); }); });
 addEventListener('wheel', () => { if (!paused) inertia = null; }, { capture: true, passive: true });
 addEventListener('wheel', () => { if (!paused) cancelSnap(); }, { capture: true, passive: true });
-addEventListener('touchstart', () => { rest.interrupt(); if (!paused) cancelSnap(); }, { capture: true, passive: true });
+addEventListener('touchstart', (e) => { if (e.target?.closest?.('.tmenu__btn, .tmenu')) return; rest.interrupt(); if (!paused) cancelSnap(); }, { capture: true, passive: true }); // (R48 r6: a tap on the menu button is not a scroll: the title stays)
 addEventListener('keydown', () => { if (!paused) cancelSnap(); }, { capture: true });
 const navTravel = () => dist(INDEX.travelVh); // how far a title rises (px), like the homepage index rows (a capped distance)
 const updateNames = () => {

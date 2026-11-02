@@ -72,7 +72,17 @@ export function createTallDetails({ projects, reduced, title }) {
   // ---- year / tags lines (CSS transitions): entrance = title -> year -> tags, leave = tags -> year, faster
   const lineHtml = (txt) => `<span class="td__ln"><span class="td__rin is-out">${esc(txt)}</span></span>`;
   const yearLines = () => [...yearEl.querySelectorAll('.td__rin')], tagLines = () => [...tagsEl.querySelectorAll('.td__rin')];
-  const fill = (idx) => { yearEl.innerHTML = infos[idx].year ? lineHtml(infos[idx].year) : ''; tagsEl.innerHTML = infos[idx].tags.slice(0, D.tags).map(lineHtml).join(''); };
+  // R48 r6: the TAGS column per project: the LONGEST tag's right INK edge on the card's right edge, every other tag left-aligned (by ink) to that tag's left edge. Measured with the real web font (layout() re-runs
+  // when the fonts have loaded and on resize); the column's position is set BEFORE the lines roll in, so a new project's tags arrive already aligned.
+  let tagFont = '', cardR = 0, tagLs = 0;
+  const placeTags = (idx) => {
+    const t = infos[idx].tags.slice(0, D.tags), lns = [...tagsEl.querySelectorAll('.td__ln')];
+    if (!t.length || !tagFont) return;
+    const m = t.map((x) => ink(tagFont, x)), w = m.map((g, i) => g.right + g.left + tagLs * (t[i].length - 1)); let k = 0; w.forEach((v, i) => { if (v > w[k]) k = i; });
+    tagsEl.style.right = 'auto'; tagsEl.style.left = `${(cardR - (m[k].right + tagLs * (t[k].length - 1))).toFixed(2)}px`;
+    lns.forEach((el, i) => { el.style.marginLeft = `${(m[i].left - m[k].left).toFixed(2)}px`; });
+  };
+  const fill = (idx) => { yearEl.innerHTML = infos[idx].year ? lineHtml(infos[idx].year) : ''; tagsEl.innerHTML = infos[idx].tags.slice(0, D.tags).map(lineHtml).join(''); placeTags(idx); };
   const roll = (els, kind, t0 = 0, dur = '') => els.forEach((el, i) => { el.style.transitionDuration = dur; el.style.transitionDelay = `${(t0 + i * D.stagger * (kind === 'out' ? D.leaveScale : 1)).toFixed(3)}s`; el.classList.toggle('is-out', kind === 'out'); el.classList.toggle('is-in', kind === 'in'); });
   let seenSeq = 0, pendSeq = 0, waitSince = 0, yearAt = 0, tagsAt = 0, yearShown = false, tagsShown = false;
   const leave = () => {
@@ -133,6 +143,8 @@ export function createTallDetails({ projects, reduced, title }) {
     root.style.setProperty('--td-fs', `${fsS.toFixed(3)}px`); root.style.setProperty('--td-pitch', `${pitch.toFixed(2)}px`);
     root.style.setProperty('--td-col-top', `${(cardBottom + vw(D.rowGapVw) - capTop).toFixed(2)}px`);
     root.style.setProperty('--td-left', `${L}px`); root.style.setProperty('--td-tag-op', String(D.tagOpacity));
+    tagFont = `${csY.fontWeight} ${fsS}px ${csY.fontFamily}`; tagLs = 0.02 * fsS; cardR = L + w;
+    if (shown >= 0 && state === 'out') placeTags(shown);
     if (shown >= 0 && state !== 'out') { const keep = state; fill(shown); if (keep === 'in') [...yearLines(), ...tagLines()].forEach((el) => { el.classList.remove('is-out'); el.classList.add('is-in'); }); }
   };
   // (R48 r5: fonts.ready can resolve BEFORE a lazily-loaded weight is requested (iOS), so measuring then would use a fallback font and "/NN" would sit at a wrong, fixed spot:

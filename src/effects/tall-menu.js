@@ -2,19 +2,17 @@ import '../styles/tall.css';
 import data from '../data/data.json';
 import { CONTACT, WORK_PTR } from '../timeline.js';
 import { TALL_MENU as TM } from '../settings/tall.js';
+import { transitionPolicy } from './transition-policy.js';
+import { MENU_SWEEP, unsmooth, createMenuSmear } from './menu-smear.js';
 
 // R24a / R48: the burger + full-screen menu of the tall mode (phones, tablet portrait).
 // R48 layout: burger TOP-LEFT (two thin lines that pivot from their centre into an X), HCMC time top-right, two flavour lines at ~1/3 of the height, the nav (Clash Display,
 // Capitalised, "→" before the current page) stacked lower-left above the big AV wordmark, which is the panel's bottom element (same place / size as the phone home's wordmark).
-// R48 motion: a SIDEWAYS PIXEL SWIPE (open = a ragged, blocky front sweeps left -> right, close = right -> left; the cells are the Work hover-smear grid's size, WORK_PTR.pixelGrid
-// columns) while the page behind blurs out and the menu content blurs in, staggered (flavour + nav, then time, wordmark last). Time-based (rAF + performance.now); the front is
-// exactly the full panel / nothing at rest. Reduced motion or ?gl=0 = a plain fade. Focus trap, Esc, aria, inert page as before (R46c modal lock untouched).
-// Known difference: the front is a stepped clip of the panel plus a faint veil one band ahead; the page pixels themselves are not displaced (a DOM page cannot be sampled
-// by the grid shader the way the Work pictures are).
-export const MENU_FX = { sec: 0.55, closeSec: 0.5, band: 0.34, veil: 0.1, blurPx: 10, pageBlurPx: 8 }; // band = ragged front depth (share of the width); veil = the faint lead band opacity
+// R48 r6 motion: the open / close is the Home -> Work flight's PIXEL SWIPE, sideways (menu-smear.js): a full-height band sweeps left -> right on open (right -> left on close, twice as fast) and smears the page's own
+// pictures under it with the flight's grid / strength / RGB split; behind the band the panel colour; the items blur in as the band passes their x. Reduced motion, ?gl=0, Save-Data, a weak device or no WebGL2 = a plain fade.
+// Focus trap, Esc, aria, inert page as before (R46c modal lock untouched).
+export const MENU_FX = { blurPx: 10, itemSec: 0.45 }; // R48 r6: the sweep itself (time, block size, strength, RGB split) is the Home -> Work flight's: menu-smear.js MENU_SWEEP (the close is twice as fast), HOME_FLIGHT + WORK_PTR; itemSec = how long an item takes to blur in
 
-const hash = (n) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
-const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2); // in-out cubic
 const hcmcTime = () => {
   const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date());
   return `${p} GMT+7`;
@@ -28,7 +26,6 @@ export function mountTallMenu() {
   wrap.innerHTML = `
     <button type="button" class="tmenu__btn" aria-label="Open menu" aria-expanded="false" aria-controls="tmenu"><span></span><span></span></button>
     <div class="tmenu" id="tmenu" role="dialog" aria-modal="true" aria-label="Menu" data-view="list" hidden>
-      <div class="tmenu__veil" aria-hidden="true"></div>
       <div class="tmenu__panel">
         <address class="tmenu__time tmenu__fx" data-d="2" aria-label="Local time in Ho Chi Minh City"><span>HCMC, Vietnam</span><span class="tmenu__clock"></span></address>
         <p class="tmenu__flav tmenu__fx" data-d="0">${flavour.map((l) => `<span>${l}</span>`).join('')}</p>
@@ -42,7 +39,7 @@ export function mountTallMenu() {
       </div>
     </div>`;
   const btn = wrap.querySelector('.tmenu__btn'), menu = wrap.querySelector('.tmenu');
-  const panel = menu.querySelector('.tmenu__panel'), veil = menu.querySelector('.tmenu__veil'), timeEl = menu.querySelector('.tmenu__clock'), wmImg = menu.querySelector('.tmenu__wm');
+  const panel = menu.querySelector('.tmenu__panel'), timeEl = menu.querySelector('.tmenu__clock'), wmImg = menu.querySelector('.tmenu__wm');
   document.body.append(...wrap.children);
 
   const pageEls = () => [document.getElementById('app'), document.querySelector('a.wordmark'), document.querySelector('a.twm'), document.querySelector('nav.nav'), document.querySelector('.skip')].filter(Boolean);
@@ -83,37 +80,23 @@ export function mountTallMenu() {
   };
   document.fonts?.ready?.then(placeMenu); scanV();
 
-  // ---- the pixel swipe front
-  let raf = 0, p = 0, anim = null, cols = 0, rows = 0, W = 0, H = 0, cell = 1;
-  const geom = () => { W = innerWidth; H = innerHeight; cols = Math.max(8, Math.round(WORK_PTR.pixelGrid)); cell = W / cols; rows = Math.max(4, Math.round(H / cell)); };
-  const clip = (q, lead) => {
-    // per row: the edge = q x (W + band) - band x h(row), snapped to whole cells; q 0 = nothing, q 1 = the whole panel (exactly). lead = the region AHEAD of the front (the veil)
-    if (!lead && q <= 0) return 'polygon(0 0, 0 0, 0 0)';
-    if (!lead && q >= 1) return 'none';
-    const B = MENU_FX.band * W, rh = H / rows, pts = [];
-    const edge = (r) => { const h = hash(r); let e = q * (W + B) - B * h; e = Math.round(e / cell) * cell; return Math.max(0, Math.min(W, e)); };
-    pts.push(lead ? `${W}px 0` : '0 0');
-    for (let r = 0; r < rows; r++) { const e = edge(r); pts.push(`${e}px ${r * rh}px`, `${e}px ${(r + 1) * rh}px`); }
-    pts.push(lead ? `${W}px ${H}px` : `0 ${H}px`);
-    return `polygon(${pts.join(',')})`;
+  // ---- R48 r6: the sweep = the Home -> Work flight's pixel swipe, sideways (menu-smear.js). The renderer is made once, when the page is idle (the shader compile must not happen at the tap)
+  let smear = null, smearTried = false, sweeping = false, pending = null;
+  const canSmear = () => !reduced() && !navigator.connection?.saveData && transitionPolicy().enabled;
+  const warmSmear = () => { if (smearTried || !canSmear()) return; smearTried = true; try { smear = createMenuSmear(); } catch { smear = null; } };
+  (window.requestIdleCallback || ((fn) => setTimeout(fn, 1200)))(warmSmear, { timeout: 4000 });
+  const setEdge = (px) => { panel.style.clipPath = px >= innerWidth ? 'none' : `inset(0 ${(innerWidth - px).toFixed(2)}px 0 0)`; };
+  // each item blurs in as the band passes its x (and out as the band passes it again); the close is twice as fast
+  const stagger = (open, sec) => {
+    const W = innerWidth, lo = -W / 38, hi = W + W / 38;
+    panel.querySelectorAll('.tmenu__fx').forEach((el) => {
+      const r = el.getBoundingClientRect(), cx = r.width ? r.left + r.width / 2 : 0, along = open ? cx : W - cx;
+      el.style.setProperty('--tm-delay', `${(unsmooth((along - lo) / (hi - lo)) * sec).toFixed(3)}s`);
+      el.style.setProperty('--tm-dur', `${(open ? MENU_FX.itemSec : MENU_FX.itemSec / MENU_SWEEP.closeDiv).toFixed(3)}s`);
+    });
   };
-  const draw = (q) => {
-    p = q;
-    panel.style.clipPath = clip(q, false);
-    veil.style.clipPath = q > 0 && q < 1 ? clip(q, true) : 'polygon(0 0, 0 0, 0 0)';
-    veil.style.opacity = q > 0 && q < 1 ? String(Math.min(1, q * 6, (1 - q) * 6 + 0.2)) : '0';
-  };
-  const run = (to, sec, onDone) => {
-    cancelAnimationFrame(raf);
-    const from = p, t0 = performance.now(), dur = Math.max(0.05, sec * Math.abs(to - from)) * 1000;
-    const step = (now) => {
-      const u = Math.min(1, (now - t0) / dur);
-      draw(from + (to - from) * ease(u));
-      if (u < 1) raf = requestAnimationFrame(step); else { draw(to); onDone?.(); }
-    };
-    raf = requestAnimationFrame(step);
-  };
-
+  const plainItems = () => panel.querySelectorAll('.tmenu__fx').forEach((el) => { el.style.removeProperty('--tm-delay'); el.style.removeProperty('--tm-dur'); });
+  const bgColor = () => getComputedStyle(panel).backgroundColor;
   // ---- the big wordmark in the panel: when the page's own wordmark is small (project pages) it grows from there as the panel opens
   const placeWm = (toSmall) => {
     const real = document.querySelector('a.wordmark');
@@ -131,7 +114,9 @@ export function mountTallMenu() {
   };
 
   let open = false, hideT = 0;
+  const finishSweep = () => { sweeping = false; if (pending) { const q = pending; pending = null; set(q[0], q[1]); } };
   const set = (on, view = 'list') => {
+    if (sweeping && on !== open) { pending = [on, view]; return; } // (a tap during the sweep waits for it to end)
     if (on === open && menu.dataset.view === view) return;
     const wasOpen = open;
     open = on;
@@ -140,23 +125,34 @@ export function mountTallMenu() {
     document.documentElement.classList.toggle('tmenu-open', on);
     pageEls().forEach((el) => { if (on) el.setAttribute('inert', ''); else el.removeAttribute('inert'); });
     clearTimeout(hideT);
-    const plain = reduced();
-    menu.classList.toggle('is-plain', plain);
+    if (!on || !wasOpen) { warmSmear(); }
+    const sw = !reduced() && canSmear() && smear && !smear.lost && !smear.playing;
+    const secOpen = MENU_SWEEP.openSec, secClose = secOpen / MENU_SWEEP.closeDiv;
     if (on) {
       if (wasOpen) { menu.dataset.view = view; (menu.querySelector(view === 'about' ? '.tmenu__text' : 'a[href], button') || btn).focus({ preventScroll: true }); return; }
-      menu.querySelector('.tmenu__arr').hidden = !/^\/work\/?$/.test(location.pathname); // "→" before the current page: only on the Work page itself
-      geom(); tick();
+      menu.querySelector('.tmenu__arr').hidden = !/^\/work\/?$/.test(location.pathname); // the current-page line: only on the Work page itself
+      tick();
+      menu.classList.toggle('is-plain', !sw);
+      if (sw) setEdge(0); else panel.style.clipPath = 'none';
       menu.hidden = false; menu.dataset.view = view; placeMenu();
-      if (!plain) { draw(0); placeWm(false); }
+      if (sw) { placeWm(false); stagger(true, secOpen); } else plainItems();
       void menu.offsetWidth;
       menu.classList.add('is-open');
-      if (plain) { panel.style.clipPath = 'none'; veil.style.opacity = '0'; }
-      else run(1, MENU_FX.sec);
+      if (sw) {
+        sweeping = true;
+        if (!smear.play({ open: true, sec: secOpen, bg: bgColor(), onEdge: setEdge, onDone: finishSweep })) { sweeping = false; menu.classList.add('is-plain'); panel.style.clipPath = 'none'; plainItems(); }
+      }
       (menu.querySelector(view === 'about' ? '.tmenu__text' : 'a[href], button') || btn).focus({ preventScroll: true });
     } else {
-      menu.classList.remove('is-open');
       const done = () => { if (!open) { menu.hidden = true; stopTime(); } };
-      if (plain) hideT = setTimeout(done, 260); else { placeWm(true); run(0, MENU_FX.closeSec, done); }
+      menu.classList.toggle('is-plain', !sw);
+      if (sw) { stagger(false, secClose); placeWm(true); }
+      menu.classList.remove('is-open');
+      if (!sw) { plainItems(); hideT = setTimeout(done, 260); }
+      else {
+        sweeping = true; setEdge(innerWidth);
+        if (!smear.play({ open: false, sec: secClose, bg: bgColor(), onEdge: setEdge, onDone: () => { done(); finishSweep(); } })) { sweeping = false; menu.classList.add('is-plain'); plainItems(); hideT = setTimeout(done, 260); }
+      }
       btn.focus({ preventScroll: true });
     }
   };
@@ -171,8 +167,8 @@ export function mountTallMenu() {
     e.preventDefault();
     f[i < 0 ? 0 : (i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
   });
-  addEventListener('resize', () => { placeMenu(); if (open || p > 0) { geom(); if (p > 0 && p < 1) draw(p); } });
+  addEventListener('resize', () => { placeMenu(); });
   // R45b: close with no animation (the Home -> Work flight starts from the tapped link and IS the transition)
-  const closeNow = () => { cancelAnimationFrame(raf); clearTimeout(hideT); open = false; p = 0; btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-label', 'Open menu'); document.documentElement.classList.remove('tmenu-open'); pageEls().forEach((el) => el.removeAttribute('inert')); menu.classList.remove('is-open'); menu.hidden = true; stopTime(); };
+  const closeNow = () => { smear?.cancel(); sweeping = false; pending = null; clearTimeout(hideT); open = false; btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-label', 'Open menu'); document.documentElement.classList.remove('tmenu-open'); pageEls().forEach((el) => el.removeAttribute('inert')); menu.classList.remove('is-open'); menu.hidden = true; stopTime(); };
   return { open: () => set(true), close: () => set(false), closeNow, isOpen: () => open, link: menu.querySelector('a[href="/work/"]') };
 }

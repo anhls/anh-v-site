@@ -98,7 +98,7 @@ uniform vec2 uBend, uMix;         // now / a moment ago
 uniform vec2 uNatA, uNatB;
 uniform sampler2D uA, uB;
 uniform float uTaps, uRgb, uPx, uTear, uCell;
-uniform float uLook, uFrontPx, uGain; // R45c3 pixel swipe: look 1 = pixel; the brush front along uDir (screen px); gain = the displacement share (0 at rest)
+uniform float uLook, uFrontPx, uGain, uSkipZero; // R45c3 pixel swipe: look 1 = pixel; the brush front along uDir (screen px); gain = the displacement share (0 at rest)
 uniform sampler2D uGrid;           // the Work page pointer-fx grid (screen space, NEAREST, one x / y displacement per cell)
 uniform vec2 uGridN, uFxP;         // grid columns / rows; strength (picture units per grid unit), rgb split
 uniform vec2 uDir;
@@ -138,6 +138,7 @@ void main() {
     float a = clamp(edge * uPx + .5, 0., 1.);
     if (a <= 0.) { o = vec4(0.); return; }
     vec2 d = texture(uGrid, pos / uView).rg * uGain * uFxP.x * 2., sh = d * uFxP.y;  // picture units -> q units (x2)
+    if (uSkipZero > .5 && flip < .5 && dot(d, d) < 1e-12) { o = vec4(0.); return; } // R48 r6 (the phone menu sweep): a cell the brush has not touched stays the page's own pixels (transparent here)
     vec2 q = qa - d;
     vec3 c3;
     if (flip > .5) c3 = vec3(texture(uB, clamp(cover(clamp(q + sh, -1., 1.), b, uNatB), 0., 1.)).r, texture(uB, clamp(cover(clamp(q, -1., 1.), b, uNatB), 0., 1.)).g, texture(uB, clamp(cover(clamp(q - sh, -1., 1.), b, uNatB), 0., 1.)).b);
@@ -168,13 +169,13 @@ void main() {
 
 // parent: where the canvas goes. Returns null when WebGL2 is unavailable (the caller then navigates plainly).
 // Picture slots 0..3 (0 = the start picture, 1 = the end picture, 2 / 3 = the Work page's neighbours); a layer draws two of them.
-export function createHomeFlight(parent) {
+export function createHomeFlight(parent, nSlots = 4) {
   const canvas = document.createElement('canvas');
   canvas.className = 'hf__canvas';
   canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
   const gl = glOpen(canvas, 'homeflight', { alpha: true, antialias: false, depth: false, stencil: false, premultipliedAlpha: true });
   if (!gl) return null;
-  const SLOTS = 4;
+  const SLOTS = nSlots; // (the phone menu sweep draws up to 5 page pictures + the panel colour)
   let dead = false, prog, vs, fs, gridTex = null, gridW = 1, gridH = 1, gridP = [0, 0], tex = [], nat = Array.from({ length: SLOTS }, () => [1, 1]), keys = Array(SLOTS).fill(null), u = {}, dpr = 1;
   const dispose = () => {
     if (dead) return; dead = true; canvas.remove();
@@ -188,7 +189,7 @@ export function createHomeFlight(parent) {
     prog = gl.createProgram(); gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error('link');
     gl.useProgram(prog);
-    ['uLook', 'uFrontPx', 'uGain', 'uGrid', 'uGridN', 'uFxP', 'uDir', 'uView', 'uBox0', 'uBox1', 'uBend', 'uMix', 'uNatA', 'uNatB', 'uA', 'uB', 'uTaps', 'uRgb', 'uPx', 'uTear', 'uCell'].forEach((k) => { u[k] = gl.getUniformLocation(prog, k); });
+    ['uLook', 'uFrontPx', 'uGain', 'uSkipZero', 'uGrid', 'uGridN', 'uFxP', 'uDir', 'uView', 'uBox0', 'uBox1', 'uBend', 'uMix', 'uNatA', 'uNatB', 'uA', 'uB', 'uTaps', 'uRgb', 'uPx', 'uTear', 'uCell'].forEach((k) => { u[k] = gl.getUniformLocation(prog, k); });
     for (let i = 0; i < SLOTS; i++) {
       const t = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, t);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -212,7 +213,7 @@ export function createHomeFlight(parent) {
     // `source` = an <img> (complete) or a <video> with a frame; `key` skips an upload of the same picture twice
     setPicture(slot, source, key) {
       if (dead) return false;
-      const w = source.naturalWidth || source.videoWidth, h = source.naturalHeight || source.videoHeight;
+      const w = source.naturalWidth || source.videoWidth || source.width, h = source.naturalHeight || source.videoHeight || source.height;
       if (!w || !h) return false;
       if (key && keys[slot] === key) return true;
       gl.activeTexture(gl.TEXTURE0 + slot); gl.bindTexture(gl.TEXTURE_2D, tex[slot]);
@@ -254,7 +255,7 @@ export function createHomeFlight(parent) {
       gl.uniform2f(u.uBend, state.bend, prev.bend); gl.uniform2f(u.uMix, state.mix, prev.mix);
       gl.uniform2f(u.uNatA, nat[slots[0]][0], nat[slots[0]][1]); gl.uniform2f(u.uNatB, nat[slots[1]][0], nat[slots[1]][1]);
       gl.uniform1f(u.uTaps, Math.max(2, Math.min(60, F.smearTaps))); gl.uniform1f(u.uRgb, F.smearStrength > 0 ? F.smearRGB / F.smearStrength : 0);
-      gl.uniform1f(u.uLook, pixel && !opts.plain ? 1 : 0); gl.uniform1f(u.uFrontPx, opts.frontPx ?? 0); gl.uniform1f(u.uGain, opts.gain ?? 0);
+      gl.uniform1f(u.uLook, pixel && !opts.plain ? 1 : 0); gl.uniform1f(u.uFrontPx, opts.frontPx ?? 0); gl.uniform1f(u.uGain, opts.gain ?? 0); gl.uniform1f(u.uSkipZero, opts.skipZero ? 1 : 0);
       gl.uniform2f(u.uGridN, gridW, gridH); gl.uniform2f(u.uFxP, gridP[0], gridP[1]);
       { const a = ((F.pixelAngle + (opts.vertical ? 90 : 0) + (opts.flip ? 180 : 0)) * Math.PI) / 180; gl.uniform2f(u.uDir, Math.cos(a), Math.sin(a)); }
       gl.uniform1f(u.uTear, F.smearTear * mv); gl.uniform1f(u.uCell, Math.max(2, F.smearCell));
