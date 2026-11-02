@@ -1,6 +1,6 @@
 // R42: the Work page's same-document router. A project opens INSIDE the Work document (no page load): the flight (project-transition.js) plays, the
 // project page (src/project/in-place.js, the same builders as work/<slug>.html) is built under it and shown when the flight lands; history.pushState
-// gives /work/<slug>.html. The Work strip is PAUSED, not destroyed (core.js pause()/resume()): on back (popstate, the project nav's Works link) the
+// gives /work/<slug> (the clean URL; the router also accepts the .html form). The Work strip is PAUSED, not destroyed (core.js pause()/resume()): on back (popstate, the project nav's Works link) the
 // reverse flight plays from the header's CURRENT place into the live strip, WITH the bend, and the project page is torn down completely.
 // Anything that fails -> today's plain navigation. Modified clicks, reloads, direct visits and the homepage never come here.
 import { gsap } from 'gsap';
@@ -19,7 +19,7 @@ export function createPageSwap() {
   let state = 'work'; // work | opening | project | closing
   let view = null, slugNow = null, refNow = null, imageNow = null, wantBack = false;
   const tall = isTall();
-  const hard = (slug) => { try { location.replace(`/work/${slug}.html`); } catch { /* */ } };
+  const hard = (slug) => { try { location.replace(`/work/${slug}`); } catch { /* */ } };
 
   const warm = () => {
     if (!modP) modP = import('../project/in-place.js').then((m) => { mod = m; return m; }, () => { modP = null; });
@@ -32,7 +32,7 @@ export function createPageSwap() {
     try { v = pre?.slug === slug ? pre.view : mod.createProjectView({ slug, tall, onBack: () => back(true) }); } catch { return false; }
     if (pre?.slug === slug) pre = null; else dropPre();
     if (!v) return false;
-    if (push) { try { history.pushState({ pj: slug }, '', `/work/${slug}.html`); } catch { return false; } } // (forward / back through history: the URL is already there)
+    if (push) { try { history.pushState({ pj: slug }, '', `/work/${slug}`); } catch { return false; } } // (forward / back through history: the URL is already there)
     view = v; slugNow = slug; refNow = ref; imageNow = image; state = 'opening'; wantBack = false;
     mod.warmHead(slug);
     // built a few frames into the flight (never in the click's own frame); the DOM build is one task of a few ms

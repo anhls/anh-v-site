@@ -8,7 +8,7 @@ export function createDesktopNav() {
   const nav = document.createElement('nav');
   nav.className = 'nav';
   nav.innerHTML = [['About', '/#2section'], ['Works', '/work/'], ['Contact', '/#contact']]
-    .map(([n, h]) => `<a href="${h}" data-link="${n}"><span class="roll"><span>${n}</span><span>${n}</span></span></a>`).join('');
+    .map(([n, h]) => `<a href="${h}" data-link="${n}"${n === 'Contact' ? ' data-contact' : ''}><span class="roll"><span>${n}</span><span>${n}</span></span></a>`).join('');
   document.body.prepend(nav);
   return nav;
 }

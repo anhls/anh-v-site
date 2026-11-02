@@ -46,7 +46,7 @@ export function createV2({ app, projects, reduced }) {
     <div class="w2__counter" role="status" aria-live="polite"><span class="w2__label">${esc(WORK_UI.label)}</span><span class="w2__num" aria-hidden="true"><span class="w2__slot w2__tens"><span class="w2__col"></span><span class="w2__col w2__wrapcol"></span></span><span class="w2__slot w2__units"><span class="w2__col"></span><span class="w2__col w2__wrapcol"></span></span></span><span class="w2__total" aria-hidden="true">/${String(NC).padStart(2, '0')}</span><span class="w2__sr"></span></div>
     <svg class="w2__defs" width="0" height="0" aria-hidden="true"><filter id="w2-vblur" x="-10%" y="-30%" width="120%" height="160%"><feGaussianBlur stdDeviation="0 0"/></filter></svg>
     <button type="button" class="w2__switch w2__hit"><span class="w2__swtext"></span><span class="footer__line"></span></button>
-    <div class="w2__reach"><span>${esc(WORK_UI.reachLabel)}</span><a class="w2__hit w2__email" href="mailto:${esc(WORK_UI.reachEmail)}">${esc(WORK_UI.reachEmail)}</a></div>`;
+    <div class="w2__reach"><span>${esc(WORK_UI.reachLabel)}</span><a class="w2__hit w2__email" data-contact href="mailto:${esc(WORK_UI.reachEmail)}">${esc(WORK_UI.reachEmail)}</a></div>`;
   app.append(root);
   const titleEl = root.querySelector('.w2__title'), infoEl = root.querySelector('.w2__info');
   const tagsEl = root.querySelector('.w2__tags'), yearEl = root.querySelector('.w2__year'), descEl = root.querySelector('.w2__desc');

@@ -3,6 +3,7 @@
 // only, TALL_STATES), TALL.cardsMax cards per project. Output: src/data/layouts-tall.json (the wide src/data/layouts.json is never touched).
 // `npm run layout:tall` (all sizes), `-- --sizes 390x844`, `--iters N`. Same inputs = same file.
 import fs from 'node:fs';
+import { loadData } from './lib/visible-data.mjs';
 import { installShims } from './lib/node-shims.mjs';
 installShims();
 const C = await import('../src/work/cards.js'); const ST = await import('../src/work/states.js'); const T = await import('../src/timeline.js'); const O = await import('../src/data/overlap.js');
@@ -12,7 +13,7 @@ const arg = (k, d) => { const i = argv.indexOf(k); return i >= 0 ? (argv[i + 1] 
 const iters = Number(arg('--iters', 100000));
 const sizeList = (arg('--sizes', null) || TL.TALL_SIZES.map(([w, h]) => `${w}x${h}`).join(',')).split(',').map((s) => s.split('x').map(Number));
 const OUT = arg('--out', 'src/data/layouts-tall.json');
-const pool = JSON.parse(fs.readFileSync('src/data/work-pool.json', 'utf8')); const data = JSON.parse(fs.readFileSync('src/data/data.json', 'utf8')); const slugs = data.projects.map((p) => p.slug);
+const pool = JSON.parse(fs.readFileSync('src/data/work-pool.json', 'utf8')); const data = loadData(); const slugs = data.projects.map((p) => p.slug);
 const hashOf = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619); return h >>> 0; };
 const BR = T.BAND_RULES, mode = 'vertical', t0 = Date.now(), log = (...a) => console.log(...a);
 // R24d: the card count is a flag per class (phone TALL.cardsMax, tablet portrait TALL.cardsMaxTablet, 0 = the project images only); the solver works on one count at a time

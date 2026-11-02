@@ -259,7 +259,7 @@ export async function runProjectTransition({ slug, ref, rect, imgRect = rect, vi
   if (fromWork && transitionPolicy().bulge) {
     pm('fwd:ready-wait');
     try { await ensurePrepared(slug, ref, startImage); }
-    catch (err) { root.remove(); running = false; if (inPlace) inPlace.fail?.(err); else location.href = `/work/${slug}.html`; return; }
+    catch (err) { root.remove(); running = false; if (inPlace) inPlace.fail?.(err); else location.href = `/work/${slug}`; return; }
   }
   t0 = Date.now();
   flight = fromWork && transitionPolicy().enabled ? workFlight(rect, {w:W,h:H}, false, t0) : null;
@@ -290,7 +290,7 @@ export async function runProjectTransition({ slug, ref, rect, imgRect = rect, vi
       sessionStorage.setItem('pxt', JSON.stringify({slug, src:headerFile(), t:Date.now(), flight:flight.record, wm:document.querySelector('a.wordmark')?.classList.contains('is-link') ? 1 : 0}));
       sessionStorage.setItem('pxb', JSON.stringify({slug, src:headerFile(), zEnd:flight.record.zEnd, origin:'work', blackMax:T.blackMax, mode:fromWork.mode, projectIndex:fromWork.projectIndex, t:Date.now()}));
     } catch { /* plain navigation */ }
-    location.href = `/work/${slug}.html`;
+    location.href = `/work/${slug}`;
   };
   const hideFlight = () => { hdr.removeEventListener('load', headerReady); bulge?.dispose(); bulge = null; };
   // Retain the last painted canvas through pageswap; the browser releases the old document.
@@ -343,8 +343,8 @@ export async function runProjectTransition({ slug, ref, rect, imgRect = rect, vi
     const homeFlight = !fromWork ? { t0: Date.now(), land: 0, tail: T.zoomTailSec, zEnd: FLIGHT.zEnd, wordmark: wordmarkRecord() } : null;
     try { sessionStorage.setItem('pxt', JSON.stringify({ slug, src: headerFile(), t: Date.now(), ...((flight || homeFlight) ? {flight:flight?.record || homeFlight} : {}), wm: document.querySelector('a.wordmark')?.classList.contains('is-link') ? 1 : 0 })); } catch { /* private window: the page just loads */ }
     if (fromWork) { try { sessionStorage.setItem('pxb', JSON.stringify({ slug, src: headerFile(), zEnd:flight?.record.zEnd || 1, origin: 'work', blackMax: T.blackMax, mode: fromWork.mode, projectIndex: fromWork.projectIndex, t: Date.now() })); } catch { /* plain load on the way back */ } } else { try { sessionStorage.removeItem('pxb'); } catch { /* */ } }
-    if (import.meta.env.DEV && window.__pxHold) { window.__pxGo = () => { location.href = `/work/${slug}.html`; }; return; } // dev checks: hold the last overlay frame
-    location.href = `/work/${slug}.html`;
+    if (import.meta.env.DEV && window.__pxHold) { window.__pxGo = () => { location.href = `/work/${slug}`; }; return; } // dev checks: hold the last overlay frame
+    location.href = `/work/${slug}`;
   };
 }
 
@@ -363,7 +363,7 @@ export function initFrameOpen({ hero, projects, lenis }) {
     if (!(sticky.top <= 1 && sticky.bottom >= innerHeight - 1)) return;
     const r = wrapper.getBoundingClientRect();
     if (!(e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom)) return;
-    const slug = (band.getAttribute('href').match(/work\/([^/.]+)\.html/) || [])[1], ref = slug && headerRef(slug);
+    const slug = (band.getAttribute('href').match(/work\/([^/.?#]+?)(?:\.html)?\/?(?:[?#]|$)/) || [])[1], ref = slug && headerRef(slug);
     const row = [...document.querySelectorAll('.index__band')].indexOf(band), still = hero.frame.gallery[hero.frame.gallery.length - 1 - row];
     if (!ref || !still) return;
     e.preventDefault(); e.stopPropagation();

@@ -1,6 +1,7 @@
 import './styles/base.css';
 import './styles/desktop.css';
 import './styles/work.css';
+import './effects/contact-trigger.js';
 import { isLite, isTall } from './util/layout-mode.js';
 import { startWork } from './work/core.js';
 

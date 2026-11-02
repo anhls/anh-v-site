@@ -1,0 +1,47 @@
+/* R46 Part A: the contact card. All sizes are custom properties. Always a dark card (the site's dark look) over a dimmed page, whatever the theme. */
+.cc {
+  --cc-ink: #eae8e5;            /* the Work UI colour */
+  --cc-bg: #0a0a0a;
+  --cc-w: clamp(420px, 38vw, 640px);
+  --cc-pad: clamp(22px, 2.2vw, 40px);
+  --cc-gap: clamp(22px, 2vw, 34px);
+  --cc-h-size: clamp(2.6rem, 4.4vw, 4.4rem);
+  --cc-label-size: 0.72rem;
+  --cc-text-size: clamp(0.95rem, 1.05vw, 1.1rem);
+  --cc-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --cc-dim: 0.6;
+  position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center;
+  overscroll-behavior: contain; touch-action: none; color: var(--cc-ink); font-family: var(--font-body, 'Clash Display', system-ui, sans-serif);
+  visibility: hidden; pointer-events: none;
+}
+.cc.is-on { visibility: visible; pointer-events: auto; }
+.cc__dim { position: absolute; inset: 0; background: #000; opacity: 0; transition: opacity 0.2s linear; }
+.cc.is-open .cc__dim { opacity: var(--cc-dim); transition-duration: 0.25s; }
+.cc__card {
+  position: relative; box-sizing: border-box; width: var(--cc-w); max-width: calc(100vw - 32px); max-height: calc(100dvh - 32px); overflow: auto;
+  padding: var(--cc-pad); background: var(--cc-bg); border: 1px solid rgba(234, 232, 229, 0.2); border-radius: 0; outline: none;
+  opacity: 0; transform: translateY(16px); transition: opacity 0.2s linear, transform 0.2s var(--cc-ease);
+}
+.cc.is-open .cc__card { opacity: 1; transform: none; transition: opacity 0.35s var(--cc-ease), transform 0.35s var(--cc-ease); }
+.cc__h { margin: 0 0 calc(var(--cc-gap) * 1.2); font-size: var(--cc-h-size); line-height: 0.95; font-weight: 600; letter-spacing: -0.01em; text-transform: uppercase; }
+.cc__grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--cc-gap) calc(var(--cc-gap) * 1.2); }
+.cc__item { min-width: 0; }
+.cc__label { display: block; margin: 0 0 6px; font-size: var(--cc-label-size); letter-spacing: 0.05em; opacity: 0.5; }
+.cc__val { display: block; font-size: var(--cc-text-size); line-height: 1.35; overflow-wrap: anywhere; }
+.cc__item a, .cc__item button { all: unset; box-sizing: border-box; cursor: pointer; color: inherit; font: inherit; text-decoration: underline; text-underline-offset: 0.2em; text-decoration-color: rgba(234, 232, 229, 0.4); }
+.cc__item a:hover, .cc__item button:hover { text-decoration-color: currentColor; }
+.cc__item a:focus-visible, .cc__item button:focus-visible, .cc__close:focus-visible { outline: 1px solid #f04a0e; outline-offset: 4px; }
+.cc__links a { display: block; width: max-content; max-width: 100%; }
+.cc__item--wide { grid-column: 1 / -1; }
+.cc__item .cc__mail { display: block; width: max-content; margin-top: 6px; opacity: 0.6; font-size: 0.85em; }
+.cc__item .cc__copy { display: block; width: max-content; max-width: 100%; }
+.cc__foot { display: flex; justify-content: flex-end; margin-top: calc(var(--cc-gap) * 1.2); }
+.cc__close { all: unset; cursor: pointer; font-size: 0.8rem; letter-spacing: 0.05em; opacity: 0.7; }
+.cc__close:hover { opacity: 1; }
+@media (max-width: 640px) {
+  .cc { --cc-w: calc(100vw - 32px); --cc-h-size: clamp(2.4rem, 13vw, 3.6rem); --cc-pad: 20px; --cc-text-size: 1rem; }
+  .cc__grid { grid-template-columns: 1fr 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cc__card, .cc.is-open .cc__card { transform: none; }
+}

@@ -1,6 +1,7 @@
 import './styles/base.css';
 import './styles/desktop.css';
 import './styles/project.css';
+import './effects/contact-trigger.js';
 import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';

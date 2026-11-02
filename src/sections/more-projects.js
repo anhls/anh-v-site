@@ -16,7 +16,7 @@ export function buildMoreProjects(root, data) {
   const sticky = root.querySelector('.more-projects__sticky');
   if (!sticky || !data) return;
 
-  const entries = data.items.map((p) => ({ name: p.name, href: `/work/${p.slug}.html` }));
+  const entries = data.items.map((p) => ({ name: p.name, href: `/work/${p.slug}` }));
   const cursorHtml = pointerEnabled
     ? `<div class="more-projects__cursor" aria-hidden="true"><div class="more-projects__strip">${data.items.map((p) => `<img ${imgAttrs(p.image, '21vw', true)} alt="" decoding="async" />`).join('')}</div></div>`
     : '';
