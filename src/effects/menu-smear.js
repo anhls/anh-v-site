@@ -13,6 +13,13 @@ import { createHomeFlight } from './home-flight.js';
 const MAX_SRC = 5, PRIME_MAX_AGE = 2500;
 const smooth = (q) => { q = Math.min(1, Math.max(0, q)); return q * q * (3 - 2 * q); };
 export const unsmooth = (s) => { s = Math.min(1, Math.max(0, s)); let lo = 0, hi = 1; for (let i = 0; i < 22; i++) { const m = (lo + hi) / 2; if (smooth(m) < s) lo = m; else hi = m; } return (lo + hi) / 2; };
+// R48 r14: the sweep leaves rest WITH SPEED (no ease-in: Anh's 60 fps recording showed jump -> stop -> creep -> go). Open: s = S0 + (1 - S0) * (1 - (1 - u)^POW) (power-out, the front starts already S0 in);
+// close: s = (1 - C0) * (1 - u)^POW (the same shape reversed in direction, so it also leaves rest with speed and decelerates into the left edge). openU() is the inverse of the open ease (for frontTime()).
+export const SWEEP_EASE = { s0: 0.22, pow: 1.8, c0: 0.15 };
+export const openS = (u) => { u = Math.min(1, Math.max(0, u)); return SWEEP_EASE.s0 + (1 - SWEEP_EASE.s0) * (1 - Math.pow(1 - u, SWEEP_EASE.pow)); };
+export const openU = (s) => { const q = Math.min(1, Math.max(0, (s - SWEEP_EASE.s0) / (1 - SWEEP_EASE.s0))); return 1 - Math.pow(1 - q, 1 / SWEEP_EASE.pow); };
+export const closeS = (u) => (1 - SWEEP_EASE.c0) * Math.pow(1 - Math.min(1, Math.max(0, u)), SWEEP_EASE.pow);
+export const outEase = (u) => { u = Math.min(1, Math.max(0, u)); return 1 - (1 - u) * (1 - u); }; // power2.out: for the wordmark's small <-> big move
 // the sweep time of the open (the flight's own cross-fade stretch), the close is twice as fast
 // R48 r9: the MENU has its own block size (blockPx, css px at the 430 px reference width, scaling with the screen width; ~4 columns across a phone), no longer the flight's grid
 export const MENU_SWEEP = { openSec: F.sec * (F.crossTo - F.crossFrom), closeDiv: TM.closeSpeed || 2, blockPx: 56 };
@@ -23,7 +30,7 @@ const hash = (n) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return
 // the geometry of the sweep for a screen width: the mean edge position f runs from -zone (all of it off the left side) to W + jag (all of it off the right side)
 export const sweepGeom = (W = innerWidth) => { const cell = gridBlockPx(W), zone = Math.max(1, Math.round((TM.zoneShare * W) / cell)) * cell, jag = Math.max(1, TM.jagCells) * cell; return { cell, zone, jag, from: -zone, to: W + jag }; };
 export const frontAt = (s, W = innerWidth) => { const g = sweepGeom(W); return g.from + (g.to - g.from) * s; }; // s = the open-equivalent progress 0..1 (eased)
-export const frontTime = (x, sec, W = innerWidth) => { const g = sweepGeom(W); return unsmooth((x - g.from) / (g.to - g.from)) * sec; }; // when (s into the open sweep) the mean edge reaches x
+export const frontTime = (x, sec, W = innerWidth) => { const g = sweepGeom(W); return openU((x - g.from) / (g.to - g.from)) * sec; }; // when (s into the open sweep) the mean edge reaches x
 
 const SKIP = '.tmenu, .tmenu__btn, .spawner, a.wordmark, a.twm, nav.nav, .loader, .skip';
 // the page's pictures that are on screen: [{ el, box }] (box = where the picture is drawn, css px)
@@ -96,7 +103,7 @@ export function createMenuSmear() {
         if (tapT && stats.frameT.length < 4) stats.frameT.push(+(performance.now() - tapT).toFixed(1));
         if (tapT) { if (nFr === 0) stats.tapSync = +(performance.now() - tapT).toFixed(1); else if (nFr === 1) stats.tapToFirst = +(performance.now() - tapT).toFixed(1); } nFr++;
         if (stats.last) { const ms = now - stats.last; if (stats.first3.length < 3) stats.first3.push(+ms.toFixed(1)); stats.frames++; stats.avgMs += (ms - stats.avgMs) / stats.frames; stats.maxMs = Math.max(stats.maxMs, ms); if (ms > 20) stats.long++; } stats.last = now;
-        const t = (now - t0) / 1000, u = Math.min(1, Math.max(0, t / sec)), s = open ? smooth(u) : 1 - smooth(u), f = G.from + (G.to - G.from) * s;
+        const t = (now - t0) / 1000, u = Math.min(1, Math.max(0, t / sec)), s = open ? openS(u) : closeS(u), f = G.from + (G.to - G.from) * s;
         const waiting = t < 0;
         const pts = []; let nZero = 0, nFull = 0;
         grid.fill(0); for (let i = 3; i < grid.length; i += 4) grid[i] = 1;
@@ -104,9 +111,10 @@ export function createMenuSmear() {
           const e = Math.max(0, Math.min(W, Math.round((f - G.jag * rowOff[r]) / cell) * cell));
           if (e <= 0) nZero++; if (e >= W) nFull++;
           pts.push(`${e}px ${(r * rh).toFixed(2)}px`, `${e}px ${((r + 1) * rh).toFixed(2)}px`);
-          const zoneN = Math.min(cols, Math.ceil((e + G.zone) / cell));
-          for (let c = Math.floor(e / cell); c < zoneN; c++) {
-            const d = (c + 0.5) * cell - e; if (d <= 0 || d >= G.zone) continue;
+          // R48 r14: the zone is measured from the UNCLAMPED edge, so it slides in from the left side (clamped, it sat at full strength on the left half at s = 0 and covered the title in the tap frame)
+          const eu = Math.round((f - G.jag * rowOff[r]) / cell) * cell, zoneN = Math.min(cols, Math.ceil((eu + G.zone) / cell));
+          for (let c = Math.max(0, Math.floor(eu / cell)); c < zoneN; c++) {
+            const d = (c + 0.5) * cell - eu; if (d <= 0 || d >= G.zone) continue;
             const k = 1 - d / G.zone, prof = Math.pow(k, 1.3), v = prof * amp * (0.45 + 0.55 * hash(c * 3.17 + r * 7.71)) * (0.6 + 0.4 * rowOff[r]);
             grid[(r * cols + c) * 4] = dir * v;
           }

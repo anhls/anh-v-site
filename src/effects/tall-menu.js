@@ -4,7 +4,7 @@ import data from '../data/data.json';
 import { CONTACT } from '../timeline.js';
 import { TALL_MENU as TM } from '../settings/tall.js';
 import { transitionPolicy } from './transition-policy.js';
-import { MENU_SWEEP, frontTime, sweepGeom, gridBlockPx, createMenuSmear } from './menu-smear.js';
+import { MENU_SWEEP, frontTime, sweepGeom, gridBlockPx, createMenuSmear, outEase } from './menu-smear.js';
 import { getWm } from '../util/wm-handle.js';
 import { setPagePaused, isPagePaused } from '../util/page-pause.js';
 import { weakReason } from '../util/device.js';
@@ -16,6 +16,7 @@ import { weakReason } from '../util/device.js';
 // twice as fast, on close). The items blur in one after the other once the edge has passed TM.startShare of the width: flavour 1, flavour 2, clock, Work, About, Contact, then the line push (close = the exact reverse).
 // Tapping Contact moves the line to Contact (the card opens as that finishes; it moves back when the card closes). There is NO wordmark in the panel: the page's own single wordmark is above everything
 // (z-index in tall.css); on the pages where it is small (Work, projects) the menu grows THAT element small -> big on open (big -> small on close). Reduced motion, ?gl=0, Save-Data, a weak device or no WebGL2 = a plain fade.
+const PAUSE_SHARE = 0.3; // R48 r14
 export const MENU_FX = { blurPx: 10, itemSec: 0.45 }; // itemSec = how long an item takes to blur in; the sweep itself (time, block size, strength, RGB split) is menu-smear.js MENU_SWEEP + HOME_FLIGHT + WORK_PTR
 
 let hcmcFmt = null; // (made once: constructing an Intl formatter costs ~10 ms on a phone, never in the tap frame)
@@ -183,7 +184,7 @@ export function mountTallMenu() {
     const h = getWm(); if (!h) return; cancelAnimationFrame(wmRaf);
     const from = h.p, to = toBig ? 0 : 1; if (Math.abs(from - to) < 0.001) return;
     const t0 = performance.now() + delay * 1000;
-    const step = (now) => { const u = Math.min(1, Math.max(0, (now - t0) / (sec * 1000))); h.drive(from + (to - from) * sm(u)); if (u < 1) wmRaf = requestAnimationFrame(step); };
+    const step = (now) => { const u = Math.min(1, Math.max(0, (now - t0) / (sec * 1000))); h.drive(from + (to - from) * outEase(u)); if (u < 1) wmRaf = requestAnimationFrame(step); };
     wmRaf = requestAnimationFrame(step);
   };
 
@@ -220,8 +221,9 @@ export function mountTallMenu() {
       });
       if (sw) {
         sweeping = true; wmRun(true, secOpen, 0); mark('wordmark start'); lockT = setTimeout(() => lockPage(true), secOpen * 1000 + 60);
-        const ok = smear.play({ open: true, sec: secOpen, tapT, onFrame: ({ clip, f }) => { panel.style.clipPath = clip; fadeText(f); }, onDone: finishSweep });
-        mark('smear.play (frame 0 drawn)'); if (ok) setPagePaused(true);
+        // R48 r14: the page loop keeps running until the band has passed PAUSE_SHARE of the width (a freeze before the sweep moves read as a stall); then it pauses under the opaque sweep
+        const W0 = innerWidth, ok = smear.play({ open: true, sec: secOpen, tapT, onFrame: ({ clip, f }) => { panel.style.clipPath = clip; fadeText(f); if (!isPagePaused() && f >= PAUSE_SHARE * W0) setPagePaused(true); }, onDone: finishSweep });
+        mark('smear.play (frame 0 drawn)');
         if (!ok) { sweeping = false; restoreText(); menu.classList.add('is-plain'); panel.style.clipPath = 'none'; showPlain(); if (curLink) lineSet(curLink, true); wmRun(true, 0.25, 0); }
       } else { wmRun(true, 0.25, 0); lockPage(true); }
       (menu.querySelector(view === 'about' ? '.tmenu__text' : 'a[href], button') || btn).focus({ preventScroll: true });
@@ -231,7 +233,7 @@ export function mountTallMenu() {
       fromMenu = false;
       if (sw) {
         if (!tl) { buildTl(); tl.progress(1); }
-        const bandDelay = Math.max(0, (tl.duration() - secOpen) / MENU_SWEEP.closeDiv);
+        const bandDelay = 0; // R48 r14: the band starts AT the tap (it used to wait for the items' blur-out: ~3 dead frames); the items sit inside the panel, so the band's clip hides them as it passes
         collectText();
         menu.classList.remove('is-open');
         tl.timeScale(MENU_SWEEP.closeDiv).reverse();
