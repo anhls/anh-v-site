@@ -4,6 +4,7 @@ import data from './data/data.json';
 import { runLoader } from './effects/loader.js';
 import { buildSpawner } from './effects/spawner.js';
 import { mountTallMenu } from './effects/tall-menu.js';
+import './effects/contact-trigger.js';
 import { TALL } from './timeline.js';
 
 // R24a: the hero-only home of the TALL mode (phones, tablet portrait): the loader, the full-screen hero video (poster first), the tap spawner, the AV

@@ -2,6 +2,7 @@
 // npm run build). Fails (exit 1) when a size has no layout, a project's hash is out of date (its cards / metrics / rules changed), a card is outside its band or side, or a
 // pair overlaps beyond BAND_RULES.pairOverlapMax in the tall states (rest), or the dark rules need another undark step.
 import fs from 'node:fs';
+import { loadData } from './lib/visible-data.mjs';
 import { installShims } from './lib/node-shims.mjs';
 installShims();
 const C = await import('../src/work/cards.js'); const ST = await import('../src/work/states.js'); const T = await import('../src/timeline.js'); const O = await import('../src/data/overlap.js');
@@ -9,7 +10,7 @@ const LS = await import('../src/work/layout-store.js'); const TL = await import(
 const BR = T.BAND_RULES, OUT = 'src/data/layouts-tall.json', fail = [];
 if (!fs.existsSync(OUT)) { console.error('layout:check (tall): src/data/layouts-tall.json is missing: run `npm run layout:tall`'); process.exit(1); }
 const L = JSON.parse(fs.readFileSync(OUT, 'utf8'));
-const pool = JSON.parse(fs.readFileSync('src/data/work-pool.json', 'utf8')), data = JSON.parse(fs.readFileSync('src/data/data.json', 'utf8')), slugs = data.projects.map((p) => p.slug);
+const pool = JSON.parse(fs.readFileSync('src/data/work-pool.json', 'utf8')), data = loadData(), slugs = data.projects.map((p) => p.slug);
 if (L.signature !== TL.tallSignature()) fail.push(`tall rule signature changed (stored ${L.signature}, now ${TL.tallSignature()}): run npm run layout:tall`);
 let checked = 0;
 for (const [W, H] of TL.TALL_SIZES) {

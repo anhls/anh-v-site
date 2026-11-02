@@ -4,6 +4,7 @@
 // rule in every state of LAYOUT_STATES with the REAL focus push; clusters over maxDarkPerCluster dark cards; the light-share floor (a project whose forced-dark
 // duplicates alone break it is reported, not failed); the dark run rule along the strip. The homepage layouts are checked the same way (section "home").
 import fs from 'node:fs';
+import { loadData } from './lib/visible-data.mjs';
 import { installShims } from './lib/node-shims.mjs';
 installShims();
 const C = await import('../src/work/cards.js'); const ST = await import('../src/work/states.js'); const T = await import('../src/timeline.js'); const O = await import('../src/data/overlap.js'); const LS = await import('../src/work/layout-store.js');
@@ -12,7 +13,7 @@ const OUT = 'src/data/layouts.json';
 const fail = []; const notes = [];
 if (!fs.existsSync(OUT)) { console.error('layout:check: src/data/layouts.json is missing: run `npm run layout`'); process.exit(1); }
 const L = JSON.parse(fs.readFileSync(OUT, 'utf8'));
-const pool = JSON.parse(fs.readFileSync('src/data/work-pool.json', 'utf8')); const data = JSON.parse(fs.readFileSync('src/data/data.json', 'utf8')); const slugs = data.projects.map((p) => p.slug);
+const pool = JSON.parse(fs.readFileSync('src/data/work-pool.json', 'utf8')); const data = loadData(); const slugs = data.projects.map((p) => p.slug);
 if (L.signature !== LS.ruleSignature()) fail.push(`rule signature changed (stored ${L.signature}, now ${LS.ruleSignature()}): the rules / states / numbers differ from the ones the layouts were solved with`);
 const wanted = Object.values(LS.SIZES).flat().map(([w, h]) => LS.sizeKey(w, h));
 for (const k of wanted) if (!L.work?.[k]) fail.push(`no stored layout for ${k}`);

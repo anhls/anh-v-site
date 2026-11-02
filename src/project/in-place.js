@@ -23,7 +23,7 @@ const META = ['meta[name="description"]', 'link[rel="canonical"]', 'meta[propert
 const metaCache = new Map(); // slug -> Promise<{ selector: value } | null>: the static page's head tags (description / canonical / og live there, not in data.json); values only, no Document is kept
 const staticHead = (slug) => {
   if (!metaCache.has(slug)) {
-    metaCache.set(slug, fetch(`/work/${slug}.html`).then((r) => (r.ok ? r.text() : '')).then((t) => {
+    metaCache.set(slug, fetch(`/work/${slug}`).then((r) => (r.ok ? r.text() : '')).then((t) => {
       if (!t) return null;
       const doc = new DOMParser().parseFromString(t, 'text/html'), out = {};
       for (const sel of META) { const el = doc.head.querySelector(sel); if (el) out[sel] = el.getAttribute(el.tagName === 'LINK' ? 'href' : 'content'); }

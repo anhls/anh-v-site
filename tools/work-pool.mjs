@@ -3,6 +3,7 @@
 // pipeline already made are referenced. Eligible = still image, short side of the original >= MIN_SHORT px.
 // Run alone: node tools/work-pool.mjs   (also runs at the end of npm run media)
 import sharp from 'sharp';
+import { loadData } from './lib/visible-data.mjs';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -17,7 +18,7 @@ const EXTRA_SLUGS = { 'selected-work/card-img-01': 'bitis09', 'selected-work/car
 const hash = (s) => { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h >>> 0; };
 
 export async function buildPool() {
-  const data = JSON.parse(readFileSync(resolve(ROOT, 'src/data/data.json'), 'utf8'));
+  const data = loadData();
   const manifest = JSON.parse(readFileSync(resolve(ROOT, 'src/data/media-manifest.json'), 'utf8'));
   const selected = new Set(JSON.parse(readFileSync(resolve(ROOT, 'src/data/selected.json'), 'utf8')));
   const pool = [];

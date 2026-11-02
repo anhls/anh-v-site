@@ -296,7 +296,7 @@ for (const [live, keys] of Object.entries(cands)) {
 byLive['https://framerusercontent.com/images/nR62Oa7NyQO1PwrJeyiW8TKmQ.gif'] = 'selected-work/watch-anim'; // card id 30 (343x343)
 byLive['https://framerusercontent.com/assets/Fj182DxNzTt7FJdPdgdLo4CAM0.mp4'] = 'hero/video';
 for (const [key, v] of Object.entries(LIVE_EXTRA)) byLive[v.live] = key;
-manifest.__byLive = byLive;
+// R46: the live-URL map is no longer written (data.json references /media/ paths; every Framer file is self-hosted)
 
 writeFileSync(MANIFEST, JSON.stringify(manifest, null, 1) + '\n');
 const all = Object.values(manifest).flatMap((m) => m.files || []);

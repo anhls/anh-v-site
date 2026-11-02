@@ -21,7 +21,7 @@
   },
   "hero": {
     "video": "/media/hero/video.mp4",
-    "image": "https://framerusercontent.com/images/aZoZ5nVZFbgwsySGNQ5CXL2rQ.jpg",
+    "image": "/media/home/hero-s2.jpg",
     "gallery": [
       "/media/hero/s3_bottom.jpg",
       "/media/hero/s3_middle.jpg",
@@ -29,33 +29,33 @@
     ],
     "wordmark": "/media/brand/wordmark.svg",
     "ticker": "/media/brand/ticker.svg",
-    "clickSound": "https://framerusercontent.com/assets/ozLRvG7UYmyT7nzrIc43elxSoAs.mp3",
+    "clickSound": "/media/brand/click.mp3",
     "captions": [
       {
         "title": "Techcombank Priority",
         "slug": "tcb-priority",
-        "image": "https://framerusercontent.com/images/bLvFvrBSqevtM84melr3ffFML0.jpg",
+        "image": "/media/captions/caption-1.jpg",
         "client": "Techcombank",
         "role": "Art Direction"
       },
       {
         "title": "Di De Tro Ve 09",
         "slug": "bitis09",
-        "image": "https://framerusercontent.com/images/Ed5U3pkCuLOnCpsHlIcXi1CgPqo.jpg",
+        "image": "/media/captions/caption-2.jpg",
         "client": "Bitis",
         "role": "Art Direction"
       },
       {
         "title": "Sulwhasoo Product Launch",
         "slug": "sulwhasoo",
-        "image": "https://framerusercontent.com/images/0VSrNQmftCfZjxH2F8hiAYfxxA.jpg",
+        "image": "/media/captions/caption-3.jpg",
         "client": "Sulwhasoo",
         "role": "Art Direction"
       },
       {
         "title": "Similac Virgo",
         "slug": "similac",
-        "image": "https://framerusercontent.com/images/YWTonqftN7SBxLUONPaxNkRdIJE.jpg",
+        "image": "/media/captions/caption-4.jpg",
         "client": "Similac",
         "role": "Art Direction"
       }
@@ -66,30 +66,30 @@
     "text": "Vu Tuan Anh, Art Director. Based in Ho Chi Minh City with over 5 years of experience in design. I focus on turning ideas into thoughtful visuals - blending motion, layout, and typography to create work that feels clear, expressive, and alive."
   },
   "spawnerImages": [
-    "https://framerusercontent.com/images/YWTonqftN7SBxLUONPaxNkRdIJE.jpg",
-    "https://framerusercontent.com/images/dO1R9j1KjfxcscBJ5uhF6E5fbk.jpg",
-    "https://framerusercontent.com/images/YRsmqu0hKz1cUppWOZqJ54U3yzc.gif",
-    "https://framerusercontent.com/images/0VSrNQmftCfZjxH2F8hiAYfxxA.jpg",
-    "https://framerusercontent.com/images/ue0mnMQNJlWigsdLfwM5rQeRJxU.png",
-    "https://framerusercontent.com/images/bLvFvrBSqevtM84melr3ffFML0.jpg",
-    "https://framerusercontent.com/images/d3E12zoV8uGbDxN00yI5DKItzE.gif",
-    "https://framerusercontent.com/images/92cx3lxHIxyEarCLvP2BxKI9Ng.jpg",
-    "https://framerusercontent.com/images/JuaXo1QOueKaLbs09b8PfFUKpKo.png",
-    "https://framerusercontent.com/images/7ChLQF1FWlIsmm0K4gcXqRPZ8.jpg",
-    "https://framerusercontent.com/images/vnRzwgUH7uvpqoRCCWRLGLOvwQ.jpg",
-    "https://framerusercontent.com/images/feZNJaO2rFpJz1tp7lULn6PRjnY.jpg"
+    "/media/captions/caption-4.jpg",
+    "/media/selected-work/card-img-03.jpg",
+    "/media/spawner/spawn-01.gif",
+    "/media/captions/caption-3.jpg",
+    "/media/spawner/spawn-02.png",
+    "/media/captions/caption-1.jpg",
+    "/media/spawner/spawn-03.gif",
+    "/media/spawner/spawn-04.jpg",
+    "/media/selected-work/card-img-15.png",
+    "/media/spawner/spawn-05.jpg",
+    "/media/spawner/spawn-06.jpg",
+    "/media/selected-work/card-img-11.jpg"
   ],
   "trailImages": [
-    "https://framerusercontent.com/images/dO1R9j1KjfxcscBJ5uhF6E5fbk.jpg",
-    "https://framerusercontent.com/images/v2gXtSHVAs4XAZBpNscwxo5w8GU.jpg",
-    "https://framerusercontent.com/images/gpYWKAwN8RI6MEMADCVsliY8Y5k.jpg",
-    "https://framerusercontent.com/images/dvNWo6QxJmqBjU5Viww45S6V4Us.jpg",
-    "https://framerusercontent.com/images/Cyn3wfDdmILlBHLBzVkQDUOPomU.jpg",
-    "https://framerusercontent.com/images/9ra3T6IhrRiDFo55c13eEIpc0.png",
-    "https://framerusercontent.com/images/k3rVctzPlMSgno5h2FiHz3xOfo.jpg",
-    "https://framerusercontent.com/images/bLvFvrBSqevtM84melr3ffFML0.jpg",
-    "https://framerusercontent.com/images/YWTonqftN7SBxLUONPaxNkRdIJE.jpg",
-    "https://framerusercontent.com/images/cxuWVpuy7nnTMVe898BkVjQm1I.jpg"
+    "/media/selected-work/card-img-03.jpg",
+    "/media/selected-work/card-img-10.jpg",
+    "/media/trail/trail-01.jpg",
+    "/media/trail/trail-03.jpg",
+    "/media/trail/trail-04.jpg",
+    "/media/selected-work/card-img-29.png",
+    "/media/trail/trail-02.jpg",
+    "/media/captions/caption-1.jpg",
+    "/media/captions/caption-4.jpg",
+    "/media/trail/trail-05.jpg"
   ],
   "selectedWorkCards": [
     {
@@ -2302,6 +2302,7 @@
     },
     {
       "slug": "duhat",
+      "hidden": true,
       "index": "",
       "title": "Duhat",
       "client": "Vingroup · Duhat",
@@ -2566,7 +2567,7 @@
               {
                 "kind": "loop",
                 "ref": "duhat/breath-loop",
-                "aspect": 1.0
+                "aspect": 1
               }
             ],
             "width": 40,
@@ -2721,7 +2722,7 @@
               {
                 "kind": "loop",
                 "ref": "duhat/g-hoi",
-                "aspect": 1.0,
+                "aspect": 1,
                 "wpx": 560,
                 "cap": "hỏi: To ask, enquire, AI assistant.",
                 "capColor": "#111"
@@ -2748,7 +2749,7 @@
               {
                 "kind": "img",
                 "ref": "duhat/key",
-                "aspect": 1.0
+                "aspect": 1
               },
               {
                 "kind": "img",
@@ -2788,7 +2789,7 @@
               {
                 "kind": "loop",
                 "ref": "duhat/cue-a",
-                "aspect": 1.0
+                "aspect": 1
               },
               {
                 "kind": "img",
@@ -2798,7 +2799,7 @@
               {
                 "kind": "loop",
                 "ref": "duhat/cue-b",
-                "aspect": 1.0
+                "aspect": 1
               },
               {
                 "kind": "loop",
@@ -2830,7 +2831,7 @@
               {
                 "kind": "loop",
                 "ref": "duhat/mood-a",
-                "aspect": 1.0
+                "aspect": 1
               }
             ]
           },
@@ -2855,7 +2856,7 @@
               {
                 "kind": "img",
                 "ref": "duhat/mood-e",
-                "aspect": 1.0
+                "aspect": 1
               }
             ]
           },
@@ -2908,7 +2909,7 @@
               {
                 "kind": "img",
                 "ref": "duhat/type-b",
-                "aspect": 1.0
+                "aspect": 1
               }
             ]
           },
@@ -2940,6 +2941,7 @@
     },
     {
       "slug": "nam-long",
+      "hidden": true,
       "index": "",
       "title": "Nam Long",
       "client": "Nam Long",
@@ -3068,7 +3070,7 @@
               {
                 "kind": "img",
                 "ref": "nam-long/n-white",
-                "aspect": 1.0
+                "aspect": 1
               },
               {
                 "kind": "img",
@@ -3254,12 +3256,12 @@
       {
         "name": "Forbes Vanguard",
         "slug": "forbes",
-        "image": "https://framerusercontent.com/images/vnRzwgUH7uvpqoRCCWRLGLOvwQ.jpg"
+        "image": "/media/spawner/spawn-06.jpg"
       },
       {
         "name": "Techcombank Priority",
         "slug": "tcb-priority",
-        "image": "https://framerusercontent.com/images/QUzoZUsI26ew5csK6GR0cPOsKQ.jpg"
+        "image": "/media/home/more-projects-tcb.jpg"
       },
       {
         "name": "Sulwhasoo",
@@ -3274,7 +3276,7 @@
       {
         "name": "Bitis Season 09",
         "slug": "bitis09",
-        "image": "https://framerusercontent.com/images/AlABm8NL9nRp1XFUf62ccnFB8.jpg"
+        "image": "/media/home/billboard-small.jpg"
       }
     ],
     "more": {
@@ -3284,5 +3286,47 @@
   },
   "footer": {
     "topLabel": "Go Back To Top"
+  },
+  "contact": {
+    "headline": "Say hello",
+    "email": "",
+    "copied": "Copied",
+    "openMail": "Open mail",
+    "close": "Close",
+    "backCard": { "image": "", "video": "" },
+    "items": [
+      {
+        "kind": "email",
+        "label": "Drop me a line"
+      },
+      {
+        "kind": "text",
+        "label": "Based in",
+        "text": "Ho Chi Minh City, Vietnam"
+      },
+      {
+        "kind": "links",
+        "label": "Elsewhere"
+      },
+      {
+        "kind": "text",
+        "label": "Available for",
+        "text": "Art direction, campaigns, freelance"
+      }
+    ],
+    "links": [
+      {
+        "name": "Instagram",
+        "url": ""
+      },
+      {
+        "name": "LinkedIn",
+        "url": ""
+      },
+      {
+        "name": "Behance",
+        "url": ""
+      }
+    ]
   }
 }

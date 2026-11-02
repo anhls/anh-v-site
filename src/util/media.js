@@ -1,13 +1,11 @@
-// Looks up converted media (written by tools/media.mjs) for a path or a live URL in data.json.
-// Anything not in the manifest (still hosted on the live site) is returned unchanged.
+// Looks up converted media (written by tools/media.mjs) for a /media/ path in data.json (R46: every file is self-hosted, no live URLs).
+// Anything not in the manifest is returned unchanged.
 import manifest from '../data/media-manifest.json';
-
-const byLive = manifest.__byLive || {};
 
 function entry(ref) {
   if (!ref) return null;
   const clean = ref.split('?')[0];
-  const key = byLive[clean] || clean.replace(/^\/media\//, '').replace(/\.[a-z0-9]+$/i, '');
+  const key = clean.replace(/^\/media\//, '').replace(/\.[a-z0-9]+$/i, '');
   const m = manifest[key];
   return m && m.type ? m : null;
 }

@@ -8,6 +8,7 @@
 // Incremental: a project whose inputs hash is unchanged keeps its stored cards (locked); a changed project keeps the stored positions of the cards it already had
 // and places only the new ones. Same inputs = same file, byte for byte.
 import fs from 'node:fs';
+import { loadData } from './lib/visible-data.mjs';
 import { installShims } from './lib/node-shims.mjs';
 installShims();
 const C = await import('../src/work/cards.js'); const ST = await import('../src/work/states.js'); const T = await import('../src/timeline.js'); const O = await import('../src/data/overlap.js');
@@ -19,7 +20,7 @@ const relayout = arg('--relayout', null), quick = argv.includes('--quick');
 const iters = Number(arg('--iters', quick ? 30000 : 150000));
 const sizeList = (arg('--sizes', null) || Object.values(LS.SIZES).flat().map(([w, h]) => `${w}x${h}`).join(',')).split(',').map((s) => s.split('x').map(Number));
 const OUT = arg('--out', 'src/data/layouts.json'), POOLFILE = arg('--pool', 'src/data/work-pool.json'), STOREDFILE = arg('--stored', OUT);
-const pool = JSON.parse(fs.readFileSync(POOLFILE, 'utf8')); const data = JSON.parse(fs.readFileSync('src/data/data.json', 'utf8'));
+const pool = JSON.parse(fs.readFileSync(POOLFILE, 'utf8')); const data = loadData();
 const slugs = data.projects.map((p) => p.slug);
 const stored = fs.existsSync(STOREDFILE) ? JSON.parse(fs.readFileSync(STOREDFILE, 'utf8')) : null;
 const modes = ['side', 'vertical'];

@@ -19,7 +19,7 @@ export function buildIndex(root, projects) {
 
   const chars = (text, cls) => [...String(text)].map((c) => `<span class="index__char ${cls}" aria-hidden="true">${c === ' ' ? '&nbsp;' : c}</span>`).join('');
   sticky.innerHTML = list.map((p) => `
-    <a class="index__band" href="/work/${p.slug}.html" aria-label="${p.title}, ${p.year}">
+    <a class="index__band" href="/work/${p.slug}" aria-label="${p.title}, ${p.year}">
       <span class="index__inner">
         <span class="index__label">${chars(p.index.replace('-', ' - '), 'is-side')}</span>
         <span class="index__title">${chars(p.title, 'is-title')}</span>

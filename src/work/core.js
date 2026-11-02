@@ -157,7 +157,7 @@ const n = items.length;
 items.forEach((it, i) => {
   const a = document.createElement('a');
   a.className = `work__item work__${it.kind}`;
-  a.href = `/work/${it.slug}.html`;
+  a.href = `/work/${it.slug}`;
   a.style.visibility = 'hidden'; // (shown by the tick once the item is near the screen: an item that was never placed sat invisible at the top-left corner and took clicks there)
   a.style.zIndex = String(it.z); // the same order as the canvas (R23d): the image sits in the middle of the card depths
   if (it.kind === 'frame') a.setAttribute('aria-label', projects[it.proj].title);

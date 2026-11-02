@@ -3,6 +3,7 @@
 // card; the build gate (tools/layout-check-tablet.mjs) then fails on a stale file or a missing project. `npm run layout:tablet`, `-- --sizes 1024x768`.
 // Cards on the tablet (TABLET.cards > 0) need their own solve (the R29 method) and are not supported here yet: the Work page falls back to its load-time pass in that case.
 import fs from 'node:fs';
+import { loadData } from './lib/visible-data.mjs';
 import { installShims } from './lib/node-shims.mjs';
 installShims();
 const T = await import('../src/timeline.js'); const LS = await import('../src/work/layout-store.js'); const TL = await import('../src/work/tall.js');
@@ -11,7 +12,7 @@ const arg = (k, d) => { const i = argv.indexOf(k); return i >= 0 ? (argv[i + 1] 
 const sizeList = (arg('--sizes', null) || Object.values(LS.TABLET_SIZES).flat().map(([w, h]) => `${w}x${h}`).join(',')).split(',').map((s) => s.split('x').map(Number));
 const OUT = arg('--out', 'src/data/layouts-tablet.json');
 if (T.TABLET.cards > 0) { console.error('TABLET.cards > 0: the tablet solver does not place cards yet (see the header of this file)'); process.exit(1); }
-const slugs = JSON.parse(fs.readFileSync('src/data/data.json', 'utf8')).projects.map((p) => p.slug);
+const slugs = loadData().projects.map((p) => p.slug);
 const result = { v: 2, signature: TL.tabletSignature(), cards: 0, work: {}, dark: {} };
 const sortKeys = (o) => (Array.isArray(o) || o === null || typeof o !== 'object' ? o : Object.fromEntries(Object.keys(o).sort().map((k) => [k, sortKeys(o[k])])));
 for (const [W, H] of sizeList) {

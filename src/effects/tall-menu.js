@@ -14,7 +14,7 @@ export function mountTallMenu() {
       <ul class="tmenu__list">
         <li><a href="/work/">Work</a></li>
         <li><button type="button" class="tmenu__about-btn">About</button></li>
-        ${CONTACT.email ? `<li><a href="mailto:${CONTACT.email}">Contact</a></li>` : ''}
+        ${CONTACT.email ? `<li><a href="mailto:${CONTACT.email}" data-contact>Contact</a></li>` : ''}
       </ul>
       <div class="tmenu__about"><p class="tmenu__label">${about.label}</p><p class="tmenu__text">${about.text}</p></div>
     </div>`;

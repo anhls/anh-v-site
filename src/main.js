@@ -1,5 +1,6 @@
 import './styles/base.css';
 import './styles/desktop.css';
+import './effects/contact-trigger.js';
 import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -71,7 +72,7 @@ buildMoreProjects(app, data.moreProjects);
 buildFooter(app, data.footer, lenis);
 }
 const nav = initNav(data.hero.wordmark, lenis, { onHome: !heroOnly, gateFrame: !heroOnly });
-if (heroOnly) { const c = document.querySelector('.nav a[data-link="Contact"]'); if (c && CONTACT.email) c.href = `mailto:${CONTACT.email}`; }
+{ const c = document.querySelector('.nav a[data-link="Contact"]'); if (c && CONTACT.email) { if (heroOnly) c.href = `mailto:${CONTACT.email}`; c.setAttribute('data-contact', ''); } }
 buildSpawner(app, data.spawnerImages);
 buildCaptionHover(app, data.hero.captions);
 const trail = buildTrail(app, data.trailImages);
