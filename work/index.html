@@ -61,7 +61,6 @@
     </script>
     <link rel="stylesheet" href="/src/styles/base.css" />
     <!-- R45c3: render-block the first paint until the landing layer (#pxh, painted by the inline script at the start of <body>) is in the DOM: the first frame IS the landed cards, never the bare page (Chrome 124+; no layer = unblocked when parsing ends) -->
-    <link rel="expect" href="#pxh" blocking="render" />
     <script>window.__anhvThemeSync(); delete window.__anhvThemeSync;</script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="description" content="Works by Anh V, art director." />
@@ -122,9 +121,8 @@
           } catch (e) {}
         }
         window.__paintPxh = paint;
-        // R45c round 4: a PRERENDERED page paints its landing layer from the strip's own, already decoded pictures (src/work/home-return.js, a canvas drawn in the activation task): fresh <img> tags here
-        // would still be decoding on the first activated frames (Anh's recording: ~3 black frames). This DOM layer stays the path for a normal (not prerendered) load.
-        if (document.prerendering) document.addEventListener('prerenderingchange', function () { if (!window.__pxhModule) paint(); }, { once: true }); else paint();
+        // (a prerendered page paints at activation; the view transition in the <head> holds the homepage's last frame until the live strip has drawn, so a layer still decoding is never seen)
+        if (document.prerendering) document.addEventListener('prerenderingchange', paint, { once: true }); else paint();
       })();
     </script>
     <a class="skip" href="#app">Skip to content</a>

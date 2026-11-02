@@ -786,3 +786,10 @@ Undo everything: `git switch work-v2`.
   Still off: the short hold at the hand-off (about 220 ms of an unchanged, correct picture) is still there, because the /work/ prerender cannot be tested on this PC (any automated Chrome has prerender switched off), so I could not confirm it activates on your Chrome. Also: your brief says grid 32 / split 0.01, the file says pixelGrid 38 / pixelRgb 0.034 (the swipe follows the file, so it will match whatever Work uses).
   Your decision: look once on your 4K Chrome (open Work with ?debug=handoff: the console shows "activationStart>0 true" if the prerender was used) and tell me if the swipe reads as the same as the hover smear.
   Tech: pointer-fx.js reused directly (createPointerFx + a shim for setPixelFx), grid texture in home-flight.js, brush stepped at fixed 1/60 s; @view-transition (no animation) on index.html (work/ already had it); `<link rel=expect href=#pxg|#pxh blocking=render>`; log of activationStart in the ?debug=handoff output. Details: docs/codex/R45-notes.md (R45c round 3). Pushed: see git log.
+
+- 2026-11-02, Cowork: R45c rounds 4-5 + cleanup, R45 merged into work-v2.
+  What you will see now: Home -> Work lands on the full strip with no black frame (Chrome holds the homepage's last flight frame until the Work strip has drawn, ~0.12-0.17 s, then lets go); confirmed on Anh's 4K Chrome 10:43.
+  Still off: Work -> Home has no such hold yet (no flash reported); add it only if one shows.
+  Your decision: none.
+  Tech: work/index.html pagereveal + html.r45-hold view-transition keyframes (1.5 s cap) + skipTransition() in src/work/home-return.js once the strip drew; the round 4 canvas layer and the work/ <link rel=expect> were removed (superseded). Headless: hold + release OK, build OK.
+
