@@ -46,6 +46,7 @@ export function mountTallMenu() {
       </div>
     </div>`;
   const btn = wrap.querySelector('.tmenu__btn'), menu = wrap.querySelector('.tmenu');
+  menu.setAttribute('inert', ''); // (closed: laid out + composited but invisible, not focusable)
   const panel = menu.querySelector('.tmenu__panel'), timeEl = menu.querySelector('.tmenu__clock');
   document.body.append(...wrap.children);
   const workLink = menu.querySelector('a[href="/work/"]'), contactLink = menu.querySelector('a[data-contact]');
@@ -112,7 +113,7 @@ export function mountTallMenu() {
     prepWork();
   };
   const IS_WORK = /^\/work\/?$/;
-  const prepWork = () => { smear?.prime(); timeEl.textContent = hcmcTime(); placeMenu(); curLink = IS_WORK.test(location.pathname) ? workLink : null; if (smear) buildTl(false); };
+  const prepWork = () => { smear?.prime(); timeEl.textContent = hcmcTime(); placeMenu(); curLink = IS_WORK.test(location.pathname) ? workLink : null; if (smear) { buildTl(false); tl.progress(0); } };
   // idle, in slices (each its own idle callback): clock formatter + renderer, snapshot, menu layout + timeline, the throw-away draw
   idle(() => { hcmcTime(); warmSmear(); idle(() => { smear?.prime(); idle(() => { prepWork(); idle(() => smear?.warmDraw()); }); }); }, 4000);
   btn.addEventListener('pointerdown', prep, { passive: true });
@@ -149,8 +150,10 @@ export function mountTallMenu() {
   let curLink = null; // the link that has the line at rest (Work on /work/, none on Home)
   const links = () => [...menu.querySelectorAll('.tmenu__list a, .tmenu__list button')];
   const arrOf = (el) => el.querySelector('.tmenu__arr'), wordOf = (el) => el.querySelector('.tmenu__w');
-  const lineSet = (el, on) => { gsap.killTweensOf([arrOf(el), wordOf(el)]); gsap.set(arrOf(el), { scaleX: on ? 1 : 0, transformOrigin: '0 50%' }); gsap.set(wordOf(el), { x: on ? wordShift() : 0 }); el.classList.toggle('is-cur', on); };
-  const lineMove = (el, on, delay, dur) => { gsap.killTweensOf([arrOf(el), wordOf(el)]); const o = { duration: dur, delay, ease: TM.pushEase, overwrite: 'auto' }; gsap.to(arrOf(el), { scaleX: on ? 1 : 0, transformOrigin: '0 50%', ...o }); gsap.to(wordOf(el), { x: on ? wordShift() : 0, ...o }); el.classList.toggle('is-cur', on); };
+  let lineTw = []; // (only OUR line tweens are killed: killTweensOf would also kill the entrance timeline's push tween, which is reused between opens)
+  const lineKill = () => { lineTw.forEach((t) => t.kill()); lineTw = []; };
+  const lineSet = (el, on) => { lineKill(); gsap.set(arrOf(el), { scaleX: on ? 1 : 0, transformOrigin: '0 50%' }); gsap.set(wordOf(el), { x: on ? wordShift() : 0 }); el.classList.toggle('is-cur', on); };
+  const lineMove = (el, on, delay, dur) => { lineKill(); const o = { duration: dur, delay, ease: TM.pushEase }; lineTw.push(gsap.to(arrOf(el), { scaleX: on ? 1 : 0, transformOrigin: '0 50%', ...o }), gsap.to(wordOf(el), { x: on ? wordShift() : 0, ...o })); el.classList.toggle('is-cur', on); };
   const lineNow = () => links().forEach((a) => lineSet(a, false));
   let fromMenu = false;
   document.addEventListener('contact:tap', (e) => { // Contact tapped in the open menu: the line pulls back from the current word and draws out before Contact (one move, the same duration / ease)
@@ -184,11 +187,14 @@ export function mountTallMenu() {
     wmRaf = requestAnimationFrame(step);
   };
 
-  let open = false, hideT = 0;
+  let open = false, hideT = 0, lockT = 0;
+  // R48 r13: the page lock (inert on the page + overflow hidden = a big style / hit-test invalidation) is NOT done in the tap frames: after the sweep on open, when the menu is gone on close
+  const lockPage = (on) => { document.documentElement.classList.toggle('tmenu-lock', on); pageEls().forEach((el) => { if (on) el.setAttribute('inert', ''); else el.removeAttribute('inert'); }); };
+  const mark = (name) => { try { (window.__tmLabels ||= []).push(name + ' @' + (performance.now() - (window.__tmTap || 0)).toFixed(1)); } catch { /* */ } };
   const finishSweep = () => { sweeping = false; restoreText(); if (pending) { const q = pending; pending = null; set(q[0], q[1]); } };
   const afterReflow = (fn) => { void menu.offsetWidth; fn(); };
   const set = (on, view = 'list') => {
-    const tapT = performance.now();
+    const tapT = performance.now(); if (on) { window.__tmTap = tapT; window.__tmLabels = []; }
     if (sweeping && on !== open) { pending = [on, view]; return; } // (a tap during the sweep waits for it to end)
     if (on === open && menu.dataset.view === view) return;
     const wasOpen = open;
@@ -196,8 +202,7 @@ export function mountTallMenu() {
     btn.setAttribute('aria-expanded', String(on));
     btn.setAttribute('aria-label', on ? 'Close menu' : 'Open menu');
     document.documentElement.classList.toggle('tmenu-open', on);
-    pageEls().forEach((el) => { if (on) el.setAttribute('inert', ''); else el.removeAttribute('inert'); });
-    clearTimeout(hideT);
+    clearTimeout(hideT); clearTimeout(lockT);
     const sw = !(on && wasOpen) && useSweep();
     const secOpen = MENU_SWEEP.openSec, secClose = secOpen / MENU_SWEEP.closeDiv;
     if (on) {
@@ -207,21 +212,21 @@ export function mountTallMenu() {
       menu.classList.toggle('is-plain', !sw);
       lineNow();
       if (sw) panel.style.clipPath = 'polygon(0 0, 0 0, 0 0)'; else panel.style.clipPath = 'none';
-      menu.hidden = false; menu.dataset.view = view; placeMenu();
-      if (sw) { buildTl(true); collectText(); } else showPlain();
+      menu.removeAttribute('inert'); menu.hidden = false; menu.dataset.view = view; placeMenu(); mark('unhide+placeMenu');
+      if (sw) { buildTl(true); mark('timeline'); collectText(); mark('collectText'); } else showPlain();
       afterReflow(() => {
         menu.classList.add('is-open');
         if (sw) tl.timeScale(1).play(0); else if (curLink) lineSet(curLink, true);
       });
       if (sw) {
-        sweeping = true; wmRun(true, secOpen, 0);
+        sweeping = true; wmRun(true, secOpen, 0); mark('wordmark start'); lockT = setTimeout(() => lockPage(true), secOpen * 1000 + 60);
         const ok = smear.play({ open: true, sec: secOpen, tapT, onFrame: ({ clip, f }) => { panel.style.clipPath = clip; fadeText(f); }, onDone: finishSweep });
-        if (ok) setPagePaused(true);
+        mark('smear.play (frame 0 drawn)'); if (ok) setPagePaused(true);
         if (!ok) { sweeping = false; restoreText(); menu.classList.add('is-plain'); panel.style.clipPath = 'none'; showPlain(); if (curLink) lineSet(curLink, true); wmRun(true, 0.25, 0); }
-      } else wmRun(true, 0.25, 0);
+      } else { wmRun(true, 0.25, 0); lockPage(true); }
       (menu.querySelector(view === 'about' ? '.tmenu__text' : 'a[href], button') || btn).focus({ preventScroll: true });
     } else {
-      const done = () => { if (!open) { menu.hidden = true; stopTime(); lineNow(); setPagePaused(false); } };
+      const done = () => { if (!open) { menu.hidden = true; menu.setAttribute('inert', ''); lockPage(false); stopTime(); lineNow(); setPagePaused(false); } };
       menu.classList.toggle('is-plain', !sw);
       fromMenu = false;
       if (sw) {
@@ -250,7 +255,7 @@ export function mountTallMenu() {
   });
   addEventListener('resize', () => { placeMenu(); });
   // R45b: close with no animation (the Home -> Work flight starts from the tapped link and IS the transition)
-  const closeNow = () => { smear?.cancel(); sweeping = false; pending = null; restoreText(); clearTimeout(hideT); cancelAnimationFrame(wmRaf); setPagePaused(false); tl?.kill(); open = false; btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-label', 'Open menu'); document.documentElement.classList.remove('tmenu-open'); pageEls().forEach((el) => el.removeAttribute('inert')); menu.classList.remove('is-open'); menu.hidden = true; stopTime(); lineNow(); };
+  const closeNow = () => { smear?.cancel(); sweeping = false; pending = null; restoreText(); clearTimeout(hideT); cancelAnimationFrame(wmRaf); setPagePaused(false); tl?.kill(); open = false; btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-label', 'Open menu'); document.documentElement.classList.remove('tmenu-open'); clearTimeout(lockT); lockPage(false); menu.classList.remove('is-open'); menu.hidden = true; menu.setAttribute('inert', ''); stopTime(); lineNow(); };
 
   // ---- ?debug=menu: what the sweep does on this device (for Anh's phone)
   if (params.get('debug') === 'menu') {
@@ -263,6 +268,7 @@ export function mountTallMenu() {
         `GL context: ${smear ? (smear.lost ? 'LOST' : 'ok') : '-'}   canvas dpr ${smear ? smear.dpr.toFixed(2) : '-'} (device ${devicePixelRatio})`,
         `grid: ${gridBlockPx().toFixed(1)} px blocks (MENU_SWEEP.blockPx ${MENU_SWEEP.blockPx} @430)   zone: ${g.zone.toFixed(0)} px   jag: ${g.jag.toFixed(0)} px   sweep ${MENU_SWEEP.openSec.toFixed(2)} s / close ${(MENU_SWEEP.openSec / MENU_SWEEP.closeDiv).toFixed(2)} s`,
         `last OPEN: tap -> sweep frame 0 ${lo && lo.tapSync != null ? lo.tapSync : '-'} ms, -> first painted ${lo && lo.tapToFirst != null ? lo.tapToFirst : '-'} ms, first 3 frame times ${lo ? lo.first3.join(' / ') : '-'} ms, snapshot ${lo ? (lo.usedPrimed ? 'taken ' + lo.primedAgo + ' ms before the tap (prime cost ' + (lo.primeMs ?? 0).toFixed(1) + ' ms)' : 'taken IN the tap (not primed)') : '-'}`,
+        `tap-frame tasks (ms after the tap): ${(window.__tmLabels || []).join(', ') || '-'}   frame starts (ms after the tap): ${lo && lo.frameT ? lo.frameT.join(' / ') : '-'}`,
         `last sweep: ${st && st.frames ? `${st.frames} frames, ${st.avgMs.toFixed(1)} ms avg, ${st.maxMs.toFixed(1)} ms max, ${st.long} frames > 20 ms (page loop paused under the sweep: ${isPagePaused() ? "yes" : "no"})` : '-'}`].join('\n');
     };
     setInterval(show, 300); show();

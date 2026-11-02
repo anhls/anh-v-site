@@ -22,7 +22,9 @@ html.tall-home, html.tall-home body { height: 100%; overflow: hidden; overscroll
 .tmenu-open .tmenu__btn span:last-child { transform: translateY(0) rotate(-20deg); }
 .tmenu { position: fixed; inset: 0; z-index: 50; color: var(--fg); overscroll-behavior: none; touch-action: none; }
 /* R48 r12: closed = laid out but invisible (no display change at the tap: the unhide cost ~24 ms at 4x CPU) */
-.tmenu[hidden] { display: block; visibility: hidden; pointer-events: none; }
+.tmenu[hidden] { display: block; opacity: 0; pointer-events: none; } /* R48 r13: composited + rastered while closed (opacity 0, not visibility hidden): the tap only flips opacity; the items already carry their blur */
+.tmenu { will-change: opacity; }
+.tmenu__fx { will-change: opacity, filter, transform; }
 .tmenu__panel { position: absolute; inset: 0; background: var(--bg); will-change: clip-path; }
 .tmenu__time { position: absolute; top: var(--tm-flav-top, 33vh); right: var(--tm-clock-right, 20px); margin: 0; font-size: var(--tall-small); line-height: 1.5; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; text-align: right; font-style: normal; } /* R48 r5: on the flavour text's rows, right ink edge on the wordmark's V (placeMenu) */
 .tmenu__time span { display: block; opacity: var(--tm-clock-op, 0.25); }
@@ -40,7 +42,7 @@ html.tall-home, html.tall-home body { height: 100%; overflow: hidden; overscroll
 .tmenu__text { margin: 0; font-size: clamp(1.4rem, 6vw, 2.4rem); line-height: 1.12; letter-spacing: -0.01em; max-width: 24em; outline: none; }
 /* content blurs in one item after the other (tall-menu.js plan(): flavour 1, flavour 2, clock, Work, About, Contact); out = the reverse */
 /* R48 r10: the items are animated by one GSAP timeline in tall-menu.js buildTl() (no CSS transitions) */
-html.tmenu-open { overflow: hidden; }
+html.tmenu-lock { overflow: hidden; }
 .tmenu.is-plain .tmenu__panel { opacity: 0; transition: opacity 0.25s ease; } .tmenu.is-plain.is-open .tmenu__panel { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .tmenu__btn span { transition: none; } }
 
