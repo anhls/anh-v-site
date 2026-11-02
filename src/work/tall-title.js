@@ -80,10 +80,12 @@ export function createLiteTitle({ app, projects, reduced, rest }) {
     smear.play({ ...options[shown], ...callbacks() });
     pm('lite:title-scheduled');
   }
-  const fonts = document.fonts?.load('600 80px "Clash Display"') || Promise.resolve();
-  Promise.resolve(fonts).then(() => {
-    ready = true; layout();
-  });
+  // R48 r7: the fit / short-title choice and the smear texture are made only once the title font has REALLY loaded for every title's letters (a fallback-font measurement made "Techcomba" clip, then swap to the
+  // full title): load the font for all the texts, wait for document.fonts.ready, and re-check with fonts.check (Safari can resolve load() early).
+  const texts = projects.flatMap((p) => [p.title, p.titleShort || TITLE_SHORT[p.slug]]).filter(Boolean).join(' ');
+  const fontSpec = `${WORK_TITLE.weight} 80px ${family}`;
+  const whenFont = async () => { try { await document.fonts?.load(fontSpec, texts); await document.fonts?.ready; for (let i = 0; i < 20 && document.fonts && !document.fonts.check(fontSpec, texts); i++) { await new Promise((r) => setTimeout(r, 50)); await document.fonts.load(fontSpec, texts); } } catch { /* the layout still runs */ } };
+  whenFont().then(() => { ready = true; layout(); });
   document.addEventListener('anhv-theme', () => layout());
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { logT('cancel', 'page hidden'); cancelWarm(); warmedFor = -1; smear.cancel(); opacity = 0; el.style.transition = 'none'; el.style.opacity = '0'; }
