@@ -5,6 +5,7 @@ import { EASES } from '../util/ease.js';
 import { transitionPolicy } from './transition-policy.js';
 import { glOpen, glClose } from '../util/gl-ledger.js';
 import { imgSet } from '../util/media.js';
+import { heroDim } from '../util/hero-dim.js';
 
 // R45: the Home <-> Work flight. ONE picture box moves between the hero's rectangle and the Work page's first card (the R42 back family: a fast drop and a slow
 // settle, the edges bow inward), drawn by one fullscreen fragment shader that does three things at once:
@@ -99,6 +100,7 @@ uniform vec2 uNatA, uNatB;
 uniform sampler2D uA, uB;
 uniform float uTaps, uRgb, uPx, uTear, uCell;
 uniform float uJit, uClear;
+uniform vec2 uDim; // R49: brightness of picture A / B (the hero is dimmed on the wide homepage; the Work cards are not)
 uniform float uLook, uFrontPx, uGain; // R45c3 pixel swipe: look 1 = pixel; the brush front along uDir (screen px); gain = the displacement share (0 at rest)
 uniform sampler2D uGrid;           // the Work page pointer-fx grid (screen space, NEAREST, one x / y displacement per cell)
 uniform vec2 uGridN, uFxP;         // grid columns / rows; strength (picture units per grid unit), rgb split
@@ -123,8 +125,8 @@ vec4 tap(float f, vec2 pos) {
   float edge = min((1. - abs(q.x)) * h.x, (1. - abs(q.y)) * h.y);
   float a = clamp(edge * uPx + .5, 0., 1.);
   if (a <= 0.) return vec4(0.);
-  vec3 ca = texture(uA, clamp(cover(q, b, uNatA), 0., 1.)).rgb;
-  vec3 cb = texture(uB, clamp(cover(q, b, uNatB), 0., 1.)).rgb;
+  vec3 ca = texture(uA, clamp(cover(q, b, uNatA), 0., 1.)).rgb * uDim.x;
+  vec3 cb = texture(uB, clamp(cover(q, b, uNatB), 0., 1.)).rgb * uDim.y;
   return vec4(mix(ca, cb, mx) * a, a);
 }
 void main() {
@@ -142,8 +144,8 @@ void main() {
     vec2 d = texture(uGrid, pos / uView).rg * uGain * uFxP.x * 2., sh = d * uFxP.y;  // picture units -> q units (x2)
     vec2 q = qa - d;
     vec3 c3;
-    if (flip > .5) c3 = vec3(texture(uB, clamp(cover(clamp(q + sh, -1., 1.), b, uNatB), 0., 1.)).r, texture(uB, clamp(cover(clamp(q, -1., 1.), b, uNatB), 0., 1.)).g, texture(uB, clamp(cover(clamp(q - sh, -1., 1.), b, uNatB), 0., 1.)).b);
-    else c3 = vec3(texture(uA, clamp(cover(clamp(q + sh, -1., 1.), b, uNatA), 0., 1.)).r, texture(uA, clamp(cover(clamp(q, -1., 1.), b, uNatA), 0., 1.)).g, texture(uA, clamp(cover(clamp(q - sh, -1., 1.), b, uNatA), 0., 1.)).b);
+    if (flip > .5) c3 = uDim.y * vec3(texture(uB, clamp(cover(clamp(q + sh, -1., 1.), b, uNatB), 0., 1.)).r, texture(uB, clamp(cover(clamp(q, -1., 1.), b, uNatB), 0., 1.)).g, texture(uB, clamp(cover(clamp(q - sh, -1., 1.), b, uNatB), 0., 1.)).b);
+    else c3 = uDim.x * vec3(texture(uA, clamp(cover(clamp(q + sh, -1., 1.), b, uNatA), 0., 1.)).r, texture(uA, clamp(cover(clamp(q, -1., 1.), b, uNatA), 0., 1.)).g, texture(uA, clamp(cover(clamp(q - sh, -1., 1.), b, uNatA), 0., 1.)).b);
     o = vec4(c3 * a, a);
     return;
   }
@@ -190,7 +192,7 @@ export function createHomeFlight(parent) {
     prog = gl.createProgram(); gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error('link');
     gl.useProgram(prog);
-    ['uJit', 'uClear', 'uLook', 'uFrontPx', 'uGain', 'uGrid', 'uGridN', 'uFxP', 'uDir', 'uView', 'uBox0', 'uBox1', 'uBend', 'uMix', 'uNatA', 'uNatB', 'uA', 'uB', 'uTaps', 'uRgb', 'uPx', 'uTear', 'uCell'].forEach((k) => { u[k] = gl.getUniformLocation(prog, k); });
+    ['uDim', 'uJit', 'uClear', 'uLook', 'uFrontPx', 'uGain', 'uGrid', 'uGridN', 'uFxP', 'uDir', 'uView', 'uBox0', 'uBox1', 'uBend', 'uMix', 'uNatA', 'uNatB', 'uA', 'uB', 'uTaps', 'uRgb', 'uPx', 'uTear', 'uCell'].forEach((k) => { u[k] = gl.getUniformLocation(prog, k); });
     for (let i = 0; i < SLOTS; i++) {
       const t = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, t);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -256,7 +258,7 @@ export function createHomeFlight(parent) {
       gl.uniform2f(u.uBend, state.bend, prev.bend); gl.uniform2f(u.uMix, state.mix, prev.mix);
       gl.uniform2f(u.uNatA, nat[slots[0]][0], nat[slots[0]][1]); gl.uniform2f(u.uNatB, nat[slots[1]][0], nat[slots[1]][1]);
       gl.uniform1f(u.uTaps, Math.max(2, Math.min(60, F.smearTaps))); gl.uniform1f(u.uRgb, F.smearStrength > 0 ? F.smearRGB / F.smearStrength : 0);
-      gl.uniform1f(u.uLook, pixel && !opts.plain ? 1 : 0); gl.uniform1f(u.uFrontPx, opts.frontPx ?? 0); gl.uniform1f(u.uJit, opts.jitterPx ?? 0); gl.uniform1f(u.uClear, opts.clear ? 1 : 0); gl.uniform1f(u.uGain, opts.gain ?? 0);
+      gl.uniform1f(u.uLook, pixel && !opts.plain ? 1 : 0); gl.uniform1f(u.uFrontPx, opts.frontPx ?? 0); gl.uniform1f(u.uJit, opts.jitterPx ?? 0); gl.uniform1f(u.uClear, opts.clear ? 1 : 0); gl.uniform2f(u.uDim, opts.dimA ?? 1, opts.dimB ?? 1); gl.uniform1f(u.uGain, opts.gain ?? 0);
       gl.uniform2f(u.uGridN, gridW, gridH); gl.uniform2f(u.uFxP, gridP[0], gridP[1]);
       { const a = ((F.pixelAngle + (opts.vertical ? 90 : 0) + (opts.flip ? 180 : 0)) * Math.PI) / 180; gl.uniform2f(u.uDir, Math.cos(a), Math.sin(a)); }
       gl.uniform1f(u.uTear, F.smearTear * mv); gl.uniform1f(u.uCell, Math.max(2, F.smearCell));
@@ -311,7 +313,8 @@ export function playFlight(renderer, { hero, card, dir, onFrame, neighbours = []
         if (!zero || zero.length !== cols * rows * 4) zero = new Float32Array(cols * rows * 4); // an all-zero grid keeps the screen cells (the flip) when the brush is idle
         renderer.setGrid(grid ? grid.data : zero, cols, rows, grid ? grid.params : [WORK_PTR.pixelStrength, WORK_PTR.pixelRgb]);
       }
-      const fo = { frontPx: frontAt(p), gain, vertical, flip: dir === 'out' }, up = pushUp(p, dir, sec);
+      // R49: the hero picture (slot 0 going to Work, slot 1 coming back) carries the homepage's own dim while it is the hero and loses it as it becomes the card, on the flight's size curve (size 1 = the hero)
+      const dimHero = 1 - (1 - heroDim()) * st.size, fo = { frontPx: frontAt(p), gain, vertical, flip: dir === 'out', dimA: dir === 'in' ? dimHero : 1, dimB: dir === 'in' ? 1 : dimHero }, up = pushUp(p, dir, sec);
       neighbours.forEach((n, i) => { const r = nbAt(n, i, up); renderer.layer(r, r, { bend: 0, mix: 1 }, { bend: 0, mix: 1 }, [n.slot, n.slot], { plain: true }); });
       renderer.layer(at(st), at(pv), st, pv, [0, 1], fo);
       onFrame?.(st, up);
