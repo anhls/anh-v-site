@@ -103,6 +103,9 @@ function launch() {
 function exit(fling) {
   if (!open || closing) return;
   closing = true; open = false;
+  // R46c fix (Anh 14:30): EVERY close path (outside click, Esc, fling, the hidden button) removes the history entry the card pushed, so the next Back leaves the page as expected.
+  // (When the browser Back closed it, the popstate handler has already cleared `pushed`.) The popstate this fires finds the card closed and does nothing.
+  if (pushed) { pushed = false; try { history.back(); } catch { /* */ } }
   root.classList.remove('is-open'); // the dim fades out
   const rm = reduced();
   cards.forEach((c, i) => {
@@ -125,8 +128,7 @@ function exit(fling) {
 
 export function close() {
   if (!open) return;
-  if (pushed) { pushed = false; try { history.back(); return; } catch { /* */ } } // popstate then slides it out
-  exit();
+  exit(); // (exit() also removes the card's history entry)
 }
 
 // ---- physics (fixed step) ----
