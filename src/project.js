@@ -1,3 +1,4 @@
+import { modal } from './util/modal.js'; // R46c: must stay the first import (its input blocker has to be registered before any page listener)
 import './styles/base.css';
 import './styles/desktop.css';
 import './styles/project.css';
@@ -31,6 +32,7 @@ if (window.__pxtFlightDone) await window.__pxtFlightDone;
 if (project?.page) {
   const lenis = new Lenis({ duration: SCROLL.duration, easing: SCROLL.easing });
   gsap.ticker.add((time) => lenis.raf(time * 1000));
+  modal.on((o) => { if (o) lenis.stop(); else lenis.start(); }); // R46c
   gsap.ticker.lagSmoothing(0);
   lenis.on('scroll', ScrollTrigger.update);
   if (import.meta.env.DEV) { window.__lenis = lenis; } // dev only: tools/scratch checks

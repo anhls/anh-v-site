@@ -87,6 +87,9 @@ Read first: CLAUDE.md (house rules), docs/requests.md (open work: the first item
 - Time budget: aim for ~20-30 minutes per request. Past ~45 minutes, write where you are, commit WIP, push, and report instead of
   continuing to iterate. A brief may set its own budget.
 - Same-value retries: at most 2 trial edits of the same number, then calculate it from measurements or report (as in CLAUDE.md).
+- NEVER let a test open the PC's mail app (Anh's rule): prefer headless runs for link / card checks; in every run call `blockMailto(ctxOrPage)` from `tools/lib/no-mailto.mjs`
+  (also importable as `tools/scratch/lib/no-mailto.mjs`) before `goto`: it intercepts clicks on `a[href^="mailto:"]` and `location` / `window.open` to mailto: (preventDefault + console.log);
+  check mailto links by reading their `href`, not by clicking them.
 
 ## 10. Clean-clone rule
 - tools/scratch/ is ignored by git. NOTHING the build, the site or a tracked tool imports may live there: shared code goes in

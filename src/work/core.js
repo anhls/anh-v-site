@@ -21,6 +21,7 @@ import { capW, dist } from '../scale.js';
 import { createCardsGL } from '../effects/cards-gl.js';
 import { imgAttrs } from '../util/media.js';
 import { installScrollGain } from '../util/scroll-gain.js';
+import { modal } from '../util/modal.js';
 import { createPageSwap } from '../effects/page-swap.js';
 import { initHomeReturn } from './home-return.js';
 import { watchDpr } from '../util/dpr.js';
@@ -94,6 +95,8 @@ let lenis = makeLenis(); // (R42: let: a project opened in place destroys it and
 // R22j: Lenis runs on a clock that never advances more than 100 ms per frame: after a hidden tab or a long freeze its glide carries on from where
 // it was (before, the whole glide finished in one frame: the strip jumped thousands of px when the tab came back)
 let lenisClock = 0, lenisLast = null;
+let lenisWasStopped = false;
+modal.on((o) => { if (o) { lenisWasStopped = lenis.isStopped; lenis.stop(); } else if (!lenisWasStopped) lenis.start(); }); // R46c: the strip does not move under the contact card; it resumes exactly as it was
 const lenisStep = (time) => { lenisClock += lenisLast === null ? 0 : Math.min(time - lenisLast, 0.1); lenisLast = time; lenis.raf(lenisClock * 1000); };
 gsap.ticker.add(lenisStep);
 gsap.ticker.lagSmoothing(0);

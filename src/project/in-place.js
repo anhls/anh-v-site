@@ -11,6 +11,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import data from '../data/data.json';
 import { SCROLL } from '../timeline.js';
 import { installScrollGain } from '../util/scroll-gain.js';
+import { modal } from '../util/modal.js';
 import { initNav } from '../effects/nav.js';
 import { buildFooter } from '../sections/footer.js';
 import { createDesktopNav, buildDesktopProject } from './desktop.js';
@@ -117,6 +118,7 @@ export function createProjectView({ slug, tall, onBack }) {
       window.scrollTo(0, 0);
       realLenis = new Lenis({ duration: SCROLL.duration, easing: SCROLL.easing });
       tick = (time) => realLenis.raf(time * 1000);
+      { const rl = realLenis; modal.on((o) => { if (rl === realLenis) { if (o) rl.stop(); else rl.start(); } }); } // R46c
       gsap.ticker.add(tick);
       gain = installScrollGain(realLenis);
       real = realLenis;
