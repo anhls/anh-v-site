@@ -212,7 +212,7 @@ export function createHomeFlight(parent) {
     // `source` = an <img> (complete) or a <video> with a frame; `key` skips an upload of the same picture twice
     setPicture(slot, source, key) {
       if (dead) return false;
-      const w = source.naturalWidth || source.videoWidth, h = source.naturalHeight || source.videoHeight;
+      const w = source.naturalWidth || source.videoWidth || source.width, h = source.naturalHeight || source.videoHeight || source.height; // (R49: a 2D canvas works too: the loader snapshot)
       if (!w || !h) return false;
       if (key && keys[slot] === key) return true;
       gl.activeTexture(gl.TEXTURE0 + slot); gl.bindTexture(gl.TEXTURE_2D, tex[slot]);

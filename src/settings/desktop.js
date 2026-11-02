@@ -79,19 +79,35 @@ export const SECTIONS = {
   footer: [620, 730],
 };
 
-// Loader. Seconds unless marked ms. Words start 1.1em (70px at 64px) below their own clipped line and rise, hold, then
-// rise out; the black backdrop then collapses upward. Curves are Framer's real ones (overshoot ease), words 0.8s with
-// delays 0 / 0.1 / 0.2, backdrop 1s with its leave delayed 0.3s.
+// Loader (R49, the counter style of savoirfaire.nyc: structure and motion only). Seconds unless marked ms.
+// COUNTER: two digit columns, each a mask box; the steps show 00 / 27 / 59 / 77 / 99 (digits per column below). Step i starts when (a) the real loading progress has passed at[i] and (b) the previous
+// step's slide has finished (never faster than stepSec per step; the next step starts at the exact end of the last one, so a fast load is one continuous chain). A new digit slides IN from the left
+// (x -100% -> 0) while the old one slides OUT to the right (0 -> exitX of the mask width), both columns together, ease 'ease'. Wide screens: the whole counter also travels along the bottom
+// (left margin -> right margin over the 5 steps, the same ease). Tall (phone / tablet portrait): no travel, the pair fills the width.
+// SIZE (measured on the reference recordings in docs/reference/r49-*): the digit cap height is 20.9 % of the WIDTH on wide screens (1440x900 and 1920x1080 agree), capped at capMaxVh of the height;
+// bottom gap 2.35 vw. On tall screens the pair of digits fills the width minus a gutter each side.
+// PROGRESS = fonts + the images the first screen needs + the hero video (buffered seconds, 'can play' = full). maxMs = stall cap: after it every step is allowed (go to 99, continue with what is ready).
+// ENDING: holdSec after 99 settles, then the Home <-> Work pixel swipe (src/effects/loader-swipe.js, look / grid / strength / time = HOME_FLIGHT + WORK_PTR) left -> right over the hero video.
+// Reduced motion, ?gl=0, Save-Data, a weak device or no WebGL2: the digits change by fade (fadeSec), no travel, and the loader ends with a fade (endFadeSec).
 export const LOADER = {
-  minMs: 1000,      // shortest time the loader stays up, so it does not just flash on a cached load
-  videoCapMs: 4000, // stop waiting for the hero video's first frame after this (it keeps streaming)
-  maxMs: 5000,      // the loader never stays waiting longer than this, whatever is still loading
-  // The loader only waits for what is visible on the first screen: font, wordmark, ticker, video first frame.
-  // Hero images #2/#3 (not visible before ~40vh of scroll) start loading right after the loader is ready.
-  ease: [0.59, 0.25, 0.12, 1.17],
-  arrive: { rise: 1.1, duration: 0.8, stagger: 0.1 },
-  leave: { duration: 0.8, stagger: 0.1 }, // last word leaves first
-  wipe: { delay: 0.3, duration: 1, liftVh: 11.1 }, // delay counted from the start of leave; liftVh is a capped distance
+  maxMs: 12000,
+  stepSec: 1, // 0.8 = a ~4 s load if 5 s feels slow
+  ease: 'power4.inOut',
+  exitX: 1.1, // the old digit leaves to the right by this share of the mask width (theirs: 20rem of an 18rem mask)
+  steps: [[0, 0], [2, 7], [5, 9], [7, 7], [9, 9]],
+  at: [0, 0.27, 0.59, 0.77, 0.99],
+  weights: { fonts: 0.1, images: 0.15, video: 0.75 },
+  videoSecs: 2, // buffered video seconds that count as 'the hero can play'
+  fontWeight: 200, // the thinnest Clash Display weight
+  capVw: 20.9, capMaxVh: 42, bottomVw: 2.35,
+  tall: { gutterPx: 16, bottomPx: 16 },
+  marginVw: 3.125, // side margin of the top text and the travel (the nav's 60 px at 1920)
+  top: { sizeVw: 0.7, minPx: 11, maxPx: 15, topVw: 1.6, tallTopPx: 24, tallGapEm: 1.5, clockOpacity: 0.25, inSec: 0.7, blurPx: 8 },
+  holdSec: 0.3,
+  fadeSec: 0.35,
+  endFadeSec: 0.45,
+  enter: { sec: 0.6, delaySec: 1.1, blurPx: 8 }, // the wordmark / nav / ticker / burger come in once the swipe has passed (CSS animation, base.css; delay counted from the swipe start)
+  brushFrame: 1.5, // the swipe's brush radius = pixelBrush x (this x the screen height): the Work card is ~half the height, the swipe covers the whole screen
 };
 
 // "Click Anywhere" ticker. Live: items are 182 x 9 px (9.479vw x 0.469vw at 1920), moving left at 100px/s = 5.21vw/s.

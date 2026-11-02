@@ -38,4 +38,4 @@ const flight = () => import('./effects/home-leave.js').then((m) => { m.initHomeT
 window.__paintPxg?.();
 const arrival = !!document.getElementById('pxg');
 if (arrival) flight().then((m) => m.arriveFromWork({ frame: { video } }, null)).then(() => { window.__siteReady = true; });
-else runLoader(data.loader.text, [hero.wordmark], () => {}).then(() => { window.__siteReady = true; flight(); }); // (the flight code loads after the loader: the first load stays light)
+else runLoader({ urls: [hero.wordmark] }).then(() => { window.__siteReady = true; flight(); }); // (the flight code loads after the loader: the first load stays light)

@@ -92,46 +92,51 @@ html.lenis, html.lenis body { height: auto; }
 
 #app { position: relative; }
 
-/* Loader */
+/* Loader (R49): bottom digit columns (a mask each; the digits slide through it), the phone menu's small text on top. Sizes are set by src/effects/loader.js from LOADER (settings). */
 .loader {
   position: fixed;
   inset: 0;
   z-index: 100;
-  display: grid;
-  place-items: center;
+  background: var(--bg);
   color: var(--fg);
   pointer-events: none;
 }
-/* The black backdrop is its own layer so it can collapse upward at the end (scaleY from the top). */
-.loader__bg {
+.loader__top {
   position: absolute;
-  inset: 0;
-  background: var(--bg);
-  transform-origin: 50% 0;
+  left: var(--l-m);
+  right: var(--l-m);
+  top: var(--l-top);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  font-size: var(--l-fs-top);
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+}
+.loader__top p, .loader__top address { margin: 0; font-style: normal; }
+.loader__t { display: block; }
+.loader__tr { text-align: right; }
+.loader__clock { opacity: var(--l-clock-op); }
+.loader[data-tall='1'] .loader__top { left: 16px; right: 16px; flex-direction: column; gap: var(--l-gap); }
+.loader[data-tall='1'] .loader__tr { text-align: left; }
+.loader__counter {
+  position: absolute;
+  left: 0;
+  bottom: var(--l-bottom);
+  display: flex;
+  font-size: var(--l-fs);
+  font-weight: var(--l-weight);
+  line-height: 1;
   will-change: transform;
 }
-.loader__title {
-  position: relative;
-  display: flex;
-  gap: 0.25em;
-  margin: 0;
-  font-size: calc(var(--ux) * 3.333); /* 64px at the 1920 reference, then fixed */
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  line-height: 1;
-}
-/* Each word sits in its own clipped line; the extra padding keeps descenders (g, p) from being cut. */
-.loader__line { display: block; overflow: hidden; padding-bottom: 0.15em; margin-bottom: -0.15em; }
-.loader__word { display: block; will-change: transform; }
-.loader__label {
-  position: fixed;
-  top: 0;
-  left: 0;
-  margin: 0;
-  font-size: 0.75rem;
-  white-space: nowrap;
-  pointer-events: none;
-}
+.loader__col { position: relative; width: var(--l-w); height: var(--l-h); overflow-x: clip; overflow-y: visible; }
+.loader__d { position: absolute; left: 0; top: 0; width: 100%; text-align: center; will-change: transform; }
+/* The swipe's canvas sits above the hero and below the wordmark / nav, which come in as the swipe passes (loader-out). */
+.loader-swipe { position: fixed; inset: 0; z-index: 8; pointer-events: none; }
+html.is-loading :is(.wordmark, .nav, .twm, .tmenu__btn, .ticker__track) { opacity: 0; }
+html.loader-out :is(.wordmark, .nav, .twm, .tmenu__btn, .ticker__track) { animation: loader-in var(--l-in-sec, 0.6s) ease-out var(--l-in-delay, 0.25s) backwards; }
+@keyframes loader-in { from { opacity: 0; filter: blur(var(--l-in-blur, 8px)); } }
 
 /* AV wordmark: fixed, animated by src/effects/nav.js */
 .wordmark {
