@@ -37,12 +37,22 @@ export function initHomeReturn({ items, px, py, bw, bh, touch, rectOf, fadeEls, 
       // R45b round 2: ready = the strip's renderer DREW the first card's texture + 2 frames (firstReady in core.js), not just 'the image decoded'. The layer never covers touches (pointer-events none), so a tap /
       // drag that arrives while the strip is still coming up reaches the page's own handlers (the strip is live as soon as its code runs); the layer stays until the strip drew (10 s cap, then it goes anyway).
       ov.style.pointerEvents = 'none';
+      // R47 fix 5 (Anh 21:11, "ghosting when I scroll right away"): the layer is a still of the strip AT REST. As soon as the visitor scrolls / drags / taps / presses a key, that still is wrong:
+      // once the strip has drawn, the layer goes at once (no 0.35 s fade over a moving strip); input before that only marks it, and the layer then goes at once instead of fading.
+      const tt0 = () => document.getElementById('pxh-title');
+      let ready = false, input = false, gone = false;
+      const INPUTS = ['wheel', 'pointerdown', 'touchstart', 'keydown'];
+      const drop = () => { if (gone) return; gone = true; gsap.killTweensOf([ov, tt0()].filter(Boolean)); ov.remove(); tt0()?.remove(); INPUTS.forEach((t) => removeEventListener(t, onInput, true)); dbg('work layer: removed at once (input)'); };
+      const onInput = () => { input = true; if (ready) drop(); };
+      INPUTS.forEach((t) => addEventListener(t, onInput, { capture: true, passive: true }));
       let slow = false;
       while (!firstReady() && performance.now() - t0 < 10000) { await new Promise((r) => requestAnimationFrame(r)); if (!slow && performance.now() - t0 > 2500) { slow = true; dbg('work layer: strip still not drawn 2.5 s after activation, layer kept'); } }
       for (let i = 0; i < 2; i++) await new Promise((r) => requestAnimationFrame(r));
       try { window.__r45vt?.skipTransition(); } catch { /* */ } // round 5: release the held homepage frame now that the live strip is on screen
       pm('home:land-strip-ready'); dbg('work layer: strip ready', firstReady(), 'after', Math.round(performance.now() - t0), 'ms since activation; fading the layer');
-      const tt = document.getElementById('pxh-title'); gsap.to(tt ? [ov, tt] : ov, { opacity: 0, duration: F.landFadeSec, ease: 'sine.inOut', onComplete: () => { ov.remove(); tt?.remove(); } });
+      ready = true;
+      if (input) { drop(); return; }
+      const tt = tt0(); gsap.to(tt ? [ov, tt] : ov, { opacity: 0, duration: F.landFadeSec, ease: 'sine.inOut', onComplete: () => { if (gone) return; gone = true; ov.remove(); tt?.remove(); INPUTS.forEach((t) => removeEventListener(t, onInput, true)); } });
     })();
   };
   if (document.prerendering) document.addEventListener('prerenderingchange', arrive, { once: true }); else arrive();
