@@ -765,3 +765,31 @@ Undo everything: `git switch work-v2`.
   What you will see now: on the laptop the first seconds after load are smoother: start-up worst frame 153 -> 76 ms, frames over 50 ms 3 -> 1, over 33 ms 6 -> 1, uploads in that window 7 (52 MB) -> 2 (18 MB), GPU worst 159 -> 12 ms. ?perf records every open and back (3 / 3 with the mouse back button), says "desktop", idle jobs ran while moving 0 (was 107).
   Still off: one 76 ms frame remains in the start-up window (GPU only 12 ms, so it is main-thread or compositor work); small, logged in FLAGS.
   Your decision: none.
+
+- 2026-11-02, Claude Code: R45 Part 0 + A (desktop, branch desktop/r45-home-work).
+  What you will see now: the homepage is the hero only (no scrolling, About hidden, Contact = your email); "Works" makes the hero shrink with a smear into the first Work card, and Back / the wordmark grows the centred card back into the hero; the wordmark is always small on Work and project pages. Favicon, iOS icon and share image are in.
+  Still off: motion strength and duration are the planner's start values, not tuned by eye; I could not measure real-speed motion or the click response on a real GPU (software-GL checks only), and the homepage coming back from the browser cache is untested.
+  Your decision: look at the preview on the 4K screen and the laptop and tune with ?tune (HOME_FLIGHT) on the Work page, then say if Part B can start. Also: should project pages keep their own link-preview image (they now use the share image, as the brief says)?
+  Technical: cross-document hand-off (not in-document Work), details + checks in docs/codex/R45-notes.md. `?home=full` compare 542/542 x2. Undo: git revert the R45 commits on desktop/r45-home-work.
+- 2026-11-02, R45c (desktop, branch desktop/r45-home-work):
+  What you will see now: Works flies hero -> first card as a pixel swipe (square blocks flip video to card, neighbour cards revealed by the same front); the way back is the reverse. No loader coming home, no black frame, project pages have their own share image again.
+  Still off: not seen at real speed on your GPU; the fast landing (Chrome prerender) could not be tested here, so the hold after the flight may still be there; Vertical mode and 144 Hz were not re-checked.
+  Your decision: look at it on the 4K screen; tell me if blocks / front width / speed need tuning (?tune -> HOME_FLIGHT), and whether the hold is gone.
+  Tech: look 'pixel' | 'smear', pixelBlocks 24, pixelFront 0.25, pixelMosaic 4; compare 542/542 x2; build + tall smoke OK; details in docs/codex/R45-notes.md. Pushed: see commit; undo: git revert it.
+- 2026-11-02, R45c follow-up (desktop, desktop/r45-home-work):
+  What you will see now: only the travelling picture (hero video <-> first card) pixel-swipes; the neighbour cards slide in / out on the same push as a project open / back. Coming back from Work should show no loader, also when the browser restores the homepage from cache (that was the bug: it reloaded and lost the return mark).
+  Still off: I cannot test a real Chrome prerender or a real cache restore here, so please check the return again; if the loader still plays, open the homepage once with ?debug=handoff and send me the console.
+  Your decision: look at the neighbours' push on the 4K screen; tell me if their stagger (nbRank) or the swipe needs tuning.
+  Tech: nbRank 0.4, hand-off records 10 s + deleted on read; compare 542/542 x2, build, tall smoke, R42 open/back OK; details in docs/codex/R45-notes.md. Undo: git revert the commit.
+
+- 2026-11-02, R45c round 3 (Claude Code). What you will see now: the Home <-> Work picture swipe is the Work page's own hover smear (same grid, same blocks, same shift and colour split) driven by a brush that sweeps across the travelling picture; the video flips to the card behind the brush. The bare black frame between home and Work is gone in real Chrome (1 black frame before, 0 after).
+  Still off: the short hold at the hand-off (about 220 ms of an unchanged, correct picture) is still there, because the /work/ prerender cannot be tested on this PC (any automated Chrome has prerender switched off), so I could not confirm it activates on your Chrome. Also: your brief says grid 32 / split 0.01, the file says pixelGrid 38 / pixelRgb 0.034 (the swipe follows the file, so it will match whatever Work uses).
+  Your decision: look once on your 4K Chrome (open Work with ?debug=handoff: the console shows "activationStart>0 true" if the prerender was used) and tell me if the swipe reads as the same as the hover smear.
+  Tech: pointer-fx.js reused directly (createPointerFx + a shim for setPixelFx), grid texture in home-flight.js, brush stepped at fixed 1/60 s; @view-transition (no animation) on index.html (work/ already had it); `<link rel=expect href=#pxg|#pxh blocking=render>`; log of activationStart in the ?debug=handoff output. Details: docs/codex/R45-notes.md (R45c round 3). Pushed: see git log.
+
+- 2026-11-02, Cowork: R45c rounds 4-5 + cleanup, R45 merged into work-v2.
+  What you will see now: Home -> Work lands on the full strip with no black frame (Chrome holds the homepage's last flight frame until the Work strip has drawn, ~0.12-0.17 s, then lets go); confirmed on Anh's 4K Chrome 10:43.
+  Still off: Work -> Home has no such hold yet (no flash reported); add it only if one shows.
+  Your decision: none.
+  Tech: work/index.html pagereveal + html.r45-hold view-transition keyframes (1.5 s cap) + skipTransition() in src/work/home-return.js once the strip drew; the round 4 canvas layer and the work/ <link rel=expect> were removed (superseded). Headless: hold + release OK, build OK.
+

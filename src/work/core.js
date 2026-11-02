@@ -22,6 +22,7 @@ import { createCardsGL } from '../effects/cards-gl.js';
 import { imgAttrs } from '../util/media.js';
 import { installScrollGain } from '../util/scroll-gain.js';
 import { createPageSwap } from '../effects/page-swap.js';
+import { initHomeReturn } from './home-return.js';
 import { watchDpr } from '../util/dpr.js';
 import { prepareIdleTransition, prepareTransition, leavePrepared, disposePrepared, preloadHeader, runProjectTransition, transitionOK, readBack, playBack } from '../effects/project-transition.js';
 import { perfOn, pm } from '../util/perf-mark.js';
@@ -1057,7 +1058,7 @@ const restoreLitePlace = () => {
 if (mode.tap && !back) restoreLitePlace();
 if (mode.tap) addEventListener('pageshow', e => { if (e.persisted) restoreLitePlace(); });
 // the endless strip passes through 0 at every wrap, so the distance must not drive the wordmark: it reports "scrolled" once and never rest again
-mode.lateNav(data.hero.wordmark, lenis, () => wmScrolled, back);
+const wmNav = mode.lateNav(data.hero.wordmark, lenis, () => wmScrolled, back);
 // R28: the way back. The overlay (#pxb, painted by the inline script in work/index.html) covers the page with the project's header at the scroll it was
 // left at; the strip is built in that mode with the project centred and at rest, its cards and neighbours pushed; when the header file is decoded
 // and the textures are up, the enlarge plays in reverse (project-transition.js playBack). Input finishes it at once.
@@ -1084,6 +1085,8 @@ if (back) {
   })();
 }
 document.title = 'Work | Anh V';
+// R45: Home <-> Work: the landed card layer from the homepage flight, and the way back (the centred card grows into the hero). Desktop only.
+if (!mode.tap && !back) initHomeReturn({ items, px, py, bw, bh, fadeEls, nav: wmNav, isBusy: () => transitionBusy || TC.on || !!drag, setBusy: (b) => { transitionBusy = b; }, push: { start: (q) => { TC.u = 0; prepareClear(q); }, set: (u) => { TC.u = u; } }, isPaused: () => paused, firstReady: () => { const f = items.find((it) => it.kind === 'frame' && it.proj === 0); return !!(f && f.img.complete && f.img.naturalWidth); } });
 document.removeEventListener('click', queueEarlyClick, true);
 if (earlyClick) {
   earlyClick.style.cursor = '';

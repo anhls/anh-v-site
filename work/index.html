@@ -7,7 +7,26 @@
       ::view-transition-group(root) { animation: none; }
       ::view-transition-old(root) { animation: none; opacity: 1; }
       ::view-transition-new(root) { animation: none; opacity: 1; }
+      /* R45c round 5: arriving from the homepage flight, the view transition HOLDS the homepage's last flight frame (the landed strip) until this page's live strip has drawn,
+         then src/work/home-return.js calls skipTransition(). 1.5 s is only the safety cap. (Anh's recording 10:38: ~3 black frames after the strip settled.) */
+      @keyframes r45-old { from, to { opacity: 1; } }
+      @keyframes r45-new { from, to { opacity: 0; } }
+      html.r45-hold::view-transition-old(root) { animation: r45-old 1.5s linear both; }
+      html.r45-hold::view-transition-new(root) { animation: r45-new 1.5s linear both; }
     </style>
+    <script>
+      addEventListener('pagereveal', function (e) {
+        try {
+          var r = JSON.parse(localStorage.getItem('pxh') || 'null'), fresh = r && Date.now() - r.t < 10000;
+          var D = localStorage.getItem('dbg-handoff') === '1';
+          if (D) console.log('[handoff] work pagereveal: viewTransition', !!e.viewTransition, 'record', !!fresh, 'arrive flag', !!window.__r45arrive);
+          if (!e.viewTransition || !(fresh || window.__r45arrive || document.getElementById('pxh'))) return;
+          document.documentElement.classList.add('r45-hold');
+          window.__r45vt = e.viewTransition;
+          e.viewTransition.finished.finally(function () { document.documentElement.classList.remove('r45-hold'); if (D) console.log('[handoff] work view transition finished'); });
+        } catch (err) {}
+      });
+    </script>
     <script>
       /* Private preview: apply the stored theme before any stylesheet can paint. */
       (function () {
@@ -41,10 +60,13 @@
       })();
     </script>
     <link rel="stylesheet" href="/src/styles/base.css" />
+    <!-- R45c3: render-block the first paint until the landing layer (#pxh, painted by the inline script at the start of <body>) is in the DOM: the first frame IS the landed cards, never the bare page (Chrome 124+; no layer = unblocked when parsing ends) -->
     <script>window.__anhvThemeSync(); delete window.__anhvThemeSync;</script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="description" content="Works by Anh V, art director." />
-    <link rel="icon" href="data:," />
+    <link rel="icon" type="image/png" href="/icons/favicon-light-glyph.png" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" type="image/png" href="/icons/favicon-dark-glyph.png" media="(prefers-color-scheme: light)" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <title>Work | Anh V</title>
     <link rel="canonical" href="https://www.anh-v.com/work/" />
     <meta property="og:type" content="website" />
@@ -52,11 +74,13 @@
     <meta property="og:title" content="Work | Anh V" />
     <meta property="og:description" content="Works by Anh V, art director." />
     <meta property="og:url" content="https://www.anh-v.com/work/" />
-    <meta property="og:image" content="https://www.anh-v.com/media/hero/poster.jpg" />
+    <meta property="og:image" content="https://www.anh-v.com/icons/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Work | Anh V" />
     <meta name="twitter:description" content="Works by Anh V, art director." />
-    <meta name="twitter:image" content="https://www.anh-v.com/media/hero/poster.jpg" />
+    <meta name="twitter:image" content="https://www.anh-v.com/icons/og-image.jpg" />
     <link rel="preload" href="/media/brand/wordmark.svg" as="image" type="image/svg+xml" />
     <link rel="preload" href="/fonts/ClashDisplay-Variable.woff2" as="font" type="font/woff2" crossorigin />
       <style>html { background: var(--bg); }</style>
@@ -73,6 +97,32 @@
           if (ok) h += '<div class="px__box" style="position:absolute;overflow:hidden;left:' + s[0] + 'px;top:' + s[1] + 'px;width:' + s[2] + 'px;height:' + s[3] + 'px"><img alt="" decoding="sync" src="' + r.src + '" style="position:absolute;left:' + (i[0] - s[0]) + 'px;top:' + (i[1] - s[1]) + 'px;width:' + i[2] + 'px;height:' + i[3] + 'px;object-fit:cover;display:block"></div>';
           document.body.insertAdjacentHTML('afterbegin', h + '</div>');
         } catch (e) {}
+      })();
+    </script>
+    <script>
+      /* R45 / R45c: arriving from the homepage flight: paint the landed cards (the first card + the neighbours it revealed, same rects and files as the strip) and the small wordmark on the page colour
+         from the FIRST frame; src/work/home-return.js fades the layer out once the live strip has drawn. The record is read when the page is ACTIVATED: a prerendered page (the homepage asks Chrome to
+         prerender /work/) runs this script long before the click, so it paints at the 'prerenderingchange' event, which fires before the first frame of the activated page. */
+      (function () {
+        function paint() {
+          try {
+            if (document.getElementById('pxh')) return;
+            var r = JSON.parse(localStorage.getItem('pxh') || 'null');
+            if (/[?&]debug=handoff/.test(location.search)) localStorage.setItem('dbg-handoff', '1'); if (/[?&]debug=off/.test(location.search)) localStorage.removeItem('dbg-handoff');
+            if (localStorage.getItem('dbg-handoff') === '1') console.log('[handoff] work paint(): prerendering', document.prerendering, 'activationStart>0', (performance.getEntriesByType('navigation')[0] || {}).activationStart > 0, 'record', r ? 'age ' + (Date.now() - r.t) + 'ms' : 'none');
+            if (!r || Date.now() - r.t > 10000 || r.W !== innerWidth || r.H !== innerHeight || /[?&]gl=0/.test(location.search) || matchMedia('(prefers-reduced-motion: reduce)').matches) { if (r) localStorage.removeItem('pxh'); return; }
+            localStorage.removeItem('pxh');
+            var box = function (c, src) { return '<div class="px__box" style="position:absolute;overflow:hidden;left:' + c[0] + 'px;top:' + c[1] + 'px;width:' + c[2] + 'px;height:' + c[3] + 'px"><img alt="" decoding="sync" src="' + src + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block"></div>'; };
+            var h = '<div id="pxh" aria-hidden="true" style="position:fixed;inset:0;z-index:8;overflow:hidden"><div class="px__bg" style="position:absolute;inset:0;background:var(--bg)"></div>';
+            (r.cards || []).forEach(function (c) { h += box(c.rect, c.src); });
+            h += box(r.rect, r.src) + '</div>';
+            if (r.wm) h += '<a id="pxh-wm" aria-hidden="true" tabindex="-1" style="' + r.wm.style + '"><img alt="" src="' + r.wm.src + '" style="width:100%;height:100%;display:block"></a>';
+            document.body.insertAdjacentHTML('afterbegin', h); window.__r45arrive = true;
+          } catch (e) {}
+        }
+        window.__paintPxh = paint;
+        // (a prerendered page paints at activation; the view transition in the <head> holds the homepage's last frame until the live strip has drawn, so a layer still decoding is never seen)
+        if (document.prerendering) document.addEventListener('prerenderingchange', paint, { once: true }); else paint();
       })();
     </script>
     <a class="skip" href="#app">Skip to content</a>

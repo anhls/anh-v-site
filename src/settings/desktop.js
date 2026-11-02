@@ -466,3 +466,13 @@ export const FRAME_WARP = {
 
 
 export const TRANSITION_POLICY = { enabled: true, bulge: true, prepare: 'hover', maxDpr: 2 };
+
+// R45: the Home <-> Work flight (src/effects/home-flight.js). The hero picture shrinks into the first Work card (the R42 back family: fast drop, slow settle,
+// edges bow inward) while a motion smear runs along the move; the video frame cross-fades into the card image over the middle of the flight. All start values (Anh tunes by eye):
+//   sec = flight time (the R42e open feel, 1.27 s); sizePow = the drop / settle curve (size = (1 - p) ^ sizePow on the way in, 1 - (1 - p) ^ sizePow on the way out); bendAmp / bendEndAt / cornerAmp = the inward edge bow;
+//   smearStrength = the trail length as a share of the picture size at peak speed (exactly 0 at rest); smearRGB = the colour split at peak speed; smearTaps = samples per pixel;
+//   crossFrom / crossTo = the share of the flight the cross-fade covers (0.2 .. 0.8 = the middle 60 %); fadeSec = the spawned pictures, the trail, the ticker and the captions fade out in this time at the start;
+//   R45c: smearStrength 0.3 / smearRGB 0.02 / smearTear (px of per-row tearing per px of box travel) / smearCell (px of the blocky cells, each cell samples its own moments of the trail: the pointer-fx look); nbRank = stagger rank of the neighbour cards on the R42 / R30 push (they move with TRANSITION.workPushSec / clearMargin / clearStagger).
+// R45c (Anh 01:35): look 'pixel' (default) = the Work page's HOVER SMEAR (work/pointer-fx.js, its grid and WORK_PTR numbers: pixelGrid, pixelStrength, pixelRgb, pixelBrush, pixelRelax) driven by a synthetic brush that sweeps along the strip axis (pixelAngle degrees, 0 = left to right; +90 in the vertical strip) across the travelling picture inside crossFrom..crossTo; each screen cell flips video -> card behind the brush front. look 'smear' keeps the previous look (slide-in neighbours).
+//   landFadeSec = the Work page's own layers (the dark layer under the landed card) fade in this time.
+export const HOME_FLIGHT = { sec: 1.27, sizePow: 3, bendAmp: -0.045, bendEndAt: 0.85, cornerAmp: 0.003, smearStrength: 0.3, smearRGB: 0.02, smearTaps: 10, smearTear: 0.05, smearCell: 9, nbRank: 0.4, look: 'pixel', pixelAngle: 0, crossFrom: 0.2, crossTo: 0.8, fadeSec: 0.15, landFadeSec: 0.35 };

@@ -30,7 +30,7 @@ const ROLL = 18; // px; each link label exists twice, stacked 18px apart
 // the user scrolls toward/away from the top instead of waiting for the smooth-scroll glide to finish.
 // `gateFrame` (home): the footer state also needs the hero mask to be full screen again. Project pages have no mask, so they pass false.
 // `position` (Work page): a function giving the distance scrolled (the strip is endless, the page itself never moves).
-export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe, onHome = false, startSmall = false, startBig = false, small: SMALL = WORDMARK.small } = {}) { // R24a: `small` = the tall mode's own small-wordmark box
+export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe, onHome = false, startSmall = false, startBig = false, alwaysSmall = false, small: SMALL = WORDMARK.small } = {}) { // R24a: `small` = the tall mode's own small-wordmark box
   // R22j: the wordmark is a link to the homepage (the fixed, transformed box is the <a>; the picture fills it). It takes clicks only in the SMALL
   // state: the big one covers 82vw x 32vh of the hero (captions, cards, the spawner's click area), so it stays click-through; the keyboard
   // reaches it in both. Home: click = the back-to-top transition when scrolled, nothing at the top. Other pages: plain navigation to '/'.
@@ -87,18 +87,20 @@ export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe,
   // R16h: SMALL follows the scroll TARGET (instant when scrolling down), but BIG at the top only follows the ACTUAL position: with the long
   // Lenis glide the target reaches 0 while the page is still far down, and the big wordmark must not appear over half a cover image.
   const target = () => {
+    if (alwaysSmall) return 1; // R45: Work + project pages: the wordmark only animates inside the home <-> Work flights
     if (probe) return probe() >= NAV.thresholdPx ? 1 : 0;
     if (footerIn && frameFull) return 0;
     if (position() >= NAV.thresholdPx) return 1;
     return window.scrollY < NAV.thresholdPx ? 0 : 1;
   };
 
-  state.p = startSmall ? 1 : startBig ? 0 : target(); // R28: startBig = the project page's wordmark was big when it was left, the Work page grows it small. R25: arriving from a project transition, the wordmark was small on the page before: it grows to its big state
+  state.p = alwaysSmall || startSmall ? 1 : startBig ? 0 : target(); // R28: startBig = the project page's wordmark was big when it was left, the Work page grows it small. R25: arriving from a project transition, the wordmark was small on the page before: it grows to its big state
   const layer = springLayer({ target: state, springs: { p: SPRING.nav }, apply });
   offs.push(() => layer.destroy());
-  if (startSmall || startBig) state.p = target();
+  if ((startSmall || startBig) && !alwaysSmall) state.p = target();
 
-  const check = () => { frameFull = isFull(); state.p = target(); };
+  let driven = false; // R45: a home <-> work flight sets the wordmark itself (drive), the scroll / resize checks stay out of its way
+  const check = () => { if (driven) return; frameFull = isFull(); state.p = target(); };
   // the mask size is written by the scrubbed hero timeline (a little behind the scroll): watch it on the shared ticker, switch only when it flips
   let lastFull = frameFull;
   const watchFull = () => { const f = isFull(); if (f !== lastFull) { lastFull = f; check(); } };
@@ -133,5 +135,6 @@ export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe,
     a.addEventListener('mouseenter', () => { if (matchMedia('(hover: hover)').matches) t.y = -ROLL; }); // R22j: a tap is not a hover
     a.addEventListener('mouseleave', () => { t.y = 0; });
   });
-  return { destroy() { offs.splice(0).forEach((f) => f()); img.remove(); } };
+  // R45: the flight drives the big <-> small move from its own progress (p 0 = big, 1 = small), frame by frame, no spring lag
+  return { drive(p) { driven = true; state.p = p; layer.snap(); }, destroy() { offs.splice(0).forEach((f) => f()); img.remove(); } };
 }

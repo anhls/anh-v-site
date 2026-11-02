@@ -1,3 +1,4 @@
+import { WORK_UI } from './desktop.js';
 // Smooth scroll (Lenis). Framer's "Intensity 30" = duration 3 with Lenis' default easing. Lower duration = snappier
 // (try 2.5). `easing` is t (0..1) -> progress (0..1).
 // R23d: gainCap / gainFrom / gainTo / gainDecay = the wheel acceleration (src/util/scroll-gain.js): the distance per wheel tick is multiplied
@@ -12,4 +13,7 @@ export const SCROLL = {
 export const FLIGHT = { zEnd: 1.10 };
 
 // R24a: the menu's Contact item stays hidden until this is set (a mailto: link); Anh has no address yet.
-export const CONTACT = { email: '' };
+export const CONTACT = { email: WORK_UI.reachEmail }; // R45: one source, the address on the Work page
+
+// R45: the homepage is the hero only (no About / index / Selected Work / More Projects / footer, no scroll). The sections stay in the code; ?home=full brings the old page back.
+export const HOME = { heroOnly: true };
