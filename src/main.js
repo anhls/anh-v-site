@@ -35,6 +35,7 @@ import { dbg } from './effects/home-handoff.js';
 // R45c follow-up: a PRERENDERED homepage (the Work page asked Chrome for one) starts NOTHING until it is activated: no build, no video, no loader, no timers. At activation the return mark is read and
 // decides (mark -> no loader, landing; no mark -> the normal loader).
 dbg('home start: prerendering', document.prerendering, 'visibility', document.visibilityState);
+addEventListener('pageshow', (e) => { if (e.persisted) { try { localStorage.removeItem('pxg'); } catch { /* */ } } }); // R47 fix 4: restored from the cache by Back (no loader needed): the return mark is spent
 if (document.prerendering) { await new Promise((r) => document.addEventListener('prerenderingchange', r, { once: true })); dbg('home prerenderingchange fired (activated)'); }
 
 // R45: hero only (see HOME in settings/shared.js); ?home=full = the full scrolling homepage as before

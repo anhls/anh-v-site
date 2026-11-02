@@ -70,13 +70,15 @@ export function initHomeReturn({ items, px, py, bw, bh, touch, rectOf, fadeEls, 
     for (const it of items) { if (it.kind !== 'frame') continue; const d = Math.hypot(px[it.idx] - innerWidth / 2, py[it.idx] - innerHeight / 2); if (d < bd) { bd = d; best = it; } }
     return best;
   };
-  const plain = () => { location.href = '/'; };
-  let navigated = false;
+  // R47 fix 4: EVERY way home leaves the return mark (fresh time) first, so the homepage never runs its loader after a visit to Work, whatever path got here (a busy page, a failed flight, a Back that did not leave)
+  const mark = () => { writeHandoff('pxg', { W: innerWidth, H: innerHeight }); if (heroSrc) writeHeroFrame(heroSrc); };
+  const plain = () => { mark(); location.href = '/'; };
+  let navigated = false, backT = 0;
+  addEventListener('pagehide', () => clearTimeout(backT)); // (a bfcache freeze must not leave the retry timer behind)
   const goHome = (viaHistory) => {
     if (navigated) return; navigated = true;
-    writeHandoff('pxg', { W: innerWidth, H: innerHeight });
-    if (heroSrc) writeHeroFrame(heroSrc); // the mark goes in BEFORE leaving, whatever the browser does with its cache: the homepage never shows its loader on a return
-    if (viaHistory) { try { history.back(); return; } catch { /* */ } }
+    mark(); // the mark goes in BEFORE leaving, whatever the browser does with its cache: the homepage never shows its loader on a return
+    if (viaHistory) { try { history.back(); clearTimeout(backT); backT = setTimeout(() => { if (document.visibilityState === 'visible' && !document.hidden) plain(); }, 1200); return; } catch { /* */ } } // (history.back() that goes nowhere - no earlier entry, a cancelled navigation - falls back to the plain link with a fresh mark)
     plain(); // a normal navigation: Chrome activates the prerendered homepage (below)
   };
 
@@ -103,7 +105,7 @@ export function initHomeReturn({ items, px, py, bw, bh, touch, rectOf, fadeEls, 
 
   addEventListener('popstate', (e) => { if (e.state?.r45 === 'first') leave(true); });
   // restored from the cache with the flight still on screen (the Forward button, or a failed Back): start clean
-  addEventListener('pageshow', (e) => { if (!e.persisted) return; navigated = false; busy = false; setBusy(false); fl?.host?.remove(); fl?.dispose(); fl = null; building = null; gsap.set(fadeEls, { clearProps: 'opacity' }); nav?.drive(1); clearHandoff('pxg'); if (!off) (window.requestIdleCallback || ((f) => setTimeout(f, 600)))(() => setTimeout(build, 1200), { timeout: 4000 }); });
+  addEventListener('pageshow', (e) => { if (!e.persisted) return; clearTimeout(backT); navigated = false; busy = false; setBusy(false); fl?.host?.remove(); fl?.dispose(); fl = null; building = null; gsap.set(fadeEls, { clearProps: 'opacity' }); nav?.drive(1); clearHandoff('pxg'); if (!off) (window.requestIdleCallback || ((f) => setTimeout(f, 600)))(() => setTimeout(build, 1200), { timeout: 4000 }); });
 
   // R45b: on touch screens a swipe to the right (starting away from the edge, which stays Safari's own back) goes home like the Back button: horizontal intent = dx > 2 x |dy|
   if (swipeBack && !off) {
