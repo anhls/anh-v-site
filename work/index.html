@@ -103,7 +103,9 @@
           } catch (e) {}
         }
         window.__paintPxh = paint;
-        if (document.prerendering) document.addEventListener('prerenderingchange', paint, { once: true }); else paint();
+        // R45c round 4: a PRERENDERED page paints its landing layer from the strip's own, already decoded pictures (src/work/home-return.js, a canvas drawn in the activation task): fresh <img> tags here
+        // would still be decoding on the first activated frames (Anh's recording: ~3 black frames). This DOM layer stays the path for a normal (not prerendered) load.
+        if (document.prerendering) document.addEventListener('prerenderingchange', function () { if (!window.__pxhModule) paint(); }, { once: true }); else paint();
       })();
     </script>
     <a class="skip" href="#app">Skip to content</a>

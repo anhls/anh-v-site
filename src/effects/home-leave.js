@@ -99,7 +99,7 @@ export function initHomeToWork({ hero, nav }) {
     const lay = workStartLayout(), nbs = nbIms.filter((x) => fl.has(x.slot)).map((x) => ({ slot: x.slot, rect: x.n.rect, start: x.n.start }));
     await playFlight(fl, { hero: heroBox, card, dir: 'in', neighbours: nbs, vertical: lay.vertical, onFrame: (st) => nav?.drive(1 - st.size) });
     const wm = document.querySelector('a.wordmark');
-    writeHandoff('pxh', { W: innerWidth, H: innerHeight, rect: [card.x, card.y, card.w, card.h], src: cardIm.currentSrc || cardIm.src, cards: nbIms.filter((x) => fl && fl.has(x.slot)).map((x) => ({ rect: [x.n.rect.x, x.n.rect.y, x.n.rect.w, x.n.rect.h], src: x.im.currentSrc || x.im.src })), wm: wm ? { src: wm.querySelector('img')?.getAttribute('src'), style: wm.style.cssText + `;position:fixed;left:0;top:0;width:${wm.offsetWidth}px;height:${wm.offsetHeight}px;z-index:9` } : null });
+    writeHandoff('pxh', { W: innerWidth, H: innerHeight, rect: [card.x, card.y, card.w, card.h], slug: project.slug, src: cardIm.currentSrc || cardIm.src, cards: nbIms.filter((x) => fl && fl.has(x.slot)).map((x) => ({ rect: [x.n.rect.x, x.n.rect.y, x.n.rect.w, x.n.rect.h], slug: x.slug, src: x.im.currentSrc || x.im.src })), wm: wm ? { src: wm.querySelector('img')?.getAttribute('src'), style: wm.style.cssText + `;position:fixed;left:0;top:0;width:${wm.offsetWidth}px;height:${wm.offsetHeight}px;z-index:9` } : null });
     pm('home:land');
     if (lost) { /* the overlay holds the last drawn frame; the Work page paints its own */ }
     location.href = '/work/';

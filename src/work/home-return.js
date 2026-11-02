@@ -1,6 +1,6 @@
 import { gsap } from 'gsap';
 import { HOME_FLIGHT as F } from '../timeline.js';
-import { writeHandoff, readHeroFrame, writeHeroFrame, clearHandoff } from '../effects/home-handoff.js';
+import { writeHandoff, readHeroFrame, writeHeroFrame, clearHandoff, dbg } from '../effects/home-handoff.js';
 import { pm } from '../util/perf-mark.js';
 
 // R45 (desktop Work page): the way back to the homepage. The CENTRED card smears and grows into the full hero (cross-fading to the hero frame the homepage left), the small wordmark
@@ -15,9 +15,40 @@ export function initHomeReturn({ items, px, py, bw, bh, fadeEls, nav, isBusy, se
   const off = reduced || params.get('gl') === '0' || navigator.connection?.saveData;
   let arrived = false, depth = 0, heroSrc = null;
   // R45c: a prerendered Work page is built long before the click; everything that depends on HOW it was entered (the landed-cards layer, the history entries) happens at ACTIVATION
+  // R45c round 4: activated from a prerender, the landing layer is a canvas drawn NOW (in the activation task, before the first activated frame) from the strip's own <img>s, which were
+  // loaded and decoded while prerendering. The inline script's <img> layer would need a decode on the first frames (Anh's 4K recording: ~3 frames of a bare page with only the counter).
+  const prerendered = !!document.prerendering;
+  if (prerendered) window.__pxhModule = true; // the inline script leaves the activation paint to this module
+  const coverDraw = (ctx, im, x, y, w, h) => {
+    const iw = im.naturalWidth, ih = im.naturalHeight; if (!iw || !ih || w <= 0 || h <= 0) return;
+    const s = Math.max(w / iw, h / ih), sw = w / s, sh = h / s;
+    ctx.drawImage(im, (iw - sw) / 2, (ih - sh) / 2, sw, sh, x, y, w, h);
+  };
+  const paintCanvasLayer = () => {
+    let r = null; try { r = JSON.parse(localStorage.getItem('pxh') || 'null'); } catch { /* */ }
+    try { localStorage.removeItem('pxh'); } catch { /* */ }
+    dbg('work canvas layer: record', r ? 'age ' + (Date.now() - r.t) + 'ms' : 'none');
+    if (!r || Date.now() - r.t > 10000 || r.W !== innerWidth || r.H !== innerHeight || off) return;
+    const dpr = Math.min(devicePixelRatio || 1, 2), W = innerWidth, H = innerHeight;
+    const host = document.createElement('div');
+    host.id = 'pxh'; host.setAttribute('aria-hidden', 'true'); host.style.cssText = 'position:fixed;inset:0;z-index:8;overflow:hidden;pointer-events:none';
+    const cv = document.createElement('canvas'); cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block';
+    const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+    ctx.fillStyle = getComputedStyle(document.body).backgroundColor || getComputedStyle(document.documentElement).backgroundColor || '#000'; ctx.fillRect(0, 0, W, H);
+    let missing = 0;
+    [...(r.cards || []), { rect: r.rect, slug: r.slug, src: r.src }].forEach((c) => {
+      const [x, y, w, h] = c.rect;
+      const own = items.find((it) => it.kind === 'frame' && it.slug === c.slug)?.img;
+      if (own && own.complete && own.naturalWidth) { coverDraw(ctx, own, x, y, w, h); return; }
+      missing++; // not decoded yet (rare): draw it as soon as it is (the layer stays until the live strip has drawn anyway)
+      const im = new Image(); im.src = c.src; im.decode().then(() => coverDraw(ctx, im, x, y, w, h)).catch(() => {});
+    });
+    host.append(cv); document.body.prepend(host);
+    dbg('work canvas layer up, pictures from the strip', (r.cards || []).length + 1 - missing, 'missing', missing);
+  };
   const arrive = () => {
     heroSrc = readHeroFrame(); // read once (it is timestamped + deleted on read); put back fresh when leaving, for the homepage's landing layer
-    window.__paintPxh?.();
+    if (prerendered) paintCanvasLayer(); else window.__paintPxh?.();
     const ov = document.getElementById('pxh');
     arrived = !!ov;
     const st = history.state?.r45;
@@ -33,7 +64,7 @@ export function initHomeReturn({ items, px, py, bw, bh, fadeEls, nav, isBusy, se
       const t0 = performance.now();
       while (!firstReady() && performance.now() - t0 < 3000) await new Promise((r) => requestAnimationFrame(r));
       for (let i = 0; i < 8; i++) await new Promise((r) => requestAnimationFrame(r));
-      pm('home:land-strip-ready');
+      pm('home:land-strip-ready'); dbg('work layer: strip ready', firstReady(), 'after', Math.round(performance.now() - t0), 'ms since activation; fading the layer');
       gsap.to(ov, { opacity: 0, duration: F.landFadeSec, ease: 'sine.inOut', onComplete: () => ov.remove() });
     })();
   };
