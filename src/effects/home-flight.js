@@ -128,6 +128,29 @@ vec4 tap(float f, vec2 pos) {
 }
 void main() {
   vec2 pos = vec2(gl_FragCoord.x, uView.y * uPx - gl_FragCoord.y) / uPx;
+  if (uLook > 1.5) {
+    // R48 r15 GLIDE look (the phone menu sweep): the grid holds, per block, a sideways offset in BLOCK widths (sub-pixel, continuous). Each block is drawn at its pulled position carrying its picture with it, so a block can sit
+    // half a block over its neighbour mid-move. A pixel is taken by the block (of its row, within 4 blocks) whose pulled span covers it; the one pulled furthest wins. No block covers it = transparent (the page itself).
+    vec2 cp = uView / uGridN; float row = floor(pos.y / cp.y);
+    if (row < 0. || row >= uGridN.y) { o = vec4(0.); return; }
+    float c0 = floor(pos.x / cp.x), best = 0., mag = 1e-4; bool hit = false;
+    for (int k = -4; k <= 4; k++) {
+      float c = c0 + float(k);
+      if (c < 0. || c >= uGridN.x) continue;
+      float sh = texture(uGrid, vec2(c + .5, row + .5) / uGridN).r * cp.x;
+      if (abs(sh) < 1e-3) continue;
+      float x0 = c * cp.x + sh;
+      if (pos.x >= x0 && pos.x < x0 + cp.x && abs(sh) >= mag) { best = sh; mag = abs(sh); hit = true; }
+    }
+    if (!hit) { o = vec4(0.); return; }
+    vec4 b = uBox0; vec2 src = pos - vec2(best, 0.), qa = invQ(src, b, uBend.x), h = b.zw * .5;
+    float a = clamp(min((1. - abs(qa.x)) * h.x, (1. - abs(qa.y)) * h.y) * uPx + .5, 0., 1.);
+    if (a <= 0.) { o = vec4(0.); return; }
+    vec2 qs = vec2(best * uFxP.y * 4. / h.x, 0.);
+    vec3 c3 = vec3(texture(uA, clamp(cover(clamp(qa + qs, -1., 1.), b, uNatA), 0., 1.)).r, texture(uA, clamp(cover(qa, b, uNatA), 0., 1.)).g, texture(uA, clamp(cover(clamp(qa - qs, -1., 1.), b, uNatA), 0., 1.)).b);
+    o = vec4(c3 * a, a);
+    return;
+  }
   if (uLook > .5) {
     // R45c3: the Work page hover smear (src/work/pointer-fx.js grid + the cards-gl lookup shift + RGB split), driven by a synthetic brush that sweeps along uDir. A screen cell flips
     // video -> card once the brush front has passed its centre, so the flip is hidden behind the displacement. Gain 0 / an all-zero grid = exactly the plain picture.
@@ -255,7 +278,7 @@ export function createHomeFlight(parent, nSlots = 4) {
       gl.uniform2f(u.uBend, state.bend, prev.bend); gl.uniform2f(u.uMix, state.mix, prev.mix);
       gl.uniform2f(u.uNatA, nat[slots[0]][0], nat[slots[0]][1]); gl.uniform2f(u.uNatB, nat[slots[1]][0], nat[slots[1]][1]);
       gl.uniform1f(u.uTaps, Math.max(2, Math.min(60, F.smearTaps))); gl.uniform1f(u.uRgb, F.smearStrength > 0 ? F.smearRGB / F.smearStrength : 0);
-      gl.uniform1f(u.uLook, pixel && !opts.plain ? 1 : 0); gl.uniform1f(u.uFrontPx, opts.frontPx ?? 0); gl.uniform1f(u.uGain, opts.gain ?? 0); gl.uniform1f(u.uSkipZero, opts.skipZero ? 1 : 0);
+      gl.uniform1f(u.uLook, opts.glide ? 2 : pixel && !opts.plain ? 1 : 0); gl.uniform1f(u.uFrontPx, opts.frontPx ?? 0); gl.uniform1f(u.uGain, opts.gain ?? 0); gl.uniform1f(u.uSkipZero, opts.skipZero ? 1 : 0);
       gl.uniform2f(u.uGridN, gridW, gridH); gl.uniform2f(u.uFxP, gridP[0], gridP[1]);
       { const a = ((F.pixelAngle + (opts.vertical ? 90 : 0) + (opts.flip ? 180 : 0)) * Math.PI) / 180; gl.uniform2f(u.uDir, Math.cos(a), Math.sin(a)); }
       gl.uniform1f(u.uTear, F.smearTear * mv); gl.uniform1f(u.uCell, Math.max(2, F.smearCell));
