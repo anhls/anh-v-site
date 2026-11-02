@@ -1,0 +1,108 @@
+import { modal } from './util/modal.js'; // R46c: must stay the first import (its input blocker has to be registered before any page listener)
+import './styles/base.css';
+import './styles/desktop.css';
+import './effects/contact-trigger.js';
+import Lenis from 'lenis';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import data from './data/data.json';
+import { runLoader } from './effects/loader.js';
+import { buildHero } from './sections/hero.js';
+import { buildAbout } from './sections/about.js';
+import { buildPlaceholders } from './sections/placeholders.js';
+import { buildIndex } from './sections/project-index.js';
+import { buildSelectedWork } from './sections/selected-work.js';
+import { generateCards } from './data/cards-gen.js';
+import workPool from './data/work-pool.json';
+import { buildMoreProjects } from './sections/more-projects.js';
+import { buildFooter } from './sections/footer.js';
+import { initNav } from './effects/nav.js';
+import { initClickSound } from './effects/clicksound.js';
+import { buildSpawner } from './effects/spawner.js';
+import { springLayers } from './effects/springs.js';
+import { watchDpr } from './util/dpr.js';
+import layoutsData from './data/layouts.json';
+import { pickHome } from './work/layout-store.js';
+import { initFrameOpen } from './effects/project-transition.js';
+import { buildCaptionHover } from './effects/caption-hover.js';
+import { buildTrail } from './effects/trail.js';
+import { createFrameGL } from './effects/frame-gl.js';
+import { initHomeToWork, arriveFromWork } from './effects/home-leave.js';
+import { SCROLL, CARDS, FRAME_WARP, HOME, CONTACT } from './timeline.js';
+import { installScrollGain } from './util/scroll-gain.js';
+import { dbg } from './effects/home-handoff.js';
+
+// R45c follow-up: a PRERENDERED homepage (the Work page asked Chrome for one) starts NOTHING until it is activated: no build, no video, no loader, no timers. At activation the return mark is read and
+// decides (mark -> no loader, landing; no mark -> the normal loader).
+dbg('home start: prerendering', document.prerendering, 'visibility', document.visibilityState);
+if (document.prerendering) { await new Promise((r) => document.addEventListener('prerenderingchange', r, { once: true })); dbg('home prerenderingchange fired (activated)'); }
+
+// R45: hero only (see HOME in settings/shared.js); ?home=full = the full scrolling homepage as before
+const heroOnly = HOME.heroOnly && new URLSearchParams(location.search).get('home') !== 'full';
+if (heroOnly) document.documentElement.classList.add('home-hero');
+
+gsap.registerPlugin(ScrollTrigger);
+ScrollTrigger.config({ ignoreMobileResize: true }); // R24a: the mobile address bar must not refresh every trigger
+
+// Lenis drives the scroll; GSAP's ticker feeds it so pinned sections stay in sync.
+const lenis = heroOnly ? null : new Lenis({ duration: SCROLL.duration, easing: SCROLL.easing }); // (R45: none when the page does not scroll) Framer "Intensity 30"; tune in timeline.js
+if (lenis) {
+  modal.on((o) => { if (o) lenis.stop(); else lenis.start(); }); // R46c: the page does not scroll under the contact card
+  lenis.on('scroll', ScrollTrigger.update);
+  installScrollGain(lenis);
+  gsap.ticker.add((time) => lenis.raf(time * 1000));
+}
+gsap.ticker.lagSmoothing(0);
+
+// Sections are added here one by one.
+const app = document.getElementById('app');
+const hero = buildHero(app, data.hero);
+const frameGL = createFrameGL(hero.frame, () => !lenis || lenis.targetScroll <= 0.5 || lenis.targetScroll >= lenis.limit - 0.5); // R22j: no swing past flat while the target is at an end; R16c: the centre frame's own canvas (null = DOM frame only)
+let cardsApi = null;
+if (!heroOnly) {
+buildAbout(app, data.about);
+buildPlaceholders(app);
+buildIndex(app, data.projects);
+// R29: the Selected Work cards: positions nudges + dark flags from src/data/layouts.json (no fix pass at load); the old pass is the fallback (a stale file, other rules)
+const homeRows = data.projects.filter((p) => p.index).map((p) => p.slug);
+let homeCards = null;
+const homeStored = pickHome(layoutsData, innerWidth, innerHeight);
+if (homeStored) { try { homeCards = generateCards(workPool, homeRows, undefined, undefined, { stored: homeStored }); } catch (e) { if (import.meta.env.DEV) console.warn('[layouts] stored home layout unusable:', e.message); } }
+if (!homeCards) homeCards = generateCards(workPool, homeRows);
+cardsApi = buildSelectedWork(app, homeCards);
+buildMoreProjects(app, data.moreProjects);
+buildFooter(app, data.footer, lenis);
+}
+const nav = initNav(data.hero.wordmark, lenis, { onHome: !heroOnly, gateFrame: !heroOnly });
+{ const c = document.querySelector('.nav a[data-link="Contact"]'); if (c && CONTACT.email) { if (heroOnly) c.href = `mailto:${CONTACT.email}`; c.setAttribute('data-contact', ''); } }
+buildSpawner(app, data.spawnerImages);
+buildCaptionHover(app, data.hero.captions);
+const trail = buildTrail(app, data.trailImages);
+if (import.meta.env.DEV) { window.__frame = frameGL; window.__FW = FRAME_WARP; window.__heroState = hero.frame; window.__trail = trail; window.__cards = cardsApi; window.__CARDS = CARDS; window.__lenis = lenis; window.__layers = springLayers; } // dev only: the tuning panel and tools/scratch checks
+initClickSound(data.hero.clickSound);
+if (heroOnly) initHomeToWork({ hero, nav }); // R45: Works = the hero shrinks into the first Work card
+
+// Loader first: hold scrolling until what is visible on the first screen is ready.
+window.scrollTo(0, 0);
+watchDpr();
+if (!heroOnly) initFrameOpen({ hero, projects: data.projects, lenis });
+lenis?.stop();
+// The loader only waits for the wordmark, ticker, font and the hero video's first frame (the <video> is on the page already).
+// Images #2/#3 start loading once the loader is ready (hero.loadDeferred).
+const firstScreen = [data.hero.wordmark, data.hero.ticker];
+// R45: arriving from the Work page flight (#pxg is already painted by the inline script in index.html): no loader; the layer fades once the hero video plays
+// R45c: a prerendered homepage (the Work page asked Chrome for one) is built now, but starts (loader or arrival) only when it is activated
+window.__paintPxg?.();
+const arrival = heroOnly && document.getElementById('pxg') ? true : null;
+dbg('loader decision:', arrival ? 'SKIP (return mark found, landing layer up)' : 'RUN loader (no mark)');
+const intro = arrival ? arriveFromWork(hero, hero.loadDeferred) : runLoader(data.loader.text, firstScreen, hero.loadDeferred);
+intro.then(() => {
+  lenis?.start();
+  frameGL?.preload();
+  if (!heroOnly) ScrollTrigger.refresh();
+  window.__siteReady = true; // tools/compare.mjs waits for this instead of a fixed delay
+});
+
+// Dev only: ?tune opens the Selected Work tuning panel. The condition is a build-time constant, so none of this ships.
+if (import.meta.env.DEV && new URLSearchParams(location.search).has('overlap')) import('./effects/overlap-debug.js').then((m) => m.mountOverlapDebug('.sw__card', () => `scroll ${Math.round(scrollY)} px`));
+if (import.meta.env.DEV && new URLSearchParams(location.search).has('tune')) import('./effects/tune-panel.js').then((m) => m.mountTunePanel({ trail, cards: cardsApi }));

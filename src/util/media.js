@@ -1,0 +1,49 @@
+// Looks up converted media (written by tools/media.mjs) for a /media/ path in data.json (R46: every file is self-hosted, no live URLs).
+// Anything not in the manifest is returned unchanged.
+import manifest from '../data/media-manifest.json';
+
+function entry(ref) {
+  if (!ref) return null;
+  const clean = ref.split('?')[0];
+  const key = clean.replace(/^\/media\//, '').replace(/\.[a-z0-9]+$/i, '');
+  const m = manifest[key];
+  return m && m.type ? m : null;
+}
+
+// Attributes for an <img>: src (largest file) + srcset (all widths) + sizes. `sizes` says how wide the image is drawn, e.g. "50vw".
+export function imgAttrs(ref, sizes = '100vw', defer = false) {
+  const d = defer ? 'data-' : '';
+  const m = entry(ref);
+  if (!m || m.type !== 'image') return `${d}src="${ref}"`;
+  const files = [...m.files].sort((a, b) => a.width - b.width);
+  const srcset = files.map((f) => `/media/${f.file} ${f.width}w`).join(', ');
+  return `${d}src="/media/${files[files.length - 1].file}" ${d}srcset="${srcset}" sizes="${sizes}" width="${m.source.width}" height="${m.source.height}"`;
+}
+
+// Source URL for places that need a plain string (poster, background): the largest converted file.
+export function imgSrc(ref) {
+  const m = entry(ref);
+  if (!m || m.type !== 'image') return ref;
+  return `/media/${m.files.reduce((a, f) => (f.width > a.width ? f : a)).file}`;
+}
+
+// Video info ({webm, mp4, poster}, paths from /media) when the reference was converted to a video, else null.
+export function videoInfo(ref) {
+  const m = entry(ref);
+  if (!m || m.type !== 'video') return null;
+  return { webm: m.webm && `/media/${m.webm}`, mp4: m.mp4 && `/media/${m.mp4}`, webp: m.webp && `/media/${m.webp}`, alpha: !!m.alpha, poster: `/media/${m.poster}`, w: m.width, h: m.height };
+}
+
+// The manifest entry of a converted image ({ source: {width, height}, files }) or null.
+export function imgInfo(ref) {
+  const m = entry(ref);
+  return m && m.type === 'image' ? m : null;
+}
+
+// { src, srcset } for setting an existing <img> from code (srcset is '' for anything not converted).
+export function imgSet(ref) {
+  const m = imgInfo(ref);
+  if (!m) return { src: ref, srcset: '' };
+  const files = [...m.files].sort((a, b) => a.width - b.width);
+  return { src: `/media/${files[files.length - 1].file}`, srcset: files.map((f) => `/media/${f.file} ${f.width}w`).join(', ') };
+}

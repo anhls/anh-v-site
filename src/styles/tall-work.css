@@ -1,0 +1,5 @@
+/* Loaded by the lite adapter only, including touch tablet landscape. */
+.lite-title { position: fixed; inset: 0; z-index: 5; pointer-events: none; color: var(--fg); font-family: var(--font-body); }
+.lite-title__text { position: absolute; display: block; white-space: nowrap; line-height: 1; opacity: 0; font-kerning: normal; text-rendering: geometricPrecision; }
+/* The address bar can resize the window while the captured flight is moving. */
+.pj-root .tp-hero, .pj-root .pj__hero { height: var(--tap-viewport-height, 100svh); }

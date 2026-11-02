@@ -1,0 +1,14 @@
+# R15 (draft, after R14 media; Sonnet 5.5): hero interactions — click spawner, caption hover image, image trail
+
+All three are cursor effects: reuse the shared pointer + loop (effects/pointer.js, CLAUDE.md rule 3); each registers only while its range is on screen; off on touch (phone: tap-to-spawn comes with the responsive pass) and with prefers-reduced-motion. Measure live first for anything below marked "match live". Media: the optimised files from R14.
+
+1. Click spawner (match live; specs in HANDOFF.md "Click spawner"): click inside the top 100vh spawns an image at the click (size 60vh, min 30; spawn 0.4s easeOut, opacity 0->1, scale 0.2->1, 3D rotation X10 Y2 Z5 from X0 Y2 Z5, perspective 1200, spawnOrigin 0.7, overlap 8%, positionOffset 3vw), it floats 125vh and lives 8s with a 1s fade; max 8 on screen; shuffled image order with no immediate repeat; the click also plays the click sound (already built). Read which images live uses (data.json spawnerImages is empty).
+2. Caption hover image (match live; motion-spec section 8): hovering a hero caption shows that project's image (427x249) following the cursor on spring 500/60/1, offset x +50px, right of the cursor, bottom-aligned. Images: ../_site-media/captions (via R14).
+3. Image trail (Anh's design, NOT live's range: in Framer it was squeezed into an overlapping 150vh layer only because heavy overlapping layers broke GSAP/scroll there):
+   - Behaviour per spawn: match live's CursorImageTrail (frequency 25, visibleFor 0.5s, in-animation opacity/scale/blur on spring 300/30); measure the rest (images, size, spacing) on live.
+   - START: as soon as the hero mask shrink (hero video -> Anh's portrait) is about 60% done visually, i.e. the mask width is 60% of the way from full screen to 17vw. Compute that scroll point from the mask tween in timeline.js (ease expo.inOut over [0,70]); do not hard-code a guess.
+   - Runs through About and the project index.
+   - END: it does not stop at a hard edge. It overlaps into the Selected Work section a little and dies off slowly as you scroll on: an intensity factor from 1 to 0 over a scroll range starting around the top of Selected Work (211vh; propose the exact range), which lowers the spawn rate and the trail images' opacity/scale together, so the last images fade naturally.
+   - Put start, fade range and intensity curve in timeline.js and on the ?tune panel (trail frequency, visible time, fade-out start/end), included in Copy values.
+4. Performance: trail images come from a small reused pool (no new DOM per spawn); transforms/opacity only; blur only if it stays within budget at 2560 (report). Report slow frames while moving the mouse fast through About.
+5. Compare: no new probes needed for cursor effects; check by script that nothing spawns outside the ranges and that existing probes still pass at 1920x1080 and 2560x1440.

@@ -1,0 +1,100 @@
+/* Work page (R23 / R23b). The stage is fixed; the page's own scroll only feeds Lenis (infinite mode), nothing visible moves with it. */
+.work-page { background: var(--bg); }
+.work__spacer { height: 400vh; }
+.work { position: fixed; inset: 0; overflow: hidden; background: var(--bg); }
+.work .sw__gl { z-index: 1; } /* the homepage card canvas (cards-gl.js) */
+.work__stage { position: absolute; inset: 0; transition: opacity 0.2s ease; }
+.work__stage.is-switching { opacity: 0; }
+.work__item { position: absolute; left: 0; top: 0; display: block; will-change: transform; cursor: pointer; }
+.work__item img { display: block; width: 100%; height: 100%; object-fit: cover; user-select: none; -webkit-user-drag: none; }
+.work__card img { transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@media (hover: hover) { .work__card:hover img { transform: scale(1.2); } } /* the flat DOM fallback; with the canvas the image is hidden and the canvas zooms it */
+.work--gl .work__item img { opacity: 0; } /* the canvas draws the pictures; the <img> stays as the click target, the hover target and the texture source */
+@media (hover: hover) { .work--gl .work__card:hover img { transform: none; } }
+.work.is-morphing .work__item { pointer-events: none; }
+/* Counter (left) and toggle icon (right): the same row, margins, type size and scale.js sizing as PRJ - 01 (left) and the YEAR (right) of the
+   homepage project index (base.css .index__label / .index__year: --index-x from the edge, the row 0.325 index-sizes below the band top). */
+.work-page { --row-y: calc(var(--index-top) + var(--index-size) * 0.325); --tg-glyph: calc(var(--index-label-size) * 1.5); --tg-box: calc(var(--tg-glyph) * 2.4); }
+.work__count { position: fixed; z-index: 12; left: var(--index-x); top: var(--row-y); font-size: var(--index-label-size); line-height: 1; color: #fff; mix-blend-mode: difference; font-variant-numeric: tabular-nums; transition: opacity 0.2s ease; }
+.work__toggle { all: unset; position: fixed; z-index: 12; box-sizing: border-box; width: var(--tg-box); height: var(--tg-box); right: calc(var(--index-x) - (var(--tg-box) - var(--tg-glyph)) / 2); top: calc(var(--row-y) + var(--index-label-size) / 2 - var(--tg-box) / 2); display: grid; place-items: center; cursor: pointer; color: #fff; mix-blend-mode: difference; opacity: 0.72; transition: opacity 0.2s ease; }
+.work__toggle:focus-visible { opacity: 1; }
+@media (hover: hover) { .work__toggle:hover { opacity: 1; } }
+.work__toggle:focus-visible { outline: 1px solid #f04a0e; outline-offset: -4px; }
+.work__toggle svg { width: var(--tg-glyph); height: var(--tg-glyph); overflow: visible; fill: currentColor; }
+.work__icon { transform-origin: 12px 12px; transform: rotate(var(--a, 0deg)); }
+/* R23e: the counter and the toggle (z 12) are children of the page, above the nav (10) and the wordmark (9), the project name (5), the canvas and every click anchor
+   (the anchors share .work's stacking context, z up to about 21). Always fully visible; the difference blend keeps them readable. */
+/* The focused project's name: the homepage project index title (base.css .index__band / .index__title: same band, size, weight, leading,
+   tracking), rising per character as the focus builds (work.js). Above the canvas and the cards, below the nav. */
+.work__name { position: fixed; left: 0; right: 0; top: var(--index-top); height: calc(var(--index-size) * 0.8); overflow: hidden; z-index: 5; pointer-events: none; color: var(--ink); }
+.work__title { position: absolute; inset: 0; display: block; text-align: center; white-space: nowrap; font-size: var(--index-size); font-weight: 500; line-height: 0.8; letter-spacing: -0.01em; visibility: hidden; }
+.work__char { display: inline-block; will-change: transform; }
+/* R22e: hold and drag the strip (desktop mouse): grab, grabbing while held (also over the cards and images) */
+.work { cursor: grab; }
+.work .work__item { cursor: grab; }
+.work.is-dragging, .work.is-dragging .work__item { cursor: grabbing; }
+
+/* R24a / R24b: touch drag on the strip (touch-action none: the page does not scroll under the finger) */
+.work { touch-action: none; -webkit-tap-highlight-color: transparent; }
+/* R24a: the TALL mode (phones, tablet portrait): the counter bottom-left, the name sized for a phone; svh so the address bar does not move the layout */
+html[data-layout='tall'] { --index-size: clamp(2.25rem, 11vw, 4.25rem); --index-x: 20px; --index-label-size: 0.8125rem; --index-top: calc(50svh - var(--index-size) * 0.4); }
+html[data-layout='tall'], html[data-layout='tall'] body { overscroll-behavior: none; }
+[data-layout='tall'] .work { height: 100svh; }
+[data-layout='tall'] .work__count { top: auto; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); left: calc(20px + env(safe-area-inset-left, 0px)); font-size: 0.875rem; }
+
+
+/* R32 Work page v2 (desktop): src/work/v2-ui.js. 1 px at 1920x1080 = --p (the capped --ux / 19.2, so the type is proportional up to 1920 and fixed above). The layer sits above the
+   canvas and every click anchor; only the switch and the e-mail take the pointer. work.js sets --hw / --hh (half the image size, px) and the elements ride on transforms. */
+.w2 { --p: calc(100vw / 1920); --w2-c: #eae8e5; --w2-dim: 0.1; --w2-desc: 0.5; --w2-lh: calc(var(--w2-small, 10.5) * 25 / 14 * var(--p)); position: fixed; inset: 0; z-index: 12; pointer-events: none; font-family: var(--font-body); font-size: calc(var(--w2-small, 14) * var(--p)); line-height: var(--w2-lh); letter-spacing: var(--w2-track, 0.05em); color: var(--w2-c); }
+.w2__hit { pointer-events: auto; }
+.w2__titles, .w2__infos { position: absolute; inset: 0; }
+.w2__title { position: absolute; left: 0; top: 0; display: block; text-align: center; white-space: nowrap; font-weight: 600; line-height: 1; letter-spacing: var(--w2-ttrack, 0em); color: var(--w2-c); opacity: 0; font-kerning: normal; text-rendering: geometricPrecision; will-change: opacity; }
+.w2__info { position: absolute; left: var(--cx, 50%); top: var(--cy, 50%); width: 0; height: 0; will-change: filter, opacity; }
+.w2__tags, .w2__year, .w2__desc { position: absolute; white-space: nowrap; } /* R33d: each block is the mask of its own roll */
+.w2__ln { display: block; overflow: hidden; height: var(--w2-lh); } /* R33e: every line is its own mask */
+.w2__rin { display: block; will-change: transform, opacity; }
+.w2__desc { white-space: normal; width: calc(200 * var(--p)); opacity: var(--w2-desc); }
+.w2__tags[data-pos='side'] { left: calc(var(--hw) * -1 + var(--is-tagsDx) * var(--p)); top: calc(var(--w2-infoY, 0px) + (25 * var(--p) - var(--w2-lh)) / 2); }
+.w2__year[data-pos='side'] { right: calc(var(--hw) * -1 - var(--is-yearRight) * var(--p)); top: calc(var(--w2-infoY, 0px) + (25 * var(--p) - var(--w2-lh)) / 2); }
+.w2__desc[data-pos='side'] { left: calc(var(--hw) + var(--is-descLeft) * var(--p)); top: calc(var(--w2-infoY, 0px) + (25 * var(--p) - var(--w2-lh)) / 2); }
+.w2__tags[data-pos='vertical'] { top: calc(-23.5 * var(--p) + (25 * var(--p) - var(--w2-lh)) / 2); left: calc(var(--hw) * -1 + var(--iv-tagsRight) * var(--p)) ; }
+.w2__year[data-pos='vertical'] { top: calc(-23.5 * var(--p) + (25 * var(--p) - var(--w2-lh)) / 2); left: calc(var(--hw) + var(--iv-yearLeft) * var(--p)) ; }
+.w2__desc[data-pos='vertical'] { top: calc(-23.5 * var(--p) + (25 * var(--p) - var(--w2-lh)) / 2); left: calc(var(--hw) + var(--iv-descLeft) * var(--p)) ; }
+/* ruler: the long axis of a dot / bar runs across the strip (side: tall bar at the bottom centre; vertical: a dash at the left edge) */
+.w2__ruler { position: absolute; }
+.w2__ruler i { position: absolute; background: var(--w2-c); opacity: 0; will-change: transform, opacity; }
+[data-mode='side'] .w2__ruler, .w2:not([data-mode]) .w2__ruler { left: calc(50% + 2.5 * var(--p)); bottom: calc(42 * var(--p)); }
+[data-mode='side'] .w2__ruler i { left: calc(var(--rd-dot) * -0.5 * var(--p)); bottom: 0; width: calc(var(--rd-dot) * var(--p)); height: calc(var(--rd-bar) * var(--p)); transform-origin: 50% 100%; }
+[data-mode='vertical'] .w2__ruler { left: calc(55 * var(--p)); top: calc(50% - 8.5 * var(--p)); }
+[data-mode='vertical'] .w2__ruler i { left: 0; top: calc(var(--rd-dot) * -0.5 * var(--p)); width: calc(var(--rd-bar) * var(--p)); height: calc(var(--rd-dot) * var(--p)); transform-origin: 0 50%; }
+/* counter, bottom left: label, the large thin numeral (a cross-fade), the /N superscript */
+.w2__counter { position: absolute; left: calc(45 * var(--p)); bottom: calc(29 * var(--p)); display: flex; align-items: baseline; color: var(--w2-c); }
+.w2__label { opacity: var(--w2-dim); width: calc(132 * var(--p)); flex: none; position: relative; top: calc(-4.5 * var(--p)); } /* R33f: a fixed width, so the numeral does not move with the size of the small text */
+.w2__num { position: relative; display: flex; font-size: calc(var(--w2-num, 100) * var(--p)); font-weight: 200; line-height: 0.74; letter-spacing: 0; height: 0.74em; }
+.w2__slot { position: relative; display: block; width: 0.7em; height: 0.74em; overflow: hidden; clip-path: inset(0 0 1.5px 0); } /* R33d: one digit tall, masked; the TENS is right-aligned and the UNITS left-aligned on their shared seam */
+.w2__col { position: absolute; left: 0; top: 0; width: 100%; will-change: transform; }
+.w2__wrapcol { display: none; }
+.w2__col span { display: block; height: 0.74em; }
+.w2__tens .w2__col span { text-align: right; }
+.w2__units { margin-left: var(--w2-ctrack, -0.02em); } /* R33f: the counter's tracking between the two digits */
+.w2__units .w2__col span { text-align: left; }
+.w2__defs { position: absolute; width: 0; height: 0; }
+.w2__total { position: absolute; left: 0; top: 0; line-height: 1; opacity: var(--w2-dim); white-space: nowrap; will-change: transform; } /* R33d: x follows the units digit, top meets the numeral top (v2-ui.js measureCounter) */
+.w2__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+/* mode switch, bottom right */
+.w2__switch { all: unset; pointer-events: auto; box-sizing: border-box; position: absolute; right: calc(51 * var(--p)); bottom: calc(28 * var(--p)); cursor: pointer; color: var(--w2-c); opacity: var(--w2-dim); transition: opacity 0.2s ease; white-space: nowrap; padding: calc(4 * var(--p)) 0; }
+.w2__switch .footer__line { top: 100%; height: 1px; background: currentColor; }
+@media (hover: hover) { .w2__switch:hover { opacity: 1; } }
+.w2__switch:focus-visible { opacity: 1; outline: 1px solid #f04a0e; outline-offset: calc(6 * var(--p)); }
+@media (pointer: coarse) { .w2__switch { min-height: 44px; display: flex; align-items: center; } }
+/* top right: Reach out + the e-mail */
+.w2__reach { position: absolute; right: calc(51 * var(--p)); top: calc(29 * var(--p)); display: flex; gap: calc(32 * var(--p)); align-items: baseline; color: var(--w2-c); }
+.w2__reach > span { opacity: var(--w2-dim); }
+.w2__email { color: var(--w2-c); text-decoration: underline; text-underline-offset: calc(3 * var(--p)); }
+.w2__email:focus-visible { outline: 1px solid #f04a0e; outline-offset: 4px; }
+@media (prefers-reduced-motion: reduce) { .w2__switch, .w2__num span { transition-duration: 0.01s; } }
+
+/* R33d scroll line: in .work, above the black background and under the canvas (the pictures draw over it); scrollLineOver puts it over them (still under the text layer) */
+.work .w2__line { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.work .w2__line.is-over { z-index: 2; }
+.w2__line i { position: absolute; left: 0; top: 0; display: block; background: var(--w2-c, #eae8e5); opacity: 0; will-change: transform; width: 1px; height: 100%; }

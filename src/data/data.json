@@ -1,0 +1,3332 @@
+{
+  "site": {
+    "title": "Anh V",
+    "nav": [
+      {
+        "label": "About",
+        "href": "#2section"
+      },
+      {
+        "label": "Works",
+        "href": "/work/"
+      },
+      {
+        "label": "Contact",
+        "href": "#contact"
+      }
+    ]
+  },
+  "loader": {
+    "text": "Loading visual language"
+  },
+  "hero": {
+    "video": "/media/hero/video.mp4",
+    "image": "/media/home/hero-s2.jpg",
+    "gallery": [
+      "/media/hero/s3_bottom.jpg",
+      "/media/hero/s3_middle.jpg",
+      "/media/hero/s3_top.jpg"
+    ],
+    "wordmark": "/media/brand/wordmark.svg",
+    "ticker": "/media/brand/ticker.svg",
+    "clickSound": "/media/brand/click.mp3",
+    "captions": [
+      {
+        "title": "Techcombank Priority",
+        "slug": "tcb-priority",
+        "image": "/media/captions/caption-1.jpg",
+        "client": "Techcombank",
+        "role": "Art Direction"
+      },
+      {
+        "title": "Di De Tro Ve 09",
+        "slug": "bitis09",
+        "image": "/media/captions/caption-2.jpg",
+        "client": "Bitis",
+        "role": "Art Direction"
+      },
+      {
+        "title": "Sulwhasoo Product Launch",
+        "slug": "sulwhasoo",
+        "image": "/media/captions/caption-3.jpg",
+        "client": "Sulwhasoo",
+        "role": "Art Direction"
+      },
+      {
+        "title": "Similac Virgo",
+        "slug": "similac",
+        "image": "/media/captions/caption-4.jpg",
+        "client": "Similac",
+        "role": "Art Direction"
+      }
+    ]
+  },
+  "about": {
+    "label": "ABOUT",
+    "text": "Vu Tuan Anh, Art Director. Based in Ho Chi Minh City with over 5 years of experience in design. I focus on turning ideas into thoughtful visuals - blending motion, layout, and typography to create work that feels clear, expressive, and alive."
+  },
+  "spawnerImages": [
+    "/media/captions/caption-4.jpg",
+    "/media/selected-work/card-img-03.jpg",
+    "/media/spawner/spawn-01.gif",
+    "/media/captions/caption-3.jpg",
+    "/media/spawner/spawn-02.png",
+    "/media/captions/caption-1.jpg",
+    "/media/spawner/spawn-03.gif",
+    "/media/spawner/spawn-04.jpg",
+    "/media/selected-work/card-img-15.png",
+    "/media/spawner/spawn-05.jpg",
+    "/media/spawner/spawn-06.jpg",
+    "/media/selected-work/card-img-11.jpg"
+  ],
+  "trailImages": [
+    "/media/selected-work/card-img-03.jpg",
+    "/media/selected-work/card-img-10.jpg",
+    "/media/trail/trail-01.jpg",
+    "/media/trail/trail-03.jpg",
+    "/media/trail/trail-04.jpg",
+    "/media/selected-work/card-img-29.png",
+    "/media/trail/trail-02.jpg",
+    "/media/captions/caption-1.jpg",
+    "/media/captions/caption-4.jpg",
+    "/media/trail/trail-05.jpg"
+  ],
+  "selectedWorkCards": [
+    {
+      "id": 1,
+      "x": -700.5,
+      "y": 213.241,
+      "w": 275,
+      "h": 268,
+      "layer": "layer2",
+      "z": 3,
+      "mouse": 50,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-01.png"
+    },
+    {
+      "id": 2,
+      "x": -1067.5,
+      "y": 188.241,
+      "w": 311,
+      "h": 177,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-02.jpg"
+    },
+    {
+      "id": 3,
+      "x": -1026,
+      "y": 300.741,
+      "w": 188,
+      "h": 294,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-03.jpg"
+    },
+    {
+      "id": 4,
+      "x": -319,
+      "y": 295.741,
+      "w": 188,
+      "h": 188,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-04.png"
+    },
+    {
+      "id": 5,
+      "x": -640,
+      "y": 178.241,
+      "w": 150,
+      "h": 230,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-05.png"
+    },
+    {
+      "id": 6,
+      "x": -717,
+      "y": 253.241,
+      "w": 150,
+      "h": 230,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-06.gif"
+    },
+    {
+      "id": 7,
+      "x": -608,
+      "y": 293.241,
+      "w": 150,
+      "h": 230,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-07.png"
+    },
+    {
+      "id": 8,
+      "x": -468.5,
+      "y": 165.741,
+      "w": 259,
+      "h": 384,
+      "layer": "layer4",
+      "z": 5,
+      "mouse": 100,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-08.jpg"
+    },
+    {
+      "id": 9,
+      "x": -563.5,
+      "y": 265.741,
+      "w": 389,
+      "h": 384,
+      "layer": "layer4",
+      "z": 5,
+      "mouse": 100,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-09.png"
+    },
+    {
+      "id": 10,
+      "x": -879.5,
+      "y": 330.741,
+      "w": 389,
+      "h": 244,
+      "layer": "layer4",
+      "z": 5,
+      "mouse": 100,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-10.jpg"
+    },
+    {
+      "id": 11,
+      "x": -461,
+      "y": 363.241,
+      "w": 526,
+      "h": 330,
+      "layer": "layer4",
+      "z": 5,
+      "mouse": 100,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-11.jpg"
+    },
+    {
+      "id": 12,
+      "x": -1010,
+      "y": 228.241,
+      "w": 206,
+      "h": 206,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-12.png"
+    },
+    {
+      "id": 13,
+      "x": -533.5,
+      "y": 140.741,
+      "w": 189,
+      "h": 132,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-13.jpg"
+    },
+    {
+      "id": 14,
+      "x": -860.5,
+      "y": 153.241,
+      "w": 247,
+      "h": 247,
+      "layer": "layer2",
+      "z": 3,
+      "mouse": 50,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-12.png"
+    },
+    {
+      "id": 15,
+      "x": -1096,
+      "y": 133.241,
+      "w": 124,
+      "h": 141,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-13.jpg"
+    },
+    {
+      "id": 16,
+      "x": -754.5,
+      "y": 125.741,
+      "w": 127,
+      "h": 186,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-14.jpg"
+    },
+    {
+      "id": 17,
+      "x": -536,
+      "y": 100.741,
+      "w": 472,
+      "h": 265,
+      "layer": "layer1",
+      "z": 3,
+      "mouse": 25,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-15.png"
+    },
+    {
+      "id": 18,
+      "x": -879,
+      "y": 108.241,
+      "w": 264,
+      "h": 240,
+      "layer": "layer2",
+      "z": 3,
+      "mouse": 50,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-16.png"
+    },
+    {
+      "id": 19,
+      "x": -706,
+      "y": 78.241,
+      "w": 204,
+      "h": 211,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-13.jpg"
+    },
+    {
+      "id": 20,
+      "x": 415.1,
+      "y": 225.741,
+      "w": 154.2,
+      "h": 171.3,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-17.png"
+    },
+    {
+      "id": 21,
+      "x": 661.1,
+      "y": 220.741,
+      "w": 154.2,
+      "h": 171.3,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-18.jpg"
+    },
+    {
+      "id": 22,
+      "x": 766.5,
+      "y": 308.241,
+      "w": 211,
+      "h": 141,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-04.png"
+    },
+    {
+      "id": 23,
+      "x": 995,
+      "y": 210.741,
+      "w": 170,
+      "h": 197,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-19.jpg"
+    },
+    {
+      "id": 24,
+      "x": 481,
+      "y": 293.241,
+      "w": 136,
+      "h": 254,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-19.jpg"
+    },
+    {
+      "id": 25,
+      "x": 838.5,
+      "y": 190.741,
+      "w": 323,
+      "h": 408,
+      "layer": "layer3",
+      "z": 2,
+      "mouse": 75,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-20.jpg"
+    },
+    {
+      "id": 26,
+      "x": 454.5,
+      "y": 258.241,
+      "w": 323,
+      "h": 337,
+      "layer": "layer3",
+      "z": 2,
+      "mouse": 75,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-21.png"
+    },
+    {
+      "id": 27,
+      "x": 1076.5,
+      "y": 330.741,
+      "w": 541,
+      "h": 305,
+      "layer": "layer3",
+      "z": 2,
+      "mouse": 75,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-22.png"
+    },
+    {
+      "id": 28,
+      "x": 486.5,
+      "y": 340.741,
+      "w": 541,
+      "h": 305,
+      "layer": "layer3",
+      "z": 2,
+      "mouse": 75,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-23.jpg"
+    },
+    {
+      "id": 29,
+      "x": 873,
+      "y": 258.241,
+      "w": 174,
+      "h": 408,
+      "layer": "layer3",
+      "z": 2,
+      "mouse": 75,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-24.jpg"
+    },
+    {
+      "id": 30,
+      "x": 480.5,
+      "y": 163.241,
+      "w": 343,
+      "h": 313,
+      "layer": "layer2",
+      "z": 3,
+      "mouse": 50,
+      "scroll": true,
+      "src": "/media/selected-work/watch-anim"
+    },
+    {
+      "id": 31,
+      "x": 686.5,
+      "y": 138.241,
+      "w": 193,
+      "h": 104,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-26.png"
+    },
+    {
+      "id": 32,
+      "x": 953,
+      "y": 128.241,
+      "w": 170,
+      "h": 167,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-27.png"
+    },
+    {
+      "id": 33,
+      "x": 379,
+      "y": 138.241,
+      "w": 138,
+      "h": 268,
+      "layer": "back",
+      "z": 2,
+      "mouse": 20,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-28.jpg"
+    },
+    {
+      "id": 34,
+      "x": 798.5,
+      "y": 108.241,
+      "w": 429,
+      "h": 267,
+      "layer": "layer2",
+      "z": 3,
+      "mouse": 50,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-29.png"
+    },
+    {
+      "id": 35,
+      "x": 406.5,
+      "y": 88.241,
+      "w": 219,
+      "h": 207,
+      "layer": "layer2",
+      "z": 3,
+      "mouse": 50,
+      "scroll": true,
+      "src": "/media/selected-work/card-img-30.gif"
+    }
+  ],
+  "projects": [
+    {
+      "slug": "tcb-priority",
+      "index": "PRJ-01",
+      "title": "Techcombank Priority",
+      "client": "Techcombank",
+      "year": 2025,
+      "live": true,
+      "page": {
+        "title": "Techcombank Priority | Anh V",
+        "blocks": [
+          {
+            "t": "hero",
+            "img": "tcb-priority/b04a",
+            "parallax": {
+              "y": 0.25,
+              "s": 1,
+              "ds": 1,
+              "k": 0.019
+            }
+          },
+          {
+            "t": "text",
+            "label": "ABOUT",
+            "text": "            Techcombank Priority is a visual identity built on narrative structure and evolving tone. Crafted for a rising segment, the system leverages spatial composition and material symbolism—anchored by a horizon motif that captures transition, ambition, and forward movement.",
+            "hvh": 50
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "tcb-priority/b06a",
+              "fit": "cover",
+              "parallax": {
+                "y": 0.15,
+                "s": 1.4,
+                "ds": -1,
+                "ox": "100%",
+                "oy": "50%",
+                "k": 0.019
+              }
+            },
+            "right": {
+              "kind": "img",
+              "ref": "tcb-priority/b06b",
+              "fit": "cover",
+              "parallax": {
+                "y": 0.15,
+                "s": 1.4,
+                "ds": -1,
+                "ox": "0%",
+                "oy": "50%",
+                "k": 0.019
+              }
+            }
+          },
+          {
+            "t": "text",
+            "label": "BRAND POS",
+            "text": "           Success isn’t just about moving forward — it’s about moving with purpose.\nAs clients enter a new phase of wealth and decision-making, they need a system that reflects both structure and ambition — not just tools, but a sense of clarity and direction. "
+          },
+          {
+            "t": "youtube",
+            "id": "v_ZN964ZYVE",
+            "title": "Techcombank Priority, What's Your Next?"
+          },
+          {
+            "t": "details",
+            "title": [
+              "Techcombank Priority",
+              "What's Your Next?"
+            ],
+            "heading": "Project Details",
+            "rows": [
+              [
+                "Client",
+                [
+                  "Techombank"
+                ]
+              ],
+              [
+                "Year",
+                [
+                  "2024"
+                ]
+              ],
+              [
+                "Role",
+                [
+                  "Art Director",
+                  "3D Designer",
+                  "Motion Lead"
+                ]
+              ]
+            ],
+            "body": "Techcombank Priority is a visual identity built around structure, clarity, and purposeful progression.\nDesigned for a rising class of leaders and decision-makers, the project combines spatial composition with material symbolism — anchored by a horizon motif that captures ambition and forward movement."
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "tcb-priority/b10a",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "loop",
+              "ref": "tcb-priority/b10b",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "text",
+            "label": "CONCEPT",
+            "text": "           The concept phase was driven by exploration — testing form, motion, and tone to find the right balance between structure and emotion. "
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "loop",
+              "ref": "tcb-priority/b12a",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "stage",
+            "h": {
+              "vh": 100
+            },
+            "items": [
+              {
+                "kind": "img",
+                "ref": "tcb-priority/b13a",
+                "fit": "contain",
+                "css": {
+                  "left": "0",
+                  "width": "25%",
+                  "height": "50%",
+                  "top": "50%"
+                }
+              },
+              {
+                "kind": "loop",
+                "ref": "tcb-priority/b13b",
+                "fit": "cover",
+                "css": {
+                  "left": "25%",
+                  "width": "25%",
+                  "height": "50%",
+                  "top": "50%"
+                }
+              },
+              {
+                "kind": "text",
+                "body": "The foundation of the visual system was a modular “building block” — a sculptural form inspired by premium product design and advanced tech aesthetics. Crafted to echo architectural precision and futuristic intent, this shape served as a core visual device throughout the campaign — from hero keyframes to spatial UI systems. Its beveled geometry and metallic surface subtly referenced high-end industrial design, aligning with TCB Priority’s values of clarity, structure, and forward momentum.",
+                "css": {
+                  "left": "23.44%",
+                  "top": "198v",
+                  "width": "23.44%"
+                },
+                "light": false
+              },
+              {
+                "kind": "img",
+                "ref": "tcb-priority/b13c",
+                "fit": "cover",
+                "css": {
+                  "left": "50%",
+                  "top": "0",
+                  "width": "50%",
+                  "height": "100%"
+                }
+              }
+            ]
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "loop",
+              "ref": "tcb-priority/b14a",
+              "fit": "contain"
+            }
+          },
+          {
+            "t": "stage",
+            "h": {
+              "vh": 100
+            },
+            "items": [
+              {
+                "kind": "img",
+                "ref": "tcb-priority/b15a",
+                "fit": "cover",
+                "css": {
+                  "left": "0",
+                  "top": "0",
+                  "width": "50%",
+                  "height": "100%"
+                }
+              },
+              {
+                "kind": "img",
+                "ref": "tcb-priority/b15b",
+                "fit": "contain",
+                "css": {
+                  "left": "50%",
+                  "width": "25%",
+                  "height": "50%",
+                  "top": "50%"
+                }
+              },
+              {
+                "kind": "img",
+                "ref": "tcb-priority/b15c",
+                "fit": "contain",
+                "css": {
+                  "left": "75%",
+                  "width": "25%",
+                  "height": "50%",
+                  "top": "50%"
+                }
+              },
+              {
+                "kind": "text",
+                "body": "Designed with scalability in mind, the building block was crafted as a flexible unit — capable of interlocking, rotating, and repeating to form endless compositions. From structural grids to symbolic icons, this modularity allowed the system to adapt seamlessly across formats, reflecting both the precision of tech architecture and the ambition of the brand. The visuals here showcase its expressive range: expanding from single forms to dense clusters, evoking growth, momentum, and structured transformation.",
+                "css": {
+                  "left": "50%",
+                  "top": "230v",
+                  "width": "calc(50% - 60u)"
+                },
+                "light": false
+              }
+            ]
+          },
+          {
+            "t": "stage",
+            "h": {
+              "vh": 100
+            },
+            "items": [
+              {
+                "kind": "loop",
+                "ref": "tcb-priority/b16a",
+                "fit": "contain",
+                "css": {
+                  "left": "0",
+                  "width": "25%",
+                  "height": "50%",
+                  "top": "0"
+                }
+              },
+              {
+                "kind": "loop",
+                "ref": "tcb-priority/b16b",
+                "fit": "contain",
+                "css": {
+                  "left": "25%",
+                  "width": "25%",
+                  "height": "50%",
+                  "top": "50%"
+                }
+              },
+              {
+                "kind": "loop",
+                "ref": "tcb-priority/b16c",
+                "fit": "cover",
+                "css": {
+                  "left": "50%",
+                  "top": "0",
+                  "width": "50%",
+                  "height": "100%"
+                }
+              }
+            ]
+          },
+          {
+            "t": "split",
+            "hpx": 800,
+            "left": {
+              "kind": "img",
+              "ref": "tcb-priority/b17a",
+              "fit": "contain"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "tcb-priority/b17b",
+              "fit": "contain"
+            }
+          },
+          {
+            "t": "split",
+            "hpx": 800,
+            "left": {
+              "kind": "img",
+              "ref": "tcb-priority/b18a",
+              "fit": "contain"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "tcb-priority/b18b",
+              "fit": "contain"
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "loop",
+              "ref": "tcb-priority/b19a",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "text",
+            "label": "KEYVISUAL",
+            "text": "           Building on the core visual system, the Key Visual distills the campaign’s essence into a singular, iconic composition — setting the tone for all branded touchpoints. "
+          },
+          {
+            "t": "scroller",
+            "hpx": 4195,
+            "start": 544,
+            "end": 3240.6,
+            "layers": [
+              {
+                "from": 800,
+                "to": -3690,
+                "css": {
+                  "left": "60u",
+                  "top": "calc(50% - 69v)"
+                },
+                "items": [
+                  {
+                    "kind": "heading",
+                    "lines": [
+                      "Key Visual",
+                      "Exploration"
+                    ],
+                    "css": {}
+                  }
+                ]
+              },
+              {
+                "from": 800,
+                "to": -2992,
+                "css": {
+                  "left": "509.3u",
+                  "top": "calc(50% - 56v)",
+                  "width": "518u"
+                },
+                "items": [
+                  {
+                    "kind": "text",
+                    "body": "The Key Visual exploration began with a stylized, fashion-forward look to express status and modernity.\nIt later evolved into a more symbolic direction — using the **horizon line** as a central motif to reflect ambition, clarity, and the long-view mindset of Priority clients.\nThis shift allowed the visual to speak not just to style, but to purpose and progression.",
+                    "css": {}
+                  }
+                ]
+              },
+              {
+                "from": 1338,
+                "to": -4360,
+                "css": {
+                  "left": "1127.3u",
+                  "top": "calc(50% - 303v)",
+                  "display": "flex"
+                },
+                "items": [
+                  {
+                    "kind": "img",
+                    "ref": "tcb-priority/b21a",
+                    "fit": "contain",
+                    "css": {
+                      "width": "1241u",
+                      "height": "606v",
+                      "flex": "none"
+                    }
+                  },
+                  {
+                    "kind": "img",
+                    "ref": "tcb-priority/b21b",
+                    "fit": "contain",
+                    "css": {
+                      "width": "501u",
+                      "height": "606v",
+                      "flex": "none"
+                    }
+                  },
+                  {
+                    "kind": "img",
+                    "ref": "tcb-priority/b21c",
+                    "fit": "contain",
+                    "css": {
+                      "width": "415u",
+                      "height": "606v",
+                      "flex": "none"
+                    }
+                  },
+                  {
+                    "kind": "img",
+                    "ref": "tcb-priority/b21d",
+                    "fit": "contain",
+                    "css": {
+                      "width": "1241u",
+                      "height": "606v",
+                      "flex": "none"
+                    }
+                  },
+                  {
+                    "kind": "img",
+                    "ref": "tcb-priority/b21e",
+                    "fit": "contain",
+                    "css": {
+                      "width": "1241u",
+                      "height": "606v",
+                      "flex": "none"
+                    }
+                  },
+                  {
+                    "kind": "img",
+                    "ref": "tcb-priority/b21f",
+                    "fit": "contain",
+                    "css": {
+                      "width": "1241u",
+                      "height": "606v",
+                      "flex": "none"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "img",
+              "ref": "tcb-priority/b22a",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "tcb-priority/b23a",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "tcb-priority/b23b",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "img",
+              "ref": "tcb-priority/b24a",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "text",
+            "label": "ADAPTIVE",
+            "text": "           Evolving from the Visual Cue, the identity unfolds into adaptive content — reshaping itself across formats while preserving the same visual rhythm and crafted precision.\nEvery extension carries the spirit of the core, adapting without losing its voice."
+          },
+          {
+            "t": "stage",
+            "h": {
+              "css": "calc(830v + 300vh)"
+            },
+            "visible": true,
+            "items": [
+              {
+                "kind": "img",
+                "ref": "tcb-priority/b26a",
+                "fit": "contain",
+                "css": {
+                  "left": "0",
+                  "top": "calc(400v - 50vh)",
+                  "width": "50%",
+                  "height": "100vh"
+                }
+              },
+              {
+                "kind": "text",
+                "body": "The graphic motif was developed by abstracting the core visual cue. This motif became the backbone for layout compositions across print and digital, supported by a **custom wireframe system** that ensured consistent alignment, rhythm, and brand expression across all touchpoints.\nThe result is a flexible yet cohesive visual language that reinforces movement, clarity, and priority throughout every asset.",
+                "css": {
+                  "left": "calc(50% + 60u)",
+                  "top": "calc(8.89vh + 504v)",
+                  "width": "calc(50% - 120u)"
+                },
+                "light": false
+              },
+              {
+                "kind": "img",
+                "ref": "tcb-priority/b26b",
+                "fit": "contain",
+                "css": {
+                  "left": "0",
+                  "top": "810v",
+                  "width": "50%",
+                  "height": "100vh"
+                }
+              },
+              {
+                "kind": "img",
+                "ref": "tcb-priority/b26c",
+                "fit": "contain",
+                "css": {
+                  "left": "50%",
+                  "top": "810v",
+                  "width": "50%",
+                  "height": "100vh"
+                }
+              },
+              {
+                "kind": "loop",
+                "ref": "tcb-priority/b26d",
+                "fit": "contain",
+                "css": {
+                  "left": "0",
+                  "top": "calc(810v + 100vh + 10v)",
+                  "width": "50%",
+                  "height": "100vh"
+                }
+              },
+              {
+                "kind": "img",
+                "ref": "tcb-priority/b26e",
+                "fit": "contain",
+                "css": {
+                  "left": "50%",
+                  "top": "calc(810v + 100vh + 10v)",
+                  "width": "50%",
+                  "height": "100vh"
+                }
+              },
+              {
+                "kind": "img",
+                "ref": "tcb-priority/b26f",
+                "fit": "contain",
+                "css": {
+                  "left": "0",
+                  "top": "calc(810v + 200vh + 20v)",
+                  "width": "50%",
+                  "height": "100vh"
+                }
+              },
+              {
+                "kind": "img",
+                "ref": "tcb-priority/b26g",
+                "fit": "contain",
+                "css": {
+                  "left": "50%",
+                  "top": "calc(810v + 200vh + 20v)",
+                  "width": "50%",
+                  "height": "100vh"
+                }
+              }
+            ]
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "tcb-priority/b27a",
+              "fit": "contain"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "tcb-priority/b27b",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "img",
+              "ref": "tcb-priority/b28a",
+              "fit": "cover"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "slug": "bitis09",
+      "index": "PRJ-02",
+      "title": "Bitis DDTV SS09",
+      "client": "Bitis",
+      "year": 2024,
+      "live": true,
+      "page": {
+        "title": "Bitis DDTV SS09 | Anh V",
+        "blocks": [
+          {
+            "t": "hero",
+            "img": "bitis09/hero",
+            "parallax": {
+              "y": 0.25,
+              "s": 1,
+              "ds": 1
+            }
+          },
+          {
+            "t": "text",
+            "label": "INSIGHT",
+            "text": "            “There are always two halves in me—one wants to roam, one longs to return.”\nThis quiet conflict reflects the emotional truth of growing up: no matter how far you go, part of you is always looking back."
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "bitis09/insight-a",
+              "fit": "cover",
+              "parallax": {
+                "y": 0.15,
+                "s": 1.4,
+                "ds": -1,
+                "ox": "100%"
+              }
+            },
+            "right": {
+              "kind": "img",
+              "ref": "bitis09/soobin",
+              "fit": "cover",
+              "parallax": {
+                "y": 0.15,
+                "s": 1.4,
+                "ds": -1,
+                "ox": "0%"
+              }
+            }
+          },
+          {
+            "t": "text",
+            "label": "CONCEPT",
+            "text": "           The campaign imagines a dialogue between your past and present selves — a reunion shaped by distance, time, and the pull of home. "
+          },
+          {
+            "t": "youtube",
+            "id": "s5GFw-7XPjo",
+            "title": "Bitis Season 09 — Đi Để Trở Về"
+          },
+          {
+            "t": "details",
+            "title": [
+              "Bitis Season 09",
+              "Di De Tro Ve"
+            ],
+            "heading": "Project Details",
+            "rows": [
+              [
+                "Client",
+                [
+                  "Bitis"
+                ]
+              ],
+              [
+                "Year",
+                [
+                  "2024"
+                ]
+              ],
+              [
+                "Role",
+                [
+                  "Art Director",
+                  "Motion Lead"
+                ]
+              ]
+            ],
+            "body": "This music video campaign marks the 9th season of Bitis’ iconic “Đi Để Trở Về” platform, continuing its emotional journey through sound and story. Built around the Tet season — a time of reflection and homecoming — the visual direction pairs poetic nostalgia with cinematic framing. As Art Director, I shaped the aesthetic language, spatial composition, and narrative rhythm to amplify the sense of longing and reunion. Every detail, from wardrobe to lighting, was crafted to echo the emotional pull between who we were and who we’ve become."
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "loop",
+              "ref": "bitis09/campaign",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "copy",
+              "heading": [
+                "Time-crossing",
+                "Homesick Dialogue"
+              ],
+              "body": "It’s a truth most people carry — two halves in constant pull between the road ahead and the place called home."
+            }
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "loop",
+              "ref": "bitis09/timecross-a",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "loop",
+              "ref": "bitis09/timecross-b",
+              "fit": "contain",
+              "w": 75,
+              "h": 44
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "img",
+              "ref": "bitis09/gallery-1",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "img",
+              "ref": "bitis09/billboard",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "loop",
+              "ref": "bitis09/tagline",
+              "fit": "cover",
+              "w": 1663,
+              "aspect": 1.778,
+              "note": "The tagline draws from the imagery of a crossroad — a symbolic point where the present meets the past. It’s not just a message home, but a turning point: where longing becomes a dialogue, and the self in motion pauses to reconnect."
+            },
+            "right": {
+              "kind": "img",
+              "ref": "bitis09/tagline-side",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "text",
+            "label": "WRAPUP",
+            "text": "           As the final episode of “Di De Tro Ve,” the MV wraps the journey with warmth and closure. Retro tones meet Bitis’ signature orange, blending nostalgia with a sense of new beginnings."
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "loop",
+              "ref": "bitis09/wrapup",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "bitis09/wrapup-a",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "img",
+              "ref": "bitis09/look-a",
+              "fit": "cover"
+            },
+            "tall": 1296
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "bitis09/look-b",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "empty"
+            }
+          },
+          {
+            "t": "text",
+            "label": "PROMOTION",
+            "text": "                 In parallel with the MV, the campaign also introduced a standalone creative route to celebrate the new product drop and the Year of the Snake — blending festive motifs with bold, youthful styling tailored for Tết."
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "note",
+              "body": "Beyond the emotional narrative of the MV, a separate creative line was developed to spotlight Bitis’ Tết product release and celebrate the Year of the Snake. This route embraced vibrant visuals, festive textures, and youthful styling — designed to capture the spirit of renewal and cultural pride. From digital key visuals to social-first assets, the materials emphasized bold energy and collectibility, anchoring the product as a must-have item for the holiday season."
+            },
+            "right": {
+              "kind": "img",
+              "ref": "bitis09/tet",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "threeup",
+            "cells": [
+              {
+                "kind": "img",
+                "ref": "bitis09/promo-a",
+                "fit": "cover",
+                "w": 75,
+                "h": 80
+              },
+              {
+                "kind": "img",
+                "ref": "bitis09/promo-b",
+                "fit": "cover",
+                "w": 100,
+                "aspect": 1.975,
+                "h": null,
+                "caption": "Initial concept sketch"
+              },
+              {
+                "kind": "img",
+                "ref": "bitis09/sketch",
+                "fit": "cover",
+                "w": 75,
+                "h": 80
+              }
+            ]
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "loop",
+              "ref": "bitis09/concept",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "copy",
+              "body": "The concept draws from the texture of shoelaces — echoing the pattern of snake scales — and evolves into a full visual system built for the Year of the Snake. Using bold color blocks, Tet-inspired textures, and illustrated serpentine forms, the layout coils around talents in motion, creating a playful yet powerful backdrop to spotlight the product and spirit of Tết.",
+              "width": 720
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "img",
+              "ref": "bitis09/finale",
+              "fit": "cover"
+            },
+            "tall": 1296
+          }
+        ]
+      }
+    },
+    {
+      "slug": "sulwhasoo",
+      "index": "PRJ-03",
+      "title": "Sulwhasoo Launch",
+      "client": "Sulwhasoo",
+      "year": 2023,
+      "live": true,
+      "page": {
+        "title": "Sulwhasoo Launch | Anh V",
+        "blocks": [
+          {
+            "t": "hero",
+            "img": "sulwhasoo/b04a",
+            "parallax": {
+              "y": 0.25,
+              "s": 1,
+              "ds": 1,
+              "k": 0.03528
+            }
+          },
+          {
+            "t": "text",
+            "label": "ABOUT",
+            "text": "            This campaign redefined Sulwhasoo’s science-driven skincare as a form of art — where 60 years of ginseng heritage meets elevated performance.\nBlending holistic philosophy with cosmic elegance, we crafted a narrative that positions beauty not just as effectiveness, but as a work of art against time."
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "sulwhasoo/b06a",
+              "fit": "cover",
+              "parallax": {
+                "y": 0.15,
+                "s": 1.4,
+                "ds": -1,
+                "ox": "100%",
+                "oy": "50%",
+                "k": 0.03527
+              }
+            },
+            "right": {
+              "kind": "img",
+              "ref": "sulwhasoo/b06b",
+              "fit": "cover",
+              "parallax": {
+                "y": 0.15,
+                "s": 1.4,
+                "ds": -1,
+                "ox": "0%",
+                "oy": "50%",
+                "k": 0.03527
+              }
+            }
+          },
+          {
+            "t": "text",
+            "label": "CONCEPT",
+            "text": "           It’s not just skincare — it’s science refined into emotion, and tradition elevated into visual poetry.",
+            "pad": 58,
+            "hvh": 25
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "loop",
+              "ref": "sulwhasoo/b08a",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "details",
+            "title": [
+              "Sulwhasoo",
+              "Artistry of Science"
+            ],
+            "heading": "Project Details",
+            "rows": [
+              [
+                "Client",
+                [
+                  "Sulwhasoo"
+                ]
+              ],
+              [
+                "Year",
+                [
+                  "2024"
+                ]
+              ],
+              [
+                "Role",
+                [
+                  "Art Director",
+                  "3D Designer",
+                  "Motion Lead"
+                ]
+              ]
+            ],
+            "body": "This Sulwhasoo campaign reframed skincare as an elevated form of **artistry born from science** — celebrating 60 years of ginseng heritage and deep formulation know-how.\nRooted in a holistic philosophy, the creative direction moved beyond technical claims, unlocking a poetic narrative where **ultimate performance becomes beauty against time**.\nVisually, we merged celestial elegance with bold typography, symbolizing the harmony of nature, science, and timeless self-care."
+          },
+          {
+            "t": "stage",
+            "h": {
+              "px": 802
+            },
+            "items": [
+              {
+                "kind": "img",
+                "ref": "sulwhasoo/b10a",
+                "fit": "contain",
+                "css": {
+                  "left": "60u",
+                  "top": "60v",
+                  "width": "calc(50% - 60u)",
+                  "height": "621v"
+                }
+              },
+              {
+                "kind": "text",
+                "body": "The visual device, the Golden Ratio, elegantly merges science and art by showcasing the harmonious balance between proportions and aesthetics. Representing the pinnacle of scientific understanding, this ratio also embodies a timeless sense of beauty, guiding the viewer’s eye and enhancing the product’s appeal. Complementing this, the device also linking back to our regional visual, making the whole campaign being cohesive through and through",
+                "css": {
+                  "left": "60u",
+                  "top": "681v",
+                  "width": "calc(50% - 60u)"
+                },
+                "light": false
+              },
+              {
+                "kind": "img",
+                "ref": "sulwhasoo/b10b",
+                "fit": "contain",
+                "css": {
+                  "left": "calc(50% + 60u)",
+                  "top": "1v",
+                  "width": "calc(50% - 60u)",
+                  "height": "800v"
+                }
+              }
+            ]
+          },
+          {
+            "t": "stage",
+            "h": {
+              "vh": 100
+            },
+            "items": [
+              {
+                "kind": "group",
+                "css": {
+                  "left": "60u",
+                  "width": "calc(50% - 60u)",
+                  "top": "0",
+                  "bottom": "0"
+                },
+                "items": [
+                  {
+                    "kind": "loop",
+                    "ref": "sulwhasoo/b11a",
+                    "fit": "cover",
+                    "css": {
+                      "width": "100%",
+                      "aspectRatio": "4 / 3"
+                    }
+                  },
+                  {
+                    "kind": "text",
+                    "body": "Inspired by contemporary display art, the KV product is showcased on a stylized pedestal to emphasize its artistic qualities. Behind it, the visual element of the golden ratio serves as a backdrop, representing the pinnacle of scientific achievement and guiding the viewer’s focus to the product.",
+                    "css": {},
+                    "light": false
+                  }
+                ]
+              },
+              {
+                "kind": "group",
+                "css": {
+                  "left": "calc(50% + 60u)",
+                  "width": "calc(50% - 60u)",
+                  "top": "0",
+                  "bottom": "60v"
+                },
+                "items": [
+                  {
+                    "kind": "img",
+                    "ref": "sulwhasoo/b11b",
+                    "fit": "cover",
+                    "css": {
+                      "width": "100%",
+                      "height": "740v"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "t": "stage",
+            "h": {
+              "vh": 100
+            },
+            "items": [
+              {
+                "kind": "img",
+                "ref": "sulwhasoo/b12a",
+                "fit": "cover",
+                "css": {
+                  "left": "0",
+                  "top": "0",
+                  "width": "100%",
+                  "height": "100%"
+                }
+              },
+              {
+                "kind": "img",
+                "ref": "sulwhasoo/b12b",
+                "fit": "cover",
+                "css": {
+                  "left": "50%",
+                  "transform": "translateX(-50%)",
+                  "bottom": "60v",
+                  "width": "532u",
+                  "height": "135v"
+                }
+              },
+              {
+                "kind": "loop",
+                "ref": "sulwhasoo/b12c",
+                "fit": "cover",
+                "css": {
+                  "left": "-269u",
+                  "top": "50%",
+                  "transform": "translateY(-50%)",
+                  "width": "1280u",
+                  "height": "720v"
+                }
+              }
+            ]
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "sulwhasoo/b13a",
+              "fit": "contain"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "sulwhasoo/b13b",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "text",
+            "label": "PR KIT",
+            "text": "           I also crafted a tailored PR kit to extend the campaign's story across influencer and media touchpoints. ",
+            "pad": 58,
+            "hvh": 25
+          },
+          {
+            "t": "stage",
+            "h": {
+              "vh": 100
+            },
+            "items": [
+              {
+                "kind": "img",
+                "ref": "sulwhasoo/b15a",
+                "fit": "cover",
+                "css": {
+                  "left": "0",
+                  "top": "0",
+                  "width": "50%",
+                  "height": "100%"
+                }
+              },
+              {
+                "kind": "group",
+                "css": {
+                  "left": "50%",
+                  "width": "50%",
+                  "top": "0",
+                  "bottom": "0",
+                  "paddingBottom": "60v"
+                },
+                "items": [
+                  {
+                    "kind": "img",
+                    "ref": "sulwhasoo/b15b",
+                    "fit": "cover",
+                    "css": {
+                      "width": "100%",
+                      "height": "740v",
+                      "marginBottom": "10v"
+                    }
+                  },
+                  {
+                    "kind": "text",
+                    "body": "The PR Kit comes in the shape of an artistic stage of science to resonate  with the campaign's visual language.",
+                    "css": {},
+                    "light": true
+                  },
+                  {
+                    "kind": "text",
+                    "body": "The kit will be sent to KOLs to try before the main event. KOLs will be invited to test  efficacy on their skin later on.",
+                    "css": {},
+                    "light": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "t": "stage",
+            "h": {
+              "vh": 100
+            },
+            "items": [
+              {
+                "kind": "loop",
+                "ref": "sulwhasoo/b16a",
+                "fit": "contain",
+                "css": {
+                  "left": "60u",
+                  "top": "60v",
+                  "width": "calc((50% - 180u) / 2)",
+                  "height": "calc(100% - 214v)"
+                }
+              },
+              {
+                "kind": "loop",
+                "ref": "sulwhasoo/b16b",
+                "fit": "contain",
+                "css": {
+                  "left": "calc(120u + (50% - 180u) / 2)",
+                  "top": "60v",
+                  "width": "calc((50% - 180u) / 2)",
+                  "height": "calc(100% - 214v)"
+                }
+              },
+              {
+                "kind": "text",
+                "body": "When the stage (the box), the ginseng root will be revealed with the lighting effect, serving as the star of an artistic performance of science.",
+                "css": {
+                  "left": "60u",
+                  "bottom": "60v",
+                  "width": "calc(50% - 120u)"
+                },
+                "light": true
+              },
+              {
+                "kind": "loop",
+                "ref": "sulwhasoo/b16c",
+                "fit": "cover",
+                "css": {
+                  "left": "50%",
+                  "top": "calc(50% - 400v)",
+                  "width": "50%",
+                  "height": "800v"
+                }
+              }
+            ]
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "img",
+              "ref": "sulwhasoo/b17a",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "text",
+            "label": "STUNT",
+            "text": "           A 3D stunt visual was created as part of the campaign rollout, adding depth and impact to the product narrative. ",
+            "pad": 58,
+            "hvh": 25
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "loop",
+              "ref": "sulwhasoo/b19a",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "stage",
+            "h": {
+              "vh": 100
+            },
+            "items": [
+              {
+                "kind": "group",
+                "css": {
+                  "left": "58u",
+                  "width": "calc(50% - 115u)",
+                  "top": "0",
+                  "bottom": "0"
+                },
+                "items": [
+                  {
+                    "kind": "text",
+                    "body": "The 3D stunt was built around a simple yet powerful transformation concept — the product turning raw, rugged surfaces into smooth beauty, echoing Sulwhasoo’s skin-rejuvenating essence.\nUsing bold scale and cinematic composition, the product was visualized as a sculptural force of refinement — anchoring the brand in both heritage and high-performance elegance.",
+                    "css": {},
+                    "light": true
+                  }
+                ]
+              },
+              {
+                "kind": "loop",
+                "ref": "sulwhasoo/b20a",
+                "fit": "contain",
+                "css": {
+                  "left": "50%",
+                  "top": "0",
+                  "width": "50%",
+                  "height": "100%"
+                }
+              },
+              {
+                "kind": "loop",
+                "ref": "sulwhasoo/b20b",
+                "fit": "contain",
+                "css": {
+                  "left": "50%",
+                  "top": "0",
+                  "width": "50%",
+                  "height": "100%"
+                }
+              }
+            ]
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "loop",
+              "ref": "sulwhasoo/b21a",
+              "fit": "cover"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "slug": "similac",
+      "index": "",
+      "title": "Similac Virgo",
+      "client": "Similac",
+      "year": 2024,
+      "live": true,
+      "page": {
+        "title": "Similac Virgo | Anh V",
+        "blocks": [
+          {
+            "t": "hero",
+            "img": "similac/hero",
+            "parallax": {
+              "y": 0.25,
+              "s": 1,
+              "ds": 1,
+              "k": 0.0492
+            }
+          },
+          {
+            "t": "text",
+            "label": "ABOUT",
+            "text": "            The Similac campaign redefined C-section parenting — turning quiet doubt into visible strength.\nIt honored the emotional journey of mothers, positioning Similac as more than formula: a true partner in protection for babies born by a different path.",
+            "hvh": 50
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "loop",
+              "ref": "similac/pair-l",
+              "fit": "cover",
+              "parallax": {
+                "y": 0.15,
+                "s": 1.2,
+                "ds": -1,
+                "ox": "100%",
+                "oy": "100%",
+                "k": 0.02459
+              }
+            },
+            "right": {
+              "kind": "img",
+              "ref": "similac/pair-r",
+              "fit": "cover",
+              "parallax": {
+                "y": 0.15,
+                "s": 1.2,
+                "ds": -1,
+                "ox": "0%",
+                "oy": "100%",
+                "k": 0.02459
+              }
+            }
+          },
+          {
+            "t": "text",
+            "label": "INSIGHT",
+            "text": "           To win over the brand, we began with a bold insight: C-section moms face an invisible burden — not just physically, but emotionally and socially. "
+          },
+          {
+            "t": "youtube",
+            "id": "mDANYDECrt0",
+            "title": "Similac Virgo TVC"
+          },
+          {
+            "t": "details",
+            "title": [
+              "Similac Virgo",
+              "TVC Product Launch"
+            ],
+            "heading": "Project Details",
+            "rows": [
+              [
+                "Client",
+                [
+                  "Similac"
+                ]
+              ],
+              [
+                "Year",
+                [
+                  "2024"
+                ]
+              ],
+              [
+                "Role",
+                [
+                  "Art Director",
+                  "3D Designer",
+                  "Motion Lead"
+                ]
+              ]
+            ],
+            "body": "The Similac campaign set out to reframe the narrative around C-section birth — shifting from stigma to strength.\nInstead of tiptoeing around the topic, we leaned into the emotional complexity: the doubts, the scars, the fierce love.\nAt its heart, this was a campaign about **recognition** — of every silent choice a mother makes, and every quiet strength she carries. Similac steps in not just as nutrition, but as a trusted **partner in protection**, tailored for those born by a different path."
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "abs",
+              "items": [
+                {
+                  "kind": "loop",
+                  "ref": "similac/6a",
+                  "fit": "cover",
+                  "x": 11.46,
+                  "y": 10.46,
+                  "w": 76.98,
+                  "h": 78.98
+                }
+              ]
+            },
+            "right": {
+              "kind": "loop",
+              "ref": "similac/6b",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "loop",
+              "ref": "similac/7",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "abs",
+              "items": [
+                {
+                  "kind": "loop",
+                  "ref": "similac/11a",
+                  "fit": "cover",
+                  "x": 0,
+                  "y": 0,
+                  "w": 50,
+                  "h": 50
+                },
+                {
+                  "kind": "loop",
+                  "ref": "similac/11b",
+                  "fit": "cover",
+                  "x": 50,
+                  "y": 50,
+                  "w": 50,
+                  "h": 50
+                }
+              ]
+            },
+            "right": {
+              "kind": "loop",
+              "ref": "similac/11c",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "text",
+            "label": "MISC",
+            "text": "           The shield acting as the visual cue throughout campaign, representing mom's ally of protection.",
+            "pad": 58,
+            "hvh": 25
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "similac/13a",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "similac/13b",
+              "fit": "contain"
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "loop",
+              "ref": "similac/14",
+              "fit": "contain"
+            }
+          },
+          {
+            "t": "split",
+            "hpx": 150,
+            "grow": {
+              "hpx": 960
+            },
+            "left": {
+              "kind": "loop",
+              "ref": "similac/15a",
+              "fit": "cover",
+              "hpx": 960,
+              "align": "start"
+            },
+            "right": {
+              "kind": "loop",
+              "ref": "similac/15b",
+              "fit": "contain",
+              "hpx": 960,
+              "align": "start",
+              "wpx": 960
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "img",
+              "ref": "similac/16",
+              "fit": "cover"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "slug": "forbes",
+      "index": "",
+      "title": "Forbes Vanguard",
+      "client": "Forbes",
+      "year": null,
+      "live": true,
+      "page": {
+        "title": "Forbes Vanguard | Anh V",
+        "blocks": [
+          {
+            "t": "hero",
+            "img": "forbes/hero",
+            "parallax": {
+              "y": 0.25,
+              "s": 1,
+              "ds": 1,
+              "k": 0.0308
+            }
+          },
+          {
+            "t": "text",
+            "label": "ABOUT",
+            "text": "            Forbes Vanguard celebrates a new generation of legacy leaders — rooted in tradition, driven by change.\nBlending heritage and modernity, the campaign reflects a bold shift: securing the past while defining what’s next.",
+            "hvh": 50
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "forbes/pair-l",
+              "fit": "cover",
+              "parallax": {
+                "y": 0.05,
+                "s": 1.1,
+                "ds": -1,
+                "ox": "100%",
+                "oy": "100%",
+                "k": 0.00771
+              }
+            },
+            "right": {
+              "kind": "abs",
+              "items": [
+                {
+                  "kind": "loop",
+                  "ref": "forbes/pair-r",
+                  "fit": "cover",
+                  "x": 12.5,
+                  "y": 30.46,
+                  "w": 75,
+                  "h": 39,
+                  "parallax": {
+                    "y": 0.05,
+                    "s": 1.1,
+                    "ds": -1,
+                    "ox": "0%",
+                    "oy": "100%",
+                    "k": 0.00771
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "t": "text",
+            "label": "INSIGHT",
+            "text": "           To begin a new journey, a firm foundation is an essential factor and to reach the higher level, a firm foundation is what you needs for defining the next future. "
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "loop",
+              "ref": "forbes/5",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "details",
+            "title": [
+              "Forbes Vanguard",
+              "Secure the Past,",
+              "Define the Next"
+            ],
+            "heading": "Project Details",
+            "rows": [
+              [
+                "Client",
+                [
+                  "Forbes"
+                ]
+              ],
+              [
+                "Year",
+                [
+                  "2023"
+                ]
+              ],
+              [
+                "Role",
+                [
+                  "Art Director",
+                  "3D Designer",
+                  "Motion Lead"
+                ]
+              ]
+            ],
+            "body": "**Forbes Vanguard** is a branding concept shaped around a generation in transition — one that stands at the intersection of legacy and innovation. Drawing from themes like “Secure the Past, Define the Next” and “Vững Gốc – Vươn Mình,” the project celebrates the forward-thinking heirs of family businesses who are redefining success while staying rooted in tradition. The visual language balances bold modernism with heritage cues, echoing the spirit of a **vanguard generation** ready to move the economy forward."
+          },
+          {
+            "t": "text",
+            "label": "DIR 01",
+            "text": "           Direction 1 is built on the concept of Flow — representing the continuous movement of knowledge, growth, and generational progress. ",
+            "pad": 58,
+            "hvh": 25
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "loop",
+              "ref": "forbes/dir1v",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "figure",
+              "ref": "forbes/dir1",
+              "fit": "contain",
+              "hcss": "calc(1.0889 * 100vh - 300px)",
+              "paras": [
+                "The visual cue is developed upon the concept of “Flow” - the movement and ever-changing forward of generation.",
+                "Their changing weight and orientation – bound by a grid – really capture the concept of collective thought, structured learning and the dispersion of information – through shared educative experience and personal/professional development – with an abstract but understandable fluidity.",
+                "This grid based system open up the expansion and variation for our brand, depending on the format/content, we can adjust the scale, color, orientation of these grid to match the thought behind.",
+                "The cue depicts **a Vanguard spirit** which is **seeing possibilities where the others see impossibilities** and make the others to follow their direction onwards.",
+                "**The essence of a new leader generation.**"
+              ]
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "loop",
+              "ref": "forbes/system",
+              "fit": "contain"
+            },
+            "note": {
+              "w": 942,
+              "bottom": 30,
+              "body": "A procedural design system was developed to give the visual device both structure and flexibility — allowing seamless adjustments in shape, density, motion, and behavior. This system ensures each asset feels intentional and consistent, while remaining responsive to different formats, narratives, or energy levels across the brand."
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "loop",
+              "ref": "forbes/12",
+              "fit": "contain",
+              "hcss": "calc(100vh - 60px)"
+            },
+            "align": "start"
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "abs",
+              "items": [
+                {
+                  "kind": "img",
+                  "ref": "forbes/13a",
+                  "fit": "cover",
+                  "x": 50,
+                  "y": 50,
+                  "w": 50,
+                  "h": 50
+                }
+              ]
+            },
+            "right": {
+              "kind": "loop",
+              "ref": "forbes/13b",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "loop",
+              "ref": "forbes/14",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "forbes/15a",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "forbes/15b",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "text",
+            "label": "DIR 02",
+            "text": "           Direction 2 visualizes the moment of transition — where legacy meets evolution. Built on the symbolism of a solid foundation blending into a gradient of transformation, it captures the essence of a generation inheriting values while boldly reshaping the future."
+          },
+          {
+            "t": "full",
+            "hpx": 800,
+            "img": {
+              "kind": "img",
+              "ref": "forbes/17",
+              "fit": "contain"
+            }
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "loop",
+              "ref": "forbes/18a",
+              "fit": "contain"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "forbes/18b",
+              "fit": "contain"
+            }
+          },
+          {
+            "t": "split",
+            "hpx": 800,
+            "left": {
+              "kind": "img",
+              "ref": "forbes/19a",
+              "fit": "contain"
+            },
+            "right": {
+              "kind": "img",
+              "ref": "forbes/19b",
+              "fit": "contain"
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "img",
+              "ref": "forbes/20",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "split",
+            "left": {
+              "kind": "img",
+              "ref": "forbes/21a",
+              "fit": "cover"
+            },
+            "right": {
+              "kind": "abs",
+              "items": [
+                {
+                  "kind": "img",
+                  "ref": "forbes/21b",
+                  "fit": "cover",
+                  "x": 50,
+                  "y": 0,
+                  "w": 50,
+                  "h": 50
+                }
+              ]
+            }
+          },
+          {
+            "t": "full",
+            "img": {
+              "kind": "img",
+              "ref": "forbes/22",
+              "fit": "cover"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "slug": "duhat",
+      "hidden": true,
+      "index": "",
+      "title": "Duhat",
+      "client": "Vingroup · Duhat",
+      "year": 2026,
+      "live": true,
+      "page": {
+        "title": "Duhat",
+        "blocks": [
+          {
+            "t": "hero",
+            "img": "duhat/hero-still",
+            "loop": "duhat/phone",
+            "aspect": 2.224
+          },
+          {
+            "t": "full",
+            "aspect": 1.7778,
+            "img": {
+              "kind": "img",
+              "ref": "duhat/hero",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "loop",
+                "ref": "duhat/hands",
+                "aspect": 1.78
+              }
+            ],
+            "width": 37,
+            "pad": 60
+          },
+          {
+            "t": "text",
+            "label": "THE CIRCLE",
+            "text": "           Connection, community, family, friends, work.",
+            "pad": 58,
+            "hvh": 25
+          },
+          {
+            "t": "full",
+            "aspect": 1.7906,
+            "img": {
+              "kind": "loop",
+              "ref": "duhat/ring",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "text",
+            "label": "ABOUT",
+            "text": "            Every relationship is a circle. Family, friendship, love. We say “vòng tròn” for a reason.\nEach person is their own circle: whole, but not the same.",
+            "hvh": 50
+          },
+          {
+            "t": "text",
+            "label": "QUESTION",
+            "text": "           How do we make The Circle ours? Circles are universal. Every platform uses them: avatars, bubbles, rings, dots. A circle belongs to everyone and no one.",
+            "pad": 58
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "duhat/couple",
+                "aspect": 1.4473
+              }
+            ],
+            "width": 78,
+            "pad": 60
+          },
+          {
+            "t": "text",
+            "label": "THE IDEA",
+            "text": "           Bỏ dấu cho tròn.",
+            "pad": 58,
+            "hvh": 25
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "loop",
+                "ref": "duhat/girl",
+                "aspect": 1.3333
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/ring-o",
+                "aspect": 1.0196
+              }
+            ],
+            "width": 100
+          },
+          {
+            "t": "full",
+            "aspect": 1.7778,
+            "img": {
+              "kind": "img",
+              "ref": "duhat/words",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "text",
+            "label": "INSIGHT",
+            "text": "           Vietnamese is the only major language where a single stroke changes meaning entirely. The mark is the soul of the word. Without it, the word is empty."
+          },
+          {
+            "t": "full",
+            "aspect": 1.7778,
+            "img": {
+              "kind": "loop",
+              "ref": "duhat/s6",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "text",
+            "label": "BỎ DẤU CHO TRÒN",
+            "text": "           To give the dấu to the circle: to give meaning and fulfill.",
+            "pad": 58,
+            "hvh": 25
+          },
+          {
+            "t": "details",
+            "title": [
+              "Duhat",
+              "Art Direction"
+            ],
+            "heading": "Project Details",
+            "rows": [
+              [
+                "Client",
+                [
+                  "Vingroup",
+                  "Duhat"
+                ]
+              ],
+              [
+                "Year",
+                [
+                  "2026"
+                ]
+              ],
+              [
+                "Role",
+                [
+                  "Art Director"
+                ]
+              ]
+            ],
+            "body": "Duhat is an art treatment for a visual identity built from the Vietnamese diacritic, the “dấu”, and the circle.\nEvery tone becomes a gesture and a pattern: a shape you perform on content, so each conversation draws a circle of its own.\nThe treatment covers the tone circles, the way two circles overlap into a co-authored pattern, adaptive type, brand artifacts and motion."
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "duhat/t-nga",
+                "aspect": 1.7778,
+                "cap": "ngã",
+                "capColor": "#fff"
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/t-ngang",
+                "aspect": 1.7778,
+                "cap": "ngang",
+                "capColor": "#111"
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/t-sac",
+                "aspect": 1.7778,
+                "cap": "sắc",
+                "capColor": "#111"
+              }
+            ]
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "duhat/t-huyen",
+                "aspect": 1.7778,
+                "cap": "huyền",
+                "capColor": "#fff"
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/t-nang",
+                "aspect": 1.7778,
+                "cap": "nặng",
+                "capColor": "#111"
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/t-hoi",
+                "aspect": 1.7778,
+                "cap": "hỏi",
+                "capColor": "#fff"
+              }
+            ]
+          },
+          {
+            "t": "full",
+            "aspect": 1.7778,
+            "img": {
+              "kind": "img",
+              "ref": "duhat/pattern",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "full",
+            "aspect": 1.7778,
+            "img": {
+              "kind": "img",
+              "ref": "duhat/circles",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "text",
+            "label": "TWO CIRCLES, ONE SPACE",
+            "text": "           When two people mark the same content, their toned circles overlap. The intersection is co-authored: infinite possibility for combination, an evolving, ever-changing pattern system.",
+            "pad": 58
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "duhat/phone-a",
+                "aspect": 1.3353
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/phone-b",
+                "aspect": 0.8
+              }
+            ]
+          },
+          {
+            "t": "full",
+            "aspect": 1.7778,
+            "img": {
+              "kind": "img",
+              "ref": "duhat/breath",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "loop",
+                "ref": "duhat/breath-loop",
+                "aspect": 1
+              }
+            ],
+            "width": 40,
+            "pad": 60
+          },
+          {
+            "t": "text",
+            "label": "THE VISUAL BREATH",
+            "text": "           The visual breathes and changes with the context and the behavior of the user.",
+            "pad": 58,
+            "hvh": 25
+          },
+          {
+            "t": "text",
+            "label": "NOT JUST AN IMAGE",
+            "text": "           Each dấu isn’t just a visual shape, it’s a gesture you perform on content. The same stroke that gives the circle its form also triggers the platform action.",
+            "pad": 58
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "loop",
+                "ref": "duhat/gesture",
+                "aspect": 1.3353
+              }
+            ],
+            "width": 75,
+            "pad": 60
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "duhat/m-sac",
+                "aspect": 1.156,
+                "wpx": 300
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/g-sac",
+                "aspect": 1.4806,
+                "wpx": 560,
+                "cap": "sắc: Pinned, highlighted, amplified.",
+                "capColor": "#111"
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/b-sac",
+                "aspect": 1.8186,
+                "wpx": 411
+              }
+            ],
+            "bg": "#fbfbf2",
+            "gap": 90,
+            "pad": 50
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "duhat/m-huyen",
+                "aspect": 1.3706,
+                "wpx": 300
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/g-huyen",
+                "aspect": 1.4875,
+                "wpx": 560,
+                "cap": "huyền: Encrypted, hidden, view-once.",
+                "capColor": "#111"
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/b-huyen",
+                "aspect": 1.8186,
+                "wpx": 411
+              }
+            ],
+            "bg": "#fbfbf2",
+            "gap": 90,
+            "pad": 50
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "duhat/m-nang",
+                "aspect": 0.8397,
+                "wpx": 210
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/g-nang",
+                "aspect": 0.9496,
+                "wpx": 560,
+                "cap": "nặng: Becomes a reminder, a task, a commitment.",
+                "capColor": "#111"
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/b-nang",
+                "aspect": 1.8186,
+                "wpx": 411
+              }
+            ],
+            "bg": "#fbfbf2",
+            "gap": 90,
+            "pad": 50
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "duhat/m-nga",
+                "aspect": 1.8833,
+                "wpx": 330
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/g-nga",
+                "aspect": 0.9074,
+                "wpx": 560,
+                "cap": "ngã: Sharing, content ripples to your circles.",
+                "capColor": "#111"
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/b-nga",
+                "aspect": 1.8186,
+                "wpx": 411
+              }
+            ],
+            "bg": "#fbfbf2",
+            "gap": 90,
+            "pad": 50
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "duhat/m-hoi",
+                "aspect": 0.6967,
+                "wpx": 190
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/g-hoi",
+                "aspect": 1,
+                "wpx": 560,
+                "cap": "hỏi: To ask, enquire, AI assistant.",
+                "capColor": "#111"
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/b-hoi",
+                "aspect": 1.8186,
+                "wpx": 411
+              }
+            ],
+            "bg": "#fbfbf2",
+            "gap": 90,
+            "pad": 50
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "duhat/key-stack",
+                "aspect": 0.5628
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/key",
+                "aspect": 1
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/keychain",
+                "aspect": 0.5714
+              }
+            ]
+          },
+          {
+            "t": "text",
+            "label": "BRAND ARTIFACTS",
+            "text": "           The tone keys and the vinyl.",
+            "pad": 58,
+            "hvh": 25
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "duhat/vinyl",
+                "aspect": 1.5092
+              }
+            ],
+            "width": 66,
+            "pad": 60
+          },
+          {
+            "t": "text",
+            "label": "VISUAL CUE INSPO",
+            "text": "           We visualize the voice of people through a combination of word and circles: sound waves forming circles, ripples that share the voice. The octaves can be replaced by words and characters.",
+            "pad": 58
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "loop",
+                "ref": "duhat/cue-a",
+                "aspect": 1
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/cue-img",
+                "aspect": 1.7778
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/cue-b",
+                "aspect": 1
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/cue-c",
+                "aspect": 0.7509
+              }
+            ]
+          },
+          {
+            "t": "text",
+            "label": "MOODBOARD",
+            "text": "           ",
+            "pad": 58,
+            "hvh": 15
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "loop",
+                "ref": "duhat/mood-c",
+                "aspect": 1.7778
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/mood-g",
+                "aspect": 1.7797
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/mood-a",
+                "aspect": 1
+              }
+            ]
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "loop",
+                "ref": "duhat/mood-d",
+                "aspect": 1.7778
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/mood-b",
+                "aspect": 0.8
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/mood-f",
+                "aspect": 1.6333
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/mood-e",
+                "aspect": 1
+              }
+            ]
+          },
+          {
+            "t": "text",
+            "label": "ADAPTIVE TEXT",
+            "text": "           The text beside forms a circle on its own, reacting to the tone of voice and changing shape and size.",
+            "pad": 58
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "loop",
+                "ref": "duhat/adapt-a",
+                "aspect": 1.8824
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/adapt-c",
+                "aspect": 1.7778,
+                "wpx": 512
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/adapt-d",
+                "aspect": 1.8824
+              }
+            ]
+          },
+          {
+            "t": "text",
+            "label": "ADAPTIVE TEXT",
+            "text": "           Another layer of customization differentiates the circles: the typeface. Serif for trusted, business circles. Sans-serif for daily conversation. Decorative display for expressive circles.",
+            "pad": 58
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "duhat/adapt-b",
+                "aspect": 0.9828
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/type-a",
+                "aspect": 1.0309
+              },
+              {
+                "kind": "img",
+                "ref": "duhat/type-b",
+                "aspect": 1
+              }
+            ]
+          },
+          {
+            "t": "text",
+            "label": "OVERLAPPING CIRCLE BEHAVIOR",
+            "text": "           Cassette, back and forth, conversing. Circles as gears in a clockwork: sometimes they just click and grind smoothly.",
+            "pad": 58
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "loop",
+                "ref": "duhat/gear-a",
+                "aspect": 0.5625
+              },
+              {
+                "kind": "loop",
+                "ref": "duhat/gear-b",
+                "aspect": 0.5625
+              }
+            ],
+            "width": 60,
+            "pad": 60
+          }
+        ]
+      }
+    },
+    {
+      "slug": "nam-long",
+      "hidden": true,
+      "index": "",
+      "title": "Nam Long",
+      "client": "Nam Long",
+      "year": 2024,
+      "live": true,
+      "page": {
+        "title": "Nam Long",
+        "blocks": [
+          {
+            "t": "hero",
+            "img": "nam-long/hero",
+            "parallax": {
+              "y": 0.25,
+              "s": 1,
+              "ds": 1,
+              "k": 0.0492
+            },
+            "aspect": 1.7778
+          },
+          {
+            "t": "text",
+            "label": "ABOUT",
+            "text": "            Estates of Evergrowing Values. Vững gốc, vượt thời.\nFor 30 years Nam Long has built affordable homes for Vietnamese families. Now it looks to the next generations: values that keep growing, deepening, rising and lasting.",
+            "hvh": 50
+          },
+          {
+            "t": "full",
+            "aspect": 1.7778,
+            "img": {
+              "kind": "img",
+              "ref": "nam-long/idea",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "text",
+            "label": "IDEA",
+            "text": "           Vững gốc, vượt thời: rooted, and lasting beyond time.",
+            "pad": 58,
+            "hvh": 25
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "nam-long/story",
+                "aspect": 1.3333
+              }
+            ],
+            "width": 60,
+            "pad": 60
+          },
+          {
+            "t": "text",
+            "label": "BAMBOO",
+            "text": "           Bamboo: slatted, layered, lit.",
+            "pad": 58,
+            "hvh": 25
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "nam-long/s63a",
+                "aspect": 0.6667
+              },
+              {
+                "kind": "img",
+                "ref": "nam-long/s63b",
+                "aspect": 0.6667
+              },
+              {
+                "kind": "img",
+                "ref": "nam-long/s63c",
+                "aspect": 0.6651
+              }
+            ],
+            "gap": 12,
+            "bg": "#7a1d1a",
+            "pad": 40
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "nam-long/sl-a",
+                "aspect": 0.7497
+              },
+              {
+                "kind": "img",
+                "ref": "nam-long/sl-b",
+                "aspect": 0.7717
+              },
+              {
+                "kind": "img",
+                "ref": "nam-long/sl-c",
+                "aspect": 0.7955
+              },
+              {
+                "kind": "img",
+                "ref": "nam-long/sl-d",
+                "aspect": 0.6885
+              }
+            ],
+            "gap": 12,
+            "bg": "#7a1d1a",
+            "pad": 40
+          },
+          {
+            "t": "text",
+            "label": "SYMBOL",
+            "text": "           A symbol drawn from the bamboo groves of Vietnam and joined with the letter “N”: strong and resilient, bound together as a rampart; growing strongly, never ceasing to multiply.",
+            "pad": 58
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "nam-long/n-mark",
+                "aspect": 0.8601
+              },
+              {
+                "kind": "img",
+                "ref": "nam-long/n-white",
+                "aspect": 1
+              },
+              {
+                "kind": "img",
+                "ref": "nam-long/luy",
+                "aspect": 0.5698
+              }
+            ],
+            "bg": "#7a1d1a",
+            "width": 70,
+            "gap": 40,
+            "pad": 70
+          },
+          {
+            "t": "full",
+            "aspect": 1.7762,
+            "img": {
+              "kind": "img",
+              "ref": "nam-long/system",
+              "fit": "cover"
+            },
+            "bg": "#7a1d1a"
+          },
+          {
+            "t": "full",
+            "aspect": 1.7778,
+            "img": {
+              "kind": "loop",
+              "ref": "nam-long/bamboo",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "details",
+            "title": [
+              "Nam Long",
+              "Brand Reboot"
+            ],
+            "heading": "Project Details",
+            "rows": [
+              [
+                "Client",
+                [
+                  "Nam Long"
+                ]
+              ],
+              [
+                "Year",
+                [
+                  "2024"
+                ]
+              ],
+              [
+                "Role",
+                [
+                  "Art Director"
+                ]
+              ]
+            ],
+            "body": "Nam Long Brand Reboot is a repositioning proposal: a campaign idea, “Estates of Evergrowing Values”, and the visual system that carries it.\nThe system grows from the bamboo grove and the letter N, a pattern and an icon that run across print, stage, film and social.\nPresented as an art treatment: the key visual, the layout system and how the idea would live in the activations."
+          },
+          {
+            "t": "text",
+            "label": "ACTIVATIONS",
+            "text": "           One idea, many executions: a CSR fund, a scholarship, an architecture award and a concert, each wearing the same bamboo.",
+            "pad": 58,
+            "hvh": 25
+          },
+          {
+            "t": "full",
+            "aspect": 1.7778,
+            "img": {
+              "kind": "img",
+              "ref": "nam-long/fund",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "full",
+            "aspect": 1.7778,
+            "img": {
+              "kind": "img",
+              "ref": "nam-long/billboard",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "full",
+            "aspect": 1.7778,
+            "img": {
+              "kind": "img",
+              "ref": "nam-long/booklet",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "row",
+            "items": [
+              {
+                "kind": "img",
+                "ref": "nam-long/award",
+                "aspect": 0.9863
+              },
+              {
+                "kind": "img",
+                "ref": "nam-long/magazine",
+                "aspect": 1.5004
+              }
+            ],
+            "width": 90,
+            "pad": 60
+          },
+          {
+            "t": "full",
+            "aspect": 1.7778,
+            "img": {
+              "kind": "loop",
+              "ref": "nam-long/trophy",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "full",
+            "aspect": 1.9453,
+            "img": {
+              "kind": "img",
+              "ref": "nam-long/stage-a",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "full",
+            "aspect": 1.8021,
+            "img": {
+              "kind": "img",
+              "ref": "nam-long/stage-b",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "full",
+            "aspect": 1.7778,
+            "img": {
+              "kind": "img",
+              "ref": "nam-long/social-a",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "full",
+            "aspect": 2.4199,
+            "img": {
+              "kind": "img",
+              "ref": "nam-long/social-b",
+              "fit": "cover"
+            }
+          },
+          {
+            "t": "full",
+            "aspect": 1.7789,
+            "img": {
+              "kind": "img",
+              "ref": "nam-long/closing",
+              "fit": "cover"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "moreProjects": {
+    "label": "More Projects",
+    "items": [
+      {
+        "name": "Nam Long",
+        "slug": "nam-long",
+        "image": "/media/nam-long/hero-1600.webp"
+      },
+      {
+        "name": "Duhat",
+        "slug": "duhat",
+        "image": "/media/duhat/hero-1600.webp"
+      },
+      {
+        "name": "Forbes Vanguard",
+        "slug": "forbes",
+        "image": "/media/spawner/spawn-06.jpg"
+      },
+      {
+        "name": "Techcombank Priority",
+        "slug": "tcb-priority",
+        "image": "/media/home/more-projects-tcb.jpg"
+      },
+      {
+        "name": "Sulwhasoo",
+        "slug": "sulwhasoo",
+        "image": "/media/selected-work/card-img-11.jpg"
+      },
+      {
+        "name": "Similac Virgo 2024",
+        "slug": "similac",
+        "image": "/media/captions/caption-4.jpg"
+      },
+      {
+        "name": "Bitis Season 09",
+        "slug": "bitis09",
+        "image": "/media/home/billboard-small.jpg"
+      }
+    ],
+    "more": {
+      "name": "See more work",
+      "href": "/work/"
+    }
+  },
+  "footer": {
+    "topLabel": "Go Back To Top"
+  },
+  "contact": {
+    "headline": "Say hello",
+    "email": "",
+    "copied": "Copied",
+    "openMail": "Open mail",
+    "close": "Close",
+    "backCard": { "image": "", "video": "" },
+    "items": [
+      {
+        "kind": "email",
+        "label": "Drop me a line"
+      },
+      {
+        "kind": "text",
+        "label": "Based in",
+        "text": "Ho Chi Minh City, Vietnam"
+      },
+      {
+        "kind": "links",
+        "label": "Elsewhere"
+      },
+      {
+        "kind": "text",
+        "label": "Available for",
+        "text": "Art direction, campaigns, freelance"
+      }
+    ],
+    "links": [
+      {
+        "name": "Instagram",
+        "url": ""
+      },
+      {
+        "name": "LinkedIn",
+        "url": ""
+      },
+      {
+        "name": "Behance",
+        "url": ""
+      }
+    ]
+  }
+}
