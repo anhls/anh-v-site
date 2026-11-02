@@ -1,3 +1,4 @@
+import { viewW } from '../util/viewport.js';
 // Lite title only: the desktop smear renderer and timing, with phone/tablet type.
 import '../styles/tall-work.css';
 import { createSmear } from '../effects/text-fx/smear.js';
@@ -40,7 +41,7 @@ export function createLiteTitle({ app, projects, reduced, rest }) {
       const m = measure.measureText(text), asc = m.fontBoundingBoxAscent ?? size * .9, desc = m.fontBoundingBoxDescent ?? size * .25, tw = m.width + (WORK_TITLE.tracking || 0) * size * text.length;
       const top = innerHeight / 2 - size / 2;
       return { el, text, size, weight: WORK_TITLE.weight, family, color, tracking: WORK_TITLE.tracking,
-        x: (innerWidth - tw) / 2, baseline: top + (size - asc - desc) / 2 + asc, top };
+        x: (viewW() / 2) - tw / 2, /* the card's centre = the strip's centre (the same width) */ baseline: top + (size - asc - desc) / 2 + asc, top };
     });
     if (shown >= 0) setTitle(shown);
     el.style.visibility = ''; el.style.opacity = String(opacity);

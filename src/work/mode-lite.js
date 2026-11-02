@@ -1,3 +1,4 @@
+import { viewW } from '../util/viewport.js';
 import { WORK, TALL, TRANSITION_POLICY_LITE, wmHomeWork } from '../timeline.js';
 import { perfOn } from '../util/perf-mark.js';
 import { initNav } from '../effects/nav.js';
@@ -59,7 +60,7 @@ export function createMode({tall}) {
     const fk = parseFloat(params.get('fk')); if (Number.isFinite(fk)) { TALL.flingKnee = fk; overrides.fk = fk; }
     const wr = parseFloat(params.get('wr')); if (Number.isFinite(wr)) { TALL.frameWarp.riseSec = wr; overrides.wr = wr; }
   }
-  const cardsMax = strip.cardsMaxFor(kind, innerWidth, innerHeight), noCards = cardsMax <= 0;
+  const cardsMax = strip.cardsMaxFor(kind, viewW(), innerHeight), noCards = cardsMax <= 0;
   const warpSpeed = (v, along) => { const vn = (v * TALL.warpRefPx) / Math.max(along, 1), r = (Math.abs(vn) * TALL.warpGain) / TALL.warpVRef; return Math.sign(vn) * TALL.warpVRef * r ** TALL.warpPow; };
   return {
     tap, transitionPolicy: TRANSITION_POLICY_LITE, // R41: read by the core / engine in Part B

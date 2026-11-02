@@ -1,3 +1,4 @@
+import { viewW } from '../util/viewport.js';
 // Shared strip engine. Mode interface (selected once, no rotation switching):
 // values: geometry, v2, noCards, layouts, showToggle, allowPointer, applyFocus,
 // rendererOptions, dragSamples, validateStored, diagnosticKind, debugSettings, overrides.
@@ -145,14 +146,14 @@ await mode.earlyNav(data.hero.wordmark, lenis);
 // ---- items: the N frames first, then every project's cards (the same objects in both layouts)
 const projCards = mode.cards(pool, slugs);
 const LD = modeLayouts || layoutsData;
-const metricsNow = () => (mode.metrics(innerWidth, innerHeight));
-const pickNow = () => (mode.pick(LD, innerWidth, innerHeight));
+const metricsNow = () => (mode.metrics(viewW(), innerHeight));
+const pickNow = () => (mode.pick(LD, viewW(), innerHeight));
 // R29: the card positions and dark flags come from src/data/layouts.json (tools/layout-solve.mjs, verified by the build gate): no layout work at load. A project
 // without a stored layout (or rule numbers changed in ?tune) goes through the old fix pass, with a warning. (No cards: nothing to place or check.)
 const storedFlags = noCards || (applyStoredDark(LD, projCards) && LD.signature === (mode.signature()));
 let storedOK = noCards || (storedFlags && !!pickNow());
 if (storedOK && mode.validateStored && !noCards && import.meta.env.DEV) { // dev: the stored layout must still describe these cards (the gate checks this for every build)
-  const pk = pickSize(layoutsData, innerWidth, innerHeight), Mx = workMetrics(innerWidth, innerHeight, capW() / 1920);
+  const pk = pickSize(layoutsData, viewW(), innerHeight), Mx = workMetrics(viewW(), innerHeight, capW() / 1920);
   if (pk.exact) for (const mode of ['side', 'vertical']) projCards.forEach((l) => { if (layoutsData.work[pk.key][mode][l[0].slug]?.hash !== projectHash(l, Mx[mode])) storedOK = false; });
 }
 if (!storedOK) {
@@ -182,7 +183,7 @@ items.forEach((it, i) => {
 
 // ---- cached numbers
 const bx = new Float64Array(n), by = new Float64Array(n), bw = new Float64Array(n), bh = new Float64Array(n);
-let W = innerWidth, H = innerHeight, scale = 1;
+let W = viewW(), H = innerHeight, scale = 1;
 const LAY = { side: null, vertical: null }; // { M, pitch, period, pos[] (per item: along (from project 0's frame centre), cross) }
 const vis = new Uint8Array(n); // item shown (DOM visibility)
 const px = new Float64Array(n), py = new Float64Array(n); // base centres of this frame (before the focus, the drift and the hover)
@@ -200,7 +201,7 @@ let fine = false;
 let laidOnce = false;
 const pageMode = mode;
 const layouts = () => {
-  W = innerWidth; H = innerHeight; scale = mode.scale(W, H);
+  W = viewW(); H = innerHeight; scale = mode.scale(W, H);
   let {w: fw, h: fh} = mode.frame(W, H);
   if (laidOnce && !storedOK) fixWorkLayout(projCards, metricsNow(), { structural: false }); // fallback only, a resize: nudges only (the card set stays)
   laidOnce = true;
@@ -676,7 +677,7 @@ swap.attach({
     gsap.ticker.add(lenisStep); gsap.ticker.add(tick);
     paused = false;
     pm('back:resume-lenis');
-    if (innerWidth !== W || innerHeight !== H) { relayout(); pm('back:resume-relayout'); }
+    if (viewW() !== W || innerHeight !== H) { relayout(); pm('back:resume-relayout'); }
     const fi = frameOf(slug), q = fi >= 0 ? items[fi].proj : 0;
     // R42b: the strip comes back at its FINAL RESTING place for this project (centred, the place the soft snap would settle on), not at the raw mid-scroll
     // value it was opened from: the flight then aims at the card where it will really be (a project opened mid-scroll / mid-snap used to cross-fade)
@@ -1130,3 +1131,4 @@ if (import.meta.env.DEV) {
 }
 
 
+if (new URLSearchParams(location.search).get('debug') === 'layout') import('./debug-layout.js').then((m) => m.mountLayoutDebug()); // R48 r7: for Anh's phone

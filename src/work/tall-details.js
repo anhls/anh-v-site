@@ -7,7 +7,8 @@
 import '../styles/tall-work.css';
 import { projectInfo } from './v2-ui.js';
 import { TALL_DETAILS as D } from '../settings/tall.js';
-import { WORK_COUNTER } from '../timeline.js';
+import { WORK_COUNTER, WORK_LINE, TALL } from '../timeline.js';
+import { viewW } from '../util/viewport.js';
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const pad = (n) => String(n).padStart(2, '0');
@@ -17,6 +18,7 @@ export function createTallDetails({ projects, reduced, title }) {
   const infos = projects.map((p) => projectInfo(p));
   const root = document.createElement('div'); root.className = 'td'; root.setAttribute('aria-hidden', 'true');
   root.innerHTML = `
+    <div class="td__line"><div class="td__lines"></div></div>
     <div class="td__row">
       <div class="td__year td__col"></div>
       <div class="td__tags td__col"></div>
@@ -27,6 +29,18 @@ export function createTallDetails({ projects, reduced, title }) {
   const row = root.querySelector('.td__row'), numEl = front.querySelector('.td__num'), totalEl = front.querySelector('.td__total'), counterEl = front.querySelector('.td__counter');
   const yearEl = root.querySelector('.td__year'), tagsEl = root.querySelector('.td__tags'), srEl = root.querySelector('.td__sr');
   let shown = -1, state = 'out', fw = 0, fh = 0;
+  // ---- R48 r7: the thin line (the desktop scroll line / ruler): full width, behind the cards, one line per card at its top edge + lineInset, travelling with the strip (eased after it like the desktop, WORK_LINE).
+  const linesEl = root.querySelector('.td__lines');
+  let lineP = NaN, linePitch = 0, lineBase = 0, lineLastY = NaN, lineOp = NaN;
+  const setLine = (dt, pos) => {
+    if (!linePitch) return;
+    if (Number.isNaN(lineP)) lineP = pos; else if (reduced) lineP = pos; else lineP += (pos - lineP) * (1 - Math.exp((-dt * 3) / Math.max(WORK_LINE.scrollLineFollowSec, 0.05)));
+    if (Math.abs(pos - lineP) < 0.0005) lineP = pos;
+    const y = (((lineBase - lineP * linePitch) % linePitch) + linePitch) % linePitch;
+    if (Math.abs(y - lineLastY) > 0.05 || Number.isNaN(lineLastY)) { lineLastY = y; linesEl.style.transform = `translate3d(0,${(y - linePitch).toFixed(2)}px,0)`; }
+    const op = WORK_LINE.scrollLineOn ? WORK_LINE.scrollLineOpacity : 0;
+    if (op !== lineOp) { lineOp = op; linesEl.style.opacity = String(op); }
+  };
 
   // ---- counter: the desktop drum (v2-ui.js): two slots, each a drum of the digits 0-9 three times + a two-face column for the wrap step
   const slots = [...front.querySelectorAll('.td__slot')].map((slot) => { const [drum, wrapc] = slot.querySelectorAll('.td__drum'); drum.innerHTML = Array.from({ length: 30 }, (_, i) => `<span>${i % 10}</span>`).join(''); wrapc.innerHTML = '<span></span><span></span>'; return { slot, drum, wrapc, last: NaN, wrapKey: '', wrapShown: false }; });
@@ -116,7 +130,8 @@ export function createTallDetails({ projects, reduced, title }) {
   };
   const layout = (w, h) => {
     fw = w; fh = h;
-    const W = innerWidth, H = innerHeight, L = (W - w) / 2, cardTop = H / 2 - h / 2, cardBottom = H / 2 + h / 2, vw = (n) => (n * W) / 100;
+    const W = viewW(), H = innerHeight, L = (W - w) / 2, cardTop = H / 2 - h / 2, cardBottom = H / 2 + h / 2, vw = (n) => (n * W) / 100;
+    { const gap = TALL.gapV * h; linePitch = h + gap; lineBase = cardTop + vw(D.lineInsetVw); const n = Math.ceil(H / linePitch) + 3; if (linesEl.children.length !== n) linesEl.innerHTML = '<i></i>'.repeat(n); [...linesEl.children].forEach((e, i) => { e.style.transform = `translate3d(0,${(i * linePitch).toFixed(2)}px,0)`; }); lineLastY = NaN; }
     const csN = getComputedStyle(numEl), fam = csN.fontFamily, wt = csN.fontWeight;
     if (document.fonts?.load && !layout.asked) { layout.asked = true; const csT0 = getComputedStyle(totalEl), csY0 = getComputedStyle(yearEl); Promise.all([`${wt} 100px ${fam}`, `${csT0.fontWeight} 12px ${csT0.fontFamily}`, `${csY0.fontWeight} 12px ${csY0.fontFamily}`].map((ff) => document.fonts.load(ff, '0123456789/H').catch(() => {}))).then(again); }
     // the big number: the font size is fitted so that the ink of "0" (top to bottom) is numCapVw tall
@@ -160,7 +175,7 @@ export function createTallDetails({ projects, reduced, title }) {
     frame(s) {
       if (!fw) return;
       if (s.transitioning) return;
-      setCounter(s.dt, s.kNum, s.stopped);
+      setCounter(s.dt, s.kNum, s.stopped); setLine(s.dt, s.pos);
       const now = performance.now();
       if (!s.stopped) leave();
       else {

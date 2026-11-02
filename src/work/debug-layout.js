@@ -1,0 +1,19 @@
+// R48 r7: ?debug=layout on the phone Work page: an on-screen readout of every width the page can use, the card rect and the title rect (for a real iPhone: card gap left = right, title centre = card centre).
+export function mountLayoutDebug() {
+  const box = document.createElement('pre');
+  box.style.cssText = 'position:fixed;left:4px;right:4px;bottom:4px;z-index:99999;margin:0;padding:6px 8px;background:rgba(0,0,0,.78);color:#9f9;font:10px/1.35 ui-monospace,Menlo,monospace;pointer-events:none;white-space:pre-wrap';
+  document.body.append(box);
+  const r = (n) => (Math.round(n * 10) / 10);
+  const tick = () => {
+    const de = document.documentElement, vv = window.visualViewport, cv = document.querySelector('canvas.sw__gl') || document.querySelector('.work canvas'), cr = cv?.getBoundingClientRect();
+    let card = null; for (const a of document.querySelectorAll('a.work__frame')) { const q = a.getBoundingClientRect(); const d = Math.abs(q.y + q.height / 2 - innerHeight / 2); if (!card || d < card.d) card = { d, x: q.x, w: q.width, y: q.y, h: q.height }; }
+    const t = document.querySelector('.lite-title__text')?.getBoundingClientRect();
+    box.textContent = [
+      `innerWidth ${innerWidth}  clientWidth ${de.clientWidth}  vv.width ${vv ? r(vv.width) : '-'}  vv.scale ${vv ? r(vv.scale) : '-'}  dpr ${devicePixelRatio}`,
+      `canvas css ${cv ? cv.style.width : '-'}  rect x ${cr ? r(cr.x) : '-'} w ${cr ? r(cr.width) : '-'}  bitmap ${cv ? cv.width : '-'}`,
+      card ? `card x ${r(card.x)} -> ${r(card.x + card.w)}  gap L ${r(card.x)} R ${r(de.clientWidth - card.x - card.w)}  centre ${r(card.x + card.w / 2)}` : 'card -',
+      t ? `title x ${r(t.x)} -> ${r(t.x + t.width)}  centre ${r(t.x + t.width / 2)}  (card centre ${card ? r(card.x + card.w / 2) : '-'})` : 'title -',
+    ].join('\n');
+  };
+  setInterval(tick, 400); tick();
+}
