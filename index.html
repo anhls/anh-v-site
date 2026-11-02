@@ -100,6 +100,14 @@
             localStorage.removeItem('pxg'); log('home paint(): record valid, deleted, layer up');
             var f = (Date.now() - +localStorage.getItem('pxhft') < 10000 && localStorage.getItem('pxhf')) || '/media/hero/poster.webp';
             localStorage.removeItem('pxhf'); localStorage.removeItem('pxhft');
+            window.__pxgRec = r; window.__pxgFrame = f; window.__pxgAge = Date.now() - r.t; window.__pxgSrc = window.__pxgSrc || 'reload';
+            if (r.flown === false && r.rect && r.src && Math.abs(r.W - innerWidth) < 2 && Math.abs(r.H - innerHeight) < 80) {
+              /* R48 r7-8 part 4: Work was left without its own flight (Safari swipe / Back): the FIRST frame is the flight's first frame (the centred card where it stood + the small wordmark); src/effects/home-leave.js growFromCard plays it */
+              document.documentElement.classList.add('pxg-on');
+              var q = r.rect, wmh = r.wm && r.wmSrc ? '<img id="pxg-wm" alt="" src="' + r.wmSrc + '" style="position:fixed;z-index:9;left:' + r.wm[0] + 'px;top:' + r.wm[1] + 'px;width:' + r.wm[2] + 'px;height:' + r.wm[3] + 'px;display:block">' : '';
+              document.body.insertAdjacentHTML('afterbegin', '<div id="pxg" data-card="1" aria-hidden="true" style="position:fixed;inset:0;z-index:8;background:var(--bg);overflow:hidden"><img id="pxg-card" alt="" decoding="sync" src="' + r.src + '" style="position:absolute;left:' + q[0] + 'px;top:' + q[1] + 'px;width:' + q[2] + 'px;height:' + q[3] + 'px;object-fit:cover;display:block"></div>' + wmh);
+              return;
+            }
             document.documentElement.classList.add('pxg-on');
             document.body.insertAdjacentHTML('afterbegin', '<div id="pxg" aria-hidden="true" style="position:fixed;inset:0;z-index:8;background:var(--bg);overflow:hidden"><img alt="" decoding="sync" src="' + f + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block"></div>');
           } catch (e) {}
