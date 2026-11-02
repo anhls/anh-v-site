@@ -12,6 +12,7 @@ import data from '../data/data.json';
 import { SCROLL } from '../timeline.js';
 import { installScrollGain } from '../util/scroll-gain.js';
 import { modal } from '../util/modal.js';
+import { loopSync } from '../util/loop-sync.js';
 import { initNav } from '../effects/nav.js';
 import { buildFooter } from '../sections/footer.js';
 import { createDesktopNav, buildDesktopProject } from './desktop.js';
@@ -102,6 +103,7 @@ export function createProjectView({ slug, tall, onBack }) {
     prime() { while (!api.primeStep()) { /* all sections */ } },
     headerReady() {
       const hi = api.heroImg;
+      { const hv = api.heroEl?.querySelector('video[data-ref]'), st = hv && loopSync.still(hv.dataset.ref); if (st && hi && hi.src !== st.src) { hi.removeAttribute('srcset'); hi.src = st.src; } } // R47: the header shows the card's frame until its own loop plays
       if (!hi) return Promise.resolve();
       if (hi.complete && hi.naturalWidth) return hi.decode().catch(() => {});
       return new Promise((r) => { hi.addEventListener('load', () => hi.decode().then(r, r), { once: true }); hi.addEventListener('error', r, { once: true }); });

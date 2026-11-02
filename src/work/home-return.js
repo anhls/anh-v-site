@@ -37,12 +37,22 @@ export function initHomeReturn({ items, px, py, bw, bh, touch, rectOf, fadeEls, 
       // R45b round 2: ready = the strip's renderer DREW the first card's texture + 2 frames (firstReady in core.js), not just 'the image decoded'. The layer never covers touches (pointer-events none), so a tap /
       // drag that arrives while the strip is still coming up reaches the page's own handlers (the strip is live as soon as its code runs); the layer stays until the strip drew (10 s cap, then it goes anyway).
       ov.style.pointerEvents = 'none';
+      // R47 fix 5 (Anh 21:11, "ghosting when I scroll right away"): the layer is a still of the strip AT REST. As soon as the visitor scrolls / drags / taps / presses a key, that still is wrong:
+      // once the strip has drawn, the layer goes at once (no 0.35 s fade over a moving strip); input before that only marks it, and the layer then goes at once instead of fading.
+      const tt0 = () => document.getElementById('pxh-title');
+      let ready = false, input = false, gone = false;
+      const INPUTS = ['wheel', 'pointerdown', 'touchstart', 'keydown'];
+      const drop = () => { if (gone) return; gone = true; gsap.killTweensOf([ov, tt0()].filter(Boolean)); ov.remove(); tt0()?.remove(); INPUTS.forEach((t) => removeEventListener(t, onInput, true)); dbg('work layer: removed at once (input)'); };
+      const onInput = () => { input = true; if (ready) drop(); };
+      INPUTS.forEach((t) => addEventListener(t, onInput, { capture: true, passive: true }));
       let slow = false;
       while (!firstReady() && performance.now() - t0 < 10000) { await new Promise((r) => requestAnimationFrame(r)); if (!slow && performance.now() - t0 > 2500) { slow = true; dbg('work layer: strip still not drawn 2.5 s after activation, layer kept'); } }
       for (let i = 0; i < 2; i++) await new Promise((r) => requestAnimationFrame(r));
       try { window.__r45vt?.skipTransition(); } catch { /* */ } // round 5: release the held homepage frame now that the live strip is on screen
       pm('home:land-strip-ready'); dbg('work layer: strip ready', firstReady(), 'after', Math.round(performance.now() - t0), 'ms since activation; fading the layer');
-      const tt = document.getElementById('pxh-title'); gsap.to(tt ? [ov, tt] : ov, { opacity: 0, duration: F.landFadeSec, ease: 'sine.inOut', onComplete: () => { ov.remove(); tt?.remove(); } });
+      ready = true;
+      if (input) { drop(); return; }
+      const tt = tt0(); gsap.to(tt ? [ov, tt] : ov, { opacity: 0, duration: F.landFadeSec, ease: 'sine.inOut', onComplete: () => { if (gone) return; gone = true; ov.remove(); tt?.remove(); INPUTS.forEach((t) => removeEventListener(t, onInput, true)); } });
     })();
   };
   if (document.prerendering) document.addEventListener('prerenderingchange', arrive, { once: true }); else arrive();
@@ -70,13 +80,15 @@ export function initHomeReturn({ items, px, py, bw, bh, touch, rectOf, fadeEls, 
     for (const it of items) { if (it.kind !== 'frame') continue; const d = Math.hypot(px[it.idx] - innerWidth / 2, py[it.idx] - innerHeight / 2); if (d < bd) { bd = d; best = it; } }
     return best;
   };
-  const plain = () => { location.href = '/'; };
-  let navigated = false;
+  // R47 fix 4: EVERY way home leaves the return mark (fresh time) first, so the homepage never runs its loader after a visit to Work, whatever path got here (a busy page, a failed flight, a Back that did not leave)
+  const mark = () => { writeHandoff('pxg', { W: innerWidth, H: innerHeight }); if (heroSrc) writeHeroFrame(heroSrc); };
+  const plain = () => { mark(); location.href = '/'; };
+  let navigated = false, backT = 0;
+  addEventListener('pagehide', () => clearTimeout(backT)); // (a bfcache freeze must not leave the retry timer behind)
   const goHome = (viaHistory) => {
     if (navigated) return; navigated = true;
-    writeHandoff('pxg', { W: innerWidth, H: innerHeight });
-    if (heroSrc) writeHeroFrame(heroSrc); // the mark goes in BEFORE leaving, whatever the browser does with its cache: the homepage never shows its loader on a return
-    if (viaHistory) { try { history.back(); return; } catch { /* */ } }
+    mark(); // the mark goes in BEFORE leaving, whatever the browser does with its cache: the homepage never shows its loader on a return
+    if (viaHistory) { try { history.back(); clearTimeout(backT); backT = setTimeout(() => { if (document.visibilityState === 'visible' && !document.hidden) plain(); }, 1200); return; } catch { /* */ } } // (history.back() that goes nowhere - no earlier entry, a cancelled navigation - falls back to the plain link with a fresh mark)
     plain(); // a normal navigation: Chrome activates the prerendered homepage (below)
   };
 
@@ -86,7 +98,7 @@ export function initHomeReturn({ items, px, py, bw, bh, touch, rectOf, fadeEls, 
     busy = true; setBusy(true);
     try { await build(); } catch { /* plain */ }
     const it = centred();
-    if (!fl || fl.dead || !it || !it.img?.complete || !it.img.naturalWidth) { goHome(viaHistory); return; }
+    if (!fl || fl.dead || !it || !it.img || (it.img.tagName === 'VIDEO' ? !(it.img.readyState >= 2 || it.posterImg?.complete) : (!it.img.complete || !it.img.naturalWidth))) { goHome(viaHistory); return; }
     pm('home:leave-click');
     const card = rectOf ? rectOf(it.idx) : { x: px[it.idx] - bw[it.idx] / 2, y: py[it.idx] - bh[it.idx] / 2, w: bw[it.idx], h: bh[it.idx] };
     const hero = { x: 0, y: 0, w: innerWidth, h: innerHeight };
@@ -103,7 +115,7 @@ export function initHomeReturn({ items, px, py, bw, bh, touch, rectOf, fadeEls, 
 
   addEventListener('popstate', (e) => { if (e.state?.r45 === 'first') leave(true); });
   // restored from the cache with the flight still on screen (the Forward button, or a failed Back): start clean
-  addEventListener('pageshow', (e) => { if (!e.persisted) return; navigated = false; busy = false; setBusy(false); fl?.host?.remove(); fl?.dispose(); fl = null; building = null; gsap.set(fadeEls, { clearProps: 'opacity' }); nav?.drive(1); clearHandoff('pxg'); if (!off) (window.requestIdleCallback || ((f) => setTimeout(f, 600)))(() => setTimeout(build, 1200), { timeout: 4000 }); });
+  addEventListener('pageshow', (e) => { if (!e.persisted) return; clearTimeout(backT); navigated = false; busy = false; setBusy(false); fl?.host?.remove(); fl?.dispose(); fl = null; building = null; gsap.set(fadeEls, { clearProps: 'opacity' }); nav?.drive(1); clearHandoff('pxg'); if (!off) (window.requestIdleCallback || ((f) => setTimeout(f, 600)))(() => setTimeout(build, 1200), { timeout: 4000 }); });
 
   // R45b: on touch screens a swipe to the right (starting away from the edge, which stays Safari's own back) goes home like the Back button: horizontal intent = dx > 2 x |dy|
   if (swipeBack && !off) {

@@ -1,3 +1,4 @@
+import { loopSync } from '../util/loop-sync.js';
 import '../styles/tall-project.css';
 import { imgAttrs, videoInfo } from '../util/media.js';
 import { FLIGHT } from '../settings/shared.js';
@@ -23,7 +24,7 @@ const loop = (c) => {
   if (!v) return img(c.ref);
   const ar = v.w && v.h ? `aspect-ratio:${v.w} / ${v.h}` : 'aspect-ratio:4 / 3';
   if (v.alpha && SAFARI) return `<img class="tp-media" src="${v.webp}" alt="" loading="lazy" decoding="async" style="${ar}">`;
-  return `<video class="tp-media" muted loop playsinline preload="none" data-poster="${v.poster}" data-webm="${v.webm}" data-mp4="${v.mp4 || ''}" style="${ar}" aria-hidden="true"></video>`;
+  return `<video class="tp-media" muted loop playsinline preload="none" data-ref="${c.ref}" data-poster="${v.poster}" data-webm="${v.webm}" data-mp4="${v.mp4 || ''}" style="${ar}" aria-hidden="true"></video>`;
 };
 const media = (c) => (c.kind === 'loop' ? loop(c) : img(c.ref, c.alt));
 
@@ -69,7 +70,7 @@ const assemble = (pieces) => {
 };
 
 const blocks = {
-  hero: (b) => b.loop ? `<section class="tp-hero" style="height:auto;aspect-ratio:${b.aspect}">${loop({ ref: b.loop })}</section>` : `<section class="tp-hero"${b.aspect ? ` style="height:auto;aspect-ratio:${b.aspect}"` : ''}>${img(b.img, document.title.replace(/ \| Anh V$/, '')).replace('loading="lazy" decoding="async"', 'fetchpriority="high"')}</section>`,
+  hero: (b) => b.loop && !b.aspect ? `<section class="tp-hero tp-hero--card" style="position:relative">${img(b.img, document.title.replace(/ \| Anh V$/, '')).replace('loading="lazy" decoding="async"', 'fetchpriority="high"')}${loop({ ref: b.loop })}</section>` : b.loop ? `<section class="tp-hero" style="height:auto;aspect-ratio:${b.aspect}">${loop({ ref: b.loop })}</section>` : `<section class="tp-hero"${b.aspect ? ` style="height:auto;aspect-ratio:${b.aspect}"` : ''}>${img(b.img, document.title.replace(/ \| Anh V$/, '')).replace('loading="lazy" decoding="async"', 'fetchpriority="high"')}</section>`,
   text: (b) => `<section class="tp-text tp-pad tp-fade"><span class="tp-label">${esc(b.label)}</span><p class="tp-lead">${esc(b.text.trim())}</p></section>`,
   split: (b) => assemble([...piecesOfCell(b.left), ...piecesOfCell(b.right)]),
   full: (b) => assemble([...piecesOfCell(b.img), ...(b.note ? [text(b.note.body)] : [])]),
@@ -112,7 +113,7 @@ export function* buildProjectPageTallSteps(root, page, lenis) {
   const vidIo = new IntersectionObserver((es) => es.forEach((e) => {
     const v = e.target;
     if (e.isIntersecting) {
-      if (!v.dataset.ready) { v.dataset.ready = '1'; v.poster = v.dataset.poster; if (!saveData) v.src = v.dataset.webm && (v.canPlayType('video/webm; codecs="vp9"') || !v.dataset.mp4) ? v.dataset.webm : v.dataset.mp4; }
+      if (!v.dataset.ready) { v.dataset.ready = '1'; v.poster = v.dataset.poster; if (!saveData) v.src = v.dataset.webm && (v.canPlayType('video/webm; codecs="vp9"') || !v.dataset.mp4) ? v.dataset.webm : v.dataset.mp4; if (v.dataset.ref) v.addEventListener('playing', () => v.classList.add('is-playing'), { once: true }); if (v.dataset.ref) v.addEventListener('loadedmetadata', () => { const t = loopSync.startAt(v.dataset.ref, v.duration); if (t) v.currentTime = t; }, { once: true }); }
       if (!reduce && !saveData) v.play().catch(() => {});
     } else v.pause();
   }), { rootMargin: '30% 0px' });
