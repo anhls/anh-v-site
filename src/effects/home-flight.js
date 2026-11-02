@@ -1,4 +1,5 @@
-import { HOME_FLIGHT as F, WORK_V2, BEND, TRANSITION } from '../timeline.js';
+import { HOME_FLIGHT as F, WORK_V2, BEND, TRANSITION, WORK_PTR } from '../timeline.js';
+import { createPointerFx } from '../work/pointer-fx.js';
 import { EASES } from '../util/ease.js';
 import { transitionPolicy } from './transition-policy.js';
 import { glOpen, glClose } from '../util/gl-ledger.js';
@@ -81,7 +82,9 @@ uniform vec2 uBend, uMix;         // now / a moment ago
 uniform vec2 uNatA, uNatB;
 uniform sampler2D uA, uB;
 uniform float uTaps, uRgb, uPx, uTear, uCell;
-uniform float uLook, uFront, uBlock, uSub, uFw, uJit, uReveal; // R45c pixel swipe: look 1 = pixel; front 0..1; block / sub-block px; front width (share of the sweep); cell jitter; reveal = a layer that only shows where the front has passed
+uniform float uLook, uFrontPx, uGain; // R45c3 pixel swipe: look 1 = pixel; the brush front along uDir (screen px); gain = the displacement share (0 at rest)
+uniform sampler2D uGrid;           // the Work page pointer-fx grid (screen space, NEAREST, one x / y displacement per cell)
+uniform vec2 uGridN, uFxP;         // grid columns / rows; strength (picture units per grid unit), rgb split
 uniform vec2 uDir;
 out vec4 o;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
@@ -107,30 +110,23 @@ vec4 tap(float f, vec2 pos) {
   vec3 cb = texture(uB, clamp(cover(q, b, uNatB), 0., 1.)).rgb;
   return vec4(mix(ca, cb, mx) * a, a);
 }
-// the swipe: blocks of uBlock px on the SCREEN grid; the front crosses the screen along uDir; a block flips when the front reaches it (+ a little per-block jitter), and inside
-// the front band both pictures are pixelated (sub-blocks of uSub px). Outside the band, and at rest, nothing is touched: flip = 0 / 1 exactly, no mosaic.
-void swipe(vec2 pos, out float flip, out vec2 snap) {
-  vec2 cell = floor(pos / uBlock), centre = (cell + .5) * uBlock;
-  float extent = abs(uView.x * uDir.x) + abs(uView.y * uDir.y);
-  float t = dot(centre - uView * .5, uDir) / extent + .5 + (hash(cell + 4.1) - .5) * uJit * uFw;
-  float front = uFront * (1. + 2. * uFw) - uFw, d = front - t;
-  flip = d > 0. ? 1. : 0.;
-  float m = (uFront > 0. && uFront < 1.) ? 1. - clamp(abs(d) / uFw, 0., 1.) : 0.;
-  snap = m > .02 ? (floor(pos / uSub) + .5) * uSub : pos;
-}
 void main() {
   vec2 pos = vec2(gl_FragCoord.x, uView.y * uPx - gl_FragCoord.y) / uPx;
   if (uLook > .5) {
-    float flip; vec2 sp; swipe(pos, flip, sp);
-    vec4 b = uBox0; vec2 q = invQ(sp, b, uBend.x), h = b.zw * .5;
-    vec2 qa = invQ(pos, b, uBend.x);
+    // R45c3: the Work page hover smear (src/work/pointer-fx.js grid + the cards-gl lookup shift + RGB split), driven by a synthetic brush that sweeps along uDir. A screen cell flips
+    // video -> card once the brush front has passed its centre, so the flip is hidden behind the displacement. Gain 0 / an all-zero grid = exactly the plain picture.
+    vec2 gc = floor(pos / uView * uGridN), centre = (gc + .5) / uGridN * uView;
+    float flip = dot(centre, uDir) < uFrontPx ? 1. : 0.;
+    vec4 b = uBox0; vec2 qa = invQ(pos, b, uBend.x), h = b.zw * .5;
     float edge = min((1. - abs(qa.x)) * h.x, (1. - abs(qa.y)) * h.y);
     float a = clamp(edge * uPx + .5, 0., 1.);
     if (a <= 0.) { o = vec4(0.); return; }
-    vec3 ca = texture(uA, clamp(cover(q, b, uNatA), 0., 1.)).rgb, cb = texture(uB, clamp(cover(q, b, uNatB), 0., 1.)).rgb;
-    float k = uReveal > .5 ? 1. : flip;
-    if (uReveal > .5) a *= flip;
-    o = vec4(mix(ca, cb, k) * a, a);
+    vec2 d = texture(uGrid, pos / uView).rg * uGain * uFxP.x * 2., sh = d * uFxP.y;  // picture units -> q units (x2)
+    vec2 q = qa - d;
+    vec3 c3;
+    if (flip > .5) c3 = vec3(texture(uB, clamp(cover(clamp(q + sh, -1., 1.), b, uNatB), 0., 1.)).r, texture(uB, clamp(cover(clamp(q, -1., 1.), b, uNatB), 0., 1.)).g, texture(uB, clamp(cover(clamp(q - sh, -1., 1.), b, uNatB), 0., 1.)).b);
+    else c3 = vec3(texture(uA, clamp(cover(clamp(q + sh, -1., 1.), b, uNatA), 0., 1.)).r, texture(uA, clamp(cover(clamp(q, -1., 1.), b, uNatA), 0., 1.)).g, texture(uA, clamp(cover(clamp(q - sh, -1., 1.), b, uNatA), 0., 1.)).b);
+    o = vec4(c3 * a, a);
     return;
   }
   float n = uTaps;
@@ -163,10 +159,10 @@ export function createHomeFlight(parent) {
   const gl = glOpen(canvas, 'homeflight', { alpha: true, antialias: false, depth: false, stencil: false, premultipliedAlpha: true });
   if (!gl) return null;
   const SLOTS = 4;
-  let dead = false, prog, vs, fs, tex = [], nat = Array.from({ length: SLOTS }, () => [1, 1]), keys = Array(SLOTS).fill(null), u = {}, dpr = 1;
+  let dead = false, prog, vs, fs, gridTex = null, gridW = 1, gridH = 1, gridP = [0, 0], tex = [], nat = Array.from({ length: SLOTS }, () => [1, 1]), keys = Array(SLOTS).fill(null), u = {}, dpr = 1;
   const dispose = () => {
     if (dead) return; dead = true; canvas.remove();
-    try { tex.forEach((t) => gl.deleteTexture(t)); gl.deleteProgram(prog); gl.deleteShader(vs); gl.deleteShader(fs); } catch { /* lost */ }
+    try { tex.forEach((t) => gl.deleteTexture(t)); gl.deleteTexture(gridTex); gl.deleteProgram(prog); gl.deleteShader(vs); gl.deleteShader(fs); } catch { /* lost */ }
     glClose(gl, 'homeflight');
   };
   canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); dispose(); api.onLost?.(); });
@@ -176,13 +172,19 @@ export function createHomeFlight(parent) {
     prog = gl.createProgram(); gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error('link');
     gl.useProgram(prog);
-    ['uLook', 'uFront', 'uBlock', 'uSub', 'uFw', 'uJit', 'uReveal', 'uDir', 'uView', 'uBox0', 'uBox1', 'uBend', 'uMix', 'uNatA', 'uNatB', 'uA', 'uB', 'uTaps', 'uRgb', 'uPx', 'uTear', 'uCell'].forEach((k) => { u[k] = gl.getUniformLocation(prog, k); });
+    ['uLook', 'uFrontPx', 'uGain', 'uGrid', 'uGridN', 'uFxP', 'uDir', 'uView', 'uBox0', 'uBox1', 'uBend', 'uMix', 'uNatA', 'uNatB', 'uA', 'uB', 'uTaps', 'uRgb', 'uPx', 'uTear', 'uCell'].forEach((k) => { u[k] = gl.getUniformLocation(prog, k); });
     for (let i = 0; i < SLOTS; i++) {
       const t = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, t);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 255]));
       tex.push(t);
+    }
+    { // the pointer-fx grid (unit 4, RGBA32F, NEAREST: the same texture type cards-gl.js uses)
+      gridTex = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + SLOTS); gl.bindTexture(gl.TEXTURE_2D, gridTex);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, 1, 1, 0, gl.RGBA, gl.FLOAT, new Float32Array(4)); gl.uniform1i(u.uGrid, SLOTS);
     }
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
@@ -203,6 +205,14 @@ export function createHomeFlight(parent) {
       return true;
     },
     has(slot) { return !!keys[slot]; },
+    // the pointer-fx grid (data = cols x rows x 4 floats)
+    setGrid(data, cols, rows, params) {
+      if (dead) return;
+      gl.activeTexture(gl.TEXTURE0 + SLOTS); gl.bindTexture(gl.TEXTURE_2D, gridTex);
+      if (cols !== gridW || rows !== gridH) { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, cols, rows, 0, gl.RGBA, gl.FLOAT, data); gridW = cols; gridH = rows; }
+      else gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, cols, rows, gl.RGBA, gl.FLOAT, data);
+      gridP = params;
+    },
     // clears the canvas for one frame
     begin() {
       if (dead) return;
@@ -228,8 +238,8 @@ export function createHomeFlight(parent) {
       gl.uniform2f(u.uBend, state.bend, prev.bend); gl.uniform2f(u.uMix, state.mix, prev.mix);
       gl.uniform2f(u.uNatA, nat[slots[0]][0], nat[slots[0]][1]); gl.uniform2f(u.uNatB, nat[slots[1]][0], nat[slots[1]][1]);
       gl.uniform1f(u.uTaps, Math.max(2, Math.min(60, F.smearTaps))); gl.uniform1f(u.uRgb, F.smearStrength > 0 ? F.smearRGB / F.smearStrength : 0);
-      gl.uniform1f(u.uLook, pixel && !opts.plain ? 1 : 0); gl.uniform1f(u.uReveal, opts.reveal ? 1 : 0); gl.uniform1f(u.uFront, opts.front ?? 0);
-      const bp = V.w / Math.max(4, F.pixelBlocks); gl.uniform1f(u.uBlock, bp); gl.uniform1f(u.uSub, Math.max(2, bp / Math.max(1, F.pixelMosaic))); gl.uniform1f(u.uFw, Math.max(0.02, F.pixelFront)); gl.uniform1f(u.uJit, F.pixelJitter);
+      gl.uniform1f(u.uLook, pixel && !opts.plain ? 1 : 0); gl.uniform1f(u.uFrontPx, opts.frontPx ?? 0); gl.uniform1f(u.uGain, opts.gain ?? 0);
+      gl.uniform2f(u.uGridN, gridW, gridH); gl.uniform2f(u.uFxP, gridP[0], gridP[1]);
       { const a = ((F.pixelAngle + (opts.vertical ? 90 : 0) + (opts.flip ? 180 : 0)) * Math.PI) / 180; gl.uniform2f(u.uDir, Math.cos(a), Math.sin(a)); }
       gl.uniform1f(u.uTear, F.smearTear * mv); gl.uniform1f(u.uCell, Math.max(2, F.smearCell));
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -248,6 +258,21 @@ export function playFlight(renderer, { hero, card, dir, onFrame, neighbours = []
   const at = (st) => lerpBox(card, hero, st.size); // size 1 = the hero's rectangle, 0 = the card's, in both directions
   const peak = Math.max(F.sizePow, 1), dp = F.smearStrength / peak; // the trail = smearStrength of the way travelled at the peak speed
   const px = isPixel();
+  // R45c3: the swipe is the Work page hover smear (src/work/pointer-fx.js, its screen grid + WORK_PTR numbers) driven by a SYNTHETIC BRUSH: it sweeps along the strip axis across the travelling
+  // picture inside crossFrom..crossTo (the front moves monotonically over the larger of the two boxes the swipe can see), stepped at a fixed 1/60 s so 60 and 144 Hz give the same grid.
+  const W = innerWidth, H = innerHeight, dirAng = ((F.pixelAngle + (vertical ? 90 : 0) + (dir === 'out' ? 180 : 0)) * Math.PI) / 180, ux = Math.cos(dirAng), uy = Math.sin(dirAng);
+  let grid = null, simT = 0, zero = null;
+  const fx = px ? createPointerFx({ setPixelFx: (amt, params, data, cols, rows) => { grid = amt ? { data, cols, rows, params } : null; } }, 1) : null;
+  const cross = (p) => { const q = Math.min(1, Math.max(0, (p - F.crossFrom) / Math.max(F.crossTo - F.crossFrom, 0.01))); return q * q * (3 - 2 * q); };
+  const big = at(flightState(dir === 'in' ? F.crossFrom : F.crossTo, dir));
+  const corners = [[big.x, big.y], [big.x + big.w, big.y], [big.x, big.y + big.h], [big.x + big.w, big.y + big.h]].map((c) => c[0] * ux + c[1] * uy);
+  const cellPx = W / Math.max(8, Math.round(WORK_PTR.pixelGrid)), lo = Math.min(...corners) - cellPx, hi = Math.max(...corners) + cellPx;
+  const frontAt = (p) => lo + (hi - lo) * cross(p);
+  const stepBrush = (p, dtStep) => {
+    const b = at(flightState(p, dir)), f = cross(p), front = frontAt(p), cx = b.x + b.w / 2, cy = b.y + b.h / 2, perp = -uy * cx + ux * cy;
+    const bx = ux * front - uy * perp, by = uy * front + ux * perp, live = f > 0 && f < 1; // the brush: on the front line, centred across the picture
+    fx.update({ dt: dtStep, idx: 0, px: live ? bx : NaN, py: live ? by : NaN, W, H, frameH: firstCardRect(W, H).h, allowed: true, warp: 0, scale: W / 1920, gapAlong: 1e9, vertical });
+  };
   const plans = neighbours.map((n) => pushPlan(n.rect, card));
   const nbAt = (n, i, up) => { const o = plans[i].T * pushAmount(up, F.nbRank); return { x: n.rect.x + plans[i].dx * o, y: n.rect.y + plans[i].dy * o, w: n.rect.w, h: n.rect.h }; };
   return new Promise((resolve) => {
@@ -260,7 +285,15 @@ export function playFlight(renderer, { hero, card, dir, onFrame, neighbours = []
       const pp = Math.max(0, p - dp), st = flightState(p, dir), pv = flightState(pp, dir);
       renderer.begin();
       // the swipe is the travelling picture's alone; the neighbours are plain layers on the push
-      const front = Math.min(1, Math.max(0, (p - F.crossFrom) / Math.max(F.crossTo - F.crossFrom, 0.01))), fo = { front: front * front * (3 - 2 * front), vertical, flip: dir === 'out' }, up = pushUp(p, dir, sec);
+      let gain = 0;
+      if (px) { // fixed-step brush simulation up to the clock (time-based); the displacement fades out over the last stretch so the landing frame is the plain picture
+        const target = p * sec, SD = 1 / 60; while (simT + SD <= target + 1e-6) { simT += SD; stepBrush(Math.min(1, simT / sec), SD); }
+        gain = 1 - Math.min(1, Math.max(0, (p - F.crossTo) / Math.max(1 - F.crossTo, 0.01)));
+        const cols = Math.max(8, Math.round(WORK_PTR.pixelGrid)), rows = Math.max(4, Math.round((cols * H) / W));
+        if (!zero || zero.length !== cols * rows * 4) zero = new Float32Array(cols * rows * 4); // an all-zero grid keeps the screen cells (the flip) when the brush is idle
+        renderer.setGrid(grid ? grid.data : zero, cols, rows, grid ? grid.params : [WORK_PTR.pixelStrength, WORK_PTR.pixelRgb]);
+      }
+      const fo = { frontPx: frontAt(p), gain, vertical, flip: dir === 'out' }, up = pushUp(p, dir, sec);
       neighbours.forEach((n, i) => { const r = nbAt(n, i, up); renderer.layer(r, r, { bend: 0, mix: 1 }, { bend: 0, mix: 1 }, [n.slot, n.slot], { plain: true }); });
       renderer.layer(at(st), at(pv), st, pv, [0, 1], fo);
       onFrame?.(st, up);

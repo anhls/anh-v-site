@@ -2,6 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <style>
+      /* R45c3: cross-document View Transition with NO visible animation: Chrome keeps this page's last frame (the flight's end) on screen until the Work page is ready to paint */
+      @view-transition { navigation: auto; }
+      ::view-transition-group(root) { animation: none; }
+      ::view-transition-old(root) { animation: none; opacity: 1; }
+      ::view-transition-new(root) { animation: none; opacity: 1; }
+    </style>
+    <!-- R45c3: render-block the first paint until the hand-off layer (#pxg, painted by the inline script at the start of <body>) is in the DOM, so the first frame IS the hero layer, never the bare page (Chrome 124+; a page without a layer is unblocked when parsing ends) -->
+    <link rel="expect" href="#pxg" blocking="render" />
     <script>
       /* Private preview: apply the stored theme before any stylesheet can paint. */
       (function () {
