@@ -82,10 +82,11 @@ export function initHomeToWork({ hero, nav, link: linkOpt, video: videoOpt, wrap
     document.querySelectorAll('.nav a').forEach((a) => { a.style.opacity = ''; });
     nav?.drive(0);
     // bfcache restore after the Work page's Back: the return mark was written before Work left. Mark -> hero frame layer + landing (no reload, no loader); no mark -> the hero as it was.
-    window.__paintPxg?.();
+    window.__pxgSrc = 'pageshow persisted'; window.__paintPxg?.(); if (document.getElementById('pxg-card')) { const w = document.querySelector('a.twm'); if (w) w.style.visibility = 'hidden'; } // (the card-first layer carries the small wordmark until the grow starts)
+   
     const back = !!document.getElementById('pxg');
     dbg('bfcache restore: return mark', back ? 'found, playing the landing' : 'none, hero as it was');
-    if (back) arriveFromWork(hero, null); else clearHandoff('pxh');
+    if (back) arriveFromWork(hero, null); else { clearHandoff('pxh'); returnLine('pageshow persisted', null, false); }
     arm();
   };
   addEventListener('pageshow', (e) => { dbg('pageshow persisted:', e.persisted); if (e.persisted) restore(); });
@@ -140,7 +141,8 @@ export function arriveFromWork(hero, loadDeferred) {
   clearHandoff('pxg');
   loadDeferred?.();
   const layer = document.getElementById('pxg'), video = hero.frame.video;
-  return new Promise((resolve) => {
+  const grown = layer?.dataset.card ? growFromCard(layer) : (returnLine(window.__pxgSrc || 'reload', window.__pxgAge, false, 'work flew itself'), Promise.resolve());
+  return grown.then(() => new Promise((resolve) => {
     const done = () => {
       try { window.__r45vt?.skipTransition(); } catch { /* */ } // R45b: release the held Work frame; the layer (same picture) is still up under it
       gsap.to(layer, { opacity: 0, duration: F.landFadeSec, ease: 'sine.inOut', onComplete: () => { layer.remove(); document.documentElement.classList.remove('pxg-on'); resolve(); } });
@@ -148,5 +150,54 @@ export function arriveFromWork(hero, loadDeferred) {
     let fired = false; const go = () => { if (fired) return; fired = true; requestAnimationFrame(() => requestAnimationFrame(done)); };
     if (video.readyState >= 3 && !video.paused && video.currentTime > 0) go();
     else { video.addEventListener('playing', go, { once: true }); video.addEventListener('timeupdate', go, { once: true }); setTimeout(go, 1500); }
-  });
+  }));
+}
+
+// R48 r7-8 part 4.5: ?debug=handoff (sticky: localStorage dbg-handoff) shows one line on screen
+function returnLine(source, age, played, note) {
+  try {
+    if (localStorage.getItem('dbg-handoff') !== '1') return;
+    let el = document.getElementById('dbg-return');
+    if (!el) { el = document.createElement('div'); el.id = 'dbg-return'; el.style.cssText = 'position:fixed;left:4px;bottom:4px;z-index:200;font:10px/1.3 monospace;color:#0f0;background:rgba(0,0,0,.75);padding:3px 5px;pointer-events:none;max-width:96vw'; document.body.append(el); }
+    el.textContent = 'return: source=' + source + ', record age ' + (age == null ? 'none' : Math.round(age) + ' ms') + ', played ' + (played ? 'yes' : 'no') + (note ? ' (' + note + ')' : '');
+  } catch { /* */ }
+}
+
+// R48 r7-8 part 4: Work was left by Safari (edge swipe, toolbar Back): the first frame painted by index.html is the flight's first frame (the centred card where it stood, the small wordmark). The card -> hero
+// grow (the same flight Work plays when it flies itself, + the wordmark small -> big) is played HERE; afterwards #pxg holds the hero frame and arriveFromWork lets the video take over as always.
+async function growFromCard(layer) {
+  const rec = window.__pxgRec, frame = window.__pxgFrame || '/media/hero/poster.webp', age = window.__pxgAge, src = window.__pxgSrc || 'reload';
+  const twm = document.querySelector('a.twm'), wmIn = document.getElementById('pxg-wm');
+  let played = false, fl = null, host = null;
+  const finish = () => {
+    layer.dataset.card = ''; layer.innerHTML = '<img alt="" decoding="sync" src="' + frame + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block">';
+    host?.remove(); fl?.dispose?.(); wmIn?.remove();
+    if (twm) { twm.style.transform = ''; twm.style.visibility = ''; }
+    returnLine(src, age, played);
+  };
+  try {
+    if (!rec || !homeFlightOK()) { finish(); return; }
+    const cardIm = cardImage(rec.src), heroIm = new Image(); heroIm.src = frame;
+    await Promise.all([cardIm.decode().catch(() => {}), heroIm.decode().catch(() => {})]);
+    host = document.createElement('div'); host.setAttribute('aria-hidden', 'true'); host.style.cssText = 'position:fixed;inset:0;z-index:8;pointer-events:none;background:var(--bg)';
+    document.body.append(host);
+    fl = createHomeFlight(host);
+    if (!fl) { finish(); return; }
+    let lost = false; fl.onLost = () => { lost = true; playFlight.cancel?.(); };
+    fl.setPicture(0, cardIm, 'card'); fl.setPicture(1, heroIm, 'hero');
+    const hero = { x: 0, y: 0, w: innerWidth, h: innerHeight }, card = { x: rec.rect[0], y: rec.rect[1], w: rec.rect[2], h: rec.rect[3] };
+    fl.draw({ x: 0, y: 0, w: 1, h: 1 }, { x: 0, y: 0, w: 1, h: 1 }, flightState(0, 'out'), flightState(0, 'out')); // (replaced by the real first frame in playFlight, same task)
+    // the wordmark: Home's big one starts at the small spot Work had (translate + scale from the top-left), grows to rest with the flight
+    let setWm = null;
+    if (twm && rec.wm) {
+      twm.style.transform = ''; twm.style.visibility = ''; const rb = twm.getBoundingClientRect(); twm.style.transformOrigin = '0 0';
+      const k = rec.wm[2] / rb.width, dx = rec.wm[0] - rb.x, dy = rec.wm[1] - rb.y;
+      setWm = (t) => { twm.style.transform = 'translate(' + dx * (1 - t) + 'px,' + dy * (1 - t) + 'px) scale(' + (k + (1 - k) * t) + ')'; };
+      setWm(0); wmIn?.remove();
+    } else if (twm) { twm.style.visibility = ''; wmIn?.remove(); }
+    played = true;
+    await playFlight(fl, { hero, card, dir: 'out', vertical: workStartLayout().vertical, onFrame: (st) => setWm?.(st.size) });
+    if (lost) played = false;
+  } catch { played = false; }
+  finish();
 }

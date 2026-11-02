@@ -1,4 +1,5 @@
 import { gsap } from 'gsap';
+import { setWm } from '../util/wm-handle.js';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { NAV, SPRING } from '../timeline.js';
 import { springLayer, springFromBounce } from './springs.js';
@@ -30,7 +31,7 @@ const ROLL = 18; // px; each link label exists twice, stacked 18px apart
 // the user scrolls toward/away from the top instead of waiting for the smooth-scroll glide to finish.
 // `gateFrame` (home): the footer state also needs the hero mask to be full screen again. Project pages have no mask, so they pass false.
 // `position` (Work page): a function giving the distance scrolled (the strip is endless, the page itself never moves).
-export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe, onHome = false, startSmall = false, startBig = false, alwaysSmall = false, small: SMALL = WORDMARK.small } = {}) { // R24a: `small` = the tall mode's own small-wordmark box
+export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe, onHome = false, startSmall = false, startBig = false, alwaysSmall = false, noDrive = false, small: SMALL = WORDMARK.small } = {}) { // R24a: `small` = the tall mode's own small-wordmark box
   // R22j: the wordmark is a link to the homepage (the fixed, transformed box is the <a>; the picture fills it). It takes clicks only in the SMALL
   // state: the big one covers 82vw x 32vh of the hero (captions, cards, the spawner's click area), so it stays click-through; the keyboard
   // reaches it in both. Home: click = the back-to-top transition when scrolled, nothing at the top. Other pages: plain navigation to '/'.
@@ -94,10 +95,10 @@ export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe,
     return window.scrollY < NAV.thresholdPx ? 0 : 1;
   };
 
-  state.p = alwaysSmall || startSmall ? 1 : startBig ? 0 : target(); // R28: startBig = the project page's wordmark was big when it was left, the Work page grows it small. R25: arriving from a project transition, the wordmark was small on the page before: it grows to its big state
+  state.p = startBig ? 0 : alwaysSmall || startSmall ? 1 : target(); // R48: startBig + alwaysSmall (the phone project page) = starts big and shrinks // R28: startBig = the project page's wordmark was big when it was left, the Work page grows it small. R25: arriving from a project transition, the wordmark was small on the page before: it grows to its big state
   const layer = springLayer({ target: state, springs: { p: SPRING.nav }, apply });
   offs.push(() => layer.destroy());
-  if ((startSmall || startBig) && !alwaysSmall) state.p = target();
+  if (startSmall || startBig) state.p = target();
 
   let driven = false; // R45: a home <-> work flight sets the wordmark itself (drive), the scroll / resize checks stay out of its way
   const check = () => { if (driven) return; frameFull = isFull(); state.p = target(); };
@@ -136,5 +137,7 @@ export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe,
     a.addEventListener('mouseleave', () => { t.y = 0; });
   });
   // R45: the flight drives the big <-> small move from its own progress (p 0 = big, 1 = small), frame by frame, no spring lag
-  return { drive(p) { driven = true; state.p = p; layer.snap(); }, destroy() { offs.splice(0).forEach((f) => f()); img.remove(); } };
+  const api = { grow() { state.p = 1; layer.snap(); state.p = target(); }, drive(p) { if (noDrive) return; driven = true; state.p = p; layer.snap(); }, get p() { return state.p; }, get small() { return alwaysSmall && !noDrive; }, destroy() { offs.splice(0).forEach((f) => f()); img.remove(); setWm(null); } };
+  if (alwaysSmall && !noDrive) setWm(api); // R48 r7: the phone's menu moves this very element
+  return api;
 }

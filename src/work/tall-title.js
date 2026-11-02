@@ -1,3 +1,4 @@
+import { viewW } from '../util/viewport.js';
 // Lite title only: the desktop smear renderer and timing, with phone/tablet type.
 import '../styles/tall-work.css';
 import { createSmear } from '../effects/text-fx/smear.js';
@@ -27,17 +28,20 @@ export function createLiteTitle({ app, projects, reduced, rest }) {
     const color = getComputedStyle(root).color;
     const baseSize = Math.max(LITE_TITLE.minSize, Math.min(LITE_TITLE.maxSize, fw * LITE_TITLE.frameShare));
     options = projects.map(p => {
-      let size = baseSize;
+      // R48 r3: the title must fit INSIDE the card with LITE_TITLE.sidePad on each side. The desktop short-title rule: the full title when it fits at a size not under minFullScale of the base size,
+      // else the short one; either way scaled down to fit (the letter-spacing counted).
+      const wAt = (t, sz) => { measure.font = `${WORK_TITLE.weight} ${sz}px ${family}`; return measure.measureText(t).width + (WORK_TITLE.tracking || 0) * sz * t.length; };
+      const avail = fw * (1 - 2 * LITE_TITLE.sidePad), full = p.title, short = p.titleShort || TITLE_SHORT[p.slug] || full;
+      const fitSize = (t) => Math.min(baseSize, baseSize * avail / Math.max(wAt(t, baseSize), 1));
+      const fullSize = fitSize(full);
+      const useFull = fullSize >= baseSize * LITE_TITLE.minFullScale || short === full;
+      const text = useFull ? full : short;
+      const size = useFull ? fullSize : fitSize(short);
       measure.font = `${WORK_TITLE.weight} ${size}px ${family}`;
-      const full = p.title, short = p.titleShort || TITLE_SHORT[p.slug] || full;
-      const text = measure.measureText(full).width <= fw * LITE_TITLE.fitFrac ? full : short;
-      const width = measure.measureText(text).width;
-      size *= Math.min(1, fw * LITE_TITLE.fitFrac / Math.max(width, 1));
-      measure.font = `${WORK_TITLE.weight} ${size}px ${family}`;
-      const m = measure.measureText(text), asc = m.fontBoundingBoxAscent ?? size * .9, desc = m.fontBoundingBoxDescent ?? size * .25;
+      const m = measure.measureText(text), asc = m.fontBoundingBoxAscent ?? size * .9, desc = m.fontBoundingBoxDescent ?? size * .25, tw = m.width + (WORK_TITLE.tracking || 0) * size * text.length;
       const top = innerHeight / 2 - size / 2;
       return { el, text, size, weight: WORK_TITLE.weight, family, color, tracking: WORK_TITLE.tracking,
-        x: (innerWidth - m.width) / 2, baseline: top + (size - asc - desc) / 2 + asc, top };
+        x: (viewW() / 2) - tw / 2, /* the card's centre = the strip's centre (the same width) */ baseline: top + (size - asc - desc) / 2 + asc, top };
     });
     if (shown >= 0) setTitle(shown);
     el.style.visibility = ''; el.style.opacity = String(opacity);
@@ -69,15 +73,19 @@ export function createLiteTitle({ app, projects, reduced, rest }) {
   const warmKeys = [];
   const cancelWarm = () => { clearTimeout(warmTimer); warmKeys.splice(0).forEach((k) => rest.cancel(k)); };
   const callbacks = () => ({ done: () => { opacity = 1; }, aborted: () => { opacity = 0; } });
+  let startSeq = 0, startAt = 0; // R48 r4: counts every title entrance (a smear play, or the plain fade-in) and when it began: the details row follows it
   function play() {
+    startSeq++; startAt = performance.now();
     pm('lite:title-start'); logT('play', 'settle+rest.ok', { stopped: !!last?.stopped });
     smear.play({ ...options[shown], ...callbacks() });
     pm('lite:title-scheduled');
   }
-  const fonts = document.fonts?.load('600 80px "Clash Display"') || Promise.resolve();
-  Promise.resolve(fonts).then(() => {
-    ready = true; layout();
-  });
+  // R48 r7: the fit / short-title choice and the smear texture are made only once the title font has REALLY loaded for every title's letters (a fallback-font measurement made "Techcomba" clip, then swap to the
+  // full title): load the font for all the texts, wait for document.fonts.ready, and re-check with fonts.check (Safari can resolve load() early).
+  const texts = projects.flatMap((p) => [p.title, p.titleShort || TITLE_SHORT[p.slug]]).filter(Boolean).join(' ');
+  const fontSpec = `${WORK_TITLE.weight} 80px ${family}`;
+  const whenFont = async () => { try { await document.fonts?.load(fontSpec, texts); await document.fonts?.ready; for (let i = 0; i < 20 && document.fonts && !document.fonts.check(fontSpec, texts); i++) { await new Promise((r) => setTimeout(r, 50)); await document.fonts.load(fontSpec, texts); } } catch { /* the layout still runs */ } };
+  whenFont().then(() => { ready = true; layout(); });
   document.addEventListener('anhv-theme', () => layout());
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { logT('cancel', 'page hidden'); cancelWarm(); warmedFor = -1; smear.cancel(); opacity = 0; el.style.transition = 'none'; el.style.opacity = '0'; }
@@ -102,7 +110,7 @@ export function createLiteTitle({ app, projects, reduced, rest }) {
       if (shown !== idx || opacity < .95) {
         if (!plain && !rest.ok()) return; // R41e: the set / play wait for the shared rest signal (checked again next frame)
         if (plain) {
-          if (shown !== idx) { opacity = Math.max(0, opacity - s.dt / .2); if (!opacity) setTitle(idx); }
+          if (shown !== idx) { opacity = Math.max(0, opacity - s.dt / .2); if (!opacity) { setTitle(idx); startSeq++; startAt = performance.now(); } }
           else opacity = Math.min(1, opacity + s.dt / .2);
           el.style.opacity = String(opacity);
         } else { timed('titleSet', () => setTitle(idx)); el.style.transition = 'none'; el.style.opacity = '0'; timed('titlePlay', play); }
@@ -114,6 +122,7 @@ export function createLiteTitle({ app, projects, reduced, rest }) {
       const u = .5 * (1 - (1 - Math.min(1, seconds / WORK_SMEAR.enterSec)) ** WORK_SMEAR.enterPow);
       smear.scrub(options[idx], u);
     },
+    get seq() { return startSeq; }, get at() { return startAt; },
     get state() { return { shown, opacity, playing: smear.playing, gl: smear.gl, ready, stopped: last?.stopped }; },
   };
 }

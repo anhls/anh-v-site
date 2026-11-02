@@ -1,4 +1,4 @@
-import { WORK } from './desktop.js';
+import { WORK, WORK_TITLE } from './desktop.js';
 
 // R24a: the TALL mode (phones, tablet portrait; src/util/layout-mode.js). Flags and numbers for what tall does differently; desktop never reads them.
 // cardsMax: cards per project on the Work page; dprCap: backing-store DPR cap; warp / lead / ambient: the Work strip's warp, speed lead and ambient
@@ -43,10 +43,49 @@ export const TRANSITION_POLICY_LITE = {
   maxPressMs: 500, centreTol: 0.25, lockMs: 700,
 };
 // R41b: same title treatment as desktop, sized to the lite picture.
-export const LITE_TITLE = { minSize: 28, maxSize: 84, frameShare: 120 / 1055, fitFrac: .93 };
+export const LITE_TITLE = { minSize: 28, maxSize: 84, frameShare: 120 / 1055, fitFrac: .93, sidePad: 0.04, minFullScale: 0.6 }; // R48 r3: sidePad = the space left and right of the title inside the card (share of the card width); minFullScale = the smallest share of the base size at which the FULL title is still used (else the short one)
 // the tall image warp: the wide image warp with the strength scaled (read live: ?tune)
 TALL.frameWarp = { ...WORK.frameWarp, strength: 1.39 * TALL.warpStrength, curl: 0.5, camDown: 1.25, camUp: 1.25, bowDown: 0, bowUp: 0.06, reach: 1, riseSec: 0.5, leanBuf: 0.15, leanSignDown: 1 }; // (R33: the phone / tablet pages keep the lean toward the motion in both directions) // (R24i: leanBuf = extra offscreen overscan along the strip for the axis lean, in screen lengths; the lean is capped by what it holds)
 // R24e: tablet LANDSCAPE (R24b's test: layout-store.js isTabletAspect): the wide-style strip, no cards (cards: 0), the image `frameH` of the viewport height (width from the desktop ratio, at most 90 % of the width)
+// R48: the phone / tablet-portrait project page's SMALL wordmark: top CENTRE (the burger owns top-left). x / y / width as nav.js small = capped vw / vh / vw; y centres it on the 48 px burger. Easy to move.
+// R48 r7 (Anh: option 1): the small wordmark's INK HEIGHT = the big Work title's CAP height at its BASE size (before any fit-to-card shrink: a short title like "Forbes"), measured on screen at the same width; one steady
+// size for every project, derived from LITE_TITLE + TALL.frame so the two stay matched at every width. The wordmark image's ink fills its whole box (aspect 1572 : 345), so width = cap x 1572 / 345. Top centre; the vertical
+// centre stays where it was (on the 48 px burger's centre, wmCentreY px from the top).
+const WM_ASPECT = 1572 / 345, wmCentreY = 28;
+TALL.wmCapScale = 1; // 1 = exactly the title's base-size cap; below 1 = smaller (e.g. 0.65 would match the cap of a title that was shrunk to fit the card)
+let capMemo = { k: '', v: 0 };
+export function titleCapPx(W = innerWidth) { // the cap height (px) of the Work title at its base size, from the real font (re-measured once the font is there)
+  const ready = !!(document.fonts && document.fonts.check && document.fonts.check('600 20px "Clash Display"')), k = `${W}:${ready ? 1 : 0}`;
+  if (capMemo.k === k) return capMemo.v;
+  const base = Math.max(LITE_TITLE.minSize, Math.min(LITE_TITLE.maxSize, TALL.frame * W * LITE_TITLE.frameShare));
+  const c = document.createElement('canvas').getContext('2d'); c.font = `${WORK_TITLE.weight} ${base * 10}px "Clash Display", system-ui, sans-serif`;
+  capMemo = { k, v: c.measureText('H').actualBoundingBoxAscent / 10 }; return capMemo.v;
+}
+TALL.wmSmall = {
+  get width() { return ((titleCapPx(innerWidth) * TALL.wmCapScale) * WM_ASPECT / innerWidth) * 100; }, // vw
+  get x() { return (100 - this.width) / 2; },
+  get y() { return ((wmCentreY - (titleCapPx(innerWidth) * TALL.wmCapScale) / 2) / innerHeight) * 100; }, // vh
+};
+// R48 rounds 3 + 4 (Anh's iPhone mock 03.11 01:21, 430x932 CSS px; every length is vw = px / 4.3 so it scales with the screen). COUNTER above the centred card AND IN FRONT of the cards (they pass under it):
+// the big number's ink is numCapVw tall with its ink bottom numGapVw above the card's top edge, its ink left on the card's left edge; the small "/N" follows the CURRENT big number: its ink top is on the big
+// number's ink top, totGapVw after the number's right ink edge. ONE text size for "/N", year and tags (smallCapVw, cap height; smallMinPx = the smallest font size). BELOW the card (under the cards): one row whose
+// ink top is rowGapVw under the card's bottom edge: the YEAR (left edge on the card's left edge) and the TAGS (the desktop "Role" tags, max 3, one per line every tagPitchVw, tagOpacity, left-aligned, the widest
+// line ending on the card's right edge). ENTRANCE when a card settles: title smear -> year (titleToYear s after the title starts) -> tags (yearToTags s after the year); lines inside a column keep `stagger`.
+// LEAVE = the reverse (tags -> year), leaveScale x the entrance timing, all time-based.
+export const TALL_DETAILS = { numCapVw: 12.26, numGapVw: 3.49, totGapVw: 3.42, rowGapVw: 3.72, smallCapVw: 1.86, tagPitchVw: 4.07, tagOpacity: 0.25, lineInsetVw: 1.86, totOpacity: 0.25, smallMinPx: 10.5, stagger: 0.06, tags: 3, titleToYear: 0.12, yearToTags: 0.12, leaveScale: 0.5 };
+// R48 r5 phone MENU (Anh's mock 03.11 01:56, 430x932; lengths in vw of the screen = px / 4.3, or px where noted). Placed by INK in tall-menu.js placeMenu().
+// flavTopPct = where the ink top of the flavour text (and of the clock beside it) sits (share of the height, 316.7 px at 932); navTopPct = where the top of the "Work" capitals sits (share of the height); navPitchVw = distance between the nav lines; lineLenPx / lineThickPx = the "current page" line (half the burger's 60 px, as thick as the burger lines);
+// lineGapVw = gap between that line's end and the word's ink; the clock (two right-aligned lines) stands on the flavour text's rows with its right ink edge on the big wordmark's V.
+export const TALL_MENU = { flavTopPct: 33.98, navTopPct: 53.7, navPitchVw: 9.3, lineLenPx: 30, lineThickPx: 1, lineGapVw: 3.163, clockOpacity: 0.25, leftPx: 20,
+  // R48 r7 (sweep + stagger): zoneShare = the smear zone's width ahead of the panel edge (share of the screen width); jagCells = how far (in grid cells) the per-row ragged panel edge may sit behind the mean edge;
+  // startShare = the items start once the edge has passed this share of the width; step = seconds between the items; pushSec = the current-page line's push (it draws out from the left and pushes the word)
+  zoneShare: 0.5, jagCells: 4, startShare: 0.4, pushSec: 0.45,
+  // R48 r10: the entrance is ONE timeline: items start spread over staggerAmount s with staggerEase (gaps open in the middle, tighten at the ends); each item = opacity 0 -> 1, blur blurPx -> 0, y riseY -> 0 over itemSec with itemEase;
+  // the line push (pushSec, pushEase) starts pushLag after the last item has started; close = the timeline reversed at closeSpeed x
+  staggerAmount: 0.3, staggerEase: 'sine.inOut', itemSec: 0.35, itemEase: 'power3.out', blurPx: 8, riseY: 8, pushEase: 'power3.inOut', pushLag: 0.1, closeSpeed: 2 };
+// R48 r5: the wordmark also plays on Home <-> Work (big -> small into Work, small -> big back; Work shows the small wordmark top-centre like the project pages). false = big on Home and Work.
+TALL.wmHomeWork = true;
+export function wmHomeWork() { return !!TALL.wmHomeWork; }
 export const TABLET = { cards: 0, frameH: 0.62 };
 
 export const TRANSITION_POLICY = TRANSITION_POLICY_LITE;
