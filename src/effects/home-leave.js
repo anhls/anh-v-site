@@ -1,6 +1,6 @@
 import { gsap } from 'gsap';
 import data from '../data/data.json';
-import { HOME_FLIGHT as F } from '../timeline.js';
+import { HOME_FLIGHT as F, LITE_TITLE, WORK_TITLE, TITLE_SHORT } from '../timeline.js';
 import { createHomeFlight, playFlight, flightState, workStartLayout, cardImage, homeFlightOK, isPixel } from './home-flight.js';
 import { writeHandoff, readHandoff, clearHandoff, saveHeroFrame, dbg } from './home-handoff.js';
 import { pm } from '../util/perf-mark.js';
@@ -22,11 +22,19 @@ export function initHomeToWork({ hero, nav, link: linkOpt, video: videoOpt, wrap
   const heroRef = (p) => p.page.blocks.find((b) => b.t === 'hero').img;
   const N = data.projects.length;
 
-  const preloadWork = () => { // the Work page's own files (HTML -> script + styles), fetched now so the page after the flight boots from the cache
+  // R45b round 2: Safari cannot prerender, so the Work page itself must already be in the cache when the flight ends: its HTML, its scripts AND the modules those import (the module graph is walked two
+  // levels deep from the built files, so dynamic chunks such as the layouts and the lite mode load now too), its styles, and the preloaded font / wordmark.
+  let preloaded = false;
+  const preloadWork = () => {
+    if (preloaded) return; preloaded = true;
+    const added = new Set();
+    const mp = (href) => { if (added.has(href)) return false; added.add(href); const l = document.createElement('link'); l.rel = 'modulepreload'; l.href = href; document.head.append(l); return true; };
+    const walk = (href, depth) => { if (depth < 0) return; fetch(href).then((r) => (r.ok ? r.text() : '')).then((t) => { for (const m of t.matchAll(/(?:from|import\()\s*["'](\.\/[^"']+\.js)["']/g)) { const u = new URL(m[1], new URL(href, location.href)).pathname; if (mp(u)) walk(u, depth - 1); } }).catch(() => {}); };
     fetch('/work/').then((r) => (r.ok ? r.text() : '')).then((t) => {
       const doc = new DOMParser().parseFromString(t, 'text/html');
-      doc.querySelectorAll('script[type="module"][src], link[rel="modulepreload"]').forEach((s) => { const l = document.createElement('link'); l.rel = 'modulepreload'; l.href = s.getAttribute('src') || s.getAttribute('href'); document.head.append(l); });
+      doc.querySelectorAll('script[type="module"][src], link[rel="modulepreload"]').forEach((s) => { const u = s.getAttribute('src') || s.getAttribute('href'); if (mp(u)) walk(u, 2); });
       doc.querySelectorAll('link[rel="stylesheet"]').forEach((s) => { const l = document.createElement('link'); l.rel = 'prefetch'; l.as = 'style'; l.href = s.getAttribute('href'); document.head.append(l); });
+      doc.querySelectorAll('link[rel="preload"]').forEach((s) => { if (document.querySelector(`link[rel="preload"][href="${s.getAttribute('href')}"]`)) return; const l = document.createElement('link'); l.rel = 'preload'; for (const n of ['href', 'as', 'type', 'crossorigin']) if (s.hasAttribute(n)) l.setAttribute(n, s.getAttribute(n)); document.head.append(l); });
     }).catch(() => {});
   };
   const warm = () => {
@@ -63,7 +71,8 @@ export function initHomeToWork({ hero, nav, link: linkOpt, video: videoOpt, wrap
     } catch { /* */ }
   };
   // after the hero has settled and the browser is idle (never before first paint; Save-Data / reduced motion / ?gl=0: never)
-  const arm = () => (window.requestIdleCallback || ((f) => setTimeout(f, 600)))(() => setTimeout(warm, 800), { timeout: 3000 });
+  // phone: no extra wait (Safari has no prerender, every second counts); the Work page's files are fetched at once, then the renderer / pictures are warmed
+  const arm = () => { if (liftSel) { (window.requestIdleCallback || ((f) => setTimeout(f, 200)))(preloadWork, { timeout: 800 }); (window.requestIdleCallback || ((f) => setTimeout(f, 400)))(warm, { timeout: 1500 }); return; } (window.requestIdleCallback || ((f) => setTimeout(f, 600)))(() => setTimeout(warm, 800), { timeout: 3000 }); };
 
   const restore = () => { // the page came back from the cache (Back from the Work page): the hero as it was, no overlay
     root?.remove(); root = null; fl?.dispose(); fl = null; warmed = false; busy = false;
@@ -103,13 +112,26 @@ export function initHomeToWork({ hero, nav, link: linkOpt, video: videoOpt, wrap
     const lay = workStartLayout(), nbs = nbIms.filter((x) => fl.has(x.slot)).map((x) => ({ slot: x.slot, rect: x.n.rect, start: x.n.start }));
     await playFlight(fl, { hero: heroBox, card, dir: 'in', neighbours: nbs, vertical: lay.vertical, onFrame: (st) => nav?.drive(1 - st.size) });
     const wm = liftSel ? null : document.querySelector('a.wordmark'); // (the phone Work page's own small wordmark appears with the strip)
-    writeHandoff('pxh', { W: innerWidth, H: innerHeight, rect: [card.x, card.y, card.w, card.h], slug: project.slug, src: cardIm.currentSrc || cardIm.src, cards: nbIms.filter((x) => fl && fl.has(x.slot)).map((x) => ({ rect: [x.n.rect.x, x.n.rect.y, x.n.rect.w, x.n.rect.h], slug: x.slug, src: x.im.currentSrc || x.im.src })), wm: wm ? { src: wm.querySelector('img')?.getAttribute('src'), style: wm.style.cssText + `;position:fixed;left:0;top:0;width:${wm.offsetWidth}px;height:${wm.offsetHeight}px;z-index:9` } : null });
+    writeHandoff('pxh', { W: innerWidth, H: innerHeight, rect: [card.x, card.y, card.w, card.h], slug: project.slug, src: cardIm.currentSrc || cardIm.src, cards: nbIms.filter((x) => fl && fl.has(x.slot)).map((x) => ({ rect: [x.n.rect.x, x.n.rect.y, x.n.rect.w, x.n.rect.h], slug: x.slug, src: x.im.currentSrc || x.im.src })), wm: wm ? { src: wm.querySelector('img')?.getAttribute('src'), style: wm.style.cssText + `;position:fixed;left:0;top:0;width:${wm.offsetWidth}px;height:${wm.offsetHeight}px;z-index:9` } : liftSel ? { src: data.hero.wordmark, auto: 1, style: 'position:fixed;left:5vw;top:3.4vh;width:28vw;z-index:9' } : null, title: liftSel ? liteTitle(project, card) : null });
     pm('home:land');
     if (lost) { /* the overlay holds the last drawn frame; the Work page paints its own */ }
     location.href = '/work/';
   });
   arm();
   return { warm, restore, readHandoff };
+}
+
+// R45b round 2: the phone Work page's title as it will stand at rest (the formula of src/work/tall-title.js layout(): size from the frame width, the short title when the full one does not fit), so the landing layer reads as the
+// Work page while it loads. Centred with CSS (no dependence on the font being measured here).
+function liteTitle(project, card) {
+  try {
+    const family = '"Clash Display", system-ui, sans-serif', c = document.createElement('canvas').getContext('2d'), fw = card.w;
+    let size = Math.max(LITE_TITLE.minSize, Math.min(LITE_TITLE.maxSize, fw * LITE_TITLE.frameShare));
+    c.font = `${WORK_TITLE.weight} ${size}px ${family}`;
+    const full = project.title, short = project.titleShort || TITLE_SHORT[project.slug] || full, text = c.measureText(full).width <= fw * LITE_TITLE.fitFrac ? full : short;
+    size *= Math.min(1, (fw * LITE_TITLE.fitFrac) / Math.max(c.measureText(text).width, 1));
+    return { text, size, weight: WORK_TITLE.weight, tracking: WORK_TITLE.tracking, top: innerHeight / 2 - size / 2 };
+  } catch { return null; }
 }
 
 // R45: the homepage after the Work page's grow flight: the hero frame it ended on is painted (index.html); the video takes over and the layer fades. Resolves when the layer is gone.

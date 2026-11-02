@@ -2,6 +2,7 @@ import { gsap } from 'gsap';
 import { HOME_FLIGHT as F } from '../timeline.js';
 import { writeHandoff, readHeroFrame, writeHeroFrame, clearHandoff, dbg } from '../effects/home-handoff.js';
 import { pm } from '../util/perf-mark.js';
+import { isTall } from '../util/layout-mode.js';
 
 // R45 (desktop Work page): the way back to the homepage. The CENTRED card smears and grows into the full hero (cross-fading to the hero frame the homepage left), the small wordmark
 // grows big with it, then the homepage takes over (same document history when the Work page was entered from the homepage; otherwise a plain navigation with a hand-off record).
@@ -12,6 +13,8 @@ const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export function initHomeReturn({ items, px, py, bw, bh, touch, rectOf, fadeEls, nav, isBusy, setBusy, isPaused, firstReady, push }) {
   const params = new URLSearchParams(location.search);
+  // R45b round 2: the swipe-right back is for the VERTICAL strip only (phones, tablet portrait); on a side strip a right swipe scrolls the strip. The Back button and the wordmark fly home in every mode.
+  const swipeBack = !!touch && isTall();
   const off = reduced || params.get('gl') === '0' || navigator.connection?.saveData;
   let arrived = false, depth = 0, heroSrc = null;
   // R45c: a prerendered Work page is built long before the click; everything that depends on HOW it was entered (the landed-cards layer, the history entries) happens at ACTIVATION
@@ -31,11 +34,15 @@ export function initHomeReturn({ items, px, py, bw, bh, touch, rectOf, fadeEls, 
     // never a black frame: the layer stays until the LIVE strip has drawn (the first card decoded + a few frames of the strip's own renderer after activation / load)
     (async () => {
       const t0 = performance.now();
-      while (!firstReady() && performance.now() - t0 < 3000) await new Promise((r) => requestAnimationFrame(r));
-      for (let i = 0; i < 8; i++) await new Promise((r) => requestAnimationFrame(r));
+      // R45b round 2: ready = the strip's renderer DREW the first card's texture + 2 frames (firstReady in core.js), not just 'the image decoded'. The layer never covers touches (pointer-events none), so a tap /
+      // drag that arrives while the strip is still coming up reaches the page's own handlers (the strip is live as soon as its code runs); the layer stays until the strip drew (10 s cap, then it goes anyway).
+      ov.style.pointerEvents = 'none';
+      let slow = false;
+      while (!firstReady() && performance.now() - t0 < 10000) { await new Promise((r) => requestAnimationFrame(r)); if (!slow && performance.now() - t0 > 2500) { slow = true; dbg('work layer: strip still not drawn 2.5 s after activation, layer kept'); } }
+      for (let i = 0; i < 2; i++) await new Promise((r) => requestAnimationFrame(r));
       try { window.__r45vt?.skipTransition(); } catch { /* */ } // round 5: release the held homepage frame now that the live strip is on screen
       pm('home:land-strip-ready'); dbg('work layer: strip ready', firstReady(), 'after', Math.round(performance.now() - t0), 'ms since activation; fading the layer');
-      gsap.to(ov, { opacity: 0, duration: F.landFadeSec, ease: 'sine.inOut', onComplete: () => ov.remove() });
+      const tt = document.getElementById('pxh-title'); gsap.to(tt ? [ov, tt] : ov, { opacity: 0, duration: F.landFadeSec, ease: 'sine.inOut', onComplete: () => { ov.remove(); tt?.remove(); } });
     })();
   };
   if (document.prerendering) document.addEventListener('prerenderingchange', arrive, { once: true }); else arrive();
@@ -99,7 +106,7 @@ export function initHomeReturn({ items, px, py, bw, bh, touch, rectOf, fadeEls, 
   addEventListener('pageshow', (e) => { if (!e.persisted) return; navigated = false; busy = false; setBusy(false); fl?.host?.remove(); fl?.dispose(); fl = null; building = null; gsap.set(fadeEls, { clearProps: 'opacity' }); nav?.drive(1); clearHandoff('pxg'); if (!off) (window.requestIdleCallback || ((f) => setTimeout(f, 600)))(() => setTimeout(build, 1200), { timeout: 4000 }); });
 
   // R45b: on touch screens a swipe to the right (starting away from the edge, which stays Safari's own back) goes home like the Back button: horizontal intent = dx > 2 x |dy|
-  if (touch && !off) {
+  if (swipeBack && !off) {
     let t = null;
     addEventListener('touchstart', (e) => { const q = e.touches[0]; t = e.touches.length === 1 && q.clientX > 24 ? { x: q.clientX, y: q.clientY, dx: 0, dy: 0 } : null; }, { passive: true });
     addEventListener('touchmove', (e) => { if (!t) return; const q = e.touches[0]; t.dx = q.clientX - t.x; t.dy = q.clientY - t.y; if (Math.abs(t.dy) > 12 && Math.abs(t.dy) > Math.abs(t.dx) / 2) t = null; }, { passive: true });
