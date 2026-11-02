@@ -22,10 +22,7 @@ const hcmcTime = () => {
 export function mountTallMenu() {
   const about = data.about;
   const flavour = data.menu?.flavour || [];
-  const path = location.pathname.replace(/\/+$/, '');
-  const onWork = path === '/work';
   const wmSrc = data.hero.wordmark;
-  const arrow = '<span class="tmenu__arr" aria-hidden="true">→</span>';
   const wrap = document.createElement('div');
   wrap.innerHTML = `
     <button type="button" class="tmenu__btn" aria-label="Open menu" aria-expanded="false" aria-controls="tmenu"><span></span><span></span></button>
@@ -35,7 +32,7 @@ export function mountTallMenu() {
         <time class="tmenu__time tmenu__fx" data-d="2" aria-label="Local time in Ho Chi Minh City"></time>
         <p class="tmenu__flav tmenu__fx" data-d="0">${flavour.map((l) => `<span>${l}</span>`).join('')}</p>
         <ul class="tmenu__list tmenu__fx" data-d="1">
-          <li><a href="/work/">${onWork ? arrow : ''}Work</a></li>
+          <li><a href="/work/"><span class="tmenu__arr" aria-hidden="true" hidden>→</span>Work</a></li>
           <li><button type="button" class="tmenu__about-btn">About</button></li>
           ${CONTACT.email ? `<li><a href="mailto:${CONTACT.email}" data-contact>Contact</a></li>` : ''}
         </ul>
@@ -87,18 +84,19 @@ export function mountTallMenu() {
   };
 
   // ---- the big wordmark in the panel: when the page's own wordmark is small (project pages) it grows from there as the panel opens
-  const placeWm = () => {
+  const placeWm = (toSmall) => {
     const real = document.querySelector('a.wordmark');
     wmImg.style.transition = 'none'; wmImg.style.transform = '';
-    if (!real) return;
-    const a = real.getBoundingClientRect(), b = wmImg.getBoundingClientRect();
-    if (a.width > 0 && b.width > 0 && a.width < b.width * 0.9) {
-      const s = a.width / b.width;
-      wmImg.style.transformOrigin = '0 0';
-      wmImg.style.transform = `translate(${a.left - b.left}px, ${a.top - b.top}px) scale(${s})`;
+    let small = '';
+    if (real) {
+      const a = real.getBoundingClientRect(), b = wmImg.getBoundingClientRect();
+      if (a.width > 0 && b.width > 0 && a.width < b.width * 0.9) { wmImg.style.transformOrigin = '0 0'; small = `translate(${a.left - b.left}px, ${a.top - b.top}px) scale(${a.width / b.width})`; }
     }
+    if (!small) { wmImg.style.transition = ''; return; }
+    if (!toSmall) wmImg.style.transform = small; // open: start small, grow to big
     void wmImg.offsetWidth;
     wmImg.style.transition = '';
+    wmImg.style.transform = toSmall ? small : ''; // close: shrink to the page's own small wordmark
   };
 
   let open = false, hideT = 0;
@@ -115,9 +113,10 @@ export function mountTallMenu() {
     menu.classList.toggle('is-plain', plain);
     if (on) {
       if (wasOpen) { menu.dataset.view = view; (menu.querySelector(view === 'about' ? '.tmenu__text' : 'a[href], button') || btn).focus({ preventScroll: true }); return; }
+      menu.querySelector('.tmenu__arr').hidden = !/^\/work\/?$/.test(location.pathname); // "→" before the current page: only on the Work page itself
       geom(); tick();
       menu.hidden = false; menu.dataset.view = view;
-      if (!plain) { draw(0); placeWm(); }
+      if (!plain) { draw(0); placeWm(false); }
       void menu.offsetWidth;
       menu.classList.add('is-open');
       if (plain) { panel.style.clipPath = 'none'; veil.style.opacity = '0'; }
@@ -126,7 +125,7 @@ export function mountTallMenu() {
     } else {
       menu.classList.remove('is-open');
       const done = () => { if (!open) { menu.hidden = true; stopTime(); } };
-      if (plain) hideT = setTimeout(done, 260); else { placeWm(); run(0, MENU_FX.closeSec, done); }
+      if (plain) hideT = setTimeout(done, 260); else { placeWm(true); run(0, MENU_FX.closeSec, done); }
       btn.focus({ preventScroll: true });
     }
   };

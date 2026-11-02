@@ -130,11 +130,13 @@ let touchEndAt = 0;
 setRestContext(() => { const now = performance.now(); return { speed: Math.round(tapSpeed), sinceTouchEnd: touchEndAt ? Math.round(now - touchEndAt) : null, restFor: Math.round(rest.restFor(now)), moving: !rest.ok(now) && !transitionBusy, flight: transitionBusy, blockedBy: rest.why() }; }); // (R43: the page steps an open flight runs one per frame are 'flight' jobs, not idle jobs that ran while the strip moved)
 if (perfOn) { window.__restJobs = restJobs; window.__glLedger = glLedger; gpuProbe(); } // (the one throw-away GPU probe happens here, before the strip's own context exists: the live count never passes 3)
 const liteTitle = mode.createTitle?.({ app, projects, reduced, rest });
+const liteDetails = mode.createDetails?.({ projects, reduced }); // R48 Part B
 if (ui) root.insertBefore(ui.lineEl, stage); // R33d: the scroll line sits in .work, under the canvas
+if (liteDetails) root.insertBefore(liteDetails.root, stage); // R48: the details row + line sit under the canvas too (the cards scroll over them)
 const countEl = app.querySelector('.work__count') || document.createElement('div');
 const toggleEl = ui ? ui.switchEl : app.querySelector('.work__toggle') || document.createElement('button');
 const nameEl = liteTitle?.root || app.querySelector('.work__name') || document.createElement('div');
-const fadeEls = ui ? [ui.root, ui.lineEl] : [countEl, toggleEl, nameEl]; // what the project transition fades out / back in
+const fadeEls = ui ? [ui.root, ui.lineEl] : [countEl, toggleEl, nameEl, ...(liteDetails ? [liteDetails.root] : [])]; // what the project transition fades out / back in
 const titleEls = [...nameEl.querySelectorAll('.work__title')].map((el) => ({ el, chars: [...el.querySelectorAll('.work__char')], f: -1 }));
 const iconEl = toggleEl.querySelector('.work__icon') || document.createElement('span');
 await mode.earlyNav(data.hero.wordmark, lenis);
@@ -227,7 +229,7 @@ const layouts = () => {
     it.el.style.width = `${w}px`; it.el.style.height = `${h}px`;
   });
   if (ui) ui.layout(fw, fh);
-  liteTitle?.layout(fw, fh, false);
+  liteTitle?.layout(fw, fh, false); liteDetails?.layout(fw, fh);
 };
 layouts();
 const cur = () => LAY[vertical ? 'vertical' : 'side'];
@@ -665,7 +667,7 @@ swap.attach({
     pm('back:resume-start');
     app.style.display = '';
     [...workChrome].reverse().forEach((n) => document.body.prepend(n)); workChrome = [];
-    pm('back:resume-shown');
+    pm('back:resume-shown'); mode.wordmarkGrow?.();
     window.scrollTo(0, savedY);
     pm('back:resume-scroll');
     lenis = makeLenis(); lenisLast = null; scrollGain = installScrollGain(lenis);
@@ -943,7 +945,7 @@ const tick = (_time, deltaMs) => {
     }
     /* R42c: the centred project's header image is fetched once it rests */ if (!ui) countEl.textContent = `${String(idx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`; }
 
-  if (ui || liteTitle) { // R32 / R33c: the text field, counter and ruler. SCROLL STOP = no input for scrollStopSec (a coasting drag counts as moving until it is slower than scrollStopSpeed), the strip may still
+  if (ui || liteTitle) { // (R48: liteDetails runs with the title) // R32 / R33c: the text field, counter and ruler. SCROLL STOP = no input for scrollStopSec (a coasting drag counts as moving until it is slower than scrollStopSpeed), the strip may still
     // be gliding / snapping to its image: the project it is HEADING to is then the active one.
     const ptn = L.pitch;
     if (drag) inputAt = now;
@@ -956,7 +958,7 @@ const tick = (_time, deltaMs) => {
     v2s.pos = pos; v2s.idx = idx; v2s.kHead = kHead; v2s.idxHead = ((kHead % N) + N) % N; v2s.kNum = (stopped ? kHead : kCount) + 1;
     v2s.speedL = Math.abs(vel) / Math.max(L.M.viewAlong, 1); v2s.vertical = morph ? morph.to === 'vertical' : vertical; v2s.morph = !!morph; v2s.dt = dt; v2s.stopped = stopped;
     if (!stopped) v2StopAt = 0; else if (!v2StopAt) { v2StopAt = now; if (window.__stopLog) window.__stopLog.push({ at: now, since: now - inputAt }); }
-    v2s.transitioning = transitionBusy; ui?.frame(v2s); liteTitle?.frame(v2s);
+    v2s.transitioning = transitionBusy; ui?.frame(v2s); liteTitle?.frame(v2s); liteDetails?.frame(v2s);
   }
   if (ui && glOn && !transitionBusy) { // R33b: the pixel smear on every picture (only with a fine pointer; cards-gl is null on reduced motion / weak devices / ?gl=0)
     ptrFx ||= createPointerFx(gl, N);

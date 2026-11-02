@@ -47,6 +47,11 @@ export const LITE_TITLE = { minSize: 28, maxSize: 84, frameShare: 120 / 1055, fi
 // the tall image warp: the wide image warp with the strength scaled (read live: ?tune)
 TALL.frameWarp = { ...WORK.frameWarp, strength: 1.39 * TALL.warpStrength, curl: 0.5, camDown: 1.25, camUp: 1.25, bowDown: 0, bowUp: 0.06, reach: 1, riseSec: 0.5, leanBuf: 0.15, leanSignDown: 1 }; // (R33: the phone / tablet pages keep the lean toward the motion in both directions) // (R24i: leanBuf = extra offscreen overscan along the strip for the axis lean, in screen lengths; the lean is capped by what it holds)
 // R24e: tablet LANDSCAPE (R24b's test: layout-store.js isTabletAspect): the wide-style strip, no cards (cards: 0), the image `frameH` of the viewport height (width from the desktop ratio, at most 90 % of the width)
+// R48: the phone / tablet-portrait project page's SMALL wordmark: top CENTRE (the burger owns top-left). x / y / width as nav.js small = capped vw / vh / vw; y centres it on the 48 px burger. Easy to move.
+TALL.wmSmall = { x: 36, y: 2.4, width: 28 };
+// R48 Part B: the phone Work page's details row. rowGap = the gap under the centred card (share of the card height; the mock's proportion is ~0.1, the brief's "~48 px" would run into the next card), lineInset = the
+// line's distance inside the card's top edge (share of the card height), stagger = s between lines of a roll, descLines / descChars = the description clamp.
+export const TALL_DETAILS = { rowGap: 0.1, lineInset: 0.07, stagger: 0.06, descLines: 3, descChars: 120 };
 export const TABLET = { cards: 0, frameH: 0.62 };
 
 export const TRANSITION_POLICY = TRANSITION_POLICY_LITE;

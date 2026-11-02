@@ -3,3 +3,25 @@
 .lite-title__text { position: absolute; display: block; white-space: nowrap; line-height: 1; opacity: 0; font-kerning: normal; text-rendering: geometricPrecision; }
 /* The address bar can resize the window while the captured flight is moving. */
 .pj-root .tp-hero, .pj-root .pj__hero { height: var(--tap-viewport-height, 100svh); }
+
+/* R48 Part B: the phone details row (src/work/tall-details.js). Under the canvas (the cards scroll over it); the old "01 / 05" counter is replaced by it. */
+[data-layout='tall'] .work__count { display: none; }
+.td { --td-c: var(--fg); position: absolute; inset: 0; z-index: 0; pointer-events: none; color: var(--td-c); font-family: var(--font-body); }
+.td__line { position: absolute; left: 0; right: 0; top: var(--td-line-y, 0px); height: 1px; background: var(--td-c); opacity: 0.35; }
+.td__row { position: absolute; left: var(--td-left, 0px); width: var(--td-w, 100%); top: var(--td-row-y, 0px); height: calc(64px * var(--td-s, 1)); transition: none; }
+.td__count { position: absolute; left: 0; top: 0; display: flex; align-items: flex-start; }
+.td__num { display: block; font-size: calc(42px * var(--td-s, 1)); font-weight: 200; line-height: 0.74; height: 0.74em; letter-spacing: 0; }
+.td__digits { display: flex; }
+.td__slot { position: relative; display: block; width: 0.7em; height: 0.74em; overflow: hidden; clip-path: inset(0 0 1.5px 0); }
+.td__col2 { position: absolute; left: 0; top: 0; width: 100%; will-change: transform; transition: transform 0.5s cubic-bezier(0.65, 0, 0.35, 1); }
+.td__col2 span { display: block; height: 0.74em; text-align: left; }
+.td__tot { margin: 0 0 0 calc(3px * var(--td-s, 1)); font-size: max(11px, calc(10px * var(--td-s, 1))); line-height: 1; opacity: 0.45; position: relative; top: -2px; }
+.td__col { position: absolute; top: calc(4px * var(--td-s, 1)); font-size: max(11px, calc(10.5px * var(--td-s, 1))); line-height: 1.55; letter-spacing: 0.02em; white-space: nowrap; }
+.td__year { left: 50%; }
+.td__desc { left: 63%; right: 0; white-space: normal; opacity: 0.55; }
+.td__ln { display: block; overflow: hidden; height: 1.55em; }
+.td__rin { display: block; transition: transform 0.5s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.4s ease, filter 0.4s ease; will-change: transform, opacity; }
+.td__rin.is-out { transform: translateY(-110%); opacity: 0; filter: blur(3px); }
+.td__rin.is-in { transform: none; opacity: 1; filter: none; }
+.td__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+@media (prefers-reduced-motion: reduce) { .td__rin, .td__col2 { transition: none; } }
