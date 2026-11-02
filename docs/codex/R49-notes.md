@@ -23,3 +23,10 @@ NOT run (time): Slow 4G run, 12 s cap run, 144 Hz motion curve, Home->Work->Back
 - The grow (small -> big, the flight's size curve, LOADER.wmGrowSec 1 s) starts only after the swipe has fully ended (+ LOADER.wmAfterSwipeDelay 0); nav / ticker / burger enter with it (enter.delaySec 0.2 from the swipe's end). Fade fallback: same order (fade, then grow).
 - Fixed on the way: the snapshot's background read a transparent container (A showed through); it now reads .loader__bg.
 - Sheets: docs/reference/r49-r2b-ending-*.png (rest, swipe at 0 / .25 / .45 / .65 / .999, grow at +0.45 / +0.95 / +2.15 s).
+
+## Add-on 03:52
+- LOADER.clockOpacity 0.75 (loader only; the phone menu keeps 0.25).
+- Tall screens: the swipe is sized in css px: LOADER.swipeBlockPx 50 (grid = W / 50, min 8 columns: 8 on a 390 phone), swipeBrushPx 500 (the smear zone radius), swipePullRefW 1920 (the pull strength x 1920 / W, so the drag distance in px equals a 1920 desktop's), swipeJitterBlocks 1.5 (ragged front). Wide screens keep the flight's own numbers (38 columns, 1920 = ~50 px blocks; 1440 stays 38 px blocks): "desktop unchanged".
+- Shared edits: home-flight.js shader gets uJit (a per-cell random offset of the flip front, 0 = the old straight edge; the flights never set it). WORK_PTR.pixelGrid is set for the tall swipe's length and put back at its end (pointer-fx reads the grid size there).
+- R48's menu-smear.js is still not merged: this is the flight's smear with a wider zone and a ragged front, not that module.
+- Sheets: docs/reference/r49-r3-ending-*.png.

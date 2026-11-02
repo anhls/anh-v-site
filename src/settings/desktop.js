@@ -104,10 +104,14 @@ export const LOADER = {
   capVw: 20.9, capMaxVh: 42, bottomVw: 2.35,
   tall: { gutterPx: 16, bottomPx: 16 },
   marginVw: 3.125, // side margin of the top text and the travel (the nav's 60 px at 1920)
-  top: { sizeVw: 0.7, minPx: 11, maxPx: 15, groupGapVw: 6.5, inkTopOfWmH: 0.03, inkInLine: 0.3, tallLeftPct: 50, tallGapEm: 1.5, clockOpacity: 0.25, inSec: 0.7, blurPx: 8 },
+  top: { sizeVw: 0.7, minPx: 11, maxPx: 15, groupGapVw: 6.5, inkTopOfWmH: 0.03, inkInLine: 0.3, tallLeftPct: 50, tallGapEm: 1.5, inSec: 0.7, blurPx: 8 },
   holdSec: 0.3,
   fadeSec: 0.35,
   endFadeSec: 0.45,
+  clockOpacity: 0.75, // the loader's clock (the phone menu's stays 25 %)
+  // The swipe on TALL screens is sized in css px, not per screen width (the flight's grid is 38 columns of the width: ~50 px blocks on a desktop but ~10 px on a phone, and the pull shrinks with it):
+  // swipeBlockPx = block size, swipeBrushPx = the brush radius (the smear zone), swipePullRefW = the pull is as many px as on a screen this wide, swipeJitterBlocks = the front's ragged edge (blocks). Wide screens: the flight's own numbers, unchanged.
+  swipeBlockPx: 50, swipeBrushPx: 500, swipePullRefW: 1920, swipeJitterBlocks: 1.5,
   overlayOpacity: 0.7, // layers while loading (bottom -> top): hero, black background, small wordmark + top text, this veil (page background colour), the digits. The swipe takes background + veil + digits (and the top text); the wordmark is not swiped: it goes from dimmed to full as the swipe front passes it.
   wmAfterSwipeDelay: 0, // s: the wordmark's grow (small -> big) starts this long after the swipe has FULLY finished (nothing of it before)
   wmGrowSec: 1, // the grow's length; its curve is the flight's size curve (project -> Home)

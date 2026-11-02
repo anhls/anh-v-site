@@ -1,5 +1,6 @@
 import { HOME_FLIGHT as F, WORK_PTR, LOADER as L } from '../timeline.js';
 import { createHomeFlight, isPixel, homeFlightOK } from './home-flight.js';
+import { isTall } from '../util/layout-mode.js';
 import { createPointerFx } from '../work/pointer-fx.js';
 
 // R49: the loader's ending = the Home <-> Work pixel swipe (home-flight.js 'pixel' look: the Work page's hover smear driven by a synthetic brush) over the whole screen. Picture A = the loader's own
@@ -29,13 +30,17 @@ export function prepareSwipe() {
     play({ snap, video, onFirstFrame, onProgress }) {
       const W2 = innerWidth, H2 = innerHeight, box = FULL(W2, H2), sec = F.sec;
       r.setPicture(0, snap, 'loader-snap');
+      // tall screens: block size / brush / pull in css px (LOADER.swipe*); wide screens: the flight's own numbers
+      const tall = isTall(), savedGrid = WORK_PTR.pixelGrid;
+      if (tall) WORK_PTR.pixelGrid = Math.max(8, Math.round(W2 / L.swipeBlockPx)); // (pointer-fx reads the grid size from here; put back at the end)
       const cols = Math.max(8, Math.round(WORK_PTR.pixelGrid)), rows = Math.max(4, Math.round((cols * H2) / W2)), zero = new Float32Array(cols * rows * 4);
       let grid = null, simT = 0;
       const fx = createPointerFx({ setPixelFx: (amt, params, data) => { grid = amt ? { data, params } : null; } }, 1);
-      const cellPx = W2 / cols, lo = -cellPx, hi = W2 + cellPx;
+      const cellPx = W2 / cols, jit = tall ? L.swipeJitterBlocks * cellPx : 0, lo = -cellPx - jit / 2, hi = W2 + cellPx + jit / 2;
+      const pull = tall ? Math.max(1, L.swipePullRefW / W2) : 1, frameH = tall ? L.swipeBrushPx / Math.max(WORK_PTR.pixelBrush, 0.01) : H2 * L.brushFrame;
       const cross = (p) => { const q = Math.min(1, Math.max(0, (p - F.crossFrom) / Math.max(F.crossTo - F.crossFrom, 0.01))); return q * q * (3 - 2 * q); };
       const frontAt = (p) => lo + (hi - lo) * cross(p);
-      const stepBrush = (p, dt) => { const f = cross(p), live = f > 0 && f < 1; fx.update({ dt, idx: 0, px: live ? frontAt(p) : NaN, py: live ? H2 / 2 : NaN, W: W2, H: H2, frameH: H2 * L.brushFrame, allowed: true, warp: 0, scale: W2 / 1920, gapAlong: 1e9, vertical: false }); };
+      const stepBrush = (p, dt) => { const f = cross(p), live = f > 0 && f < 1; fx.update({ dt, idx: 0, px: live ? frontAt(p) : NaN, py: live ? H2 / 2 : NaN, W: W2, H: H2, frameH, allowed: true, warp: 0, scale: W2 / 1920, gapAlong: 1e9, vertical: false }); };
       return new Promise((resolve) => {
         const t0 = performance.now();
         let first = true;
@@ -46,11 +51,11 @@ export function prepareSwipe() {
           while (simT + SD <= target + 1e-6) { simT += SD; stepBrush(Math.min(1, simT / sec), SD); }
           const gain = 1 - Math.min(1, Math.max(0, (p - F.crossTo) / Math.max(1 - F.crossTo, 0.01)));
           r.setPicture(1, video); // the live video frame (no key: re-uploaded every frame)
-          r.setGrid(grid ? grid.data : zero, cols, rows, grid ? grid.params : [WORK_PTR.pixelStrength, WORK_PTR.pixelRgb]);
-          r.begin(); r.layer(box, box, REST, REST, [0, 1], { frontPx: frontAt(p), gain, vertical: false });
+          r.setGrid(grid ? grid.data : zero, cols, rows, [WORK_PTR.pixelStrength * pull, WORK_PTR.pixelRgb]);
+          r.begin(); r.layer(box, box, REST, REST, [0, 1], { frontPx: frontAt(p), gain, vertical: false, jitterPx: jit });
           onProgress?.(p, frontAt(p), cellPx);
           if (first) { first = false; onFirstFrame?.(); }
-          if (p >= 1) { dispose(); resolve(); return; }
+          if (p >= 1) { WORK_PTR.pixelGrid = savedGrid; dispose(); resolve(); return; }
           requestAnimationFrame(draw);
         };
         draw(performance.now());

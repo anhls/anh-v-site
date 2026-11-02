@@ -71,7 +71,7 @@ export function runLoader({ urls = [], onReady, wordmark } = {}) {
     el.style.setProperty('--l-left', `${tall ? (L.top.tallLeftPct / 100) * W : (W - groupW) / 2}px`);
     el.style.setProperty('--l-fs-top', `${topPx}px`);
     el.style.setProperty('--l-gap', tall ? `${L.top.tallGapEm}em` : `${(L.top.groupGapVw / 100) * W}px`);
-    el.style.setProperty('--l-clock-op', String(L.top.clockOpacity));
+    el.style.setProperty('--l-clock-op', String(L.clockOpacity));
   };
   wordmark.set(1);
   layout();
@@ -186,7 +186,7 @@ export function runLoader({ urls = [], onReady, wordmark } = {}) {
     const fa = g.measureText('0').fontBoundingBoxAscent;
     el.querySelectorAll('.loader__t').forEach((t) => {
       const rg = document.createRange(); rg.selectNodeContents(t); const r = rg.getBoundingClientRect();
-      g.globalAlpha = (t.classList.contains('loader__clock') ? L.top.clockOpacity : 1) * (1 - L.overlayOpacity); // (the top text sits under the veil)
+      g.globalAlpha = (t.classList.contains('loader__clock') ? L.clockOpacity : 1) * (1 - L.overlayOpacity); // (the top text sits under the veil)
       g.fillText(t.textContent, r.left, r.top + fa);
     });
     return c;
