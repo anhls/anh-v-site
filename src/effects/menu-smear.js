@@ -15,7 +15,7 @@ const smooth = (q) => { q = Math.min(1, Math.max(0, q)); return q * q * (3 - 2 *
 export const unsmooth = (s) => { s = Math.min(1, Math.max(0, s)); let lo = 0, hi = 1; for (let i = 0; i < 22; i++) { const m = (lo + hi) / 2; if (smooth(m) < s) lo = m; else hi = m; } return (lo + hi) / 2; };
 // the sweep time of the open (the flight's own cross-fade stretch), the close is twice as fast
 // R48 r9: the MENU has its own block size (blockPx, css px at the 430 px reference width, scaling with the screen width; ~4 columns across a phone), no longer the flight's grid
-export const MENU_SWEEP = { openSec: F.sec * (F.crossTo - F.crossFrom), closeDiv: TM.closeSpeed || 2, blockPx: 113 };
+export const MENU_SWEEP = { openSec: F.sec * (F.crossTo - F.crossFrom), closeDiv: TM.closeSpeed || 2, blockPx: 56 };
 export const gridCols = () => Math.max(2, Math.round(430 / Math.max(8, MENU_SWEEP.blockPx))); // whole columns across the screen
 export const gridBlockPx = (W = innerWidth) => W / gridCols(); // one smear block in CSS px (the flight uses the same grid)
 const hash = (n) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };

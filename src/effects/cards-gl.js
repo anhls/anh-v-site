@@ -32,7 +32,7 @@ uniform vec2 uPad;               // R33b: spill margin around the picture in px 
 uniform vec2 uMarg;              // the warp buffer's overscan margin in px
 uniform vec2 uScr;               // the screen size in px
 void main() {
-  float arc = pow(sin(3.14159265 * a.x), uShape);
+  float arc = pow(max(sin(3.14159265 * a.x), 0.0), uShape); // R48 r11: sin(pi) is -8.7e-8 in float32 and pow(negative, y) is NaN on Apple GPUs: the strip's LAST column (1/32 of the card = the 10.5 px cut on iPhone) vanished
   vec2 sz = uSize + 2.0 * uPad;
   vec2 p = uCenter + (a - 0.5) * sz + vec2(0.0, uBend * arc);
   vec2 a01 = a;
@@ -612,7 +612,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     holdWarp: (a) => { holdAmt = a; dirty = true; }, // dev only
     diag: () => ({ postOk, shift, ...fbInfo, warpScale, passCount, lastPass }), // R24f: what the ?perf diagnosis line shows
     // R48 r9: the DRAWN truth for ?debug=layout: the drawing buffer, the viewport, the widths the shader maths uses, and where card i's left / right edges land on screen (css px, the flat position through the shader's own maths)
-    probe: (i) => { const vp = gl.getParameter(gl.VIEWPORT), cssW = canvas.clientWidth || W, k = vp[2] / cssW; return { dbw: gl.drawingBufferWidth, dbh: gl.drawingBufferHeight, cw: canvas.width, vp: [vp[0], vp[1], vp[2], vp[3]], W, H, cssW, left: i == null ? null : ((bx[i] + ox[i] - bw[i] / 2) / W) * vp[2] / (canvas.width / cssW), right: i == null ? null : ((bx[i] + ox[i] + bw[i] / 2) / W) * vp[2] / (canvas.width / cssW), k, i, hs: i == null ? null : hs[i], ox: i == null ? null : ox[i], bxi: i == null ? null : bx[i], bwi: i == null ? null : bw[i], fb: fb ? { w: fb.w, h: fb.h, mx: fb.mx, my: fb.my } : null, warpScale, fx: typeof fxOn !== 'undefined' ? !!fxOn : null, fxa: i == null || !fxAmt ? null : fxAmt[i] }; },
+    probe: (i) => { const vp = gl.getParameter(gl.VIEWPORT), cssW = canvas.clientWidth || W, k = vp[2] / cssW; return { dbw: gl.drawingBufferWidth, dbh: gl.drawingBufferHeight, cw: canvas.width, vp: [vp[0], vp[1], vp[2], vp[3]], W, H, cssW, left: i == null ? null : ((bx[i] + ox[i] - bw[i] / 2) / W) * vp[2] / (canvas.width / cssW), right: i == null ? null : ((bx[i] + ox[i] + bw[i] / 2) / W) * vp[2] / (canvas.width / cssW), k, maxTex: gl.getParameter(gl.MAX_TEXTURE_SIZE), maxRb: gl.getParameter(gl.MAX_RENDERBUFFER_SIZE), maxVp: Array.from(gl.getParameter(gl.MAX_VIEWPORT_DIMS)).join('x'), i, hs: i == null ? null : hs[i], ox: i == null ? null : ox[i], bxi: i == null ? null : bx[i], bwi: i == null ? null : bw[i], fb: fb ? { w: fb.w, h: fb.h, mx: fb.mx, my: fb.my } : null, warpScale, fx: typeof fxOn !== 'undefined' ? !!fxOn : null, fxa: i == null || !fxAmt ? null : fxAmt[i] }; },
     setWarpScale: (k) => { warpScale = Math.max(0.25, Math.min(1, k)); dirty = true; },
     // R33b: the pixel grid. amt = Float32Array (per picture: its share of the effect, 0 = untouched), params = [strength, rgb], data = RGBA32F cells (cols x rows, screen space, row 0 = top),
     // pad = [px, py] spill margin. amt null = off (nothing is uploaded or sampled; every picture is exactly as before).

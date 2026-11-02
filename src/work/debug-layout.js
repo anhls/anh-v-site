@@ -14,7 +14,7 @@ export function mountLayoutDebug() {
       `innerWidth ${innerWidth}  clientWidth ${de.clientWidth}  vv.width ${vv ? r(vv.width) : '-'}  vv.scale ${vv ? r(vv.scale) : '-'}  dpr ${devicePixelRatio}`,
       `canvas css ${cv ? cv.style.width : '-'}  rect x ${cr ? r(cr.x) : '-'} w ${cr ? r(cr.width) : '-'}  bitmap ${cv ? cv.width : '-'}`,
       pr ? `GL drawn: buffer ${pr.dbw}x${pr.dbh}  viewport ${pr.vp.join(',')}  bitmap ${pr.cw}  gl W ${pr.W}  card x ${r(pr.left)} -> ${r(pr.right)}  ${bad ? 'MISMATCH ' + r(pr.left - card.x) + ' / ' + r(pr.right - card.x - card.w) : 'ok'}` : 'GL drawn -',
-      pr ? `GL internals: idx ${pr.i} hs ${pr.hs} ox ${pr.ox == null ? '-' : r(pr.ox)} bx ${r(pr.bxi)} bw ${r(pr.bwi)}  fb ${pr.fb ? pr.fb.w + 'x' + pr.fb.h + ' m ' + pr.fb.mx + ',' + pr.fb.my : '-'}  warpScale ${pr.warpScale}  pixelFx ${pr.fx} ${pr.fxa}` : 'GL internals -',
+      pr ? `GL internals: idx ${pr.i} hs ${pr.hs} ox ${pr.ox == null ? '-' : r(pr.ox)} bx ${r(pr.bxi)} bw ${r(pr.bwi)}  fb ${pr.fb ? pr.fb.w + 'x' + pr.fb.h + ' m ' + pr.fb.mx + ',' + pr.fb.my : '-'}  warpScale ${pr.warpScale}  maxTex ${pr.maxTex} maxRb ${pr.maxRb} maxVp ${pr.maxVp}  pixelFx ${pr.fx} ${pr.fxa}` : 'GL internals -',
       px ? `PIXELS (row y ${r(px.y)}): first lit x ${px.first == null ? '-' : r(px.first)}  last lit x ${px.last == null ? '-' : r(px.last)}  ${badPx ? 'MISMATCH vs card ' + (card ? r(card.x) + ' -> ' + r(card.x + card.w) : '') : 'ok'}` : 'PIXELS -',
       card ? `card x ${r(card.x)} -> ${r(card.x + card.w)}  gap L ${r(card.x)} R ${r(de.clientWidth - card.x - card.w)}  centre ${r(card.x + card.w / 2)}` : 'card -',
       t ? `title x ${r(t.x)} -> ${r(t.x + t.width)}  centre ${r(t.x + t.width / 2)}  (card centre ${card ? r(card.x + card.w / 2) : '-'})` : 'title -',
