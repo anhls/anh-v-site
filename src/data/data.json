@@ -3293,6 +3293,7 @@
     "copied": "Copied",
     "openMail": "Open mail",
     "close": "Close",
+    "backCard": { "image": "", "video": "" },
     "items": [
       {
         "kind": "email",

@@ -4,6 +4,6 @@ let loading = null;
 document.addEventListener('click', (e) => {
   const a = e.target.closest?.('[data-contact]');
   if (!a || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.defaultPrevented) return;
-  e.preventDefault();
+  e.preventDefault(); e.stopPropagation(); // (the Work page nav also has its own handler on these links)
   (loading ||= import('./contact-card.js')).then((m) => m.openContact(a)).catch(() => { loading = null; location.href = a.getAttribute('href') || '/'; });
 }, true);
