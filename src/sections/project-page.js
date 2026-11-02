@@ -1,3 +1,4 @@
+import { loopSync } from '../util/loop-sync.js';
 import { FLIGHT } from '../settings/shared.js';
 import { imgAttrs, videoInfo } from '../util/media.js';
 
@@ -30,7 +31,7 @@ const loop = (c) => {
   const style = [c.w && c.w <= 100 ? `--w:${c.w}%` : '', c.w > 100 ? `--wvw:${(c.w / 19.2).toFixed(3)}vw` : '', c.h ? `--h:${c.h}%` : '', c.hcss ? `--hpx:${c.hcss}` : c.hpx ? `--hpx:${uy(c.hpx)}` : '', c.aspect ? `aspect-ratio:${c.aspect}` : ''].filter(Boolean).join(';');
   // Transparent loop: WebM with alpha (Chrome / Firefox); Safari plays no WebM alpha, so it gets the animated WebP with alpha instead.
   if (v.alpha && SAFARI) return par(c, `<img class="pj__img pj__img--${c.fit || 'cover'}" src="${v.webp}" alt="" loading="lazy" decoding="async"${style ? ` style="${style}"` : ''}>`);
-  return par(c, `<video class="pj__img pj__img--${c.fit || 'cover'}" muted loop playsinline preload="none" data-poster="${v.poster}" data-webm="${v.webm}" data-mp4="${v.mp4 || ''}"${style ? ` style="${style}"` : ''}></video>`);
+  return par(c, `<video class="pj__img pj__img--${c.fit || 'cover'}" muted loop playsinline preload="none" data-ref="${c.ref}" data-poster="${v.poster}" data-webm="${v.webm}" data-mp4="${v.mp4 || ''}"${style ? ` style="${style}"` : ''}></video>`);
 };
 
 const media = (c, sizes) => (c.kind === 'loop' ? loop(c) : img(c, sizes));
@@ -70,7 +71,8 @@ const stageItem = (it) => {
 
 const block = {
   // R35: hero with a loop at its own aspect (b.loop = the video ref, b.aspect = w / h; b.img = the still, the same picture the Work page / hand-off uses, sits behind the video until it plays)
-  hero: (b) => b.loop ? `<section class="pj__sec pj__hero pj__hero--loop" style="height:calc(100vw / ${b.aspect})">${img({ ref: b.img, fit: 'cover', alt: document.title.replace(/ \| Anh V$/, '') }, '100vw', true)}${loop({ kind: 'loop', ref: b.loop, fit: 'cover' })}</section>` : `<section class="pj__sec pj__hero"${b.aspect ? ` style="height:calc(100vw / ${b.aspect})"` : ''}>${img({ ref: b.img, fit: 'cover', parallax: b.parallax, alt: document.title.replace(/ \| Anh V$/, '') }, '100vw', true)}</section>`,
+  // R47: a loop without its own aspect = the ordinary full-height header (same size and parallax as a still) with the video on top of the still (cover): the Techcombank header IS the card's loop
+  hero: (b) => b.loop && !b.aspect ? `<section class="pj__sec pj__hero pj__hero--loop pj__hero--card">${img({ ref: b.img, fit: 'cover', parallax: b.parallax, alt: document.title.replace(/ \| Anh V$/, '') }, '100vw', true)}${loop({ kind: 'loop', ref: b.loop, fit: 'cover', parallax: b.parallax })}</section>` : b.loop ? `<section class="pj__sec pj__hero pj__hero--loop" style="height:calc(100vw / ${b.aspect})">${img({ ref: b.img, fit: 'cover', alt: document.title.replace(/ \| Anh V$/, '') }, '100vw', true)}${loop({ kind: 'loop', ref: b.loop, fit: 'cover' })}</section>` : `<section class="pj__sec pj__hero"${b.aspect ? ` style="height:calc(100vw / ${b.aspect})"` : ''}>${img({ ref: b.img, fit: 'cover', parallax: b.parallax, alt: document.title.replace(/ \| Anh V$/, '') }, '100vw', true)}</section>`,
   text: (b) => {
     const t = fadeText(b.text);
     const st = [b.hvh ? `height:${b.hvh}vh` : b.hpx ? `height:${uy(b.hpx)}` : '', b.pad ? `--padx:calc(var(--ux) * ${(b.pad / 19.2).toFixed(3)})` : ''].filter(Boolean).join(';');
@@ -182,6 +184,8 @@ export function buildProjectPage(root, page, lenis) {
         v.dataset.ready = '1';
         v.poster = v.dataset.poster;
         v.src = v.dataset.webm && (v.canPlayType('video/webm; codecs="vp9"') || !v.dataset.mp4) ? v.dataset.webm : v.dataset.mp4;
+        if (v.dataset.ref) v.addEventListener('playing', () => v.classList.add('is-playing'), { once: true });
+        if (v.dataset.ref) v.addEventListener('loadedmetadata', () => { const t = loopSync.startAt(v.dataset.ref, v.duration); if (t) v.currentTime = t; }, { once: true }); // R47: continue the card's loop where the flight left it
       }
       if (!reduce) v.play().catch(() => {});
     } else v.pause();

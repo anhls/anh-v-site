@@ -485,3 +485,5 @@ Waits for Anh's original files. Convert the two GIFs to MP4/WebM loops, serve im
 ## [done, merged] R46b + R46c (desktop/r46-launch-prep, desktop/r46c-modal-lock): contact cards thrown in (random side, tilt limits, back card slot, drag + fling, outside-click close); everything under the card locked (src/util/modal.js); every close path removes the card's history entry; tests never open the mail app (tools/lib/no-mailto.mjs).
 
 ## NEXT (Anh's go needed): go live per docs/LAUNCH.md (Cowork puts work-v2 on `live`; Anh adds the domains in Cloudflare and switches the PA Vietnam nameservers). Later: social links + 'Available for' copy + back-card graphic; iPhone returns cut to the hero (Safari's own back); ~1 s phone landing hold (in-document Work); R44 phone project pages; About / Archive pages.
+
+## [done] R47 (desktop + lite; brief docs/codex/R47.md; branch desktop/r47-tcb-loop-card): the TCB card and header play the TV loop b19a (card media separate from the page via `card` in data.json; flights sample the live video frame).

@@ -96,7 +96,7 @@
             if (document.getElementById('pxg')) return;
             var r = JSON.parse(localStorage.getItem('pxg') || 'null');
             log('home paint(): prerendering', document.prerendering, 'record', r ? 'age ' + (Date.now() - r.t) + 'ms' : 'none');
-            if (!r || Date.now() - r.t > 10000 || /[?&](gl=0|home=full)/.test(location.search) || matchMedia('(prefers-reduced-motion: reduce)').matches) { if (r) localStorage.removeItem('pxg'); return; }
+            if (!r || Date.now() - r.t > 60000 || /[?&](gl=0|home=full)/.test(location.search) || matchMedia('(prefers-reduced-motion: reduce)').matches) { if (r) localStorage.removeItem('pxg'); return; }
             localStorage.removeItem('pxg'); log('home paint(): record valid, deleted, layer up');
             var f = (Date.now() - +localStorage.getItem('pxhft') < 10000 && localStorage.getItem('pxhf')) || '/media/hero/poster.webp';
             localStorage.removeItem('pxhf'); localStorage.removeItem('pxhft');
