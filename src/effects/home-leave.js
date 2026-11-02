@@ -1,3 +1,4 @@
+import { cardRef as cardRefOf } from '../util/card-media.js';
 import { gsap } from 'gsap';
 import data from '../data/data.json';
 import { HOME_FLIGHT as F, LITE_TITLE, WORK_TITLE, TITLE_SHORT } from '../timeline.js';
@@ -16,10 +17,10 @@ export function initHomeToWork({ hero, nav, link: linkOpt, video: videoOpt, wrap
   if (!link) return null;
   const video = videoOpt || hero.frame.video, wrapper = wrapperOpt || hero.frame.pin.querySelector('.hero__wrapper');
   const project = data.projects[0];
-  const cardRef = project.page.blocks.find((b) => b.t === 'hero').img;
+  const cardRef = cardRefOf(project);
   const posterRef = '/media/hero/poster.webp';
   let root = null, fl = null, cardIm = null, posterIm = null, warmed = false, busy = false, hidden = [], nbIms = [];
-  const heroRef = (p) => p.page.blocks.find((b) => b.t === 'hero').img;
+  const heroRef = (p) => cardRefOf(p); // R47: the card's own picture (the loop's poster for Techcombank)
   const N = data.projects.length;
 
   // R45b round 2: Safari cannot prerender, so the Work page itself must already be in the cache when the flight ends: its HTML, its scripts AND the modules those import (the module graph is walked two

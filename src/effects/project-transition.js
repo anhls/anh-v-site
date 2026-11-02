@@ -19,6 +19,8 @@ const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 export const transitionOK = () => !reduced && new URLSearchParams(location.search).get('gl') !== '0' && transitionPolicy().enabled; // R24a: off in tall mode (a plain page load)
 
 const full = new Map(); // slug -> an <img> preloading the header image with the header's own srcset / sizes (so the same file is picked)
+// R47: a loop card hands over a snapshot of the frame it shows: it replaces the header still of that project (the flight starts from, and lands on, the same picture)
+export function setHeaderStill(slug, im) { full.set(slug, im); }
 export function preloadHeader(slug, ref) {
   if (full.has(slug)) return full.get(slug);
   // Bound decoded header retention to the centred project and two neighbours.

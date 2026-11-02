@@ -521,12 +521,14 @@
       "client": "Techcombank",
       "year": 2025,
       "live": true,
+      "card": { "loop": "tcb-priority/b19a", "img": "/media/tcb-priority/b19a-poster.webp" },
       "page": {
         "title": "Techcombank Priority | Anh V",
         "blocks": [
           {
             "t": "hero",
-            "img": "tcb-priority/b04a",
+            "img": "/media/tcb-priority/b19a-poster.webp",
+            "loop": "tcb-priority/b19a",
             "parallax": {
               "y": 0.25,
               "s": 1,

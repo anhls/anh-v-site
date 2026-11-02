@@ -109,3 +109,7 @@ html.pj-open .nav { mix-blend-mode: normal; } /* (R42: scoped, the project CSS i
 
 /* R37f: one final crop, with scroll parallax on its parent. */
 .pj__hero .pj__img { transform: scale(var(--flight-end, 1)); }
+
+/* R47: the card-loop header: the still (the card's snapshot) shows until the video really plays, then the video takes over at the same moment (no poster frame flashing over it) */
+.pj__hero--card video.pj__img { opacity: 0; }
+.pj__hero--card video.pj__img.is-playing { opacity: 1; }

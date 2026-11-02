@@ -86,7 +86,7 @@ export function initHomeReturn({ items, px, py, bw, bh, touch, rectOf, fadeEls, 
     busy = true; setBusy(true);
     try { await build(); } catch { /* plain */ }
     const it = centred();
-    if (!fl || fl.dead || !it || !it.img?.complete || !it.img.naturalWidth) { goHome(viaHistory); return; }
+    if (!fl || fl.dead || !it || !it.img || (it.img.tagName === 'VIDEO' ? !(it.img.readyState >= 2 || it.posterImg?.complete) : (!it.img.complete || !it.img.naturalWidth))) { goHome(viaHistory); return; }
     pm('home:leave-click');
     const card = rectOf ? rectOf(it.idx) : { x: px[it.idx] - bw[it.idx] / 2, y: py[it.idx] - bh[it.idx] / 2, w: bw[it.idx], h: bh[it.idx] };
     const hero = { x: 0, y: 0, w: innerWidth, h: innerHeight };

@@ -41,3 +41,9 @@ html[data-layout='tall'] .nav { display: none; }
 .tp-fade.is-in { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) { .tp-fade { opacity: 1; transform: none; transition: none; } }
 .pj__footer { height: var(--pj-footer-h, 25svh); }
+
+/* R47: the Techcombank header = still + the card's loop on top */
+.tp-hero--card { position: relative; }
+.tp-hero--card video.tp-media { position: absolute; inset: 0; }
+.tp-hero--card video.tp-media { opacity: 0; }
+.tp-hero--card video.tp-media.is-playing { opacity: 1; }

@@ -22,10 +22,13 @@ import { createCardsGL } from '../effects/cards-gl.js';
 import { imgAttrs } from '../util/media.js';
 import { installScrollGain } from '../util/scroll-gain.js';
 import { modal } from '../util/modal.js';
+import { cardRef, cardLoop } from '../util/card-media.js';
+import { loopSync } from '../util/loop-sync.js';
+import { videoInfo } from '../util/media.js';
 import { createPageSwap } from '../effects/page-swap.js';
 import { initHomeReturn } from './home-return.js';
 import { watchDpr } from '../util/dpr.js';
-import { prepareIdleTransition, prepareTransition, leavePrepared, disposePrepared, preloadHeader, runProjectTransition, transitionOK, readBack, playBack } from '../effects/project-transition.js';
+import { setHeaderStill, prepareIdleTransition, prepareTransition, leavePrepared, disposePrepared, preloadHeader, runProjectTransition, transitionOK, readBack, playBack } from '../effects/project-transition.js';
 import { perfOn, pm } from '../util/perf-mark.js';
 import { applyFocus } from './focus.js';
 import { frameAmount, FRAME_STRENGTH_REF } from './speed-curve.js';
@@ -74,7 +77,7 @@ const modeLayouts = await mode.loadLayouts();
 const projects = data.projects;
 const slugs = projects.map((p) => p.slug);
 const N = projects.length;
-const heroRef = (p) => p.page.blocks.find((b) => b.t === 'hero').img;
+const heroRef = (p) => cardRef(p); // R47: the card's own picture (a project can name a loop + poster), else the hero image
 const store = { get: () => { try { return localStorage.getItem('work-mode'); } catch { return null; } }, set: (v) => { try { localStorage.setItem('work-mode', v); } catch { /* private window */ } } };
 // R28: arriving from a project page entered through the R25 transition: the same mode, that project centred, the enlarge played in reverse (below)
 const back = !reduced && params.get('gl') !== '0' && (!mode.tap || transitionOK()) ? readBack() : null;
@@ -154,7 +157,7 @@ if (!storedOK) {
   await fixWorkLayoutIdle(projCards, metricsNow()); // the old time-sliced pass (R22j)
 }
 const items = [];
-projects.forEach((p, i) => items.push({ kind: 'frame', proj: i, slug: p.slug, z: frameZ(), mouse: 20 + 80 * DEPTH.slot, dark: false, ref: heroRef(p) }));
+projects.forEach((p, i) => items.push({ kind: 'frame', proj: i, slug: p.slug, z: frameZ(), mouse: 20 + 80 * DEPTH.slot, dark: false, ref: heroRef(p), loop: cardLoop(p) }));
 projCards.forEach((list, i) => list.forEach((c, j) => items.push({ kind: 'card', proj: i, j, slug: c.slug, z: c.z, mouse: c.mouse, dark: c.dark, src: c.src, card: c })));
 const n = items.length;
 items.forEach((it, i) => {
@@ -166,7 +169,8 @@ items.forEach((it, i) => {
   if (it.kind === 'frame') a.setAttribute('aria-label', projects[it.proj].title);
   else { a.tabIndex = -1; a.setAttribute('aria-hidden', 'true'); } // R22j: a card is a decoration with the same target as its project's image: not a tab stop, not announced (34 unnamed links otherwise)
   // the picture is only requested once the item is near the screen (activate()): the canvas then uploads exactly that file
-  a.innerHTML = `<img ${imgAttrs(it.kind === 'frame' ? it.ref : it.src, it.kind === 'frame' ? `${mode.imageWidth()}vw` : '300px', true)} alt="" decoding="async" draggable="false">`;
+  const lv = it.kind === 'frame' && it.loop ? videoInfo(it.loop) : null; // R47: a frame whose project names a loop is a muted looping <video> (poster = its first frame); cards-gl uploads its current frame
+  a.innerHTML = lv ? `<video muted loop playsinline preload="none" poster="${lv.poster}" data-webm="${lv.webm}" data-mp4="${lv.mp4 || ''}" aria-hidden="true" draggable="false"></video>` : `<img ${imgAttrs(it.kind === 'frame' ? it.ref : it.src, it.kind === 'frame' ? `${mode.imageWidth()}vw` : '300px', true)} alt="" decoding="async" draggable="false">`;
   stage.append(a);
   it.el = a;
   it.img = a.firstChild;
@@ -186,7 +190,8 @@ let modeMotionAt = 0; // R24h: the last time the strip moved (focus delay, landi
 let loadGate = !!back;
 let transitionBusy = !!back; // R31: on the way back only the pictures that show at rest are requested until the transition is over (then the tick and idleLoad take over)
 const nearArr = new Uint8Array(n); // item within 0.8 of a view length of the centre along the strip: its picture is requested at once; the rest follow when idle (below)
-const activate = (it) => { if (it.active) return; it.active = true; const d = it.img.dataset; if (d.srcset) it.img.srcset = d.srcset; it.img.src = d.src; };
+const saveData = !!navigator.connection?.saveData;
+const activate = (it) => { if (it.active) return; it.active = true; if (it.img.tagName === 'VIDEO') { const v = it.img; it.posterImg = new Image(); it.posterImg.src = v.poster; if (!saveData && !reduced) { v.src = v.dataset.webm && (v.canPlayType('video/webm; codecs="vp9"') || !v.dataset.mp4) ? v.dataset.webm : v.dataset.mp4; } return; } const d = it.img.dataset; if (d.srcset) it.img.srcset = d.srcset; it.img.src = d.src; };
 let gl = null; // the card canvas (created below)
 let fine = false;
 let laidOnce = false;
@@ -537,7 +542,7 @@ addEventListener('pointerdown', (e) => {
     frameDown = e.target.closest('a.work__frame');
     // R41d: not on the touchdown itself (a flick starts on a picture too: the decode / renderer work would land in its first frames). It starts once the finger has stayed put for tapPrepareMs; a drag cancels it.
     clearTimeout(tapPrepT);
-    if (!transitionBusy && glOn && mode.transitionPolicy.tapFallback) tapPrepT = setTimeout(() => { if (drag && !dragMoved && !transitionBusy) timed('prepareTap', () => prepareTransition(it.slug, it.ref, it.img, 'tap')); }, mode.transitionPolicy.tapPrepareMs ?? 70);
+    if (!transitionBusy && glOn && mode.transitionPolicy.tapFallback) tapPrepT = setTimeout(() => { if (drag && !dragMoved && !transitionBusy) timed('prepareTap', () => prepareTransition(it.slug, it.ref, stillOf(it), 'tap')); }, mode.transitionPolicy.tapPrepareMs ?? 70);
   }
   grabDir = mode.tap && (inertia || Math.abs(tapSpeed) > 60) ? Math.sign(inertia ? inertia.D : tapSpeed) || 0 : 0;
   // R41g: a finger put down on a strip that is AT REST is not movement yet: the title stays, rest is kept, no snap. Everything below that says "input happened" runs at the first move past the drag threshold (`begin`).
@@ -577,7 +582,7 @@ document.documentElement.addEventListener('lostpointercapture', (e) => { if (dra
 document.addEventListener('visibilitychange', () => { if (document.hidden) endDrag(); });
 addEventListener('click', (e) => { if (!paused && dragMoved) { e.preventDefault(); e.stopPropagation(); dragMoved = false; } }, { capture: true });
 // R25: a click on a main image grows that picture into the project page's header (cards keep a plain page load)
-items.forEach((it) => { if (it.kind === 'frame') { it.el.addEventListener('pointerenter', () => { if (mode.tap && !transitionOK()) return; preloadHeader(it.slug, it.ref); if (glOn) prepareTransition(it.slug, it.ref, it.img); }); it.el.addEventListener('pointerleave', leavePrepared); } });
+items.forEach((it) => { if (it.kind === 'frame') { it.el.addEventListener('pointerenter', () => { if (mode.tap && !transitionOK()) return; preloadHeader(it.slug, it.ref); if (glOn) prepareTransition(it.slug, it.ref, stillOf(it)); }); it.el.addEventListener('pointerleave', leavePrepared); } });
 addEventListener('wheel', () => { rest.interrupt(); grabDir = 0; if (!paused && !transitionBusy) { swap.cancelPrebuild(); disposePrepared(); lastIdx = -1; } }, {passive:true});
 // R42c: wait for the same-document router on an early click; reduced motion / ?gl=0 / no WebGL retain plain navigation.
 const swap = createPageSwap();
@@ -610,8 +615,8 @@ stage.addEventListener('click', async (e) => {
     inPlace = swap.ready();
   }
   const w = bw[i] * sc, h = bh[i] * sc;
-  const flight = transitionOK() && animateTap ? { slug: it.slug, ref: it.ref, rect: mode.tap ? mode.tap.rect({ bx: bx[i], by: by[i], bw: bw[i], bh: bh[i], ox: gl.ox[i], oy: gl.oy[i], scale: sc }) : { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, viewport: mode.tap?.viewport, startImage: it.img, startSrc: it.img.currentSrc || it.img.src, fade: fadeEls, fromWork: { mode: vertical ? 'vertical' : 'side', projectIndex: it.proj }, onPush: (p, u) => { if (clearMode()) TC.u = u; else if (TRANSITION.pushScale > 0) TP.p = TP.p0 + (TRANSITION.pushScale - TP.p0) * p; }, onStart: () => openStart(it) } : null;
-  if (inPlace && swap.open({ slug: it.slug, ref: it.ref, flight, begin: () => openStart(it), image: it.img })) return;
+  const flight = transitionOK() && animateTap ? { slug: it.slug, ref: it.ref, rect: mode.tap ? mode.tap.rect({ bx: bx[i], by: by[i], bw: bw[i], bh: bh[i], ox: gl.ox[i], oy: gl.oy[i], scale: sc }) : { x: bx[i] + gl.ox[i] - w / 2, y: by[i] + gl.oy[i] - h / 2, w, h }, viewport: mode.tap?.viewport, startImage: stillOf(it), startSrc: stillOf(it).currentSrc || stillOf(it).src, fade: fadeEls, fromWork: { mode: vertical ? 'vertical' : 'side', projectIndex: it.proj }, onPush: (p, u) => { if (clearMode()) TC.u = u; else if (TRANSITION.pushScale > 0) TP.p = TP.p0 + (TRANSITION.pushScale - TP.p0) * p; }, onStart: () => openStart(it) } : null;
+  if (inPlace && swap.open({ slug: it.slug, ref: it.ref, flight, begin: () => openStart(it), image: stillOf(it) })) return;
   if (flight) runProjectTransition(flight); else location.href = a.href;
 });
 // The tall menu survives the in-place project. Its Works link closes that view
@@ -626,11 +631,24 @@ if (mode.tap) document.addEventListener('click', e => {
 if (mode.saveBack) addEventListener('pagehide', () => { if (paused) mode.saveBack(document.querySelector('.pj-root')); });
 // ---- R42: what the page-swap router needs from the strip (pause / resume it, where a project's image sits, the push on the way back)
 let savedY = 0, workChrome = [];
+// R47: what the transition code gets as the card's picture. A loop card: a snapshot of the frame it shows now (so the flight starts from exactly that picture); the header continues the loop from that moment.
+const snapLoop = (it) => {
+  const v = it.img;
+  if (it.snap && performance.now() - it.snapAt < 1200) return it.snap;
+  if (!v.videoWidth || v.readyState < 2) return it.posterImg || it.img;
+  const w = Math.min(1600, v.videoWidth), c = document.createElement('canvas'); c.width = w; c.height = Math.round(w * v.videoHeight / v.videoWidth);
+  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+  const im = new Image(); im.decoding = 'async'; im.src = c.toDataURL('image/jpeg', 0.92);
+  it.snap = im; it.snapAt = performance.now();
+  loopSync.mark(it.loop, v.currentTime); loopSync.still(it.loop, im); setHeaderStill(it.slug, im);
+  return im;
+};
+const stillOf = (it) => (it.loop ? snapLoop(it) : it.img);
 const frameOf = (slug) => items.findIndex((it) => it.kind === 'frame' && it.slug === slug);
 swap.attach({
   fadeEls,
   refOf: (slug) => { const p = projects.find((q) => q.slug === slug); return p ? heroRef(p) : null; },
-  imageOf: (slug) => items[frameOf(slug)]?.img,
+  imageOf: (slug) => { const it = items[frameOf(slug)]; return it ? stillOf(it) : null; },
   begin: (slug) => { const it = items[frameOf(slug)]; if (it) openStart(it); },
   pause() {
     paused = true; savedY = scrollY;
@@ -682,7 +700,7 @@ swap.attach({
     const ci = ((kCount % N) + N) % N, cit = items.find((q) => q.kind === 'frame' && q.proj === ci);
     if (glOn && cit) {
       const idle = mode.transitionPolicy?.idleMs || 400;
-      rest.schedule('prepare', 'prepareIdle', () => { if (!paused && !TC.on && TP.q < 0) prepareIdleTransition(cit.slug, cit.ref, cit.img); }, idle);
+      rest.schedule('prepare', 'prepareIdle', () => { if (!paused && !TC.on && TP.q < 0) prepareIdleTransition(cit.slug, cit.ref, stillOf(cit)); }, idle);
       rest.schedule('prebuild', 'prebuild', () => { if (!paused && !TC.on && TP.q < 0) swap.prebuild(cit.slug, rest.ok); }, idle + 120);
     }
   },
@@ -839,6 +857,7 @@ const tick = (_time, deltaMs) => {
     }
     px[i] = x; py[i] = y; shownA[i] = shown ? 1 : 0;
     if (nearArr[i] && !it.active && !loadGate && !transitionBusy) activate(it);
+    if (it.loop && it.active) { const v = it.img, want = shownA[i] && nearArr[i] && !document.hidden && !transitionBusy && !paused && !saveData && !reduced; if (want && v.paused && v.src) v.play().catch(() => {}); else if (!want && !v.paused) v.pause(); } // R47: only the visible card's video plays
   }
   // R23f: the focus (the centred project grows, every card is pushed away from the focused image, neighbours move off) is applied to the
   // base positions of this frame; fsArr = the image scale per project
@@ -912,7 +931,7 @@ const tick = (_time, deltaMs) => {
       const it = items.find(it => it.kind === 'frame' && it.slug === projects[idx].slug);
       rest.schedule('centre', 'preloadHeader', () => { if (ok()) preloadHeader(projects[idx].slug, heroRef(projects[idx])); }, idle);
       if (glOn && it) {
-        rest.schedule('prepare', 'prepareIdle', () => { if (ok()) prepareIdleTransition(it.slug, it.ref, it.img); }, idle + 60);
+        rest.schedule('prepare', 'prepareIdle', () => { if (ok()) prepareIdleTransition(it.slug, it.ref, stillOf(it)); }, idle + 60);
         rest.schedule('prebuild', 'prebuild', () => { if (ok()) swap.prebuild(it.slug, rest.ok); }, idle + 180);
         // R42d: prefetch only at rest, never during scroll / drag / snap, sequentially (one header decode per job)
         [0, -1, 1].forEach((offset, n) => rest.schedule('nb' + n, 'decodeNeighbour', () => {
