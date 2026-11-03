@@ -48,3 +48,6 @@ html.tmenu-lock { overflow: hidden; }
 
 /* R48 r7: the page's ONE wordmark is above everything (the menu panel is 50, its smear canvas 49, the burger 60; the contact card, 90, stays above it) */
 html[data-layout='tall'] .wordmark { z-index: 55; }
+
+/* R52: while the menu is open the big AV (the page's one wordmark, above the menu) is the link Home */
+html.tmenu-open :is(.wordmark, .twm) { pointer-events: auto; cursor: pointer; -webkit-tap-highlight-color: transparent; }

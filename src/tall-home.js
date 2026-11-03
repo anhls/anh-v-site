@@ -47,7 +47,14 @@ function twmGrow() {
   };
   return { el: wm, set, release: () => gsap.set(wm, { clearProps: 'transform,transformOrigin' }) };
 }
+// R52: a prerendered homepage (Chrome) must not decide anything before it is activated: the hand-off records are read at activation (index.html), the loader never runs in the background
+if (document.prerendering) await new Promise((r) => document.addEventListener('prerenderingchange', r, { once: true }));
 window.__paintPxg?.();
-const arrival = !!document.getElementById('pxg');
-if (arrival) flight().then((m) => m.arriveFromWork({ frame: { video } }, null)).then(() => { window.__siteReady = true; });
+// R52: the big AV in the open menu painted the menu OPEN (#pxg[data-menu]): no loader; the live menu takes the layer over and plays its normal close (also after a bfcache restore: home-leave.js restore())
+const menuLayer = () => { const l = document.getElementById('pxg'); return l?.dataset.menu === '1' ? l : null; };
+const pxmTake = () => { const layer = menuLayer(); return layer ? menu.takeOver({ rec: window.__pxmRec, layer, video }) : Promise.resolve(); };
+window.__pxmTake = pxmTake;
+const arrival = !!document.getElementById('pxg') && !menuLayer();
+if (menuLayer()) pxmTake().then(() => { window.__siteReady = true; flight(); });
+else if (arrival) flight().then((m) => m.arriveFromWork({ frame: { video } }, null)).then(() => { window.__siteReady = true; });
 else runLoader({ urls: [hero.wordmark], wordmark: twmGrow() }).then(() => { window.__siteReady = true; flight(); }); // (the flight code loads after the loader: the first load stays light)
