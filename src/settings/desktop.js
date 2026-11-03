@@ -339,7 +339,7 @@ export const WORK_V2 = { frameW: 1055 / 19.2, frameH: 556 / 10.8, gapSide: 57 / 
 // Clash Display Semibold) for every project; a title that does not fit inside fitFrac of the image width is replaced by its placeholder in TITLE_SHORT below. tracking 0.05 em = the design's 50.
 export const WORK_TITLE = { weight: 600, size: 120, tracking: 0, fitFrac: 975 / 1055, baseDy: 42, dx: -3 };
 // PLACEHOLDER TITLES (Anh: rewrite these later). Used instead of the project title when the full title does not fit at WORK_TITLE.size; a project's own `titleShort` in data.json wins.
-export const TITLE_SHORT = { 'tcb-priority': 'Techcomba', bitis09: 'Bitis DDTV', sulwhasoo: 'Sulwhasoo', forbes: 'Forbes' }; // (R33f: Similac Virgo fits at tracking 0 and needs none; 'Techcombank' alone is 1079 px, over the 975 limit, so it is cut to the longest piece that fits)
+export const TITLE_SHORT = { 'tcb-priority': 'Techcombank', bitis09: 'Bitis DDTV', sulwhasoo: 'Sulwhasoo', forbes: 'Forbes' }; // (R33f: Similac Virgo fits at tracking 0 and needs none; 'Techcombank' alone is 1079 px, over the 975 limit, so it is cut to the longest piece that fits)
 export const WORK_INFO = {
   fadeIn: 0.12, fadeOut: 0.4, descChars: 90,
   side: { tagsDx: -1.5, top: 81, minGap: 24, logoBottom: 50, logoGap: 8, yearRight: -281, descLeft: -218, descW: 200 }, // R33g: block top = `top` px from the PAGE top (row box top, px at 1920, not following the image: the design was FHD and ignored the browser chrome); if its bottom would come within `minGap` of the image top it moves up, never above logoBottom + logoGap; year's right edge = image right + yearRight; description from image right + descLeft
