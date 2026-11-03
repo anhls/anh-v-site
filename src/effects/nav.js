@@ -137,7 +137,7 @@ export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe,
     a.addEventListener('mouseleave', () => { t.y = 0; });
   });
   // R45: the flight drives the big <-> small move from its own progress (p 0 = big, 1 = small), frame by frame, no spring lag
-  const api = { grow() { state.p = 1; layer.snap(); state.p = target(); }, drive(p) { if (noDrive) return; driven = true; state.p = p; layer.snap(); }, get p() { return state.p; }, get small() { return alwaysSmall && !noDrive; }, destroy() { offs.splice(0).forEach((f) => f()); img.remove(); setWm(null); } };
+  const api = { grow() { state.p = 1; layer.snap(); state.p = target(); }, drive(p) { if (noDrive) return; driven = true; state.p = p; layer.snap(); }, release() { driven = false; check(); },  get p() { return state.p; }, get small() { return alwaysSmall && !noDrive; }, destroy() { offs.splice(0).forEach((f) => f()); img.remove(); setWm(null); } };
   if (alwaysSmall && !noDrive) setWm(api); // R48 r7: the phone's menu moves this very element
   return api;
 }

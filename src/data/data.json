@@ -16,9 +16,6 @@
       }
     ]
   },
-  "loader": {
-    "text": "Loading visual language"
-  },
   "hero": {
     "video": "/media/hero/video.mp4",
     "image": "/media/home/hero-s2.jpg",

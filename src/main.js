@@ -96,7 +96,7 @@ const firstScreen = [data.hero.wordmark, data.hero.ticker];
 window.__paintPxg?.();
 const arrival = heroOnly && document.getElementById('pxg') ? true : null;
 dbg('loader decision:', arrival ? 'SKIP (return mark found, landing layer up)' : 'RUN loader (no mark)');
-const intro = arrival ? arriveFromWork(hero, hero.loadDeferred) : runLoader(data.loader.text, firstScreen, hero.loadDeferred);
+const intro = arrival ? arriveFromWork(hero, hero.loadDeferred) : runLoader({ urls: firstScreen, onReady: hero.loadDeferred, wordmark: { el: document.querySelector('a.wordmark'), set: (p) => nav.drive(p), release: () => nav.release() } });
 intro.then(() => {
   lenis?.start();
   frameGL?.preload();

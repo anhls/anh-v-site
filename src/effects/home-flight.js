@@ -5,6 +5,7 @@ import { EASES } from '../util/ease.js';
 import { transitionPolicy } from './transition-policy.js';
 import { glOpen, glClose } from '../util/gl-ledger.js';
 import { imgSet } from '../util/media.js';
+import { heroDim } from '../util/hero-dim.js';
 
 // R45: the Home <-> Work flight. ONE picture box moves between the hero's rectangle and the Work page's first card (the R42 back family: a fast drop and a slow
 // settle, the edges bow inward), drawn by one fullscreen fragment shader that does three things at once:
@@ -98,6 +99,8 @@ uniform vec2 uBend, uMix;         // now / a moment ago
 uniform vec2 uNatA, uNatB;
 uniform sampler2D uA, uB;
 uniform float uTaps, uRgb, uPx, uTear, uCell;
+uniform float uClear;
+uniform vec2 uDim; // R49: brightness of picture A / B (the hero is dimmed on the wide homepage; the Work cards are not)
 uniform float uLook, uFrontPx, uGain, uSkipZero; // R45c3 pixel swipe: look 1 = pixel; the brush front along uDir (screen px); gain = the displacement share (0 at rest)
 uniform sampler2D uGrid;           // the Work page pointer-fx grid (screen space, NEAREST, one x / y displacement per cell)
 uniform vec2 uGridN, uFxP;         // grid columns / rows; strength (picture units per grid unit), rgb split
@@ -122,8 +125,8 @@ vec4 tap(float f, vec2 pos) {
   float edge = min((1. - abs(q.x)) * h.x, (1. - abs(q.y)) * h.y);
   float a = clamp(edge * uPx + .5, 0., 1.);
   if (a <= 0.) return vec4(0.);
-  vec3 ca = texture(uA, clamp(cover(q, b, uNatA), 0., 1.)).rgb;
-  vec3 cb = texture(uB, clamp(cover(q, b, uNatB), 0., 1.)).rgb;
+  vec3 ca = texture(uA, clamp(cover(q, b, uNatA), 0., 1.)).rgb * uDim.x;
+  vec3 cb = texture(uB, clamp(cover(q, b, uNatB), 0., 1.)).rgb * uDim.y;
   return vec4(mix(ca, cb, mx) * a, a);
 }
 void main() {
@@ -156,6 +159,7 @@ void main() {
     // video -> card once the brush front has passed its centre, so the flip is hidden behind the displacement. Gain 0 / an all-zero grid = exactly the plain picture.
     vec2 gc = floor(pos / uView * uGridN), centre = (gc + .5) / uGridN * uView;
     float flip = dot(centre, uDir) < uFrontPx ? 1. : 0.;
+    if (flip > .5 && uClear > .5) { o = vec4(0.); return; } // R49: uClear = the swiped-away cells are TRANSPARENT (the live page shows through; the loader's swipe draws only the loader)
     vec4 b = uBox0; vec2 qa = invQ(pos, b, uBend.x), h = b.zw * .5;
     float edge = min((1. - abs(qa.x)) * h.x, (1. - abs(qa.y)) * h.y);
     float a = clamp(edge * uPx + .5, 0., 1.);
@@ -164,8 +168,8 @@ void main() {
     if (uSkipZero > .5 && flip < .5 && dot(d, d) < 1e-12) { o = vec4(0.); return; } // R48 r6 (the phone menu sweep): a cell the brush has not touched stays the page's own pixels (transparent here)
     vec2 q = qa - d;
     vec3 c3;
-    if (flip > .5) c3 = vec3(texture(uB, clamp(cover(clamp(q + sh, -1., 1.), b, uNatB), 0., 1.)).r, texture(uB, clamp(cover(clamp(q, -1., 1.), b, uNatB), 0., 1.)).g, texture(uB, clamp(cover(clamp(q - sh, -1., 1.), b, uNatB), 0., 1.)).b);
-    else c3 = vec3(texture(uA, clamp(cover(clamp(q + sh, -1., 1.), b, uNatA), 0., 1.)).r, texture(uA, clamp(cover(clamp(q, -1., 1.), b, uNatA), 0., 1.)).g, texture(uA, clamp(cover(clamp(q - sh, -1., 1.), b, uNatA), 0., 1.)).b);
+    if (flip > .5) c3 = uDim.y * vec3(texture(uB, clamp(cover(clamp(q + sh, -1., 1.), b, uNatB), 0., 1.)).r, texture(uB, clamp(cover(clamp(q, -1., 1.), b, uNatB), 0., 1.)).g, texture(uB, clamp(cover(clamp(q - sh, -1., 1.), b, uNatB), 0., 1.)).b);
+    else c3 = uDim.x * vec3(texture(uA, clamp(cover(clamp(q + sh, -1., 1.), b, uNatA), 0., 1.)).r, texture(uA, clamp(cover(clamp(q, -1., 1.), b, uNatA), 0., 1.)).g, texture(uA, clamp(cover(clamp(q - sh, -1., 1.), b, uNatA), 0., 1.)).b);
     o = vec4(c3 * a, a);
     return;
   }
@@ -212,7 +216,7 @@ export function createHomeFlight(parent, nSlots = 4) {
     prog = gl.createProgram(); gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error('link');
     gl.useProgram(prog);
-    ['uLook', 'uFrontPx', 'uGain', 'uSkipZero', 'uGrid', 'uGridN', 'uFxP', 'uDir', 'uView', 'uBox0', 'uBox1', 'uBend', 'uMix', 'uNatA', 'uNatB', 'uA', 'uB', 'uTaps', 'uRgb', 'uPx', 'uTear', 'uCell'].forEach((k) => { u[k] = gl.getUniformLocation(prog, k); });
+    ['uDim', 'uClear', 'uLook', 'uFrontPx', 'uGain', 'uSkipZero', 'uGrid', 'uGridN', 'uFxP', 'uDir', 'uView', 'uBox0', 'uBox1', 'uBend', 'uMix', 'uNatA', 'uNatB', 'uA', 'uB', 'uTaps', 'uRgb', 'uPx', 'uTear', 'uCell'].forEach((k) => { u[k] = gl.getUniformLocation(prog, k); });
     for (let i = 0; i < SLOTS; i++) {
       const t = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, t);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -236,7 +240,7 @@ export function createHomeFlight(parent, nSlots = 4) {
     // `source` = an <img> (complete) or a <video> with a frame; `key` skips an upload of the same picture twice
     setPicture(slot, source, key) {
       if (dead) return false;
-      const w = source.naturalWidth || source.videoWidth || source.width, h = source.naturalHeight || source.videoHeight || source.height;
+      const w = source.naturalWidth || source.videoWidth || source.width, h = source.naturalHeight || source.videoHeight || source.height; // (R49: a 2D canvas works too: the loader snapshot)
       if (!w || !h) return false;
       if (key && keys[slot] === key) return true;
       gl.activeTexture(gl.TEXTURE0 + slot); gl.bindTexture(gl.TEXTURE_2D, tex[slot]);
@@ -278,7 +282,7 @@ export function createHomeFlight(parent, nSlots = 4) {
       gl.uniform2f(u.uBend, state.bend, prev.bend); gl.uniform2f(u.uMix, state.mix, prev.mix);
       gl.uniform2f(u.uNatA, nat[slots[0]][0], nat[slots[0]][1]); gl.uniform2f(u.uNatB, nat[slots[1]][0], nat[slots[1]][1]);
       gl.uniform1f(u.uTaps, Math.max(2, Math.min(60, F.smearTaps))); gl.uniform1f(u.uRgb, F.smearStrength > 0 ? F.smearRGB / F.smearStrength : 0);
-      gl.uniform1f(u.uLook, opts.glide ? 2 : pixel && !opts.plain ? 1 : 0); gl.uniform1f(u.uFrontPx, opts.frontPx ?? 0); gl.uniform1f(u.uGain, opts.gain ?? 0); gl.uniform1f(u.uSkipZero, opts.skipZero ? 1 : 0);
+      gl.uniform1f(u.uLook, opts.glide ? 2 : pixel && !opts.plain ? 1 : 0); gl.uniform1f(u.uFrontPx, opts.frontPx ?? 0); gl.uniform1f(u.uClear, opts.clear ? 1 : 0); gl.uniform2f(u.uDim, opts.dimA ?? 1, opts.dimB ?? 1); gl.uniform1f(u.uGain, opts.gain ?? 0); gl.uniform1f(u.uSkipZero, opts.skipZero ? 1 : 0);
       gl.uniform2f(u.uGridN, gridW, gridH); gl.uniform2f(u.uFxP, gridP[0], gridP[1]);
       { const a = ((F.pixelAngle + (opts.vertical ? 90 : 0) + (opts.flip ? 180 : 0)) * Math.PI) / 180; gl.uniform2f(u.uDir, Math.cos(a), Math.sin(a)); }
       gl.uniform1f(u.uTear, F.smearTear * mv); gl.uniform1f(u.uCell, Math.max(2, F.smearCell));
@@ -333,7 +337,8 @@ export function playFlight(renderer, { hero, card, dir, onFrame, neighbours = []
         if (!zero || zero.length !== cols * rows * 4) zero = new Float32Array(cols * rows * 4); // an all-zero grid keeps the screen cells (the flip) when the brush is idle
         renderer.setGrid(grid ? grid.data : zero, cols, rows, grid ? grid.params : [WORK_PTR.pixelStrength, WORK_PTR.pixelRgb]);
       }
-      const fo = { frontPx: frontAt(p), gain, vertical, flip: dir === 'out' }, up = pushUp(p, dir, sec);
+      // R49: the hero picture (slot 0 going to Work, slot 1 coming back) carries the homepage's own dim while it is the hero and loses it as it becomes the card, on the flight's size curve (size 1 = the hero)
+      const dimHero = 1 - (1 - heroDim()) * st.size, fo = { frontPx: frontAt(p), gain, vertical, flip: dir === 'out', dimA: dir === 'in' ? dimHero : 1, dimB: dir === 'in' ? 1 : dimHero }, up = pushUp(p, dir, sec);
       neighbours.forEach((n, i) => { const r = nbAt(n, i, up); renderer.layer(r, r, { bend: 0, mix: 1 }, { bend: 0, mix: 1 }, [n.slot, n.slot], { plain: true }); });
       renderer.layer(at(st), at(pv), st, pv, [0, 1], fo);
       onFrame?.(st, up);

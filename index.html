@@ -109,7 +109,7 @@
               return;
             }
             document.documentElement.classList.add('pxg-on');
-            document.body.insertAdjacentHTML('afterbegin', '<div id="pxg" aria-hidden="true" style="position:fixed;inset:0;z-index:8;background:var(--bg);overflow:hidden"><img alt="" decoding="sync" src="' + f + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block"></div>');
+            document.body.insertAdjacentHTML('afterbegin', '<div id="pxg" aria-hidden="true" style="position:fixed;inset:0;z-index:8;background:' + (r.dim < 1 ? '#000' : 'var(--bg)') + ';overflow:hidden"><img alt="" decoding="sync" src="' + f + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;opacity:' + (r.dim < 1 ? r.dim : 1) + '"></div>');
           } catch (e) {}
         }
         window.__paintPxg = paint;

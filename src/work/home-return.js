@@ -3,6 +3,7 @@ import { HOME_FLIGHT as F } from '../timeline.js';
 import { writeHandoff, readHeroFrame, writeHeroFrame, clearHandoff, dbg } from '../effects/home-handoff.js';
 import { pm } from '../util/perf-mark.js';
 import { isTall } from '../util/layout-mode.js';
+import { heroDim } from '../util/hero-dim.js';
 
 // R45 (desktop Work page): the way back to the homepage. The CENTRED card smears and grows into the full hero (cross-fading to the hero frame the homepage left), the small wordmark
 // grows big with it, then the homepage takes over (same document history when the Work page was entered from the homepage; otherwise a plain navigation with a hand-off record).
@@ -82,7 +83,7 @@ export function initHomeReturn({ items, px, py, bw, bh, touch, rectOf, fadeEls, 
     return best;
   };
   // R47 fix 4: EVERY way home leaves the return mark (fresh time) first, so the homepage never runs its loader after a visit to Work, whatever path got here (a busy page, a failed flight, a Back that did not leave)
-  const mark = () => { writeHandoff('pxg', { W: innerWidth, H: innerHeight, flown: true }); if (heroSrc) writeHeroFrame(heroSrc); };
+  const mark = () => { writeHandoff('pxg', { W: innerWidth, H: innerHeight, flown: true, dim: heroDim() }); if (heroSrc) writeHeroFrame(heroSrc); };
   // R48 r7-8 part 4: EVERY other way out (Safari's edge-swipe back, the toolbar Back, a tab close, a link) leaves the return record in pagehide / visibilitychange hidden: the centred card, its rect, the card video time.
   // Work did not fly (flown:false), so the homepage plays the card -> hero grow itself (src/effects/home-leave.js growFromCard). Not written when an in-page flight already left its own mark.
   const leaveRecord = () => {

@@ -1,6 +1,7 @@
 import './util/modal.js'; // R46c: must stay the first import (its input blocker has to be registered before any page listener)
 import './styles/base.css';
 import './styles/tall.css';
+import { gsap } from 'gsap';
 import data from './data/data.json';
 import { runLoader } from './effects/loader.js';
 import { buildSpawner } from './effects/spawner.js';
@@ -36,7 +37,17 @@ document.title = 'Anh V';
 // there is NO loader: the hero frame the flight ended on is up, the video takes over and the layer fades.
 const video = app.querySelector('.thero__video');
 const flight = () => import('./effects/home-leave.js').then((m) => { m.initHomeToWork({ hero: { frame: { video } }, link: menu.link, video, wrapper: document.getElementById('hero'), lift: '.spawner, .twm, .tmenu__btn', beforeFlight: () => menu.closeNow() }); return m; });
+// R49 r2: while loading, the bottom wordmark sits SMALL top-left (the phone's small-wordmark box, as the project pages: x 5 vw, y 3.4 vh, 28 vw wide) and grows to its place with the loader's ending; p 1 = small, 0 = big
+const SMALL_WM = { x: 5, y: 3.4, width: 28 };
+function twmGrow() {
+  const set = (p) => {
+    gsap.set(wm, { clearProps: 'transform' }); const r = wm.getBoundingClientRect(); // the big place (CSS)
+    const s = (SMALL_WM.width / 100 * innerWidth) / r.width;
+    gsap.set(wm, { x: (SMALL_WM.x / 100 * innerWidth - r.left) * p, y: (SMALL_WM.y / 100 * innerHeight - r.top) * p, scale: 1 + (s - 1) * p, transformOrigin: '0 0' });
+  };
+  return { el: wm, set, release: () => gsap.set(wm, { clearProps: 'transform,transformOrigin' }) };
+}
 window.__paintPxg?.();
 const arrival = !!document.getElementById('pxg');
 if (arrival) flight().then((m) => m.arriveFromWork({ frame: { video } }, null)).then(() => { window.__siteReady = true; });
-else runLoader(data.loader.text, [hero.wordmark], () => {}).then(() => { window.__siteReady = true; flight(); }); // (the flight code loads after the loader: the first load stays light)
+else runLoader({ urls: [hero.wordmark], wordmark: twmGrow() }).then(() => { window.__siteReady = true; flight(); }); // (the flight code loads after the loader: the first load stays light)

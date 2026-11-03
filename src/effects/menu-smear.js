@@ -83,10 +83,13 @@ export function createMenuSmear() {
       try { const cols = gridCols(), rows = Math.max(4, Math.round((cols * innerHeight) / innerWidth)), g = new Float32Array(cols * rows * 4); for (let i = 3; i < g.length; i += 4) g[i] = 1; fl.begin(); fl.setGrid(g, cols, rows, [WORK_PTR.pixelStrength, WORK_PTR.pixelRgb]); primed.src.forEach((q) => fl.layer(q.box, q.box, { bend: 0, mix: 0 }, { bend: 0, mix: 0 }, [q.slot, q.slot], { frontPx: -1e9, gain: 1, skipZero: false, glide: true })); fl.begin(); } catch { /* */ }
     },
     get playing() { return !!active; },
+    get canvas() { return canvas; }, // R49: the loader sits this layer between the hero and the wordmark (z-index)
     get dpr() { return canvas.width / Math.max(1, innerWidth); },
     // open = true: the edge sweeps left -> right; false: right -> left (the exact reverse). sec = the sweep time; delay = seconds to wait first (the panel stays whole).
     // onFrame({ s, f, clip }) every frame: s = the open-equivalent progress 0..1, f = the mean edge x (px), clip = the panel's clip-path (css string); onDone() after the last frame.
-    play({ open, sec, delay = 0, onFrame, onDone, tapT }) {
+    // R49 mirror = true (the loader's ending, open only): the sweep is the same but the PANEL is the part RIGHT of the edge and goes away (the page appears on its left): the smear zone trails the edge on the page side,
+    // the blocks under the panel keep the full pull. onFrame also gets edges (the ragged edge x of every row, px) and rh (row height) so the caller can clip its own layers.
+    play({ open, sec, delay = 0, onFrame, onDone, tapT, mirror = false }) {
       if (api.lost || fl.dead) return false;
       api.cancel();
       const tPlay = performance.now(); let src;
@@ -95,6 +98,7 @@ export function createMenuSmear() {
       const W = innerWidth, H = innerHeight, G = sweepGeom(W), cols = gridCols(), rows = Math.max(4, Math.round((cols * H) / W)), cell = W / cols, rh = H / rows;
       const grid = new Float32Array(cols * rows * 4); for (let i = 3; i < grid.length; i += 4) grid[i] = 1;
       const rowOff = Array.from({ length: rows }, (_, r) => hash(r * 1.913 + 4.1)); // 0..1: how far behind the mean edge each row's own edge sits
+      if (mirror) G.to += G.zone; // the zone trails the edge here: the sweep runs on until the zone has left the screen too, so the smear ends at exactly 0 (no pop when the layer is removed)
       const dir = open ? 1 : -1, amp = WORK_PTR.pixelVelMax;
       clearTimeout(unwarmT); canvas.style.display = 'block'; canvas.style.opacity = '1';
       stats.frames = 0; stats.avgMs = 0; stats.maxMs = 0; stats.last = 0; stats.long = 0;
@@ -104,19 +108,23 @@ export function createMenuSmear() {
         if (tapT && stats.frameT.length < 4) stats.frameT.push(+(performance.now() - tapT).toFixed(1));
         if (tapT) { if (nFr === 0) stats.tapSync = +(performance.now() - tapT).toFixed(1); else if (nFr === 1) stats.tapToFirst = +(performance.now() - tapT).toFixed(1); } nFr++;
         if (stats.last) { const ms = now - stats.last; if (stats.first3.length < 3) stats.first3.push(+ms.toFixed(1)); stats.frames++; stats.avgMs += (ms - stats.avgMs) / stats.frames; stats.maxMs = Math.max(stats.maxMs, ms); if (ms > 20) stats.long++; } stats.last = now;
-        const t = (now - t0) / 1000, u = Math.min(1, Math.max(0, t / sec)), s = open ? sweepEase(u) : 1 - sweepEase(u), f = G.from + (G.to - G.from) * s;
+        let t = (now - t0) / 1000;
+        if (import.meta.env.DEV && mirror && window.__lsAt !== undefined) t = Math.min(0.999, window.__lsAt) * sec; // dev checks: freeze the loader's swipe at a progress
+        const u = Math.min(1, Math.max(0, t / sec)), s = open ? sweepEase(u) : 1 - sweepEase(u), f = G.from + (G.to - G.from) * s;
         const waiting = t < 0;
-        const pts = []; let nZero = 0, nFull = 0;
+        const pts = [], edges = []; let nZero = 0, nFull = 0;
         grid.fill(0); for (let i = 3; i < grid.length; i += 4) grid[i] = 1;
         // R48 r15: ALL MOTION IS CONTINUOUS and every block GLIDES. Row edges = the mean front minus a continuous per-row offset; a block's pull (in block widths, sub-pixel) = MENU_SWEEP.glide * ease(1 - distance to its row's edge / zone):
         // the same S-curve as the front, so the blocks ease into and out of their slide; the blocks behind the edge (hidden by the panel) keep the full pull so no gap opens at the panel's edge.
         const E = easeFn();
         for (let r = 0; r < rows; r++) {
           const eu = f - G.jag * rowOff[r], e = Math.max(0, Math.min(W, eu));
-          if (e <= 0) nZero++; if (e >= W) nFull++;
+          if (e <= 0) nZero++; if (e >= W) nFull++; edges.push(e);
           pts.push(`${e.toFixed(2)}px ${(r * rh).toFixed(2)}px`, `${e.toFixed(2)}px ${((r + 1) * rh).toFixed(2)}px`);
-          for (let c = Math.max(0, Math.floor(eu / cell) - 3); c < cols; c++) {
-            const d = Math.max(0, (c + 0.5) * cell - eu); if (d >= G.zone) break;
+          for (let c = mirror ? 0 : Math.max(0, Math.floor(eu / cell) - 3); c < cols; c++) {
+            const x = (c + 0.5) * cell, d = Math.max(0, mirror ? eu - x : x - eu);
+            if (mirror && x > eu + 3 * cell) break; // (beyond the panel's hidden stretch: nothing to draw)
+            if (d >= G.zone) { if (mirror) continue; break; }
             const v = MENU_SWEEP.glide * E(1 - d / G.zone) * (0.45 + 0.55 * hash(c * 3.17 + r * 7.71)) * (0.6 + 0.4 * rowOff[r]);
             grid[(r * cols + c) * 4] = dir * v;
           }
@@ -129,7 +137,7 @@ export function createMenuSmear() {
           src.forEach((q) => fl.layer(q.box, q.box, still, still, [q.slot, q.slot], fo));
         }
         const clip = nFull === rows ? 'none' : nZero === rows ? 'polygon(0 0, 0 0, 0 0)' : `polygon(0 0, ${pts.join(', ')}, 0 ${H}px)`;
-        onFrame?.({ s: waiting ? (open ? 0 : 1) : s, f: waiting ? (open ? G.from : G.to) : f, clip: waiting ? (open ? 'polygon(0 0, 0 0, 0 0)' : 'none') : clip });
+        onFrame?.({ s: waiting ? (open ? 0 : 1) : s, f: waiting ? (open ? G.from : G.to) : f, clip: waiting ? (open ? 'polygon(0 0, 0 0, 0 0)' : 'none') : clip, edges, rh });
         if (t >= sec) { finish(); return; }
         raf = requestAnimationFrame(frame);
       };
