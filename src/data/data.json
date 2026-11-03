@@ -519,7 +519,8 @@
       "index": "PRJ-01",
       "title": "Techcombank Priority",
       "client": "Techcombank",
-      "year": 2025,
+      "year": 2024,
+      "work": ["Branding", "TVC"],
       "live": true,
       "card": { "loop": "tcb-priority/b19a-card", "img": "/media/tcb-priority/b19a-card-poster.webp" },
       "page": {
@@ -1103,6 +1104,7 @@
       "title": "Bitis DDTV SS09",
       "client": "Bitis",
       "year": 2024,
+      "work": ["Music Video", "Campaign"],
       "live": true,
       "page": {
         "title": "Bitis DDTV SS09 | Anh V",
@@ -1362,7 +1364,8 @@
       "index": "PRJ-03",
       "title": "Sulwhasoo Launch",
       "client": "Sulwhasoo",
-      "year": 2023,
+      "year": 2024,
+      "work": ["Campaign", "3D"],
       "live": true,
       "page": {
         "title": "Sulwhasoo Launch | Anh V",
@@ -1805,6 +1808,7 @@
       "title": "Similac Virgo",
       "client": "Similac",
       "year": 2024,
+      "work": ["TVC", "Product Launch"],
       "live": true,
       "page": {
         "title": "Similac Virgo | Anh V",
@@ -2022,7 +2026,8 @@
       "index": "",
       "title": "Forbes Vanguard",
       "client": "Forbes",
-      "year": null,
+      "year": 2023,
+      "work": ["Branding"],
       "live": true,
       "page": {
         "title": "Forbes Vanguard | Anh V",
