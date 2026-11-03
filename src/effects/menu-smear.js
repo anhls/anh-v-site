@@ -12,8 +12,6 @@ import { createHomeFlight } from './home-flight.js';
 //   - open: the edge sweeps left -> right; close: the exact reverse (right -> left), the sweep time is given by the caller (the close is twice as fast).
 // What is smeared: the page's pictures taken from the DOM at the tap (the hero video on Home, the Work cards, the media of a project page). Everything is time-based.
 const MAX_SRC = 5, PRIME_MAX_AGE = 2500;
-const smooth = (q) => { q = Math.min(1, Math.max(0, q)); return q * q * (3 - 2 * q); };
-export const unsmooth = (s) => { s = Math.min(1, Math.max(0, s)); let lo = 0, hi = 1; for (let i = 0; i < 22; i++) { const m = (lo + hi) / 2; if (smooth(m) < s) lo = m; else hi = m; } return (lo + hi) / 2; };
 // R48 r15: the band front follows MENU_SWEEP.ease over the sweep (default 'power2.inOut' = smooth start, fast middle, smooth landing; Anh can try 'none' = linear or 'power2.out' = starts with speed, the r14 look).
 // Open: s = ease(u); close: s = 1 - ease(u) (the exact reverse). sweepInv() is the inverse (for frontTime()). Each block's pull follows the same curve of its distance to the front (see the frame loop).
 const easeFn = () => (MENU_SWEEP.ease && MENU_SWEEP.ease !== 'none' ? gsap.parseEase(MENU_SWEEP.ease) : (x) => x);

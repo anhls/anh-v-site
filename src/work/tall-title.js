@@ -2,9 +2,9 @@ import { viewW } from '../util/viewport.js';
 // Lite title only: the desktop smear renderer and timing, with phone/tablet type.
 import '../styles/tall-work.css';
 import { createSmear } from '../effects/text-fx/smear.js';
-import { LITE_TITLE } from '../settings/tall.js';
 import { TITLE_SHORT, WORK_TITLE, WORK_SMEAR, WORK_TEXT } from '../timeline.js';
 import { pm, perfOn } from '../util/perf-mark.js';
+import { fitLiteTitle } from '../util/title-fit.js';
 import { timed } from './rest.js';
 
 export function createLiteTitle({ app, projects, reduced, rest }) {
@@ -26,17 +26,10 @@ export function createLiteTitle({ app, projects, reduced, rest }) {
     if (!ready || !fw) return;
     smear.cancel();
     const color = getComputedStyle(root).color;
-    const baseSize = Math.max(LITE_TITLE.minSize, Math.min(LITE_TITLE.maxSize, fw * LITE_TITLE.frameShare));
     options = projects.map(p => {
       // R48 r3: the title must fit INSIDE the card with LITE_TITLE.sidePad on each side. The desktop short-title rule: the full title when it fits at a size not under minFullScale of the base size,
       // else the short one; either way scaled down to fit (the letter-spacing counted).
-      const wAt = (t, sz) => { measure.font = `${WORK_TITLE.weight} ${sz}px ${family}`; return measure.measureText(t).width + (WORK_TITLE.tracking || 0) * sz * t.length; };
-      const avail = fw * (1 - 2 * LITE_TITLE.sidePad), full = p.title, short = p.titleShort || TITLE_SHORT[p.slug] || full;
-      const fitSize = (t) => Math.min(baseSize, baseSize * avail / Math.max(wAt(t, baseSize), 1));
-      const fullSize = fitSize(full);
-      const useFull = fullSize >= baseSize * LITE_TITLE.minFullScale || short === full;
-      const text = useFull ? full : short;
-      const size = useFull ? fullSize : fitSize(short);
+      const { text, size } = fitLiteTitle(p, fw, measure, family); // (R50: one shared rule, src/util/title-fit.js)
       measure.font = `${WORK_TITLE.weight} ${size}px ${family}`;
       const m = measure.measureText(text), asc = m.fontBoundingBoxAscent ?? size * .9, desc = m.fontBoundingBoxDescent ?? size * .25, tw = m.width + (WORK_TITLE.tracking || 0) * size * text.length;
       const top = innerHeight / 2 - size / 2;
@@ -85,7 +78,10 @@ export function createLiteTitle({ app, projects, reduced, rest }) {
   const texts = projects.flatMap((p) => [p.title, p.titleShort || TITLE_SHORT[p.slug]]).filter(Boolean).join(' ');
   const fontSpec = `${WORK_TITLE.weight} 80px ${family}`;
   const whenFont = async () => { try { await document.fonts?.load(fontSpec, texts); await document.fonts?.ready; for (let i = 0; i < 20 && document.fonts && !document.fonts.check(fontSpec, texts); i++) { await new Promise((r) => setTimeout(r, 50)); await document.fonts.load(fontSpec, texts); } } catch { /* the layout still runs */ } };
-  whenFont().then(() => { ready = true; layout(); });
+  let fontTimer;
+  Promise.race([whenFont(), new Promise((r) => { fontTimer = setTimeout(r, 1500); })]).then(() => { clearTimeout(fontTimer); ready = true; layout(); });
+  // A stalled font uses fallback metrics; measure again if the web font eventually arrives.
+  document.fonts?.addEventListener('loadingdone', () => { if (ready) layout(); });
   document.addEventListener('anhv-theme', () => layout());
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { logT('cancel', 'page hidden'); cancelWarm(); warmedFor = -1; smear.cancel(); opacity = 0; el.style.transition = 'none'; el.style.opacity = '0'; }

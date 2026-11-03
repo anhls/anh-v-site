@@ -19,10 +19,10 @@ export function createTallDetails({ projects, reduced, title }) {
   // Anh 03.11 09:33: the phone row under the card is ONE right block (the tags column: same place, size, 25 % dim): line 1 = the year, line 2 = the type of work
   // (data.json projects[].work, max 2, joined with ", "). The left year column stays empty; the screen-reader line still reads the year.
   const infos = projects.map((p) => { const i = projectInfo(p), work = (p.work || []).slice(0, 2).join(', '); return { ...i, srYear: i.year, year: '', tags: [i.year ? String(i.year) : '', work].filter(Boolean) }; });
-  const root = document.createElement('div'); root.className = 'td'; root.setAttribute('aria-hidden', 'true');
+  const root = document.createElement('div'); root.className = 'td';
   root.innerHTML = `
-    <div class="td__line"><div class="td__lines"></div></div>
-    <div class="td__row">
+    <div class="td__line" aria-hidden="true"><div class="td__lines"></div></div>
+    <div class="td__row" aria-hidden="true">
       <div class="td__year td__col"></div>
       <div class="td__tags td__col"></div>
     </div>

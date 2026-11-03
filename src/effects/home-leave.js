@@ -1,8 +1,9 @@
 import { cardRef as cardRefOf } from '../util/card-media.js';
 import { gsap } from 'gsap';
 import data from '../data/data.json';
-import { HOME_FLIGHT as F, LITE_TITLE, WORK_TITLE, TITLE_SHORT } from '../timeline.js';
+import { HOME_FLIGHT as F, WORK_TITLE } from '../timeline.js';
 import { TALL } from '../settings/tall.js';
+import { fitLiteTitle } from '../util/title-fit.js';
 import { createHomeFlight, playFlight, flightState, workStartLayout, cardImage, homeFlightOK, isPixel } from './home-flight.js';
 import { writeHandoff, readHandoff, clearHandoff, saveHeroFrame, dbg } from './home-handoff.js';
 import { pm } from '../util/perf-mark.js';
@@ -131,12 +132,7 @@ function liteTitle(project, card) {
     const family = '"Clash Display", system-ui, sans-serif', c = document.createElement('canvas').getContext('2d'), fw = card.w;
     // live fix 03.11: the SAME rule as the live phone title (tall-title.js, R48 r3): full title when it fits at >= minFullScale of the base size, else the short one, scaled to fit inside the
     // card with sidePad; before, the landing layer used the old rule and showed the short title, then the live strip swapped it to the full one
-    const baseSize = Math.max(LITE_TITLE.minSize, Math.min(LITE_TITLE.maxSize, fw * LITE_TITLE.frameShare));
-    const wAt = (t, sz) => { c.font = `${WORK_TITLE.weight} ${sz}px ${family}`; return c.measureText(t).width + (WORK_TITLE.tracking || 0) * sz * t.length; };
-    const avail = fw * (1 - 2 * (LITE_TITLE.sidePad || 0)), full = project.title, short = project.titleShort || TITLE_SHORT[project.slug] || full;
-    const fitSize = (t) => Math.min(baseSize, baseSize * avail / Math.max(wAt(t, baseSize), 1));
-    const fullSize = fitSize(full), useFull = fullSize >= baseSize * (LITE_TITLE.minFullScale ?? 0.6) || short === full;
-    const text = useFull ? full : short, size = useFull ? fullSize : fitSize(short);
+    const { text, size } = fitLiteTitle(project, fw, c, family); // R50: the shared rule (src/util/title-fit.js), the same function as the live title
     return { text, size, weight: WORK_TITLE.weight, tracking: WORK_TITLE.tracking, top: innerHeight / 2 - size / 2 };
   } catch { return null; }
 }
@@ -152,9 +148,9 @@ export function arriveFromWork(hero, loadDeferred) {
       try { window.__r45vt?.skipTransition(); } catch { /* */ } // R45b: release the held Work frame; the layer (same picture) is still up under it
       gsap.to(layer, { opacity: 0, duration: F.landFadeSec, ease: 'sine.inOut', onComplete: () => { layer.remove(); document.documentElement.classList.remove('pxg-on'); resolve(); } });
     };
-    let fired = false; const go = () => { if (fired) return; fired = true; requestAnimationFrame(() => requestAnimationFrame(done)); };
+    let fired = false, timer = 0; const go = () => { if (fired) return; fired = true; clearTimeout(timer); video.removeEventListener('playing', go); video.removeEventListener('timeupdate', go); requestAnimationFrame(() => requestAnimationFrame(done)); };
     if (video.readyState >= 3 && !video.paused && video.currentTime > 0) go();
-    else { video.addEventListener('playing', go, { once: true }); video.addEventListener('timeupdate', go, { once: true }); setTimeout(go, 1500); }
+    else { video.addEventListener('playing', go, { once: true }); video.addEventListener('timeupdate', go, { once: true }); timer = setTimeout(go, 1500); }
   }));
 }
 
@@ -183,7 +179,13 @@ async function growFromCard(layer) {
   try {
     if (!rec || !homeFlightOK()) { finish(); return; }
     const cardIm = cardImage(rec.src), heroIm = new Image(); heroIm.src = frame;
-    await Promise.all([cardIm.decode().catch(() => {}), heroIm.decode().catch(() => {})]);
+    let decodeTimer;
+    const decoded = await Promise.race([
+      Promise.all([cardIm.decode(), heroIm.decode()]).then(() => true, () => false),
+      new Promise((r) => { decodeTimer = setTimeout(() => r(false), 1500); }),
+    ]);
+    clearTimeout(decodeTimer);
+    if (!decoded) { finish(); return; } // a stalled image must not hold the card-first return forever
     host = document.createElement('div'); host.setAttribute('aria-hidden', 'true'); host.style.cssText = 'position:fixed;inset:0;z-index:8;pointer-events:none;background:var(--bg)';
     document.body.append(host);
     fl = createHomeFlight(host);
