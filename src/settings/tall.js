@@ -72,7 +72,7 @@ TALL.wmSmall = {
 // ink top is rowGapVw under the card's bottom edge: the YEAR (left edge on the card's left edge) and the TAGS (the desktop "Role" tags, max 3, one per line every tagPitchVw, tagOpacity, left-aligned, the widest
 // line ending on the card's right edge). ENTRANCE when a card settles: title smear -> year (titleToYear s after the title starts) -> tags (yearToTags s after the year); lines inside a column keep `stagger`.
 // LEAVE = the reverse (tags -> year), leaveScale x the entrance timing, all time-based.
-export const TALL_DETAILS = { numCapVw: 12.26, numGapVw: 3.49, totGapVw: 3.42, rowGapVw: 3.72, smallCapVw: 1.86, tagPitchVw: 4.07, tagOpacity: 0.25, lineInsetVw: 1.86, totOpacity: 0.25, smallMinPx: 10.5, stagger: 0.06, tags: 3, titleToYear: 0.12, yearToTags: 0.12, leaveScale: 0.5 };
+export const TALL_DETAILS = { numCapVw: 12.26, numGapVw: 3.49, totGapVw: 3.42, rowGapVw: 3.72, smallCapVw: 1.86, tagPitchVw: 4.07, tagOpacity: 0.25, totOpacity: 0.25, smallMinPx: 10.5, stagger: 0.06, tags: 3, titleToYear: 0.12, yearToTags: 0.12, leaveScale: 0.5 };
 // R48 r5 phone MENU (Anh's mock 03.11 01:56, 430x932; lengths in vw of the screen = px / 4.3, or px where noted). Placed by INK in tall-menu.js placeMenu().
 // flavTopPct = where the ink top of the flavour text (and of the clock beside it) sits (share of the height, 316.7 px at 932); navTopPct = where the top of the "Work" capitals sits (share of the height); navPitchVw = distance between the nav lines; lineLenPx / lineThickPx = the "current page" line (half the burger's 60 px, as thick as the burger lines);
 // lineGapVw = gap between that line's end and the word's ink; the clock (two right-aligned lines) stands on the flavour text's rows with its right ink edge on the big wordmark's V.
