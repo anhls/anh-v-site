@@ -949,3 +949,9 @@ What you will see now: on the phone the loader leaves with the same sideways gli
 Still off: block size is 28 like the menu; say if you want ~50. Not run: Slow 4G, 12 s cap, 144 Hz, Work round trip, 542/542 compare.
 Your decision: 28 (menu) or ~50 (desktop-like)? `LOADER.swipeBlockPx`.
 Tech: merged work-v2 04f9eb3 (4 conflicts, both sides kept); menu-smear.js got `mirror`, `canvas` getter and a dev freeze; old phone brush settings and uJit removed; build passes; sheets docs/reference/r49-r4-*.png.
+
+### R49 final tier (dated 2026-11-03)
+What you will see now: nothing new; every check passed: the loader never comes back after Work (Back, wordmark, swipe-right; desktop and phone; with and without cache), the numbers wait for a slow network without creeping, and a stuck video gives up after 12 s.
+Still off: not measured at 144 Hz (all motion is time-based, so it should match); the Work card brightness difference (separate, not caused by R49).
+Your decision: keep the phone block size 28 (menu) or ~50?
+Tech: 50/50 round trips ok; Slow 4G + 12 s cap logged in R49-notes.md; compare 542/542 at 1920 + 2560 (?home=full); tall smoke ok; clean-clone build ok. Pushed: see git log.

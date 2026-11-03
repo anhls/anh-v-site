@@ -52,3 +52,11 @@ NOT run (time): Slow 4G run, 12 s cap run, 144 Hz motion curve, Home->Work->Back
 - Settings: `LOADER.swipeBlockPx` = 28 (menu's; css px at 430 ref width; ~50 = desktop-like). Removed swipeBrushPx / swipePullRefW / swipeJitterBlocks and the shader's uJit (dead).
 - Dev: `window.__lsAt` freezes the phone swipe too. Sheets: docs/reference/r49-r4-phone-glide-390.png, r49-r4-desktop-1920.png.
 - Merge note done: nothing left for R48's tall-menu.js to import except src/util/clock.js (same function; not touched here).
+
+## Final tier (2026-11-03)
+- Home -> Work -> return never shows the loader: tools/scratch/r49f/roundtrip.mjs, 5 loops per path, a mutation observer counts any `.loader` that ever appears. Desktop 1920: wordmark + Back; phone 390x844 (touch): wordmark + Back + swipe-right (CDP touch events). Each with cache on and cache disabled = 50/50 loops, 0 loaders (return ready 1.8-2.1 s).
+- Slow 4G (production build, cache off; 1.6 Mbps / 150 ms): 00 at 1.6 s, 27 at 3.07 s (the moment the video arrived), 59/77/99 each 1.0 s later. At 250 kbps: 27 waited until 14.3 s (video), 99 came 1.7 s after 77 (waited for "can play"): desktop and phone. No creep: a step never starts before its number is passed.
+- 12 s cap (video request never answered): 00 at 0.4 s, 27 at 12.7 s, then 1 s per step, 99 at 15.7 s, ends with the fade (video not playable), page ready at 17.0 s.
+- compare (?home=full): 542/542 at 1920 and 2560 (without ?home=full the hero-only home gives 124/360: expected, not a regression).
+- Tall smoke 390x844 on the build: home (no loader after ready, video playing, burger, wordmark), menu (clock 08:08 GMT+7, flavour text), Work strip, a project page opens (tcb-priority); 0 page errors, 0 HTTP >= 400. Sheet: tools/scratch/r49f/smoke-390.png.
+- Not run: 144 Hz curves (the sweeps are time-based, unmeasured at 144), true 60 fps capture.
