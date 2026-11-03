@@ -2,6 +2,7 @@ import { cardRef as cardRefOf } from '../util/card-media.js';
 import { gsap } from 'gsap';
 import data from '../data/data.json';
 import { HOME_FLIGHT as F, LITE_TITLE, WORK_TITLE, TITLE_SHORT } from '../timeline.js';
+import { TALL } from '../settings/tall.js';
 import { createHomeFlight, playFlight, flightState, workStartLayout, cardImage, homeFlightOK, isPixel } from './home-flight.js';
 import { writeHandoff, readHandoff, clearHandoff, saveHeroFrame, dbg } from './home-handoff.js';
 import { pm } from '../util/perf-mark.js';
@@ -114,7 +115,7 @@ export function initHomeToWork({ hero, nav, link: linkOpt, video: videoOpt, wrap
     const lay = workStartLayout(), nbs = nbIms.filter((x) => fl.has(x.slot)).map((x) => ({ slot: x.slot, rect: x.n.rect, start: x.n.start }));
     await playFlight(fl, { hero: heroBox, card, dir: 'in', neighbours: nbs, vertical: lay.vertical, onFrame: (st) => nav?.drive(1 - st.size) });
     const wm = liftSel ? null : document.querySelector('a.wordmark'); // (the phone Work page's own small wordmark appears with the strip)
-    writeHandoff('pxh', { W: innerWidth, H: innerHeight, rect: [card.x, card.y, card.w, card.h], slug: project.slug, src: cardIm.currentSrc || cardIm.src, cards: nbIms.filter((x) => fl && fl.has(x.slot)).map((x) => ({ rect: [x.n.rect.x, x.n.rect.y, x.n.rect.w, x.n.rect.h], slug: x.slug, src: x.im.currentSrc || x.im.src })), wm: wm ? { src: wm.querySelector('img')?.getAttribute('src'), style: wm.style.cssText + `;position:fixed;left:0;top:0;width:${wm.offsetWidth}px;height:${wm.offsetHeight}px;z-index:9` } : liftSel ? { src: data.hero.wordmark, auto: 1, style: 'position:fixed;left:5vw;top:3.4vh;width:28vw;z-index:9' } : null, title: liftSel ? liteTitle(project, card) : null });
+    writeHandoff('pxh', { W: innerWidth, H: innerHeight, rect: [card.x, card.y, card.w, card.h], slug: project.slug, src: cardIm.currentSrc || cardIm.src, cards: nbIms.filter((x) => fl && fl.has(x.slot)).map((x) => ({ rect: [x.n.rect.x, x.n.rect.y, x.n.rect.w, x.n.rect.h], slug: x.slug, src: x.im.currentSrc || x.im.src })), wm: wm ? { src: wm.querySelector('img')?.getAttribute('src'), style: wm.style.cssText + `;position:fixed;left:0;top:0;width:${wm.offsetWidth}px;height:${wm.offsetHeight}px;z-index:9` } : liftSel ? { src: data.hero.wordmark, auto: 1, style: `position:fixed;left:${TALL.wmSmall.x}vw;top:${TALL.wmSmall.y}vh;width:${TALL.wmSmall.width}vw;z-index:9` } /* live fix 03.11: the landing layer's wordmark at the phone's CURRENT small spot (top-centre, R48), not the old top-left one: it showed as a 2nd wordmark */ : null, title: liftSel ? liteTitle(project, card) : null });
     pm('home:land');
     if (lost) { /* the overlay holds the last drawn frame; the Work page paints its own */ }
     location.href = '/work/';
@@ -128,10 +129,14 @@ export function initHomeToWork({ hero, nav, link: linkOpt, video: videoOpt, wrap
 function liteTitle(project, card) {
   try {
     const family = '"Clash Display", system-ui, sans-serif', c = document.createElement('canvas').getContext('2d'), fw = card.w;
-    let size = Math.max(LITE_TITLE.minSize, Math.min(LITE_TITLE.maxSize, fw * LITE_TITLE.frameShare));
-    c.font = `${WORK_TITLE.weight} ${size}px ${family}`;
-    const full = project.title, short = project.titleShort || TITLE_SHORT[project.slug] || full, text = c.measureText(full).width <= fw * LITE_TITLE.fitFrac ? full : short;
-    size *= Math.min(1, (fw * LITE_TITLE.fitFrac) / Math.max(c.measureText(text).width, 1));
+    // live fix 03.11: the SAME rule as the live phone title (tall-title.js, R48 r3): full title when it fits at >= minFullScale of the base size, else the short one, scaled to fit inside the
+    // card with sidePad; before, the landing layer used the old rule and showed the short title, then the live strip swapped it to the full one
+    const baseSize = Math.max(LITE_TITLE.minSize, Math.min(LITE_TITLE.maxSize, fw * LITE_TITLE.frameShare));
+    const wAt = (t, sz) => { c.font = `${WORK_TITLE.weight} ${sz}px ${family}`; return c.measureText(t).width + (WORK_TITLE.tracking || 0) * sz * t.length; };
+    const avail = fw * (1 - 2 * (LITE_TITLE.sidePad || 0)), full = project.title, short = project.titleShort || TITLE_SHORT[project.slug] || full;
+    const fitSize = (t) => Math.min(baseSize, baseSize * avail / Math.max(wAt(t, baseSize), 1));
+    const fullSize = fitSize(full), useFull = fullSize >= baseSize * (LITE_TITLE.minFullScale ?? 0.6) || short === full;
+    const text = useFull ? full : short, size = useFull ? fullSize : fitSize(short);
     return { text, size, weight: WORK_TITLE.weight, tracking: WORK_TITLE.tracking, top: innerHeight / 2 - size / 2 };
   } catch { return null; }
 }
