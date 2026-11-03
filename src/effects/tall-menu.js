@@ -9,6 +9,7 @@ import { getWm, wmState } from '../util/wm-handle.js';
 import { setPagePaused, isPagePaused } from '../util/page-pause.js';
 import { weakReason } from '../util/device.js';
 import { writeMenuHome, clearMenuHome } from './menu-home.js';
+import { offList } from '../util/off.js';
 
 // R24a / R48: the burger + full-screen menu of the tall mode (phones, tablet portrait).
 // Layout (R48 r5, placed by ink in placeMenu()): burger TOP-LEFT (two thin lines that pivot into an X), two flavour lines, the clock (two right-aligned lines on the flavour rows, right ink edge on the big wordmark's V),
@@ -339,7 +340,8 @@ export function mountTallMenu() {
         `grid: ${gridBlockPx().toFixed(1)} px blocks (MENU_SWEEP.blockPx ${MENU_SWEEP.blockPx} @430, ${gridBlockPx() ? Math.round(innerWidth / gridBlockPx()) : '-'} across)   ease ${MENU_SWEEP.ease}   glide ${MENU_SWEEP.glide} blocks   zone: ${g.zone.toFixed(0)} px   jag: ${g.jag.toFixed(0)} px   sweep ${MENU_SWEEP.openSec.toFixed(2)} s / close ${(MENU_SWEEP.openSec / MENU_SWEEP.closeDiv).toFixed(2)} s`,
         `last OPEN: tap -> sweep frame 0 ${lo && lo.tapSync != null ? lo.tapSync : '-'} ms, -> first painted ${lo && lo.tapToFirst != null ? lo.tapToFirst : '-'} ms, first 3 frame times ${lo ? lo.first3.join(' / ') : '-'} ms, snapshot ${lo ? (lo.usedPrimed ? 'taken ' + lo.primedAgo + ' ms before the tap (prime cost ' + (lo.primeMs ?? 0).toFixed(1) + ' ms)' : 'taken IN the tap (not primed)') : '-'}`,
         `tap-frame tasks (ms after the tap): ${(window.__tmLabels || []).join(', ') || '-'}   frame starts (ms after the tap): ${lo && lo.frameT ? lo.frameT.join(' / ') : '-'}`,
-        `R52c: hero video ${document.querySelector('.thero__video') ? (document.querySelector('.thero__video').paused ? 'PAUSED' : 'playing') : '- (no hero here)'}   items with a blur filter / will-change right now: ${items().filter((e) => e.style.filter && e.style.filter !== 'none').length} / ${items().filter((e) => e.style.willChange).length}   close speed x${MENU_SWEEP.closeDiv}   (add &smeardpr=1.25 to the URL to try a lower smear resolution)`,
+        `R52c: hero video ${document.querySelector('.thero__video') ? (document.querySelector('.thero__video').paused ? 'PAUSED' : 'playing') : '- (no hero here)'}   items with a blur filter / will-change right now: ${items().filter((e) => e.style.filter && e.style.filter !== 'none').length} / ${items().filter((e) => e.style.willChange).length}   close speed x${MENU_SWEEP.closeDiv}`,
+        `bisect switches: off=${offList() || '(none)'}   smeardpr=${new URLSearchParams(location.search).get('smeardpr') || '(default ' + (smear ? smear.dpr.toFixed(2) : '-') + ')'}   (add &smeardpr=1.25 to the URL to try a lower smear resolution)`,
         `last sweep: ${st && st.frames ? `${st.frames} frames, ${st.avgMs.toFixed(1)} ms avg, ${st.maxMs.toFixed(1)} ms max, ${st.long} frames > 20 ms (page loop paused under the sweep: ${isPagePaused() ? "yes" : "no"})` : '-'}`].join('\n');
     };
     setInterval(show, 300); show();
