@@ -37,24 +37,31 @@ export function initHomeReturn({ items, px, py, bw, bh, touch, rectOf, fadeEls, 
     (async () => {
       const t0 = performance.now();
       // R45b round 2: ready = the strip's renderer DREW the first card's texture + 2 frames (firstReady in core.js), not just 'the image decoded'. The layer never covers touches (pointer-events none), so a tap /
-      // drag that arrives while the strip is still coming up reaches the page's own handlers (the strip is live as soon as its code runs); the layer stays until the strip drew (10 s cap, then it goes anyway).
+      // drag that arrives while the strip is still coming up reaches the page's own handlers; the layer is removed at the 2.5 s deadline even if the strip has not drawn.
       ov.style.pointerEvents = 'none';
       // R47 fix 5 (Anh 21:11, "ghosting when I scroll right away"): the layer is a still of the strip AT REST. As soon as the visitor scrolls / drags / taps / presses a key, that still is wrong:
       // once the strip has drawn, the layer goes at once (no 0.35 s fade over a moving strip); input before that only marks it, and the layer then goes at once instead of fading.
       const tt0 = () => document.getElementById('pxh-title');
-      let ready = false, input = false, gone = false;
+      let ready = false, input = false, gone = false, deadline = 0;
       const INPUTS = ['wheel', 'pointerdown', 'touchstart', 'keydown'];
-      const drop = () => { if (gone) return; gone = true; gsap.killTweensOf([ov, tt0()].filter(Boolean)); ov.remove(); tt0()?.remove(); INPUTS.forEach((t) => removeEventListener(t, onInput, true)); dbg('work layer: removed at once (input)'); };
+      const drop = () => { if (gone) return; gone = true; clearTimeout(deadline); gsap.killTweensOf([ov, tt0()].filter(Boolean)); ov.remove(); tt0()?.remove(); INPUTS.forEach((t) => removeEventListener(t, onInput, true)); dbg('work layer: removed at once'); };
       const onInput = () => { input = true; if (ready) drop(); };
       INPUTS.forEach((t) => addEventListener(t, onInput, { capture: true, passive: true }));
-      let slow = false;
-      while (!firstReady() && performance.now() - t0 < 2500) { /* live fix 03.11: cap 10 s -> 2.5 s: never a long frozen landing frame */ await new Promise((r) => requestAnimationFrame(r)); if (!slow && performance.now() - t0 > 2500) { slow = true; dbg('work layer: strip still not drawn 2.5 s after activation, layer kept'); } }
+      deadline = setTimeout(() => { try { window.__r45vt?.skipTransition(); } catch { /* */ } dbg('work layer: 2.5 s deadline; strip ready:', firstReady()); drop(); }, 2500);
+      while (!firstReady() && performance.now() - t0 < 2500) await new Promise((r) => requestAnimationFrame(r));
+      if (gone) return;
+      if (performance.now() - t0 >= 2500) {
+        try { window.__r45vt?.skipTransition(); } catch { /* */ }
+        dbg('work layer: 2.5 s deadline; removing without a fade, strip ready:', firstReady());
+        drop(); return;
+      }
       for (let i = 0; i < 2; i++) await new Promise((r) => requestAnimationFrame(r));
+      if (gone) return;
       try { window.__r45vt?.skipTransition(); } catch { /* */ } // round 5: release the held homepage frame now that the live strip is on screen
       pm('home:land-strip-ready'); dbg('work layer: strip ready', firstReady(), 'after', Math.round(performance.now() - t0), 'ms since activation; fading the layer');
       ready = true;
       if (input) { drop(); return; }
-      const tt = tt0(); gsap.to(tt ? [ov, tt] : ov, { opacity: 0, duration: F.landFadeSec, ease: 'sine.inOut', onComplete: () => { if (gone) return; gone = true; ov.remove(); tt?.remove(); INPUTS.forEach((t) => removeEventListener(t, onInput, true)); } });
+      const tt = tt0(); gsap.to(tt ? [ov, tt] : ov, { opacity: 0, duration: F.landFadeSec, ease: 'sine.inOut', onComplete: () => { if (gone) return; gone = true; clearTimeout(deadline); ov.remove(); tt?.remove(); INPUTS.forEach((t) => removeEventListener(t, onInput, true)); } });
     })();
   };
   if (document.prerendering) document.addEventListener('prerenderingchange', arrive, { once: true }); else arrive();
