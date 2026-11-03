@@ -12,7 +12,7 @@ const rulesText = () => {
   return out.join('\n');
 };
 
-export function writeMenuHome({ menu, btn, vInk, view }) {
+export function writeMenuHome({ menu, btn, vInk, view, cur = -1, shift = 0 }) {
   try {
     const m = menu.cloneNode(true), b = btn.cloneNode(true);
     for (const n of [m, b, ...m.querySelectorAll('[id]')]) n.removeAttribute('id');
@@ -20,11 +20,16 @@ export function writeMenuHome({ menu, btn, vInk, view }) {
     m.dataset.view = view || 'list'; m.querySelector('.tmenu__panel').style.clipPath = 'none';
     // the items at REST (a tap during the sweep must not freeze a half-blurred item) and Home has no current-page line
     m.querySelectorAll('.tmenu__fx').forEach((e) => { e.style.opacity = '1'; e.style.filter = 'none'; e.style.transform = 'none'; });
-    m.querySelectorAll('.tmenu__list .is-cur').forEach((e) => e.classList.remove('is-cur'));
-    m.querySelectorAll('.tmenu__arr').forEach((e) => { e.style.transform = 'scaleX(0)'; });
-    m.querySelectorAll('.tmenu__w').forEach((e) => { e.style.transform = 'none'; });
+    // R52b: the current-page line stays DRAWN (cur = the index of that link, -1 = none) and its word stays pushed: the hand-off frame = the last frame of the page that was left; the pull-back is the first step of the close
+    const links = [...m.querySelectorAll('.tmenu__list a, .tmenu__list button')];
+    links.forEach((a, i) => {
+      const on = i === cur, ar = a.querySelector('.tmenu__arr'), w = a.querySelector('.tmenu__w');
+      a.classList.toggle('is-cur', on);
+      if (ar) { ar.style.transformOrigin = '0 50%'; ar.style.transform = on ? 'scaleX(1)' : 'scaleX(0)'; }
+      if (w) w.style.transform = on ? `translateX(${shift}px)` : 'none';
+    });
     b.setAttribute('aria-expanded', 'true'); b.removeAttribute('aria-controls'); b.tabIndex = -1;
-    const rec = { t: Date.now(), W: innerWidth, H: innerHeight, view: view || 'list', vInk: vInk || 0, css: rulesText(), html: b.outerHTML + m.outerHTML };
+    const rec = { t: Date.now(), W: innerWidth, H: innerHeight, view: view || 'list', vInk: vInk || 0, css: rulesText(), cur, html: b.outerHTML + m.outerHTML };
     localStorage.setItem('pxm', JSON.stringify(rec));
     return true;
   } catch { return false; }
