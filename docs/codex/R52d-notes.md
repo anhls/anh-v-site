@@ -18,7 +18,7 @@ Inventory taken with `tools/scratch/r52/layers.mjs` (390x844, after the page is 
 | loader layers (only until the loader ends): `.loader__bg` z 100, `.loader__veil` z 102 (opacity .7), counter with 10 `will-change: transform` digit spans | first load only | no |
 | rAF loops (4 s sample): only the gsap ticker (~60/s) | 1 loop | gsap ticker + ScrollTrigger + card GL + title smear |
 | CSS animations / transitions running at rest | none | none |
-| WebGL contexts at rest | 3 (smear, flight, + one more from the loader/flight renderer) | 5 |
+| WebGL contexts at rest | 3 (smear + flight + one I did not identify) | 5 |
 
 Home-only, therefore the suspects (most likely first): the hero `<video>` under a WebGL smear canvas AND under a `mix-blend-mode` button (a blend over a video usually forces the browser to leave the video's fast path); then the big wordmark and the spawner (small); the blur filter / will-change items exist on Work as well (so unlikely alone).
 R52c already pauses the video once the band passes 30 %, but the 30 fps starts in the first frames, before the pause: so the video's existence / compositing, not its decode, is the first suspect.
