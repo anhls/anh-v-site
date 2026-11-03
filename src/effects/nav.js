@@ -6,6 +6,7 @@ import { springLayer, springFromBounce } from './springs.js';
 import { capW, capH } from '../scale.js';
 import { frameState } from '../sections/hero.js';
 import { backToTop } from './back-to-top.js';
+import { safeBottom } from '../util/safe-area.js';
 
 // Nav + AV wordmark. Measured on the live site at 1920x1080 (see docs/HANDOFF.md, docs/framer-extract/motion-spec.md).
 // Two states: BIG (wordmark bottom-left, links spread out) and SMALL (wordmark top-left, links grouped right).
@@ -62,7 +63,7 @@ export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe,
   const state = { p: 0 }; // target: 0 = big, 1 = small
   const apply = (v) => {
     const p = v.p;
-    const bigY = H - vw(BASE_W) / ASPECT; // flush with the bottom
+    const bigY = H - safeBottom() - vw(BASE_W) / ASPECT; // R52 fix: bottom edge ABOVE the bottom safe area, the same as Home's .twm (tall.css bottom: var(--safe-b)); safeBottom() is 0 where there is none
     ringScale = 1 + (cw(SMALL.width) / vw(BASE_W) - 1) * p;
     gsap.set(img, {
       x: vw(WORDMARK.big.x) + (cw(SMALL.x) - vw(WORDMARK.big.x)) * p,
@@ -110,7 +111,7 @@ export function initNav(wordmarkSrc, lenis, { gateFrame = true, position: probe,
   window.addEventListener('scroll', check, { passive: true });
   offs.push(() => window.removeEventListener('scroll', check));
   if (lenis) offs.push(lenis.on('scroll', check));
-  const onResize = () => { W = window.innerWidth; H = window.innerHeight; CW = capW(); CH = capH(); layer.snap(); };
+  const onResize = () => { safeBottom(true); W = window.innerWidth; H = window.innerHeight; CW = capW(); CH = capH(); layer.snap(); };
   window.addEventListener('resize', onResize);
   offs.push(() => window.removeEventListener('resize', onResize));
 
