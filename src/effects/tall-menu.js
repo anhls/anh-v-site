@@ -277,30 +277,42 @@ export function mountTallMenu() {
     if (onHome()) { set(false); return; }
     if (leaving) return;
     leaving = setTimeout(() => { leaving = 0; clearMenuHome(); }, 3000); // (a navigation that did not leave: the record must not outlive it)
-    writeMenuHome({ menu, btn, vInk, view: menu.dataset.view });
+    const here = fromMenu ? contactLink : curLink; // (the link that has the line)
+    writeMenuHome({ menu, btn, vInk, view: menu.dataset.view, cur: here ? links().indexOf(here) : -1, shift: wordShift() });
     location.href = '/';
   }, true);
   // restored from the back-forward cache (Back from Home): this page comes back as it was left, with the menu open: close it with no animation, the wordmark small again
   addEventListener('pageshow', (e) => { if (!e.persisted) return; clearTimeout(leaving); leaving = 0; clearMenuHome(); if (open && !onHome()) { closeNow(); getWm()?.drive?.(1); } });
 
+  // R52b: the close on a just-loaded homepage ran at ~30 fps (the first raster of the blurred items, the clip-path mask, the smear's real grid, the shader paths: all first-time work inside the close). The layer still covers the screen
+  // (z-index 70, above the smear canvas at 49), so the SAME close is played once, invisibly, before the real one: same timeline, same sweep, same clip; then everything is put back to the open rest state. Capped at ~600 ms.
+  const dryClose = () => new Promise((res) => {
+    if (!tl || !smear) { res(); return; }
+    let done = false; const stop = () => { if (done) return; done = true; clearTimeout(cap); smear.cancel(); tl.pause(); tl.progress(1); panel.style.clipPath = 'none'; res(); };
+    const cap = setTimeout(stop, 600);
+    tl.timeScale(MENU_SWEEP.closeDiv).reverse();
+    const ok = smear.play({ open: false, sec: MENU_SWEEP.openSec / MENU_SWEEP.closeDiv, onFrame: ({ clip }) => { panel.style.clipPath = clip; }, onDone: stop });
+    if (!ok) stop();
+  });
   // Home, arriving with the record: the live menu is put into its OPEN rest state under the painted layer (#pxg[data-menu], same pixels), the layer goes in the frame the close starts. Resolves when the close has ended.
   const takeOver = async ({ rec, layer, video }) => {
     if (rec?.vInk) vInk = rec.vInk;
     warmSmear();
     try { await document.fonts?.ready; } catch { /* */ }
-    open = true; fromMenu = false; curLink = null; sweeping = false; pending = null;
+    open = true; fromMenu = false; sweeping = false; pending = null;
+    curLink = rec?.cur >= 0 ? links()[rec.cur] || null : null; // (R52b: the line of the page that was left: the close pulls it back first)
     btn.setAttribute('aria-expanded', 'true'); btn.setAttribute('aria-label', 'Close menu');
     document.documentElement.classList.add('tmenu-open'); wmLabel(true);
     timeEl.textContent = hcmcTime(); clearTimeout(timeT); timeT = setTimeout(tick, 60000 - (Date.now() % 60000) + 50);
     const sw = useSweep();
     menu.classList.toggle('is-plain', !sw); lineNow(); panel.style.clipPath = 'none';
     menu.removeAttribute('inert'); menu.hidden = false; menu.dataset.view = rec?.view || 'list'; placeMenu(true);
-    if (sw) { buildTl(false); tl.progress(1); } else showPlain();
+    if (sw) { buildTl(false); tl.progress(1); } else { showPlain(); if (curLink) lineSet(curLink, true); }
     menu.classList.add('is-open'); lockPage(true);
     // the homepage is "live" when the hero video has a frame (capped: a video that never loads must not hold the menu; the poster is then the picture that is revealed)
     const t0 = performance.now(); try { video?.play?.().catch(() => {}); } catch { /* */ }
     while (video && !(video.readyState >= 2 && video.currentTime > 0) && performance.now() - t0 < 1500) await new Promise((r) => requestAnimationFrame(r));
-    if (sw) { smear.prime(); smear.warmDraw(); }
+    if (sw) { smear.prime(); smear.warmDraw(); if (performance.now() - t0 < 600) { await dryClose(); smear.prime(); smear.warmDraw(); } } // (a video that was slow to start already held the layer: no more waiting)
     for (let i = 0; i < 4; i++) await new Promise((r) => requestAnimationFrame(r)); // (a few frames under the cover: the first raster / composite of the live menu and the smear layer must not fall into the close's first frame)
     try { window.__r45vt?.skipTransition(); } catch { /* */ } // (the held Work frame; the layer has the same picture)
     layer?.remove(); document.documentElement.classList.remove('pxg-on');
