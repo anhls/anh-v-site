@@ -43,7 +43,7 @@ export const TRANSITION_POLICY_LITE = {
   maxPressMs: 500, centreTol: 0.25, lockMs: 700,
 };
 // R41b: same title treatment as desktop, sized to the lite picture.
-export const LITE_TITLE = { minSize: 28, maxSize: 84, frameShare: 120 / 1055, fitFrac: .93, sidePad: 0.04, minFullScale: 0.6 }; // R48 r3: sidePad = the space left and right of the title inside the card (share of the card width); minFullScale = the smallest share of the base size at which the FULL title is still used (else the short one)
+export const LITE_TITLE = { minSize: 28, maxSize: 84, frameShare: 120 / 1055, sidePad: 0.04, minFullScale: 0.6 }; // R48 r3: sidePad = the space left and right of the title inside the card (share of the card width); minFullScale = the smallest share of the base size at which the FULL title is still used (else the short one)
 // the tall image warp: the wide image warp with the strength scaled (read live: ?tune)
 TALL.frameWarp = { ...WORK.frameWarp, strength: 1.39 * TALL.warpStrength, curl: 0.5, camDown: 1.25, camUp: 1.25, bowDown: 0, bowUp: 0.06, reach: 1, riseSec: 0.5, leanBuf: 0.15, leanSignDown: 1 }; // (R33: the phone / tablet pages keep the lean toward the motion in both directions) // (R24i: leanBuf = extra offscreen overscan along the strip for the axis lean, in screen lengths; the lean is capped by what it holds)
 // R24e: tablet LANDSCAPE (R24b's test: layout-store.js isTabletAspect): the wide-style strip, no cards (cards: 0), the image `frameH` of the viewport height (width from the desktop ratio, at most 90 % of the width)
@@ -76,7 +76,7 @@ export const TALL_DETAILS = { numCapVw: 12.26, numGapVw: 3.49, totGapVw: 3.42, r
 // R48 r5 phone MENU (Anh's mock 03.11 01:56, 430x932; lengths in vw of the screen = px / 4.3, or px where noted). Placed by INK in tall-menu.js placeMenu().
 // flavTopPct = where the ink top of the flavour text (and of the clock beside it) sits (share of the height, 316.7 px at 932); navTopPct = where the top of the "Work" capitals sits (share of the height); navPitchVw = distance between the nav lines; lineLenPx / lineThickPx = the "current page" line (half the burger's 60 px, as thick as the burger lines);
 // lineGapVw = gap between that line's end and the word's ink; the clock (two right-aligned lines) stands on the flavour text's rows with its right ink edge on the big wordmark's V.
-export const TALL_MENU = { flavTopPct: 33.98, navTopPct: 53.7, navPitchVw: 9.3, lineLenPx: 30, lineThickPx: 1, lineGapVw: 3.163, clockOpacity: 0.25, leftPx: 20,
+export const TALL_MENU = { flavTopPct: 33.98, navTopPct: 53.7, navPitchVw: 9.3, lineLenPx: 30, lineThickPx: 1, lineGapVw: 3.163, clockOpacity: 0.25,
   // R48 r7 (sweep + stagger): zoneShare = the smear zone's width ahead of the panel edge (share of the screen width); jagCells = how far (in grid cells) the per-row ragged panel edge may sit behind the mean edge;
   // startShare = the items start once the edge has passed this share of the width; step = seconds between the items; pushSec = the current-page line's push (it draws out from the left and pushes the word)
   zoneShare: 0.5, jagCells: 4, startShare: 0.4, pushSec: 0.45,
