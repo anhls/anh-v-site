@@ -1,3 +1,5 @@
+import { viewW } from '../util/viewport.js';
+import { isPagePaused } from '../util/page-pause.js';
 // Shared strip engine. Mode interface (selected once, no rotation switching):
 // values: geometry, v2, noCards, layouts, showToggle, allowPointer, applyFocus,
 // rendererOptions, dragSamples, validateStored, diagnosticKind, debugSettings, overrides.
@@ -130,11 +132,14 @@ let touchEndAt = 0;
 setRestContext(() => { const now = performance.now(); return { speed: Math.round(tapSpeed), sinceTouchEnd: touchEndAt ? Math.round(now - touchEndAt) : null, restFor: Math.round(rest.restFor(now)), moving: !rest.ok(now) && !transitionBusy, flight: transitionBusy, blockedBy: rest.why() }; }); // (R43: the page steps an open flight runs one per frame are 'flight' jobs, not idle jobs that ran while the strip moved)
 if (perfOn) { window.__restJobs = restJobs; window.__glLedger = glLedger; gpuProbe(); } // (the one throw-away GPU probe happens here, before the strip's own context exists: the live count never passes 3)
 const liteTitle = mode.createTitle?.({ app, projects, reduced, rest });
+const liteDetails = mode.createDetails?.({ projects, reduced, title: liteTitle }); // R48 Part B
 if (ui) root.insertBefore(ui.lineEl, stage); // R33d: the scroll line sits in .work, under the canvas
+if (liteDetails) { root.insertBefore(liteDetails.root, stage); app.append(liteDetails.front); } // (R48 r4: year + tags under the cards; the counter in front of them)
+// // R48: the details row + line sit under the canvas too (the cards scroll over them)
 const countEl = app.querySelector('.work__count') || document.createElement('div');
 const toggleEl = ui ? ui.switchEl : app.querySelector('.work__toggle') || document.createElement('button');
 const nameEl = liteTitle?.root || app.querySelector('.work__name') || document.createElement('div');
-const fadeEls = ui ? [ui.root, ui.lineEl] : [countEl, toggleEl, nameEl]; // what the project transition fades out / back in
+const fadeEls = ui ? [ui.root, ui.lineEl] : [countEl, toggleEl, nameEl, ...(liteDetails ? [liteDetails.root, liteDetails.front] : [])]; // what the project transition fades out / back in
 const titleEls = [...nameEl.querySelectorAll('.work__title')].map((el) => ({ el, chars: [...el.querySelectorAll('.work__char')], f: -1 }));
 const iconEl = toggleEl.querySelector('.work__icon') || document.createElement('span');
 await mode.earlyNav(data.hero.wordmark, lenis);
@@ -142,14 +147,14 @@ await mode.earlyNav(data.hero.wordmark, lenis);
 // ---- items: the N frames first, then every project's cards (the same objects in both layouts)
 const projCards = mode.cards(pool, slugs);
 const LD = modeLayouts || layoutsData;
-const metricsNow = () => (mode.metrics(innerWidth, innerHeight));
-const pickNow = () => (mode.pick(LD, innerWidth, innerHeight));
+const metricsNow = () => (mode.metrics(viewW(), innerHeight));
+const pickNow = () => (mode.pick(LD, viewW(), innerHeight));
 // R29: the card positions and dark flags come from src/data/layouts.json (tools/layout-solve.mjs, verified by the build gate): no layout work at load. A project
 // without a stored layout (or rule numbers changed in ?tune) goes through the old fix pass, with a warning. (No cards: nothing to place or check.)
 const storedFlags = noCards || (applyStoredDark(LD, projCards) && LD.signature === (mode.signature()));
 let storedOK = noCards || (storedFlags && !!pickNow());
 if (storedOK && mode.validateStored && !noCards && import.meta.env.DEV) { // dev: the stored layout must still describe these cards (the gate checks this for every build)
-  const pk = pickSize(layoutsData, innerWidth, innerHeight), Mx = workMetrics(innerWidth, innerHeight, capW() / 1920);
+  const pk = pickSize(layoutsData, viewW(), innerHeight), Mx = workMetrics(viewW(), innerHeight, capW() / 1920);
   if (pk.exact) for (const mode of ['side', 'vertical']) projCards.forEach((l) => { if (layoutsData.work[pk.key][mode][l[0].slug]?.hash !== projectHash(l, Mx[mode])) storedOK = false; });
 }
 if (!storedOK) {
@@ -179,7 +184,7 @@ items.forEach((it, i) => {
 
 // ---- cached numbers
 const bx = new Float64Array(n), by = new Float64Array(n), bw = new Float64Array(n), bh = new Float64Array(n);
-let W = innerWidth, H = innerHeight, scale = 1;
+let W = viewW(), H = innerHeight, scale = 1;
 const LAY = { side: null, vertical: null }; // { M, pitch, period, pos[] (per item: along (from project 0's frame centre), cross) }
 const vis = new Uint8Array(n); // item shown (DOM visibility)
 const px = new Float64Array(n), py = new Float64Array(n); // base centres of this frame (before the focus, the drift and the hover)
@@ -197,7 +202,7 @@ let fine = false;
 let laidOnce = false;
 const pageMode = mode;
 const layouts = () => {
-  W = innerWidth; H = innerHeight; scale = mode.scale(W, H);
+  W = viewW(); H = innerHeight; scale = mode.scale(W, H);
   let {w: fw, h: fh} = mode.frame(W, H);
   if (laidOnce && !storedOK) fixWorkLayout(projCards, metricsNow(), { structural: false }); // fallback only, a resize: nudges only (the card set stays)
   laidOnce = true;
@@ -227,7 +232,7 @@ const layouts = () => {
     it.el.style.width = `${w}px`; it.el.style.height = `${h}px`;
   });
   if (ui) ui.layout(fw, fh);
-  liteTitle?.layout(fw, fh, false);
+  liteTitle?.layout(fw, fh, false); liteDetails?.layout(fw, fh);
 };
 layouts();
 const cur = () => LAY[vertical ? 'vertical' : 'side'];
@@ -275,6 +280,7 @@ const startRenderer = () => {
     rendererPending = !!back;
     if (!rendererPending) root.classList.add('work--gl');
     gl.resize(W, H);
+    if (new URLSearchParams(location.search).get('debug') === 'layout') window.__workGl = { probeEl: (el) => (gl ? gl.probe(items.findIndex((it) => it.el === el)) : null), probePx: (y) => (gl ? gl.probePixels(y) : null) }; // (R48 r9 readout)
     gl.setAxis(vertical ? 0 : 1);
     gl.show(!rendererPending);
     items.forEach((it, i) => { gl.hd[i] = it.dark && fine ? CARD_HOVER.darkRest : 0; });
@@ -665,7 +671,7 @@ swap.attach({
     pm('back:resume-start');
     app.style.display = '';
     [...workChrome].reverse().forEach((n) => document.body.prepend(n)); workChrome = [];
-    pm('back:resume-shown');
+    pm('back:resume-shown'); mode.wordmarkGrow?.();
     window.scrollTo(0, savedY);
     pm('back:resume-scroll');
     lenis = makeLenis(); lenisLast = null; scrollGain = installScrollGain(lenis);
@@ -673,7 +679,7 @@ swap.attach({
     gsap.ticker.add(lenisStep); gsap.ticker.add(tick);
     paused = false;
     pm('back:resume-lenis');
-    if (innerWidth !== W || innerHeight !== H) { relayout(); pm('back:resume-relayout'); }
+    if (viewW() !== W || innerHeight !== H) { relayout(); pm('back:resume-relayout'); }
     const fi = frameOf(slug), q = fi >= 0 ? items[fi].proj : 0;
     // R42b: the strip comes back at its FINAL RESTING place for this project (centred, the place the soft snap would settle on), not at the raw mid-scroll
     // value it was opened from: the flight then aims at the card where it will really be (a project opened mid-scroll / mid-snap used to cross-fade)
@@ -709,7 +715,7 @@ setTimeout(() => swap.warm(), 0);
 items.forEach((it) => { if (it.kind === 'frame') it.el.addEventListener('pointerenter', () => { if (!mode.tap || transitionOK()) swap.warm().then(() => swap.prebuild(it.slug, rest.ok)); }); });
 addEventListener('wheel', () => { if (!paused) inertia = null; }, { capture: true, passive: true });
 addEventListener('wheel', () => { if (!paused) cancelSnap(); }, { capture: true, passive: true });
-addEventListener('touchstart', () => { rest.interrupt(); if (!paused) cancelSnap(); }, { capture: true, passive: true });
+addEventListener('touchstart', (e) => { if (e.target?.closest?.('.tmenu__btn, .tmenu')) return; rest.interrupt(); if (!paused) cancelSnap(); }, { capture: true, passive: true }); // (R48 r6: a tap on the menu button is not a scroll: the title stays)
 addEventListener('keydown', () => { if (!paused) cancelSnap(); }, { capture: true });
 const navTravel = () => dist(INDEX.travelVh); // how far a title rises (px), like the homepage index rows (a capped distance)
 const updateNames = () => {
@@ -728,6 +734,7 @@ const updateNames = () => {
 let ptrFx = null, v2StopAt = 0; const hzA = new Float64Array(N); // R33: the last time the strip moved / the hover growth (0..1)
 const v2s = { pos: 0, idx: 0, kHead: 0, idxHead: 0, kNum: 1, vertical: false, morph: false, stopped: false, dt: 0.016 };
 const tick = (_time, deltaMs) => {
+  if (isPagePaused()) return; // R48 r10: the menu sweep owns the screen (one snapshot taken, no per-frame page work)
   if (import.meta.env.DEV && window.__guardBusy) { const t0 = performance.now(); while (performance.now() - t0 < window.__guardBusy); } // dev only: a test hook that makes every frame slow (the frame-time guard test)
   const dt = Math.min(deltaMs, 50) / 1000;
   const now = performance.now();
@@ -943,7 +950,7 @@ const tick = (_time, deltaMs) => {
     }
     /* R42c: the centred project's header image is fetched once it rests */ if (!ui) countEl.textContent = `${String(idx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`; }
 
-  if (ui || liteTitle) { // R32 / R33c: the text field, counter and ruler. SCROLL STOP = no input for scrollStopSec (a coasting drag counts as moving until it is slower than scrollStopSpeed), the strip may still
+  if (ui || liteTitle) { // (R48: liteDetails runs with the title) // R32 / R33c: the text field, counter and ruler. SCROLL STOP = no input for scrollStopSec (a coasting drag counts as moving until it is slower than scrollStopSpeed), the strip may still
     // be gliding / snapping to its image: the project it is HEADING to is then the active one.
     const ptn = L.pitch;
     if (drag) inputAt = now;
@@ -956,7 +963,7 @@ const tick = (_time, deltaMs) => {
     v2s.pos = pos; v2s.idx = idx; v2s.kHead = kHead; v2s.idxHead = ((kHead % N) + N) % N; v2s.kNum = (stopped ? kHead : kCount) + 1;
     v2s.speedL = Math.abs(vel) / Math.max(L.M.viewAlong, 1); v2s.vertical = morph ? morph.to === 'vertical' : vertical; v2s.morph = !!morph; v2s.dt = dt; v2s.stopped = stopped;
     if (!stopped) v2StopAt = 0; else if (!v2StopAt) { v2StopAt = now; if (window.__stopLog) window.__stopLog.push({ at: now, since: now - inputAt }); }
-    v2s.transitioning = transitionBusy; ui?.frame(v2s); liteTitle?.frame(v2s);
+    v2s.transitioning = transitionBusy; ui?.frame(v2s); liteTitle?.frame(v2s); liteDetails?.frame(v2s);
   }
   if (ui && glOn && !transitionBusy) { // R33b: the pixel smear on every picture (only with a fine pointer; cards-gl is null on reduced motion / weak devices / ?gl=0)
     ptrFx ||= createPointerFx(gl, N);
@@ -1068,7 +1075,11 @@ const relayout = () => {
   off += f * cur().pitch - S;
   if (glOn) gl.resize(W, H);
 };
-addEventListener('resize', () => { if (paused || (mode.tap && transitionBusy)) return; clearTimeout(rt); rt = setTimeout(relayout, 120); });
+const schedRelayout = () => { if (paused || (mode.tap && transitionBusy)) return; clearTimeout(rt); rt = setTimeout(relayout, 120); };
+addEventListener('resize', schedRelayout);
+// R48 r9: Safari changes the visual / layout viewport (toolbar collapse, zoom-to-fit settling) without always sending a window resize: the visual viewport's resize and a slow check of the width the strip was laid out with also relayout
+window.visualViewport?.addEventListener('resize', schedRelayout);
+setInterval(() => { if (!paused && (viewW() !== W || innerHeight !== H)) schedRelayout(); }, 500);
 
 commit(vertical ? 'vertical' : 'side');
 const restoreLitePlace = () => {
@@ -1127,3 +1138,4 @@ if (import.meta.env.DEV) {
 }
 
 
+if (new URLSearchParams(location.search).get('debug') === 'layout') import('./debug-layout.js').then((m) => m.mountLayoutDebug()); // R48 r7: for Anh's phone

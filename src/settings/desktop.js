@@ -109,9 +109,8 @@ export const LOADER = {
   fadeSec: 0.35,
   endFadeSec: 0.45,
   clockOpacity: 0.75, // the loader's clock (the phone menu's stays 25 %)
-  // The swipe on TALL screens is sized in css px, not per screen width (the flight's grid is 38 columns of the width: ~50 px blocks on a desktop but ~10 px on a phone, and the pull shrinks with it):
-  // swipeBlockPx = block size, swipeBrushPx = the brush radius (the smear zone), swipePullRefW = the pull is as many px as on a screen this wide, swipeJitterBlocks = the front's ragged edge (blocks). Wide screens: the flight's own numbers, unchanged.
-  swipeBlockPx: 50, swipeBrushPx: 500, swipePullRefW: 1920, swipeJitterBlocks: 1.5,
+  // The swipe on TALL screens (phones, tablets in portrait) is R48's menu-smear.js (the phone menu's sweep, run mirrored), with its own block size: css px at the 430 px reference width, like the menu's MENU_SWEEP.blockPx (28 = the menu's; ~50 = like the desktop). Wide screens: the flight's own numbers.
+  swipeBlockPx: 28,
   overlayOpacity: 0.7, // layers while loading (bottom -> top): hero, black background, small wordmark + top text, this veil (page background colour), the digits. The swipe takes background + veil + digits (and the top text); the wordmark is not swiped: it goes from dimmed to full as the swipe front passes it.
   wmAfterSwipeDelay: 0, // s: the wordmark's grow (small -> big) starts this long after the swipe has FULLY finished (nothing of it before)
   wmGrowSec: 1, // the grow's length; its curve is the flight's size curve (project -> Home)

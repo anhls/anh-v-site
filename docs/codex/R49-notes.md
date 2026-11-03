@@ -44,3 +44,11 @@ NOT run (time): Slow 4G run, 12 s cap run, 144 Hz motion curve, Home->Work->Back
   390x844: 20.07 -> 20.04 (-0.03); last 20.14 -> layer 19.80 -> settled 20.07 (+0.07 / -0.27). All hero-side steps <= 1 level.
 - Not a hero issue, seen in the same table: the Home->Work last frame vs the settled Work page card (1920: 40.9 vs 86.0; 390: 22.4 vs 45.4) and Work->Home frame 0 vs the Work page differ a lot. The dim is 1 there (undimmed card), so it is not this fix; the card on the Work page is a video loop (a different frame) and/or the strip is mid-move: not investigated, worth a look.
 - Not run: the bfcache return path (it calls the same __paintPxg, so it gets the dim by the same code), 60 fps frame capture (frozen frames instead).
+
+## R48 merge + phone swipe = menu-smear.js
+- Merged origin/work-v2 (04f9eb3). Conflicts: home-flight.js (R48 skipZero/glide + my uDim/uClear: both kept), nav.js (R48 api + my `release()`), home-return.js (R48 `flown:true` + my `dim`), status.md (both kept).
+- Phone / tall swipe (loader-swipe.js `prepareGlide`): R48's `createMenuSmear()` run MIRRORED (`play({ mirror: true })`, added to menu-smear.js, menu path untouched): the loader is the panel right of the ragged per-row edge and goes away to the right; the page appears on its left; the smear zone trails the edge; the sweep runs on by one zone width so the smear ends at exactly 0. The loader's real layers (bg, top text, veil, digits) are clipped by the same row edges (loader.js); the clipped veil is what takes the wordmark from dimmed to full. No snapshot on phones.
+- Pre-warm: `prime()` (hero frame + one zero-grid draw) when the 99 step starts, ~1 s before the swipe.
+- Settings: `LOADER.swipeBlockPx` = 28 (menu's; css px at 430 ref width; ~50 = desktop-like). Removed swipeBrushPx / swipePullRefW / swipeJitterBlocks and the shader's uJit (dead).
+- Dev: `window.__lsAt` freezes the phone swipe too. Sheets: docs/reference/r49-r4-phone-glide-390.png, r49-r4-desktop-1920.png.
+- Merge note done: nothing left for R48's tall-menu.js to import except src/util/clock.js (same function; not touched here).

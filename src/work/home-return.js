@@ -20,6 +20,7 @@ export function initHomeReturn({ items, px, py, bw, bh, touch, rectOf, fadeEls, 
   let arrived = false, depth = 0, heroSrc = null;
   // R45c: a prerendered Work page is built long before the click; everything that depends on HOW it was entered (the landed-cards layer, the history entries) happens at ACTIVATION
   const arrive = () => {
+    clearHandoff('pxg'); // (a stale return record from an earlier exit must not replay later)
     heroSrc = readHeroFrame(); // read once (it is timestamped + deleted on read); put back fresh when leaving, for the homepage's landing layer
     window.__paintPxh?.();
     const ov = document.getElementById('pxh');
@@ -82,7 +83,21 @@ export function initHomeReturn({ items, px, py, bw, bh, touch, rectOf, fadeEls, 
     return best;
   };
   // R47 fix 4: EVERY way home leaves the return mark (fresh time) first, so the homepage never runs its loader after a visit to Work, whatever path got here (a busy page, a failed flight, a Back that did not leave)
-  const mark = () => { writeHandoff('pxg', { W: innerWidth, H: innerHeight, dim: heroDim() }); if (heroSrc) writeHeroFrame(heroSrc); };
+  const mark = () => { writeHandoff('pxg', { W: innerWidth, H: innerHeight, flown: true, dim: heroDim() }); if (heroSrc) writeHeroFrame(heroSrc); };
+  // R48 r7-8 part 4: EVERY other way out (Safari's edge-swipe back, the toolbar Back, a tab close, a link) leaves the return record in pagehide / visibilitychange hidden: the centred card, its rect, the card video time.
+  // Work did not fly (flown:false), so the homepage plays the card -> hero grow itself (src/effects/home-leave.js growFromCard). Not written when an in-page flight already left its own mark.
+  const leaveRecord = () => {
+    if (navigated || off || !isTall()) return;
+    try {
+      const it = centred(); if (!it || !it.ref) return;
+      const r = rectOf ? rectOf(it.idx) : { x: px[it.idx] - bw[it.idx] / 2, y: py[it.idx] - bh[it.idx] / 2, w: bw[it.idx], h: bh[it.idx] };
+      const w = document.querySelector('a.wordmark')?.getBoundingClientRect();
+      writeHandoff('pxg', { W: innerWidth, H: innerHeight, flown: false, idx: it.idx, slug: it.slug, rect: [r.x, r.y, r.w, r.h], src: typeof it.ref === 'string' ? it.ref : it.ref?.src, vt: it.img?.tagName === 'VIDEO' ? it.img.currentTime : 0, wm: w && w.height < 60 ? [w.x, w.y, w.width, w.height] : null, wmSrc: document.querySelector('a.wordmark img')?.getAttribute('src') || null });
+      if (heroSrc) writeHeroFrame(heroSrc);
+    } catch { /* */ }
+  };
+  addEventListener('pagehide', leaveRecord);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') leaveRecord(); else if (!navigated) clearHandoff('pxg'); }); // (back in view: the visitor did not leave)
   const plain = () => { mark(); location.href = '/'; };
   let navigated = false, backT = 0;
   addEventListener('pagehide', () => clearTimeout(backT)); // (a bfcache freeze must not leave the retry timer behind)

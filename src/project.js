@@ -7,7 +7,7 @@ import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import data from './data/data.json';
-import { SCROLL } from './timeline.js';
+import { SCROLL, TALL } from './timeline.js';
 import { installScrollGain } from './util/scroll-gain.js';
 import { initNav } from './effects/nav.js';
 import { buildFooter } from './sections/footer.js';
@@ -43,7 +43,7 @@ if (project?.page) {
   const app = document.getElementById('app');
   if (tall) (await import('./sections/project-page-tall.js')).buildProjectPageTall(app, project.page, lenis); else buildDesktopProject(app, project.page, lenis);
   buildFooter(app, data.footer, lenis); // same footer + back-to-top as home
-  initNav(data.hero.wordmark, lenis, tall ? { gateFrame: false, small: { x: 5, y: 3.4, width: 28 } } : { gateFrame: false, alwaysSmall: true }); // R45: always small. after the footer exists: the big wordmark returns when it is reached
+  initNav(data.hero.wordmark, lenis, tall ? { gateFrame: false, alwaysSmall: true, small: TALL.wmSmall } : { gateFrame: false, alwaysSmall: true }); // R45: always small. after the footer exists: the big wordmark returns when it is reached
   document.getElementById('pxt-wordmark')?.remove();
   ScrollTrigger.refresh();
   finishProjectHandoff({app, slug, nav});

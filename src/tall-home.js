@@ -27,6 +27,7 @@ const wm = document.createElement('a');
 wm.className = 'twm'; wm.href = '/'; wm.setAttribute('aria-label', 'Anh V, home');
 wm.innerHTML = `<img src="${hero.wordmark}" alt="" draggable="false">`;
 document.body.prepend(wm);
+if (document.getElementById('pxg-card')) wm.style.visibility = 'hidden'; // R48 part 4: the card-first return layer carries the small wordmark until the grow flight starts (home-leave.js growFromCard)
 const skip = document.querySelector('.skip'); if (skip) document.body.prepend(skip);
 document.querySelector('nav.nav')?.remove(); // the desktop nav links are not used in tall mode: the burger replaces them
 const menu = mountTallMenu();

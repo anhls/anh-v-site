@@ -103,6 +103,7 @@ function launch() {
 function exit(fling) {
   if (!open || closing) return;
   closing = true; open = false;
+  document.dispatchEvent(new CustomEvent('contact:closing')); // R48 r7: the phone menu moves its line back
   // R46c fix (Anh 14:30): EVERY close path (outside click, Esc, fling, the hidden button) removes the history entry the card pushed, so the next Back leaves the page as expected.
   // (When the browser Back closed it, the popstate handler has already cleared `pushed`.) The popstate this fires finds the card closed and does nothing.
   if (pushed) { pushed = false; try { history.back(); } catch { /* */ } }

@@ -17,7 +17,7 @@ export function createPointerFx(gl, N) {
   };
   const clear = () => { X.fill(0); Y.fill(0); data.fill(0); for (let i = 3; i < data.length; i += 4) data[i] = 1; active = false; };
   // s = { dt, idx (the centre project), px, py (pointer, screen px, NaN = unknown), W, H (screen px), frameH (image height px), allowed, warp (|image warp amount|), scale (screen scale 0..1),
-  //       gapAlong (px between two pictures along the strip), vertical }
+  //       gapAlong (px between two pictures along the strip), vertical, band (R48 r6, optional: the brush is a full-height VERTICAL BAND at px, not a circle; the phone menu sweep) }
   const update = (s) => {
     if (!WORK_PTR.on) { if (!sentOff && data) { clear(); gl.setPixelFx(null); sentOff = true; } return; }
     if (!data || s.W !== W || s.H !== H || Math.round(WORK_PTR.pixelGrid) !== cols) alloc(s.W, s.H);
@@ -31,9 +31,9 @@ export function createPointerFx(gl, N) {
       const vx = Math.max(-vmax, Math.min(vmax, (s.px - lastPx) * k)), vy = Math.max(-vmax, Math.min(vmax, (s.py - lastPy) * k));
       if (Math.abs(vx) + Math.abs(vy) > 1e-4) {
         const cw = s.W / cols, ch = s.H / rows, r = Math.max(WORK_PTR.pixelBrush * s.frameH, Math.min(cw, ch) * 0.75);
-        const c0 = Math.max(0, Math.floor((s.px - r) / cw)), c1 = Math.min(cols - 1, Math.floor((s.px + r) / cw)), r0 = Math.max(0, Math.floor((s.py - r) / ch)), r1 = Math.min(rows - 1, Math.floor((s.py + r) / ch));
+        const c0 = Math.max(0, Math.floor((s.px - r) / cw)), c1 = Math.min(cols - 1, Math.floor((s.px + r) / cw)), r0 = s.band ? 0 : Math.max(0, Math.floor((s.py - r) / ch)), r1 = s.band ? rows - 1 : Math.min(rows - 1, Math.floor((s.py + r) / ch));
         for (let j = r0; j <= r1; j++) for (let i = c0; i <= c1; i++) {
-          const dx = (i + 0.5) * cw - s.px, dy = (j + 0.5) * ch - s.py, d = Math.hypot(dx, dy);
+          const dx = (i + 0.5) * cw - s.px, dy = s.band ? 0 : (j + 0.5) * ch - s.py, d = Math.hypot(dx, dy);
           if (d >= r) continue;
           const pw = 1 - d / r, c = j * cols + i; // (Codrops: the nearer to the pointer, the more of its velocity)
           X[c] = Math.max(-vmax, Math.min(vmax, X[c] + vx * pw)); Y[c] = Math.max(-vmax, Math.min(vmax, Y[c] + vy * pw));

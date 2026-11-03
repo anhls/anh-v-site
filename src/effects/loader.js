@@ -131,7 +131,7 @@ export function runLoader({ urls = [], onReady, wordmark } = {}) {
       runStep(i, (now - startAt) / 1000);
       nextAt = startAt + sec * 1000;
       started += 1;
-      if (i === N - 1) { onReady?.(); }
+      if (i === N - 1) { onReady?.(); if (slide) swipeP?.then((sw) => sw?.prime?.()); } // (phones: the page's pictures for the smear are taken now, ~1 s before the swipe)
     }
     if (started === N && now >= nextAt + L.holdSec * 1000) { ended = true; gsap.ticker.remove(frame); finish(); }
   };
@@ -162,6 +162,15 @@ export function runLoader({ urls = [], onReady, wordmark } = {}) {
   const finish = async () => {
     const sw = slide && swipeP ? await swipeP : null;
     if (!sw || !video || video.readyState < 2 || !sw.ok()) { sw?.dispose(); fade(); return; }
+    if (sw.glide) { // phones / tablets in portrait: the menu's smear (menu-smear.js); the loader's own layers are clipped by its ragged edge
+      const W = innerWidth, H = innerHeight, parts = ['.loader__bg', '.loader__top', '.loader__veil', '.loader__counter'].map((q) => { const n = el.querySelector(q), r = n.getBoundingClientRect(); return { n, ox: r.left, oy: r.top }; });
+      const ok = await sw.play({ onEdges: (edges, rh) => { // the loader = the part right of the edge; the veil clipped the same way is what lets the wordmark go from dimmed to full
+        const side = edges.flatMap((e, r) => [[e, r * rh], [e, (r + 1) * rh]]);
+        parts.forEach(({ n, ox, oy }) => { n.style.clipPath = `polygon(${[[W, 0], ...side, [W, H]].map(([x, y]) => `${(x - ox).toFixed(2)}px ${(y - oy).toFixed(2)}px`).join(', ')})`; });
+      } });
+      if (!ok) { fade(); return; }
+      cleanup(); enterPage(); return;
+    }
     const snap = snapshot();
     await sw.play({
       snap,
