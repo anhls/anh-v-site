@@ -5,7 +5,7 @@ import { CONTACT } from '../timeline.js';
 import { TALL_MENU as TM } from '../settings/tall.js';
 import { transitionPolicy } from './transition-policy.js';
 import { MENU_SWEEP, frontTime, sweepGeom, gridBlockPx, createMenuSmear, outEase } from './menu-smear.js';
-import { getWm } from '../util/wm-handle.js';
+import { getWm, wmState } from '../util/wm-handle.js';
 import { setPagePaused, isPagePaused } from '../util/page-pause.js';
 import { weakReason } from '../util/device.js';
 
@@ -267,7 +267,7 @@ export function mountTallMenu() {
     document.body.append(box);
     const show = () => {
       const r = noSmearReason(), st = smear?.stats, lo = smear?.lastOpen, g = sweepGeom();
-      box.textContent = [`smear: ${smear && !r ? 'ON' : 'FALLBACK (plain fade)'}${r ? ' - ' + r : smear ? '' : ' - ' + (smearTried ? smearWhy || 'renderer not made' : 'renderer not made yet (idle)')}`,
+      box.textContent = [`wordmark handle: ${wmState()}`, `smear: ${smear && !r ? 'ON' : 'FALLBACK (plain fade)'}${r ? ' - ' + r : smear ? '' : ' - ' + (smearTried ? smearWhy || 'renderer not made' : 'renderer not made yet (idle)')}`,
         `GL context: ${smear ? (smear.lost ? 'LOST' : 'ok') : '-'}   canvas dpr ${smear ? smear.dpr.toFixed(2) : '-'} (device ${devicePixelRatio})`,
         `grid: ${gridBlockPx().toFixed(1)} px blocks (MENU_SWEEP.blockPx ${MENU_SWEEP.blockPx} @430, ${gridBlockPx() ? Math.round(innerWidth / gridBlockPx()) : '-'} across)   ease ${MENU_SWEEP.ease}   glide ${MENU_SWEEP.glide} blocks   zone: ${g.zone.toFixed(0)} px   jag: ${g.jag.toFixed(0)} px   sweep ${MENU_SWEEP.openSec.toFixed(2)} s / close ${(MENU_SWEEP.openSec / MENU_SWEEP.closeDiv).toFixed(2)} s`,
         `last OPEN: tap -> sweep frame 0 ${lo && lo.tapSync != null ? lo.tapSync : '-'} ms, -> first painted ${lo && lo.tapToFirst != null ? lo.tapToFirst : '-'} ms, first 3 frame times ${lo ? lo.first3.join(' / ') : '-'} ms, snapshot ${lo ? (lo.usedPrimed ? 'taken ' + lo.primedAgo + ' ms before the tap (prime cost ' + (lo.primeMs ?? 0).toFixed(1) + ' ms)' : 'taken IN the tap (not primed)') : '-'}`,

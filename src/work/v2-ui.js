@@ -137,7 +137,9 @@ export function createV2({ app, projects, reduced }) {
     projects.forEach((p, i) => {
       T.fullInk[i] = inkWidth(T.full[i], size);
       const text = T.fullInk[i] <= fit + 0.5 && !p.titleShort ? T.full[i] : T.text[i]; // the full title when it fits at 150, else the placeholder
-      T.size[i] = size; T.shown[i] = text; T.ink[i] = inkWidth(text, size);
+      // Anh 03.11: a placeholder still wider than the fit ("Techcombank") is scaled down just enough to fit inside the image, instead of being cut to a shorter word
+      const ink0 = inkWidth(text, size), k = ink0 > fit + 0.5 ? fit / ink0 : 1;
+      T.size[i] = size * k; T.shown[i] = text; T.ink[i] = inkWidth(text, size * k);
       if (import.meta.env.DEV && T.ink[i] > fit + 0.5) console.warn(`[work] title placeholder "${text}" is ${T.ink[i].toFixed(0)} px wide at ${size.toFixed(0)} px, the limit is ${fit.toFixed(0)}`);
     });
   };
