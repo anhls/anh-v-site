@@ -1,10 +1,12 @@
-import { WORK, TALL, TRANSITION_POLICY_LITE } from '../timeline.js';
+import { viewW } from '../util/viewport.js';
+import { WORK, TALL, TRANSITION_POLICY_LITE, wmHomeWork } from '../timeline.js';
 import { perfOn } from '../util/perf-mark.js';
 import { initNav } from '../effects/nav.js';
 import { buildProjectCards } from './cards.js';
 import { createGuard } from './tall-guard.js';
 import * as strip from './tall.js';
 import { createLiteTitle } from './tall-title.js';
+import { createTallDetails } from './tall-details.js';
 import { saveLiteBack } from './tall-back.js';
 
 // R41 Part A: the tap-to-open gate for the lite Work strip. Pure state + checks, no listeners of its own (the core owns the pointer stream and the
@@ -40,6 +42,7 @@ export function createTapGate(policy = TRANSITION_POLICY_LITE) {
   };
 }
 
+let liteNav = null;
 export function createMode({tall}) {
   const tap = createTapGate();
   // pageshow with persisted = restored from bfcache on back: the strip must accept taps again and no old renderer may linger
@@ -57,11 +60,12 @@ export function createMode({tall}) {
     const fk = parseFloat(params.get('fk')); if (Number.isFinite(fk)) { TALL.flingKnee = fk; overrides.fk = fk; }
     const wr = parseFloat(params.get('wr')); if (Number.isFinite(wr)) { TALL.frameWarp.riseSec = wr; overrides.wr = wr; }
   }
-  const cardsMax = strip.cardsMaxFor(kind, innerWidth, innerHeight), noCards = cardsMax <= 0;
+  const cardsMax = strip.cardsMaxFor(kind, viewW(), innerHeight), noCards = cardsMax <= 0;
   const warpSpeed = (v, along) => { const vn = (v * TALL.warpRefPx) / Math.max(along, 1), r = (Math.abs(vn) * TALL.warpGain) / TALL.warpVRef; return Math.sign(vn) * TALL.warpVRef * r ** TALL.warpPow; };
   return {
     tap, transitionPolicy: TRANSITION_POLICY_LITE, // R41: read by the core / engine in Part B
     createTitle: createLiteTitle,
+    createDetails: tall ? createTallDetails : null, // R48 Part B (phones, tablet portrait)
     saveBack: saveLiteBack,
     v2:false, geometry:WORK, noCards, showToggle:false, allowPointer:!tall, applyFocus:!tall,
     validateStored:false, rendererOptions:{lite:true}, dragSamples:30,
@@ -77,10 +81,14 @@ export function createMode({tall}) {
     },
     async earlyNav(wordmark, lenis) {
       if (!tall) return;
-      initNav(wordmark, lenis, {gateFrame:false, position:() => 1e9, startSmall:true, small:{x:5,y:3.4,width:28}});
+      // R48: the phone Work page keeps the BIG wordmark at the bottom (as the home); Home <-> Work flights do not animate it (noDrive); a project open / back does (page-swap / grow)
+      // VARIANT (TALL.wmHomeWork / ?wm=fly): the wordmark also plays Home <-> Work: Work shows the SMALL one (top-centre), grown big -> small when it is entered from the home flight (#pxh), and the way back drives it small -> big
+      if (wmHomeWork()) liteNav = initNav(wordmark, lenis, {gateFrame:false, alwaysSmall:true, startBig:!!document.getElementById('pxh'), small:TALL.wmSmall});
+      else liteNav = initNav(wordmark, lenis, {gateFrame:false, position:() => 0, startBig:true, noDrive:true, small:TALL.wmSmall});
       await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
     },
-    lateNav(wordmark,lenis,scrolled,back) { if (!tall) initNav(wordmark,lenis,{gateFrame:false,position:() => scrolled() ? 1e9 : 0,startBig:!!back && !back.leave.wm}); },
+    wordmarkGrow() { if (!wmHomeWork()) liteNav?.grow(); }, // R48: back from a project page: small -> big
+    lateNav(wordmark,lenis,scrolled,back) { if (tall) return wmHomeWork() ? liteNav : undefined; if (!tall) initNav(wordmark,lenis,{gateFrame:false,position:() => scrolled() ? 1e9 : 0,startBig:!!back && !back.leave.wm}); },
     cards: (pool,slugs) => strip.liteCards(buildProjectCards,pool,slugs,WORK.seed,cardsMax),
     metrics: (W,H) => strip.liteMetrics(kind,W,H), pick:strip.pickTall, signature:strip.tallSignature,
     imageWidth: () => Math.round((tall ? TALL.frame : .75) * 100),

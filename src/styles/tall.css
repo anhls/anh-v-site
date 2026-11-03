@@ -1,5 +1,5 @@
 /* R24a: the TALL mode (phones, tablet portrait). Loaded only by tall entry points (tall-home.js, effects/tall-menu.js). */
-:root { --safe-t: env(safe-area-inset-top, 0px); --safe-r: env(safe-area-inset-right, 0px); --safe-b: env(safe-area-inset-bottom, 0px); --safe-l: env(safe-area-inset-left, 0px); }
+:root { --tall-small: clamp(11px, 2.7vw, 13px); /* R48 r2: the ONE small-text size of the phone UI (Work description, menu flavour) */ --safe-t: env(safe-area-inset-top, 0px); --safe-r: env(safe-area-inset-right, 0px); --safe-b: env(safe-area-inset-bottom, 0px); --safe-l: env(safe-area-inset-left, 0px); }
 
 /* ---- the hero-only home */
 html.tall-home, html.tall-home body { height: 100%; overflow: hidden; overscroll-behavior: none; }
@@ -8,25 +8,43 @@ html.tall-home, html.tall-home body { height: 100%; overflow: hidden; overscroll
 .thero__poster { z-index: 0; }
 .thero__video { z-index: 1; }
 .thero .spawner, .spawner { height: 100svh; }
-.twm { position: fixed; left: 0; bottom: var(--safe-b); width: 81.875vw; aspect-ratio: 1572 / 345; z-index: 9; display: block; }
+.twm { position: fixed; left: 0; bottom: var(--safe-b); width: 81.875vw; aspect-ratio: 1572 / 345; z-index: 55; display: block; }
 .twm img { display: block; width: 100%; height: 100%; object-fit: fill; pointer-events: none; }
 .twm:focus-visible { outline: 2px solid #f04a0e; outline-offset: 4px; }
 
-/* ---- burger + menu */
-.tmenu__btn { position: fixed; z-index: 60; top: calc(10px + var(--safe-t)); right: calc(10px + var(--safe-r)); width: 48px; height: 48px; padding: 0; border: 0; background: none; cursor: pointer; color: var(--fg); mix-blend-mode: difference; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
-.tmenu__btn span { position: absolute; left: 13px; width: 22px; height: 2px; background: #fff; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-.tmenu__btn span:first-child { top: 20px; transform: translateY(-3.5px); }
-.tmenu__btn span:last-child { top: 28px; transform: translateY(-3.5px); }
-.tmenu-open .tmenu__btn span:first-child { transform: translateY(0) rotate(45deg); top: 24px; }
-.tmenu-open .tmenu__btn span:last-child { transform: translateY(0) rotate(-45deg); top: 24px; }
-.tmenu { position: fixed; inset: 0; z-index: 50; background: var(--bg); color: var(--fg); padding: calc(88px + var(--safe-t)) calc(24px + var(--safe-r)) calc(32px + var(--safe-b)) calc(24px + var(--safe-l)); display: flex; flex-direction: column; transform: translateY(-100%); transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); overscroll-behavior: none; overflow-y: auto; }
-.tmenu[hidden] { display: none; }
-.tmenu.is-open { transform: none; }
-.tmenu__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-.tmenu__list a, .tmenu__list button { font: inherit; font-size: clamp(2.5rem, 13vw, 5rem); line-height: 1.1; letter-spacing: -0.01em; font-weight: 500; color: inherit; background: none; border: 0; padding: 6px 0; cursor: pointer; text-align: left; display: block; min-height: 48px; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
-.tmenu[data-view='about'] .tmenu__list { display: none; }
-.tmenu__about { display: none; }
+/* ---- burger + menu (R48: burger top-left, pixel-swipe panel) */
+/* R48 r2: the burger as measured on huyml.co at 390x844: two 60 x 1 px white lines (radius 1 px), centres 8 px apart, each pivots about its own centre (transform-origin 50 % 50 %); open = the lines go to the same centre and turn +20 deg / -20 deg (a shallow, wide X; the length stays 60 px); 0.3 s cubic-bezier(0.22, 1, 0.36, 1) (transform); close = reverse. */
+.tmenu__btn { position: fixed; z-index: 60; top: calc(4px + var(--safe-t)); left: calc(10px + var(--safe-l)); width: 72px; height: 48px; padding: 0; border: 0; background: none; cursor: pointer; color: var(--fg); mix-blend-mode: difference; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.tmenu__btn span { position: absolute; left: 6px; top: 50%; width: 60px; height: 1px; margin-top: -0.5px; border-radius: 1px; background: #fff; transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1); transform-origin: 50% 50%; will-change: transform; pointer-events: none; }
+.tmenu__btn span:first-child { transform: translateY(-4px) rotate(0deg); }
+.tmenu__btn span:last-child { transform: translateY(4px) rotate(0deg); }
+.tmenu-open .tmenu__btn span:first-child { transform: translateY(0) rotate(20deg); }
+.tmenu-open .tmenu__btn span:last-child { transform: translateY(0) rotate(-20deg); }
+.tmenu { position: fixed; inset: 0; z-index: 50; color: var(--fg); overscroll-behavior: none; touch-action: none; }
+/* R48 r12: closed = laid out but invisible (no display change at the tap: the unhide cost ~24 ms at 4x CPU) */
+.tmenu[hidden] { display: block; opacity: 0; pointer-events: none; } /* R48 r13: composited + rastered while closed (opacity 0, not visibility hidden): the tap only flips opacity; the items already carry their blur */
+.tmenu { will-change: opacity; }
+.tmenu__fx { will-change: opacity, filter, transform; }
+.tmenu__panel { position: absolute; inset: 0; background: var(--bg); will-change: clip-path; }
+.tmenu__time { position: absolute; top: var(--tm-flav-top, 33vh); right: var(--tm-clock-right, 20px); margin: 0; font-size: var(--tall-small); line-height: 1.5; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; text-align: right; font-style: normal; } /* R48 r5: on the flavour text's rows, right ink edge on the wordmark's V (placeMenu) */
+.tmenu__time span { display: block; opacity: var(--tm-clock-op, 0.25); }
+.tmenu__flav { position: absolute; left: calc(20px + var(--safe-l)); top: var(--tm-flav-top, 33vh); margin: 0; font-size: var(--tall-small); line-height: 1.5; letter-spacing: 0.02em; } /* R48 r5: ink top at flavTopPct (placeMenu) */
+.tmenu__flav span { display: block; }
+.tmenu__list { position: absolute; left: calc(20px + var(--safe-l)); top: var(--tm-list-top, 53.7vh); font-size: clamp(1.95rem, 10.5vw, 4.125rem); list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; } /* R48 r5: placeMenu() sets the top (cap top at navTopPct) and --tm-pitch */
+.tmenu__list a, .tmenu__list button { position: relative; font: inherit; font-size: 1em; line-height: var(--tm-pitch, 0.886em); height: var(--tm-pitch, 0.886em); letter-spacing: -0.01em; font-weight: 500; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; display: block; white-space: nowrap; touch-action: manipulation; -webkit-tap-highlight-color: transparent; text-decoration: none; }
+/* the current-page line: it draws out from the left (scaleX 0 -> 1) and pushes the word from flush left to its rest position; line and word use the same duration / delay / ease, so the word follows the line's tip */
+.tmenu__arr { position: absolute; left: 0; top: var(--tm-line-y, 50%); width: var(--tm-line-len, 30px); height: var(--tm-line-h, 1px); background: currentColor; transform: scaleX(0); transform-origin: 0 50%;  }
+.tmenu__w { display: inline-block; will-change: transform; }
+.tmenu[data-view='about'] .tmenu__list, .tmenu[data-view='about'] .tmenu__flav { display: none; }
+.tmenu__about { display: none; position: absolute; left: calc(20px + var(--safe-l)); right: calc(20px + var(--safe-r)); top: calc(88px + var(--safe-t)); }
 .tmenu[data-view='about'] .tmenu__about { display: block; }
 .tmenu__label { margin: 0 0 20px; font-size: 0.75rem; letter-spacing: 0.08em; opacity: 0.6; }
-.tmenu__text { margin: 0; font-size: clamp(1.5rem, 6.4vw, 2.6rem); line-height: 1.12; letter-spacing: -0.01em; max-width: 24em; outline: none; }
-@media (prefers-reduced-motion: reduce) { .tmenu, .tmenu__btn span { transition: none; } }
+.tmenu__text { margin: 0; font-size: clamp(1.4rem, 6vw, 2.4rem); line-height: 1.12; letter-spacing: -0.01em; max-width: 24em; outline: none; }
+/* content blurs in one item after the other (tall-menu.js plan(): flavour 1, flavour 2, clock, Work, About, Contact); out = the reverse */
+/* R48 r10: the items are animated by one GSAP timeline in tall-menu.js buildTl() (no CSS transitions) */
+html.tmenu-lock { overflow: hidden; }
+.tmenu.is-plain .tmenu__panel { opacity: 0; transition: opacity 0.25s ease; } .tmenu.is-plain.is-open .tmenu__panel { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .tmenu__btn span { transition: none; } }
+
+/* R48 r7: the page's ONE wordmark is above everything (the menu panel is 50, its smear canvas 49, the burger 60; the contact card, 90, stays above it) */
+html[data-layout='tall'] .wordmark { z-index: 55; }
