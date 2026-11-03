@@ -267,7 +267,7 @@ Object.assign(TUNE_DOCS, {
   'WORK_V2.rollMinSec': 'When you scroll fast the info text rolls out and in quickly: this is the roll time at full speed (s). Slow scrolling uses the full 0.4 s nav-link roll.',
   'WORK_V2.rollSpeedRef': 'The strip speed (screen lengths per second) at which the info roll is as quick as it gets.',
   'WORK_V2.rollSpeedPow': 'How the roll time falls between slow and fast scrolling (1 = straight, higher = only a really hard flick gets the fast roll).',
-  'WORK_TITLE.size': 'Size of the project title in pt (px at 1920x1080; it scales with the window). Every project uses this one size; a title that does not fit is replaced by its short placeholder (TITLE_SHORT in timeline.js).',
+  'WORK_TITLE.size': 'Base size of the desktop project title in pt (px at 1920x1080; it scales with the window). A title that does not fit is replaced by its short placeholder (TITLE_SHORT in timeline.js); a placeholder still too wide is scaled down to fit the image.',
   'WORK_TITLE.tracking': 'Letter spacing of the title (em; 0.05 = the design tool 50).',
   'WORK_TITLE.fitFrac': 'Widest a title may be, as a share of the image width. Longer titles use their placeholder.',
   'WORK_TITLE.baseDy': 'Where the title sits: distance of its baseline below the image centre (px at 1920 for the 556 px image; it scales with the image).',

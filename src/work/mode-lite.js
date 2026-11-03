@@ -82,8 +82,8 @@ export function createMode({tall}) {
     async earlyNav(wordmark, lenis) {
       if (!tall) return;
       // R48: the phone Work page keeps the BIG wordmark at the bottom (as the home); Home <-> Work flights do not animate it (noDrive); a project open / back does (page-swap / grow)
-      // VARIANT (TALL.wmHomeWork / ?wm=fly): the wordmark also plays Home <-> Work: Work shows the SMALL one (top-centre), grown big -> small when it is entered from the home flight (#pxh), and the way back drives it small -> big
-      if (wmHomeWork()) liteNav = initNav(wordmark, lenis, {gateFrame:false, alwaysSmall:true, startBig:!!document.getElementById('pxh'), small:TALL.wmSmall});
+      // VARIANT (TALL.wmHomeWork / ?wm=fly): the wordmark also plays Home <-> Work: Work shows the SMALL one (top-centre), already small when it is entered from the home flight (#pxh: the flight ends with the wordmark small and the landing layer draws it at TALL.wmSmall; R50: it used to start big and shrink after the layer went = two wordmarks for 2 frames and a jump), and the way back drives it small -> big
+      if (wmHomeWork()) liteNav = initNav(wordmark, lenis, {gateFrame:false, alwaysSmall:true, small:TALL.wmSmall});
       else liteNav = initNav(wordmark, lenis, {gateFrame:false, position:() => 0, startBig:true, noDrive:true, small:TALL.wmSmall});
       await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
     },

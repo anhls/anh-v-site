@@ -120,7 +120,7 @@ export function createProjectView({ slug, tall, onBack }) {
       window.scrollTo(0, 0);
       realLenis = new Lenis({ duration: SCROLL.duration, easing: SCROLL.easing });
       tick = (time) => realLenis.raf(time * 1000);
-      { const rl = realLenis; modal.on((o) => { if (rl === realLenis) { if (o) rl.stop(); else rl.start(); } }); } // R46c
+      { const rl = realLenis; offs.push(modal.on((o) => { if (rl === realLenis) { if (o) rl.stop(); else rl.start(); } })); } // R46c / R51: unregister with the view
       gsap.ticker.add(tick);
       gain = installScrollGain(realLenis);
       real = realLenis;

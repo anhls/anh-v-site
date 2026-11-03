@@ -17,7 +17,6 @@ import { weakReason } from '../util/device.js';
 // Tapping Contact moves the line to Contact (the card opens as that finishes; it moves back when the card closes). There is NO wordmark in the panel: the page's own single wordmark is above everything
 // (z-index in tall.css); on the pages where it is small (Work, projects) the menu grows THAT element small -> big on open (big -> small on close). Reduced motion, ?gl=0, Save-Data, a weak device or no WebGL2 = a plain fade.
 const PAUSE_SHARE = 0.3; // R48 r14
-export const MENU_FX = { blurPx: 10, itemSec: 0.45 }; // itemSec = how long an item takes to blur in; the sweep itself (time, block size, strength, RGB split) is menu-smear.js MENU_SWEEP + HOME_FLIGHT + WORK_PTR
 
 let hcmcFmt = null; // (made once: constructing an Intl formatter costs ~10 ms on a phone, never in the tap frame)
 const hcmcTime = () => {
@@ -114,7 +113,7 @@ export function mountTallMenu() {
     prepWork();
   };
   const IS_WORK = /^\/work\/?$/;
-  const prepWork = () => { smear?.prime(); timeEl.textContent = hcmcTime(); placeMenu(); curLink = IS_WORK.test(location.pathname) ? workLink : null; if (smear) { buildTl(false); tl.progress(0); } };
+  const prepWork = () => { if (open || sweeping) return; smear?.prime(); timeEl.textContent = hcmcTime(); placeMenu(); curLink = IS_WORK.test(location.pathname) ? workLink : null; if (smear) { buildTl(false); tl.progress(0); } };
   // idle, in slices (each its own idle callback): clock formatter + renderer, snapshot, menu layout + timeline, the throw-away draw
   idle(() => { hcmcTime(); warmSmear(); idle(() => { smear?.prime(); idle(() => { prepWork(); idle(() => smear?.warmDraw()); }); }); }, 4000);
   btn.addEventListener('pointerdown', prep, { passive: true });

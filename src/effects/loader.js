@@ -37,6 +37,13 @@ export function runLoader({ urls = [], onReady, wordmark } = {}) {
     <div class="loader__veil"></div>
     <div class="loader__counter" aria-hidden="true">${colHtml(0)}${colHtml(1)}</div>`;
   document.body.prepend(el);
+  // Keep keyboard and assistive technology on the loading status until the page is visible.
+  const focused = document.activeElement;
+  const locked = [...document.body.children].filter((n) => n !== el && !['SCRIPT', 'STYLE', 'LINK'].includes(n.tagName) && !n.hasAttribute('inert'));
+  locked.forEach((n) => n.setAttribute('inert', ''));
+  el.tabIndex = -1; el.focus({ preventScroll: true });
+  const loadingKey = (e) => { if (e.ctrlKey || e.metaKey || e.altKey) return; e.preventDefault(); e.stopImmediatePropagation(); };
+  window.addEventListener('keydown', loadingKey, true);
 
   const counter = el.querySelector('.loader__counter'), top = el.querySelector('.loader__top');
   const cols = [...el.querySelectorAll('.loader__col')].map((c) => [...c.children]);
@@ -85,7 +92,7 @@ export function runLoader({ urls = [], onReady, wordmark } = {}) {
 
   // ---- real progress 0..1
   const fontsDone = { v: false };
-  const fontsP = Promise.race([document.fonts.load(`${L.fontWeight} 100px "Clash Display"`, '0123456789'), new Promise((r) => setTimeout(r, 1500))]).then(() => { fontsDone.v = true; layout(); place(); });
+  const fontsP = Promise.race([document.fonts.load(`${L.fontWeight} 100px "Clash Display"`, '0123456789').catch(() => {}), new Promise((r) => setTimeout(r, 1500))]).then(() => { fontsDone.v = true; layout(); place(); });
   const imgs = { n: 0 };
   urls.forEach((u) => { const i = new Image(); i.onload = i.onerror = () => { imgs.n += 1; }; i.src = u; });
   const videoP = () => {
@@ -141,7 +148,7 @@ export function runLoader({ urls = [], onReady, wordmark } = {}) {
   // ---- the ending
   let resolveDone;
   const done = new Promise((r) => { resolveDone = r; });
-  const cleanup = () => { stopClock(); removeEventListener('resize', onResize); el.remove(); resolveDone(); };
+  const cleanup = () => { stopClock(); removeEventListener('resize', onResize); window.removeEventListener('keydown', loadingKey, true); locked.forEach((n) => n.removeAttribute('inert')); el.remove(); if (focused?.isConnected) focused.focus({ preventScroll: true }); resolveDone(); };
   // the wordmark is dimmed by the veil while loading; once the veil is gone (the swipe) a mask keeps it dimmed to the right of the swipe front and full to the left of it
   const wmMask = (cut) => {
     const w = wordmark.el, r = w.getBoundingClientRect(), local = cut === null ? null : (cut - r.left) * (w.offsetWidth / r.width);
@@ -154,13 +161,21 @@ export function runLoader({ urls = [], onReady, wordmark } = {}) {
     root.classList.remove('is-loading', 'loader-wm'); root.classList.add('loader-out');
     setTimeout(() => root.classList.remove('loader-out'), (L.enter.delaySec + L.enter.sec) * 1000 + 200);
     const g = { t: 0 };
-    gsap.to(g, { t: 1, duration: L.wmGrowSec, delay: L.wmAfterSwipeDelay, ease: 'none', onUpdate: () => wordmark.set((1 - g.t) ** HF.sizePow), onComplete: () => wordmark.release() }); // the flight's size curve (card -> hero = small -> big)
+    gsap.to(g, { t: 1, duration: reduced ? 0 : L.wmGrowSec, delay: reduced ? 0 : L.wmAfterSwipeDelay, ease: 'none', onUpdate: () => wordmark.set((1 - g.t) ** HF.sizePow), onComplete: () => wordmark.release() }); // the flight's size curve (card -> hero = small -> big)
   };
   const fade = () => {
     gsap.to([...el.children], { opacity: 0, duration: L.endFadeSec, ease: 'power1.out', onComplete: () => { cleanup(); enterPage(); } });
   };
   const finish = async () => {
-    const sw = slide && swipeP ? await swipeP : null;
+    let sw = null;
+    if (slide && swipeP) {
+      let late = false, timer;
+      sw = await Promise.race([
+        swipeP.then((s) => { if (late) { s?.dispose(); return null; } return s; }),
+        new Promise((r) => { timer = setTimeout(() => { late = true; r(null); }, Math.min(1000, Math.max(0, L.maxMs - (performance.now() - t0)))); }),
+      ]);
+      clearTimeout(timer);
+    }
     if (!sw || !video || video.readyState < 2 || !sw.ok()) { sw?.dispose(); fade(); return; }
     if (sw.glide) { // phones / tablets in portrait: the menu's smear (menu-smear.js); the loader's own layers are clipped by its ragged edge
       const W = innerWidth, H = innerHeight, parts = ['.loader__bg', '.loader__top', '.loader__veil', '.loader__counter'].map((q) => { const n = el.querySelector(q), r = n.getBoundingClientRect(); return { n, ox: r.left, oy: r.top }; });
