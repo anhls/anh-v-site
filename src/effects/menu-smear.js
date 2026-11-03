@@ -20,7 +20,7 @@ export const sweepInv = (s) => { const E = easeFn(); s = Math.min(1, Math.max(0,
 export const outEase = sweepEase; // (the page's wordmark small <-> big moves with the same curve)
 // the sweep time of the open (the flight's own cross-fade stretch), the close is twice as fast
 // R48 r9: the MENU has its own block size (blockPx, css px at the 430 px reference width, scaling with the screen width; ~4 columns across a phone), no longer the flight's grid
-export const MENU_SWEEP = { openSec: F.sec * (F.crossTo - F.crossFrom), closeDiv: TM.closeSpeed || 2, blockPx: 28, ease: 'power2.inOut', glide: 1.3, lead: 0.8 };
+export const MENU_SWEEP = { openSec: F.sec * (F.crossTo - F.crossFrom), closeDiv: TM.closeSpeed || 1, blockPx: 28, ease: 'power2.inOut', glide: 1.3, lead: 0.8 };
 try { const q = new URLSearchParams(location.search).get('ease'); if (q) MENU_SWEEP.ease = q; } catch { /* */ } // ?ease=none | power2.out | power2.inOut ... to try another curve on a phone // glide = the largest pull of a block, in block widths; lead = where the front starts, as a share of the zone width off the left edge (1 = the whole zone off-screen: with an S-curve that is a dead stretch at the start) // R48 r15: 56 -> 28 (about 15 across a phone)
 export const gridCols = () => Math.max(2, Math.round(430 / Math.max(8, MENU_SWEEP.blockPx))); // whole columns across the screen
 export const gridBlockPx = (W = innerWidth) => W / gridCols(); // one smear block in CSS px (the flight uses the same grid)

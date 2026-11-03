@@ -137,7 +137,7 @@ export function mountTallMenu() {
     tl?.kill();
     const list = items(), t30 = frontTime(TM.startShare * innerWidth, MENU_SWEEP.openSec), cur = curLink;
     gsap.set(list, { opacity: 0, filter: 'blur(' + TM.blurPx + 'px)', y: TM.riseY });
-    tl = gsap.timeline({ paused: true });
+    tl = gsap.timeline({ paused: true, onComplete: () => animating(false), onReverseComplete: () => animating(false) });
     tl.to({}, { duration: MENU_SWEEP.openSec }, 0);
     tl.to(list, { opacity: 1, filter: 'blur(0px)', y: 0, duration: TM.itemSec, ease: TM.itemEase, stagger: { amount: TM.staggerAmount, ease: TM.staggerEase } }, t30);
     if (cur) {
@@ -192,6 +192,12 @@ export function mountTallMenu() {
     wmRaf = requestAnimationFrame(step);
   };
 
+  // R52c: the homepage's equivalent of the page pause. The hero <video> keeps decoding and compositing full screen under the opaque panel (Anh's iPhone: Home 30 fps, Work 60: GPU-bound): once the band covers
+  // PAUSE_SHARE of the width the video is PAUSED (its last frame stays on screen, the smear canvas has the same still); it plays again when the sweep that closes the menu has ended (same time position: no jump).
+  let heroPaused = false;
+  const heroPause = (on) => { const v = document.querySelector('.thero__video'); if (!v) return; if (on) { if (!v.paused) { v.pause(); heroPaused = true; } } else if (heroPaused) { heroPaused = false; try { v.play?.().catch(() => {}); } catch { /* */ } } };
+  // R52c: the CSS blur / will-change on the items exist only while their own tween runs (a blur(0px) filter keeps every item a full-screen-cost compositing layer at rest)
+  const animating = (on) => items().forEach((el) => { if (on) el.style.willChange = 'filter, opacity, transform'; else { el.style.willChange = ''; el.style.filter = 'none'; } });
   let open = false, hideT = 0, lockT = 0;
   // R48 r13: the page lock (inert on the page + overflow hidden = a big style / hit-test invalidation) is NOT done in the tap frames: after the sweep on open, when the menu is gone on close
   const lockPage = (on) => { document.documentElement.classList.toggle('tmenu-lock', on); pageEls().forEach((el) => { if (on) el.setAttribute('inert', ''); else el.removeAttribute('inert'); }); };
@@ -222,30 +228,31 @@ export function mountTallMenu() {
       if (sw) { buildTl(true); mark('timeline'); collectText(); mark('collectText'); } else showPlain();
       afterReflow(() => {
         menu.classList.add('is-open');
-        if (sw) tl.timeScale(1).play(0); else if (curLink) lineSet(curLink, true);
+        if (sw) { animating(true); tl.timeScale(1).play(0); } else if (curLink) lineSet(curLink, true);
       });
       if (sw) {
         sweeping = true; wmRun(true, secOpen, 0); mark('wordmark start'); lockT = setTimeout(() => lockPage(true), secOpen * 1000 + 60);
         // R48 r14: the page loop keeps running until the band has passed PAUSE_SHARE of the width (a freeze before the sweep moves read as a stall); then it pauses under the opaque sweep
-        const W0 = innerWidth, ok = smear.play({ open: true, sec: secOpen, tapT, onFrame: ({ clip, f }) => { panel.style.clipPath = clip; fadeText(f); if (!isPagePaused() && f >= PAUSE_SHARE * W0) setPagePaused(true); }, onDone: finishSweep });
+        const W0 = innerWidth, ok = smear.play({ open: true, sec: secOpen, tapT, onFrame: ({ clip, f }) => { panel.style.clipPath = clip; fadeText(f); if (!isPagePaused() && f >= PAUSE_SHARE * W0) { setPagePaused(true); heroPause(true); } }, onDone: finishSweep });
         mark('smear.play (frame 0 drawn)');
         if (!ok) { sweeping = false; restoreText(); menu.classList.add('is-plain'); panel.style.clipPath = 'none'; showPlain(); if (curLink) lineSet(curLink, true); wmRun(true, 0.25, 0); }
       } else { wmRun(true, 0.25, 0); lockPage(true); }
       (menu.querySelector(view === 'about' ? '.tmenu__text' : 'a[href], button') || btn).focus({ preventScroll: true });
     } else {
-      const done = () => { if (!open) { menu.hidden = true; menu.setAttribute('inert', ''); lockPage(false); stopTime(); lineNow(); setPagePaused(false); } };
+      const done = () => { if (!open) { menu.hidden = true; menu.setAttribute('inert', ''); lockPage(false); stopTime(); lineNow(); setPagePaused(false); animating(false); heroPause(false); } };
       menu.classList.toggle('is-plain', !sw);
       fromMenu = false;
       if (sw) {
         if (!tl) { buildTl(); tl.progress(1); }
+        heroPause(true); animating(true);
         const bandDelay = 0; // R48 r14: the band starts AT the tap (it used to wait for the items' blur-out: ~3 dead frames); the items sit inside the panel, so the band's clip hides them as it passes
         collectText();
         menu.classList.remove('is-open');
         tl.timeScale(MENU_SWEEP.closeDiv).reverse();
         sweeping = true; panel.style.clipPath = 'none'; wmRun(false, secClose, bandDelay);
         const ok = smear.play({ open: false, sec: secClose, delay: bandDelay, onFrame: ({ clip, f }) => { panel.style.clipPath = clip; fadeText(f); }, onDone: () => { done(); finishSweep(); } });
-        if (!ok) { sweeping = false; restoreText(); tl?.kill(); menu.classList.add('is-plain'); hideT = setTimeout(done, 260); wmRun(false, 0.25, 0); }
-      } else { tl?.kill(); menu.classList.remove('is-open'); hideT = setTimeout(done, 260); wmRun(false, 0.25, 0); }
+        if (!ok) { sweeping = false; restoreText(); tl?.kill(); menu.classList.add('is-plain'); hideT = setTimeout(done, 260); wmRun(false, 0.25, 0); heroPause(false); }
+      } else { tl?.kill(); menu.classList.remove('is-open'); hideT = setTimeout(done, 260); wmRun(false, 0.25, 0); heroPause(false); }
       if (!takingOver) btn.focus({ preventScroll: true }); // (R52: arriving on Home by the AV: nothing was focused, the focus ring must not show on the burger)
     }
   };
@@ -262,7 +269,7 @@ export function mountTallMenu() {
   });
   addEventListener('resize', () => { placeMenu(); });
   // R45b: close with no animation (the Home -> Work flight starts from the tapped link and IS the transition)
-  const closeNow = () => { smear?.cancel(); sweeping = false; pending = null; restoreText(); clearTimeout(hideT); cancelAnimationFrame(wmRaf); setPagePaused(false); tl?.kill(); open = false; btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-label', 'Open menu'); document.documentElement.classList.remove('tmenu-open'); wmLabel(false); clearTimeout(lockT); lockPage(false); menu.classList.remove('is-open'); menu.hidden = true; menu.setAttribute('inert', ''); stopTime(); lineNow(); };
+  const closeNow = () => { heroPause(false); smear?.cancel(); sweeping = false; pending = null; restoreText(); clearTimeout(hideT); cancelAnimationFrame(wmRaf); setPagePaused(false); tl?.kill(); open = false; btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-label', 'Open menu'); document.documentElement.classList.remove('tmenu-open'); wmLabel(false); clearTimeout(lockT); lockPage(false); menu.classList.remove('is-open'); menu.hidden = true; menu.setAttribute('inert', ''); stopTime(); lineNow(); };
 
   // ---- R52: the big AV in the open menu = Home, played as a menu CLOSE on the homepage.
   // On Home: just the normal close. Elsewhere (Work, a project, in place or a document): the snapshot of this open menu goes into the record `pxm`, the page navigates to '/' at once (the menu already covers
@@ -288,10 +295,10 @@ export function mountTallMenu() {
   // (z-index 70, above the smear canvas at 49), so the SAME close is played once, invisibly, before the real one: same timeline, same sweep, same clip; then everything is put back to the open rest state. Capped at ~600 ms.
   const dryClose = () => new Promise((res) => {
     if (!tl || !smear) { res(); return; }
-    let done = false; const stop = () => { if (done) return; done = true; clearTimeout(cap); smear.cancel(); tl.pause(); tl.progress(1); panel.style.clipPath = 'none'; res(); };
+    let done = false; const stop = () => { if (done) return; done = true; clearTimeout(cap); smear.cancel(); tl.pause(); tl.progress(1); animating(false); panel.style.clipPath = 'none'; res(); };
     const cap = setTimeout(stop, 600);
-    tl.timeScale(MENU_SWEEP.closeDiv).reverse();
-    const ok = smear.play({ open: false, sec: MENU_SWEEP.openSec / MENU_SWEEP.closeDiv, onFrame: ({ clip }) => { panel.style.clipPath = clip; }, onDone: stop });
+    tl.timeScale(2).reverse(); animating(true); // (a warm-up: twice the speed, it only has to touch every path once)
+    const ok = smear.play({ open: false, sec: MENU_SWEEP.openSec / 2, onFrame: ({ clip }) => { panel.style.clipPath = clip; }, onDone: stop });
     if (!ok) stop();
   });
   // Home, arriving with the record: the live menu is put into its OPEN rest state under the painted layer (#pxg[data-menu], same pixels), the layer goes in the frame the close starts. Resolves when the close has ended.
@@ -307,12 +314,12 @@ export function mountTallMenu() {
     const sw = useSweep();
     menu.classList.toggle('is-plain', !sw); lineNow(); panel.style.clipPath = 'none';
     menu.removeAttribute('inert'); menu.hidden = false; menu.dataset.view = rec?.view || 'list'; placeMenu(true);
-    if (sw) { buildTl(false); tl.progress(1); } else { showPlain(); if (curLink) lineSet(curLink, true); }
+    if (sw) { buildTl(false); tl.progress(1); animating(false); } else { showPlain(); if (curLink) lineSet(curLink, true); }
     menu.classList.add('is-open'); lockPage(true);
     // the homepage is "live" when the hero video has a frame (capped: a video that never loads must not hold the menu; the poster is then the picture that is revealed)
     const t0 = performance.now(); try { video?.play?.().catch(() => {}); } catch { /* */ }
     while (video && !(video.readyState >= 2 && video.currentTime > 0) && performance.now() - t0 < 1500) await new Promise((r) => requestAnimationFrame(r));
-    if (sw) { smear.prime(); smear.warmDraw(); if (performance.now() - t0 < 600) { await dryClose(); smear.prime(); smear.warmDraw(); } } // (a video that was slow to start already held the layer: no more waiting)
+    if (sw) { heroPause(true); smear.prime(); smear.warmDraw(); if (performance.now() - t0 < 600) { await dryClose(); smear.prime(); smear.warmDraw(); } } // (a video that was slow to start already held the layer: no more waiting)
     for (let i = 0; i < 4; i++) await new Promise((r) => requestAnimationFrame(r)); // (a few frames under the cover: the first raster / composite of the live menu and the smear layer must not fall into the close's first frame)
     try { window.__r45vt?.skipTransition(); } catch { /* */ } // (the held Work frame; the layer has the same picture)
     layer?.remove(); document.documentElement.classList.remove('pxg-on');
@@ -332,6 +339,7 @@ export function mountTallMenu() {
         `grid: ${gridBlockPx().toFixed(1)} px blocks (MENU_SWEEP.blockPx ${MENU_SWEEP.blockPx} @430, ${gridBlockPx() ? Math.round(innerWidth / gridBlockPx()) : '-'} across)   ease ${MENU_SWEEP.ease}   glide ${MENU_SWEEP.glide} blocks   zone: ${g.zone.toFixed(0)} px   jag: ${g.jag.toFixed(0)} px   sweep ${MENU_SWEEP.openSec.toFixed(2)} s / close ${(MENU_SWEEP.openSec / MENU_SWEEP.closeDiv).toFixed(2)} s`,
         `last OPEN: tap -> sweep frame 0 ${lo && lo.tapSync != null ? lo.tapSync : '-'} ms, -> first painted ${lo && lo.tapToFirst != null ? lo.tapToFirst : '-'} ms, first 3 frame times ${lo ? lo.first3.join(' / ') : '-'} ms, snapshot ${lo ? (lo.usedPrimed ? 'taken ' + lo.primedAgo + ' ms before the tap (prime cost ' + (lo.primeMs ?? 0).toFixed(1) + ' ms)' : 'taken IN the tap (not primed)') : '-'}`,
         `tap-frame tasks (ms after the tap): ${(window.__tmLabels || []).join(', ') || '-'}   frame starts (ms after the tap): ${lo && lo.frameT ? lo.frameT.join(' / ') : '-'}`,
+        `R52c: hero video ${document.querySelector('.thero__video') ? (document.querySelector('.thero__video').paused ? 'PAUSED' : 'playing') : '- (no hero here)'}   items with a blur filter / will-change right now: ${items().filter((e) => e.style.filter && e.style.filter !== 'none').length} / ${items().filter((e) => e.style.willChange).length}   close speed x${MENU_SWEEP.closeDiv}   (add &smeardpr=1.25 to the URL to try a lower smear resolution)`,
         `last sweep: ${st && st.frames ? `${st.frames} frames, ${st.avgMs.toFixed(1)} ms avg, ${st.maxMs.toFixed(1)} ms max, ${st.long} frames > 20 ms (page loop paused under the sweep: ${isPagePaused() ? "yes" : "no"})` : '-'}`].join('\n');
     };
     setInterval(show, 300); show();
