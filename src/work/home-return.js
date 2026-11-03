@@ -48,7 +48,7 @@ export function initHomeReturn({ items, px, py, bw, bh, touch, rectOf, fadeEls, 
       const onInput = () => { input = true; if (ready) drop(); };
       INPUTS.forEach((t) => addEventListener(t, onInput, { capture: true, passive: true }));
       let slow = false;
-      while (!firstReady() && performance.now() - t0 < 10000) { await new Promise((r) => requestAnimationFrame(r)); if (!slow && performance.now() - t0 > 2500) { slow = true; dbg('work layer: strip still not drawn 2.5 s after activation, layer kept'); } }
+      while (!firstReady() && performance.now() - t0 < 2500) { /* live fix 03.11: cap 10 s -> 2.5 s: never a long frozen landing frame */ await new Promise((r) => requestAnimationFrame(r)); if (!slow && performance.now() - t0 > 2500) { slow = true; dbg('work layer: strip still not drawn 2.5 s after activation, layer kept'); } }
       for (let i = 0; i < 2; i++) await new Promise((r) => requestAnimationFrame(r));
       try { window.__r45vt?.skipTransition(); } catch { /* */ } // round 5: release the held homepage frame now that the live strip is on screen
       pm('home:land-strip-ready'); dbg('work layer: strip ready', firstReady(), 'after', Math.round(performance.now() - t0), 'ms since activation; fading the layer');
