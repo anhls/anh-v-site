@@ -955,3 +955,9 @@ What you will see now: nothing new; every check passed: the loader never comes b
 Still off: not measured at 144 Hz (all motion is time-based, so it should match); the Work card brightness difference (separate, not caused by R49).
 Your decision: keep the phone block size 28 (menu) or ~50?
 Tech: 50/50 round trips ok; Slow 4G + 12 s cap logged in R49-notes.md; compare 542/542 at 1920 + 2560 (?home=full); tall smoke ok; clean-clone build ok. Pushed: see git log.
+
+- 2026-11-03, R50 code review (review/r50-code-review, Pushed: c6b4327; findings in docs/codex/R50-review.md)
+  What you will see now: on the phone, Home -> Work no longer shows two wordmarks for a moment with a big-to-small jump; the wordmark just stays at the small spot. Nothing else visible changed.
+  Still off: not tested in real Safari (WebKit would not install, tested in Chrome iPhone mode); the real Home -> Work flight could not run in my test browser, so please look at it on your iPhone once.
+  Your decision: Forbes now shows a year (2023) in the desktop Work row; after 2.5 s the landing layer goes even if the strip has not drawn (keep?).
+  Technical: 3 fixes (mode-lite startBig, shared title-fit.js, unused lineInsetVw); compare 542/542 x2; clean-clone build OK. Undo: git revert c6b4327 1560095 e1f2057.
