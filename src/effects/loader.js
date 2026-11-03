@@ -167,7 +167,15 @@ export function runLoader({ urls = [], onReady, wordmark } = {}) {
     gsap.to([...el.children], { opacity: 0, duration: L.endFadeSec, ease: 'power1.out', onComplete: () => { cleanup(); enterPage(); } });
   };
   const finish = async () => {
-    const sw = slide && swipeP ? await swipeP : null;
+    let sw = null;
+    if (slide && swipeP) {
+      let late = false, timer;
+      sw = await Promise.race([
+        swipeP.then((s) => { if (late) { s?.dispose(); return null; } return s; }),
+        new Promise((r) => { timer = setTimeout(() => { late = true; r(null); }, Math.min(1000, Math.max(0, L.maxMs - (performance.now() - t0)))); }),
+      ]);
+      clearTimeout(timer);
+    }
     if (!sw || !video || video.readyState < 2 || !sw.ok()) { sw?.dispose(); fade(); return; }
     if (sw.glide) { // phones / tablets in portrait: the menu's smear (menu-smear.js); the loader's own layers are clipped by its ragged edge
       const W = innerWidth, H = innerHeight, parts = ['.loader__bg', '.loader__top', '.loader__veil', '.loader__counter'].map((q) => { const n = el.querySelector(q), r = n.getBoundingClientRect(); return { n, ox: r.left, oy: r.top }; });
