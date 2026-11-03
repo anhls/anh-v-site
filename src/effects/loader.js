@@ -161,7 +161,7 @@ export function runLoader({ urls = [], onReady, wordmark } = {}) {
     root.classList.remove('is-loading', 'loader-wm'); root.classList.add('loader-out');
     setTimeout(() => root.classList.remove('loader-out'), (L.enter.delaySec + L.enter.sec) * 1000 + 200);
     const g = { t: 0 };
-    gsap.to(g, { t: 1, duration: L.wmGrowSec, delay: L.wmAfterSwipeDelay, ease: 'none', onUpdate: () => wordmark.set((1 - g.t) ** HF.sizePow), onComplete: () => wordmark.release() }); // the flight's size curve (card -> hero = small -> big)
+    gsap.to(g, { t: 1, duration: reduced ? 0 : L.wmGrowSec, delay: reduced ? 0 : L.wmAfterSwipeDelay, ease: 'none', onUpdate: () => wordmark.set((1 - g.t) ** HF.sizePow), onComplete: () => wordmark.release() }); // the flight's size curve (card -> hero = small -> big)
   };
   const fade = () => {
     gsap.to([...el.children], { opacity: 0, duration: L.endFadeSec, ease: 'power1.out', onComplete: () => { cleanup(); enterPage(); } });
