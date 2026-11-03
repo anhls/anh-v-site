@@ -8,6 +8,7 @@ import { MENU_SWEEP, frontTime, sweepGeom, gridBlockPx, createMenuSmear, outEase
 import { getWm, wmState } from '../util/wm-handle.js';
 import { setPagePaused, isPagePaused } from '../util/page-pause.js';
 import { weakReason } from '../util/device.js';
+import { writeMenuHome, clearMenuHome } from './menu-home.js';
 
 // R24a / R48: the burger + full-screen menu of the tall mode (phones, tablet portrait).
 // Layout (R48 r5, placed by ink in placeMenu()): burger TOP-LEFT (two thin lines that pivot into an X), two flavour lines, the clock (two right-aligned lines on the flavour rows, right ink edge on the big wordmark's V),
@@ -52,8 +53,11 @@ export function mountTallMenu() {
   const workLink = menu.querySelector('a[href="/work/"]'), contactLink = menu.querySelector('a[data-contact]');
   if (contactLink) contactLink.dataset.contactWait = String(Math.round(TM.pushSec * 600)); // the card starts as the line push is ~60 % done
 
-  const pageEls = () => [document.getElementById('app'), document.querySelector('a.wordmark'), document.querySelector('a.twm'), document.querySelector('nav.nav'), document.querySelector('.skip')].filter(Boolean);
-  const focusables = () => (menu.dataset.view === 'about' ? [btn, menu.querySelector('.tmenu__text')] : [btn, ...menu.querySelectorAll('a[href], button')]);
+  // R52: the page's ONE wordmark is NOT locked: while the menu is open it is the link Home (it is above the menu, big at the bottom)
+  const pageEls = () => [document.getElementById('app'), document.querySelector('nav.nav'), document.querySelector('.skip')].filter(Boolean);
+  const homeWm = () => getWm()?.el || document.querySelector('a.twm');
+  const focusables = () => (menu.dataset.view === 'about' ? [btn, menu.querySelector('.tmenu__text'), homeWm()] : [btn, ...menu.querySelectorAll('a[href], button'), homeWm()]).filter(Boolean);
+  const wmLabel = (on) => homeWm()?.setAttribute('aria-label', on ? 'Home' : 'Anh V, home');
   const params = new URLSearchParams(location.search);
   const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches || params.get('gl') === '0';
 
@@ -194,6 +198,7 @@ export function mountTallMenu() {
   const mark = (name) => { try { (window.__tmLabels ||= []).push(name + ' @' + (performance.now() - (window.__tmTap || 0)).toFixed(1)); } catch { /* */ } };
   const finishSweep = () => { sweeping = false; restoreText(); if (pending) { const q = pending; pending = null; set(q[0], q[1]); } };
   const afterReflow = (fn) => { void menu.offsetWidth; fn(); };
+  let takingOver = false;
   const set = (on, view = 'list') => {
     const tapT = performance.now(); if (on) { window.__tmTap = tapT; window.__tmLabels = []; }
     if (sweeping && on !== open) { pending = [on, view]; return; } // (a tap during the sweep waits for it to end)
@@ -202,7 +207,7 @@ export function mountTallMenu() {
     open = on;
     btn.setAttribute('aria-expanded', String(on));
     btn.setAttribute('aria-label', on ? 'Close menu' : 'Open menu');
-    document.documentElement.classList.toggle('tmenu-open', on);
+    document.documentElement.classList.toggle('tmenu-open', on); wmLabel(on);
     clearTimeout(hideT); clearTimeout(lockT);
     const sw = !(on && wasOpen) && useSweep();
     const secOpen = MENU_SWEEP.openSec, secClose = secOpen / MENU_SWEEP.closeDiv;
@@ -241,7 +246,7 @@ export function mountTallMenu() {
         const ok = smear.play({ open: false, sec: secClose, delay: bandDelay, onFrame: ({ clip, f }) => { panel.style.clipPath = clip; fadeText(f); }, onDone: () => { done(); finishSweep(); } });
         if (!ok) { sweeping = false; restoreText(); tl?.kill(); menu.classList.add('is-plain'); hideT = setTimeout(done, 260); wmRun(false, 0.25, 0); }
       } else { tl?.kill(); menu.classList.remove('is-open'); hideT = setTimeout(done, 260); wmRun(false, 0.25, 0); }
-      btn.focus({ preventScroll: true });
+      if (!takingOver) btn.focus({ preventScroll: true }); // (R52: arriving on Home by the AV: nothing was focused, the focus ring must not show on the burger)
     }
   };
   btn.addEventListener('click', () => set(!open));
@@ -257,7 +262,51 @@ export function mountTallMenu() {
   });
   addEventListener('resize', () => { placeMenu(); });
   // R45b: close with no animation (the Home -> Work flight starts from the tapped link and IS the transition)
-  const closeNow = () => { smear?.cancel(); sweeping = false; pending = null; restoreText(); clearTimeout(hideT); cancelAnimationFrame(wmRaf); setPagePaused(false); tl?.kill(); open = false; btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-label', 'Open menu'); document.documentElement.classList.remove('tmenu-open'); clearTimeout(lockT); lockPage(false); menu.classList.remove('is-open'); menu.hidden = true; menu.setAttribute('inert', ''); stopTime(); lineNow(); };
+  const closeNow = () => { smear?.cancel(); sweeping = false; pending = null; restoreText(); clearTimeout(hideT); cancelAnimationFrame(wmRaf); setPagePaused(false); tl?.kill(); open = false; btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-label', 'Open menu'); document.documentElement.classList.remove('tmenu-open'); wmLabel(false); clearTimeout(lockT); lockPage(false); menu.classList.remove('is-open'); menu.hidden = true; menu.setAttribute('inert', ''); stopTime(); lineNow(); };
+
+  // ---- R52: the big AV in the open menu = Home, played as a menu CLOSE on the homepage.
+  // On Home: just the normal close. Elsewhere (Work, a project, in place or a document): the snapshot of this open menu goes into the record `pxm`, the page navigates to '/' at once (the menu already covers
+  // the page: nothing has to animate before leaving) and the homepage paints that snapshot from its first frame (index.html), then takeOver() below plays the close. Capture phase: the Work page's own
+  // wordmark click (the card flight home) must not run for this path.
+  const onHome = () => document.documentElement.classList.contains('tall-home');
+  let leaving = 0;
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest?.('a.wordmark, a.twm');
+    if (!a || !open || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+    if (onHome()) { set(false); return; }
+    if (leaving) return;
+    leaving = setTimeout(() => { leaving = 0; clearMenuHome(); }, 3000); // (a navigation that did not leave: the record must not outlive it)
+    writeMenuHome({ menu, btn, vInk, view: menu.dataset.view });
+    location.href = '/';
+  }, true);
+  // restored from the back-forward cache (Back from Home): this page comes back as it was left, with the menu open: close it with no animation, the wordmark small again
+  addEventListener('pageshow', (e) => { if (!e.persisted) return; clearTimeout(leaving); leaving = 0; clearMenuHome(); if (open && !onHome()) { closeNow(); getWm()?.drive?.(1); } });
+
+  // Home, arriving with the record: the live menu is put into its OPEN rest state under the painted layer (#pxg[data-menu], same pixels), the layer goes in the frame the close starts. Resolves when the close has ended.
+  const takeOver = async ({ rec, layer, video }) => {
+    if (rec?.vInk) vInk = rec.vInk;
+    warmSmear();
+    try { await document.fonts?.ready; } catch { /* */ }
+    open = true; fromMenu = false; curLink = null; sweeping = false; pending = null;
+    btn.setAttribute('aria-expanded', 'true'); btn.setAttribute('aria-label', 'Close menu');
+    document.documentElement.classList.add('tmenu-open'); wmLabel(true);
+    timeEl.textContent = hcmcTime(); clearTimeout(timeT); timeT = setTimeout(tick, 60000 - (Date.now() % 60000) + 50);
+    const sw = useSweep();
+    menu.classList.toggle('is-plain', !sw); lineNow(); panel.style.clipPath = 'none';
+    menu.removeAttribute('inert'); menu.hidden = false; menu.dataset.view = rec?.view || 'list'; placeMenu(true);
+    if (sw) { buildTl(false); tl.progress(1); } else showPlain();
+    menu.classList.add('is-open'); lockPage(true);
+    // the homepage is "live" when the hero video has a frame (capped: a video that never loads must not hold the menu; the poster is then the picture that is revealed)
+    const t0 = performance.now(); try { video?.play?.().catch(() => {}); } catch { /* */ }
+    while (video && !(video.readyState >= 2 && video.currentTime > 0) && performance.now() - t0 < 1500) await new Promise((r) => requestAnimationFrame(r));
+    if (sw) { smear.prime(); smear.warmDraw(); }
+    for (let i = 0; i < 4; i++) await new Promise((r) => requestAnimationFrame(r)); // (a few frames under the cover: the first raster / composite of the live menu and the smear layer must not fall into the close's first frame)
+    try { window.__r45vt?.skipTransition(); } catch { /* */ } // (the held Work frame; the layer has the same picture)
+    layer?.remove(); document.documentElement.classList.remove('pxg-on');
+    takingOver = true; set(false); takingOver = false;
+    await new Promise((r) => { const iv = setInterval(() => { if (!open && !sweeping) { clearInterval(iv); r(); } }, 50); });
+  };
 
   // ---- ?debug=menu: what the sweep does on this device (for Anh's phone)
   if (params.get('debug') === 'menu') {
@@ -275,5 +324,5 @@ export function mountTallMenu() {
     };
     setInterval(show, 300); show();
   }
-  return { open: () => set(true), close: () => set(false), closeNow, isOpen: () => open, link: workLink };
+  return { open: () => set(true), close: () => set(false), closeNow, takeOver, isOpen: () => open, link: workLink };
 }
