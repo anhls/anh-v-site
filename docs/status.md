@@ -961,3 +961,9 @@ Tech: 50/50 round trips ok; Slow 4G + 12 s cap logged in R49-notes.md; compare 5
   Still off: not tested in real Safari (WebKit would not install, tested in Chrome iPhone mode); the real Home -> Work flight could not run in my test browser, so please look at it on your iPhone once.
   Your decision: Forbes now shows a year (2023) in the desktop Work row; after 2.5 s the landing layer goes even if the strip has not drawn (keep?).
   Technical: 3 fixes (mode-lite startBig, shared title-fit.js, unused lineInsetVw); compare 542/542 x2; clean-clone build OK. Undo: git revert c6b4327 1560095 e1f2057.
+
+- 2026-11-03, R51 independent review (Codex; final tier by Cowork), branch review/r51-codex-review (on top of R50)
+  What you will see now: nothing changes in normal use. The site no longer gets stuck if a font, a picture or a code chunk fails to load (loader, phone title, Home <-> Work), the open phone menu can no longer blank its own items, and keyboard / screen-reader users are kept on the loader until the page is ready.
+  Still off: not tested in real Safari (WebKit unavailable); the real Home -> Work flight cannot run in the test browser.
+  Your decision: none (all fixes are invisible in normal use).
+  Tech: 11 fixes (F1-F9 + swipe-chunk stall + reduced-motion wordmark), table in docs/codex/R51-review.md; compare 542/542 x2; build + clean-clone build OK.
