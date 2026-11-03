@@ -148,9 +148,9 @@ export function arriveFromWork(hero, loadDeferred) {
       try { window.__r45vt?.skipTransition(); } catch { /* */ } // R45b: release the held Work frame; the layer (same picture) is still up under it
       gsap.to(layer, { opacity: 0, duration: F.landFadeSec, ease: 'sine.inOut', onComplete: () => { layer.remove(); document.documentElement.classList.remove('pxg-on'); resolve(); } });
     };
-    let fired = false; const go = () => { if (fired) return; fired = true; requestAnimationFrame(() => requestAnimationFrame(done)); };
+    let fired = false, timer = 0; const go = () => { if (fired) return; fired = true; clearTimeout(timer); video.removeEventListener('playing', go); video.removeEventListener('timeupdate', go); requestAnimationFrame(() => requestAnimationFrame(done)); };
     if (video.readyState >= 3 && !video.paused && video.currentTime > 0) go();
-    else { video.addEventListener('playing', go, { once: true }); video.addEventListener('timeupdate', go, { once: true }); setTimeout(go, 1500); }
+    else { video.addEventListener('playing', go, { once: true }); video.addEventListener('timeupdate', go, { once: true }); timer = setTimeout(go, 1500); }
   }));
 }
 
@@ -179,7 +179,13 @@ async function growFromCard(layer) {
   try {
     if (!rec || !homeFlightOK()) { finish(); return; }
     const cardIm = cardImage(rec.src), heroIm = new Image(); heroIm.src = frame;
-    await Promise.all([cardIm.decode().catch(() => {}), heroIm.decode().catch(() => {})]);
+    let decodeTimer;
+    const decoded = await Promise.race([
+      Promise.all([cardIm.decode(), heroIm.decode()]).then(() => true, () => false),
+      new Promise((r) => { decodeTimer = setTimeout(() => r(false), 1500); }),
+    ]);
+    clearTimeout(decodeTimer);
+    if (!decoded) { finish(); return; } // a stalled image must not hold the card-first return forever
     host = document.createElement('div'); host.setAttribute('aria-hidden', 'true'); host.style.cssText = 'position:fixed;inset:0;z-index:8;pointer-events:none;background:var(--bg)';
     document.body.append(host);
     fl = createHomeFlight(host);
