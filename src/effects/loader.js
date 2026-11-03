@@ -37,6 +37,13 @@ export function runLoader({ urls = [], onReady, wordmark } = {}) {
     <div class="loader__veil"></div>
     <div class="loader__counter" aria-hidden="true">${colHtml(0)}${colHtml(1)}</div>`;
   document.body.prepend(el);
+  // Keep keyboard and assistive technology on the loading status until the page is visible.
+  const focused = document.activeElement;
+  const locked = [...document.body.children].filter((n) => n !== el && !['SCRIPT', 'STYLE', 'LINK'].includes(n.tagName) && !n.hasAttribute('inert'));
+  locked.forEach((n) => n.setAttribute('inert', ''));
+  el.tabIndex = -1; el.focus({ preventScroll: true });
+  const loadingKey = (e) => { if (e.ctrlKey || e.metaKey || e.altKey) return; e.preventDefault(); e.stopImmediatePropagation(); };
+  window.addEventListener('keydown', loadingKey, true);
 
   const counter = el.querySelector('.loader__counter'), top = el.querySelector('.loader__top');
   const cols = [...el.querySelectorAll('.loader__col')].map((c) => [...c.children]);
@@ -141,7 +148,7 @@ export function runLoader({ urls = [], onReady, wordmark } = {}) {
   // ---- the ending
   let resolveDone;
   const done = new Promise((r) => { resolveDone = r; });
-  const cleanup = () => { stopClock(); removeEventListener('resize', onResize); el.remove(); resolveDone(); };
+  const cleanup = () => { stopClock(); removeEventListener('resize', onResize); window.removeEventListener('keydown', loadingKey, true); locked.forEach((n) => n.removeAttribute('inert')); el.remove(); if (focused?.isConnected) focused.focus({ preventScroll: true }); resolveDone(); };
   // the wordmark is dimmed by the veil while loading; once the veil is gone (the swipe) a mask keeps it dimmed to the right of the swipe front and full to the left of it
   const wmMask = (cut) => {
     const w = wordmark.el, r = w.getBoundingClientRect(), local = cut === null ? null : (cut - r.left) * (w.offsetWidth / r.width);
