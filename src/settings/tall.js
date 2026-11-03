@@ -82,7 +82,7 @@ export const TALL_MENU = { flavTopPct: 33.98, navTopPct: 53.7, navPitchVw: 9.3, 
   zoneShare: 0.5, jagCells: 4, startShare: 0.4, pushSec: 0.45,
   // R48 r10: the entrance is ONE timeline: items start spread over staggerAmount s with staggerEase (gaps open in the middle, tighten at the ends); each item = opacity 0 -> 1, blur blurPx -> 0, y riseY -> 0 over itemSec with itemEase;
   // the line push (pushSec, pushEase) starts pushLag after the last item has started; close = the timeline reversed at closeSpeed x
-  staggerAmount: 0.6, staggerEase: 'sine.inOut', itemSec: 0.35, itemEase: 'power3.out', blurPx: 8, riseY: 8, pushEase: 'power3.inOut', pushLag: 0.1, closeSpeed: 2 };
+  staggerAmount: 0.6, staggerEase: 'sine.inOut', itemSec: 0.35, itemEase: 'power3.out', blurPx: 8, riseY: 8, pushEase: 'power3.inOut', pushLag: 0.1, closeSpeed: 1 }; // R52c: ONE speed for open and close (Anh 2026-11-03: the close at 2x was too fast); one number to tune both
 // R48 r5: the wordmark also plays on Home <-> Work (big -> small into Work, small -> big back; Work shows the small wordmark top-centre like the project pages). false = big on Home and Work.
 TALL.wmHomeWork = true;
 export function wmHomeWork() { return !!TALL.wmHomeWork; }
