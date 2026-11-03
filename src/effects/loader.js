@@ -85,7 +85,7 @@ export function runLoader({ urls = [], onReady, wordmark } = {}) {
 
   // ---- real progress 0..1
   const fontsDone = { v: false };
-  const fontsP = Promise.race([document.fonts.load(`${L.fontWeight} 100px "Clash Display"`, '0123456789'), new Promise((r) => setTimeout(r, 1500))]).then(() => { fontsDone.v = true; layout(); place(); });
+  const fontsP = Promise.race([document.fonts.load(`${L.fontWeight} 100px "Clash Display"`, '0123456789').catch(() => {}), new Promise((r) => setTimeout(r, 1500))]).then(() => { fontsDone.v = true; layout(); place(); });
   const imgs = { n: 0 };
   urls.forEach((u) => { const i = new Image(); i.onload = i.onerror = () => { imgs.n += 1; }; i.src = u; });
   const videoP = () => {
