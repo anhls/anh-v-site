@@ -262,6 +262,7 @@ export function createHomeFlight(parent, nSlots = 4) {
       if (dead) return;
       const V = { w: innerWidth, h: innerHeight };
       dpr = Math.min(devicePixelRatio || 1, Math.min(transitionPolicy().maxDpr, V.w > 2560 ? BEND.dprCapLarge : BEND.dprCap));
+      { const q = +new URLSearchParams(location.search).get('smeardpr'); if (q > 0.5) dpr = Math.min(dpr, q); } // R52c: a test switch for the phone (?smeardpr=1.25); not set = unchanged
       const w = Math.round(V.w * dpr), h = Math.round(V.h * dpr);
       if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
       gl.viewport(0, 0, w, h); gl.disable(gl.SCISSOR_TEST); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);

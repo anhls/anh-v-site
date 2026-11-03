@@ -86,6 +86,7 @@ export function initHomeToWork({ hero, nav, link: linkOpt, video: videoOpt, wrap
     // bfcache restore after the Work page's Back: the return mark was written before Work left. Mark -> hero frame layer + landing (no reload, no loader); no mark -> the hero as it was.
     window.__pxgSrc = 'pageshow persisted'; window.__paintPxg?.(); if (document.getElementById('pxg-card')) { const w = document.querySelector('a.twm'); if (w) w.style.visibility = 'hidden'; } // (the card-first layer carries the small wordmark until the grow starts)
    
+    if (document.getElementById('pxg')?.dataset.menu === '1') { dbg('bfcache restore: the menu AV record, playing the close'); window.__pxmTake?.(); arm(); return; } // R52
     const back = !!document.getElementById('pxg');
     dbg('bfcache restore: return mark', back ? 'found, playing the landing' : 'none, hero as it was');
     if (back) arriveFromWork(hero, null); else { clearHandoff('pxh'); returnLine('pageshow persisted', null, false); }

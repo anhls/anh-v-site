@@ -541,6 +541,7 @@ const endDrag = (by = 'other') => {
 addEventListener('pointerdown', (e) => {
   if (paused || (e.pointerType === 'mouse' && e.button !== 0) || morph || fading || (drag && e.pointerType !== 'mouse')) return; // R24b: touch and pen share the drag; a second finger is ignored
   if (e.target.closest?.('.work__toggle, .work__count, .w2__hit, .tmenu__btn, .tmenu, [data-tune-panel]') || e.target.closest?.('div[style*="99999"]')) return;
+  if (e.target.closest?.('a.wordmark') && document.documentElement.classList.contains('tmenu-open')) return; // R52 fix: the big AV in the open menu is a plain link (a prevented pointerdown made WebKit drop its click)
   if (mode.tap && e.target.closest?.('a.work__frame')) {
     mode.tap.down({ moving: stripMoving() });
     logTap({ what: 'down', transitionBusy, inertia: !!inertia, snap: !!snap, tapSpeed: Math.round(tapSpeed), restFor: Math.round(rest.restFor()) });

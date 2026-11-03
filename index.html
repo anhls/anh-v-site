@@ -94,6 +94,18 @@
         function paint() {
           try {
             if (document.getElementById('pxg')) return;
+            /* R52: the big AV in the open phone menu: paint the menu the visitor just left, OPEN, from the first frame (src/effects/menu-home.js writes the snapshot); src/tall-home.js skips the loader and plays the close.
+               The same layer id as pxg: the render-block (link rel=expect) and the view-transition hold above apply unchanged. Wrong size / older than 10 s / ?home=full: ignored. */
+            var m = JSON.parse(localStorage.getItem('pxm') || 'null');
+            if (m) localStorage.removeItem('pxm');
+            if (m && Date.now() - m.t < 10000 && Math.abs(m.W - innerWidth) < 2 && Math.abs(m.H - innerHeight) < 80 && !/[?&]home=full/.test(location.search)) {
+              localStorage.removeItem('pxg'); localStorage.removeItem('pxhf'); localStorage.removeItem('pxhft'); /* (the Work page's own leave record must not play too) */
+              window.__pxmRec = m; window.__pxgSrc = window.__pxgSrc || 'menu';
+              document.documentElement.classList.add('tmenu-open');
+              var st = document.createElement('style'); st.id = 'pxm-css'; st.textContent = m.css; document.head.appendChild(st);
+              document.body.insertAdjacentHTML('afterbegin', '<div id="pxg" data-menu="1" aria-hidden="true" style="position:fixed;inset:0;z-index:70;background:var(--bg);overflow:hidden">' + m.html + '<div class="twm" style="pointer-events:none"><img alt="" decoding="sync" src="/media/brand/wordmark.svg"></div></div>');
+              return;
+            }
             var r = JSON.parse(localStorage.getItem('pxg') || 'null');
             log('home paint(): prerendering', document.prerendering, 'record', r ? 'age ' + (Date.now() - r.t) + 'ms' : 'none');
             if (!r || Date.now() - r.t > 60000 || /[?&](gl=0|home=full)/.test(location.search) || matchMedia('(prefers-reduced-motion: reduce)').matches) { if (r) localStorage.removeItem('pxg'); return; }
