@@ -203,10 +203,12 @@ export function mountTallMenu() {
   // R48 r13: the page lock (inert on the page + overflow hidden = a big style / hit-test invalidation) is NOT done in the tap frames: after the sweep on open, when the menu is gone on close
   const lockPage = (on) => { document.documentElement.classList.toggle('tmenu-lock', on); pageEls().forEach((el) => { if (on) el.setAttribute('inert', ''); else el.removeAttribute('inert'); }); };
   const mark = (name) => { try { (window.__tmLabels ||= []).push(name + ' @' + (performance.now() - (window.__tmTap || 0)).toFixed(1)); } catch { /* */ } };
-  const finishSweep = () => { sweeping = false; restoreText(); if (pending) { const q = pending; pending = null; set(q[0], q[1]); } };
+  let takingOver = false, takeOverResolve = null;
+  const endTakeOver = () => { if (!takingOver && !takeOverResolve) return; takingOver = false; const r = takeOverResolve; takeOverResolve = null; r?.(); };
+  const finishSweep = () => { sweeping = false; restoreText(); endTakeOver(); if (pending) { const q = pending; pending = null; set(q[0], q[1]); } };
   const afterReflow = (fn) => { void menu.offsetWidth; fn(); };
-  let takingOver = false;
   const set = (on, view = 'list') => {
+    if (takingOver && on) return;
     const tapT = performance.now(); if (on) { window.__tmTap = tapT; window.__tmLabels = []; }
     if (sweeping && on !== open) { pending = [on, view]; return; } // (a tap during the sweep waits for it to end)
     if (on === open && menu.dataset.view === view) return;
@@ -252,8 +254,8 @@ export function mountTallMenu() {
         tl.timeScale(MENU_SWEEP.closeDiv).reverse();
         sweeping = true; panel.style.clipPath = 'none'; wmRun(false, secClose, bandDelay);
         const ok = smear.play({ open: false, sec: secClose, delay: bandDelay, onFrame: ({ clip, f }) => { panel.style.clipPath = clip; fadeText(f); }, onDone: () => { done(); finishSweep(); } });
-        if (!ok) { sweeping = false; restoreText(); tl?.kill(); menu.classList.add('is-plain'); hideT = setTimeout(done, 260); wmRun(false, 0.25, 0); heroPause(false); }
-      } else { tl?.kill(); menu.classList.remove('is-open'); hideT = setTimeout(done, 260); wmRun(false, 0.25, 0); heroPause(false); }
+        if (!ok) { sweeping = false; restoreText(); tl?.kill(); menu.classList.add('is-plain'); hideT = setTimeout(() => { done(); endTakeOver(); }, 260); wmRun(false, 0.25, 0); heroPause(false); }
+      } else { tl?.kill(); menu.classList.remove('is-open'); hideT = setTimeout(() => { done(); endTakeOver(); }, 260); wmRun(false, 0.25, 0); heroPause(false); }
       if (!takingOver) btn.focus({ preventScroll: true }); // (R52: arriving on Home by the AV: nothing was focused, the focus ring must not show on the burger)
     }
   };
@@ -270,7 +272,7 @@ export function mountTallMenu() {
   });
   addEventListener('resize', () => { placeMenu(); });
   // R45b: close with no animation (the Home -> Work flight starts from the tapped link and IS the transition)
-  const closeNow = () => { heroPause(false); smear?.cancel(); sweeping = false; pending = null; restoreText(); clearTimeout(hideT); cancelAnimationFrame(wmRaf); setPagePaused(false); tl?.kill(); open = false; btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-label', 'Open menu'); document.documentElement.classList.remove('tmenu-open'); wmLabel(false); clearTimeout(lockT); lockPage(false); menu.classList.remove('is-open'); menu.hidden = true; menu.setAttribute('inert', ''); stopTime(); lineNow(); };
+  const closeNow = () => { heroPause(false); smear?.cancel(); sweeping = false; pending = null; restoreText(); clearTimeout(hideT); cancelAnimationFrame(wmRaf); setPagePaused(false); tl?.kill(); open = false; btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-label', 'Open menu'); document.documentElement.classList.remove('tmenu-open'); wmLabel(false); clearTimeout(lockT); lockPage(false); menu.classList.remove('is-open'); menu.hidden = true; menu.setAttribute('inert', ''); stopTime(); lineNow(); endTakeOver(); };
 
   // ---- R52: the big AV in the open menu = Home, played as a menu CLOSE on the homepage.
   // On Home: just the normal close. Elsewhere (Work, a project, in place or a document): the snapshot of this open menu goes into the record `pxm`, the page navigates to '/' at once (the menu already covers
@@ -324,8 +326,7 @@ export function mountTallMenu() {
     for (let i = 0; i < 4; i++) await new Promise((r) => requestAnimationFrame(r)); // (a few frames under the cover: the first raster / composite of the live menu and the smear layer must not fall into the close's first frame)
     try { window.__r45vt?.skipTransition(); } catch { /* */ } // (the held Work frame; the layer has the same picture)
     layer?.remove(); document.documentElement.classList.remove('pxg-on');
-    takingOver = true; set(false); takingOver = false;
-    await new Promise((r) => { const iv = setInterval(() => { if (!open && !sweeping) { clearInterval(iv); r(); } }, 50); });
+    await new Promise((r) => { takeOverResolve = r; takingOver = true; set(false); });
   };
 
   // ---- ?debug=menu: what the sweep does on this device (for Anh's phone)
