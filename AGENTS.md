@@ -106,7 +106,7 @@ Read first: CLAUDE.md (house rules), docs/requests.md (open work: the first item
 - Cowork merges into work-v2 often, one branch at a time. Builders never merge into or push work-v2. R24c rotation mode switching
   starts only after both sides have been merged.
 - Separate dev ports: desktop 5199 (default), lite 5200. Use `PORT=5200 npx vite` in POSIX shells, or
-  `$env:PORT=5200; npx vite` in PowerShell. Compare the matching server with `npm run compare -- --port 5200`.
+  `$env:PORT=5200; npx vite` in PowerShell. Compare the matching server with `npm run compare -- --local "http://localhost:5200/?home=full"` (always `?home=full`, see CLAUDE.md).
 
 ## 12. Folders and branches: one agent per folder (learned 2026-10-11)
 - The REQUEST sets the side, not the agent: Codex, Claude Code or Antigravity may build desktop or lite work. Every brief's first lines name
