@@ -3,7 +3,7 @@ import { BEND, FRAME_WARP as FW, WARP, WARP_DIR } from '../timeline.js';
 import { frameCoverZoom } from './warp-model.js';
 import { frameState, frameLayers } from '../sections/hero.js';
 import { weakDevice } from '../util/device.js';
-import { glOpen } from '../util/gl-ledger.js';
+import { glOpen, glClose } from '../util/gl-ledger.js';
 import { POST_VERT, POST_FRAG } from './warp-shader.js';
 import { imgSrc } from '../util/media.js';
 import { capW } from '../scale.js';
@@ -70,7 +70,7 @@ export function createFrameGL(handles, atEnd) {
   const link = (vs, fs) => { const p = gl.createProgram(); gl.attachShader(p, compile(gl.VERTEX_SHADER, vs)); gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p); return gl.getProgramParameter(p, gl.LINK_STATUS) ? p : null; };
   const quad = link(QV, QF);
   const post = link(POST_VERT, POST_FRAG);
-  if (!quad || !post) return null;
+  if (!quad || !post) { glClose(gl, 'hero'); return null; }
   const uniforms = (p, names) => Object.fromEntries(names.map((k) => [k, gl.getUniformLocation(p, k)]));
   const Q = uniforms(quad, ['uView', 'uRect', 'uA', 'uB', 'uUvA', 'uUvB', 'uMix', 'uColor', 'uMode', 'uAlpha', 'uBias']);
   const P = uniforms(post, ['uScene', 'uRes', 'uAmt', 'uShape', 'uMargin', 'uSym', 'uPinchDown', 'uZoom', 'uBow', 'uFrame', 'uGrain', 'uSeed']);
