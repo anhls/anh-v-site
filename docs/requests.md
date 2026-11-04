@@ -491,3 +491,5 @@ Waits for Anh's original files. Convert the two GIFs to MP4/WebM loops, serve im
 ## R48 [done] (LITE; brief docs/codex/R48.md; branch lite/r48-phone-menu): phone / tablet-portrait menu redesign (burger left -> X, HCMC time top-right, flavour text, Clash nav above the big AV wordmark, blur + sideways pixel-swipe panel) + big wordmark at the bottom on Home and Work (animates only into project pages).
 
 ## R52e [PARKED: with the new hero video + Home redesign] (LITE + desktop check; brief docs/codex/R52e.md): the visible hero <video> (30 fps) pins Home to 30 fps on the iPhone during the menu sweep / loader swipe (found by R52d's ?off= switches). Fix with the new hero: swap the video for a still during animations, or a 60 fps source.
+
+## R53 (DESKTOP + lite/shared files; brief docs/codex/R53.md; branch desktop/r53-review-fixes; builder: Antigravity, its first build): six small fixes from the 2026-11-04 Antigravity code review (checked by Cowork): no strip loading while a project is open, iPhone hero-frame fallback, video-frame loop / smear context leaks, phone menu takeover hang, one canvas for text measuring, dead code. No visible change.
