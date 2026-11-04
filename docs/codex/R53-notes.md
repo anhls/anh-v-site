@@ -47,16 +47,20 @@ All six items in `docs/codex/R53.md` matched the current `work-v2` source cleanl
    - `git log -S 'expect' -p -- work/index.html` finding: `<link rel="expect" href="#pxh" blocking="render" />` was added in `5eaeca56` ("R45c round 3") and deliberately removed in `ffa2cb5f` ("R45c cleanup: drop the round 4 canvas layer and the work/ rel=expect (the view-transition hold covers both)"), which left the stale `<!-- R45c3: render-block... -->` comment behind. Updated the comment in `work/index.html` to describe the view-transition hold + `#pxh` script without adding the tag back.
    - Build check: `npm run build` + `npm run owners -- --side desktop` OK.
 
-## Final Tier results (Claude Code, 2026-11-04)
-- Pushed: branch pushed with upstream set (`git push -u origin desktop/r53-review-fixes`).
-- Clean-clone build (`git clone` of the branch, `npm ci`, `npm run build`): PASSED (layout checks + vite build, built in 1.34 s).
-- `npm run compare -- --sizes 1920x1080,2560x1440`: NOT 542/542 on this machine: 135/360 (1920) and 124/360 (2560). The SAME run against an
-  untouched `origin/work-v2` (4d08004, port 5201) gives the identical 135/360 at 1920, so this is not caused by R53. Cause seen: in headless
-  Chrome here `document.documentElement.scrollHeight` stays 1080 after `__siteReady` (ready after ~6.8 s on both branches), so `scrollTo` does
-  nothing and every local value stays at its rest state. Not investigated further (stop rule: a check failed).
-- NOT RUN because of the stop: tall smoke 390x844, `?gl=0` / reduced motion, leak cycle, and the per-step browser checks of steps 1-5
-  (restJobs, glLedger / frame callbacks, burger tap during takeover, ink diff, forced canvas fallback). Still open.
-- Cloudflare preview build: not checked.
+## Final Tier results (Claude Code, 2026-11-05, round 2)
+Round 1 (2026-11-04) compare failed only because the homepage is hero-only since R45; with `?home=full` it passes. Code unchanged by the checks.
+- Pushed: yes (`git push -u origin desktop/r53-review-fixes`).
+- Clean-clone build (`git clone`, `npm ci`, `npm run build`): PASSED.
+- `npm run compare -- --local "http://localhost:5199/?home=full" --sizes 1920x1080,2560x1440`: 542/542 at 1920x1080 and 542/542 at 2560x1440, 0 mismatches.
+- Tall smoke 390x844 (touch, DPR 2): home, menu open/close, Work, menu on Work, open a project (/work/bitis09): 0 console errors.
+- `?gl=0` (work + home) and `prefers-reduced-motion: reduce` (work + home): load with 0 console errors. (Home still shows the loader at 5 s: its normal ~7 s load.)
+- Step 1: with a project open (`?perf=quiet`), `__restJobs().summary` is identical at 2.5 s and 6.5 s: no `activate` / idle jobs run while paused.
+- Step 2: `saveHeroFrame` run in Chrome both ways: normal path writes a JPEG data URL (len 17723), forced canvas fallback (`dbg-handoff-canvas=1`) writes one too (len 17727). iPhone itself NOT checked: Anh must test Work -> Home on the iPhone (does the grow flight start from the moving video frame?).
+- Step 3: forced context loss (all canvases) 3 times: strip rebuilt each time, live contexts 1 after each (no extra contexts); `requestVideoFrameCallback` outstanding per video = 1 (one video) before and after.
+- Step 4: scripted burger taps (5, 120 ms apart) during the takeover close (Work menu -> big AV -> Home): `__siteReady` becomes true, 0 errors.
+- Step 5: for the same 390x844 session, bounding rects of all `.tmenu*` elements (menu on Home, menu on Work) and all `.tp-*` elements (project page) are identical to `work-v2` (4d08004): 23/23, 23/23, 81/81 equal, 0 difference.
+- Leak cycle (Work -> project -> Back, 4 times, `?perf=quiet`): ledger identical after every cycle (live 5, created 6, peak 5), video-frame callbacks 1, 0 errors.
+- Not done: contact sheets before/after (rects and compare used instead), 4x CPU throttle, Cloudflare preview build (no access to check).
 
 ## Shared & Lite-Owned Files Touched (Merge Note)
 - **Lite-owned files**:
