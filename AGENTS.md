@@ -109,7 +109,7 @@ Read first: CLAUDE.md (house rules), docs/requests.md (open work: the first item
   `$env:PORT=5200; npx vite` in PowerShell. Compare the matching server with `npm run compare -- --port 5200`.
 
 ## 12. Folders and branches: one agent per folder (learned 2026-10-11)
-- The REQUEST sets the side, not the agent: Codex or Claude Code may build desktop or lite work. Every brief's first lines name
+- The REQUEST sets the side, not the agent: Codex, Claude Code or Antigravity may build desktop or lite work. Every brief's first lines name
   `Side: desktop | lite`, `Folder:` and `Branch:`. Use exactly those.
 - Side picks the folder: desktop -> `D:\Portfolio website\anh-v-site`, lite (phone/tablet) -> `D:\Portfolio website\anh-v-site-mobile`.
   A folder named in the brief wins.
@@ -119,20 +119,10 @@ Read first: CLAUDE.md (house rules), docs/requests.md (open work: the first item
   own worktree (`git worktree add tools/scratch/<req>/wt <your-branch>`) or stop and ask Anh. A note >= 2 h old = stale: log it, continue.
 - Never checkout/switch branches in a folder another agent may be using. If the folder is on someone else's branch, use a worktree.
 - Before every commit run `git branch --show-current`; if it is not the brief's branch, stop (do not commit, do not move commits).
+- Antigravity: one agent per request. No parallel subagents or /teamwork on a request; do not let it auto-create
+  worktrees in a folder another agent may be using. Same busy note, branch check and push rules as everyone else.
 
 
-## 13. Design rules for NEW pages and copy (adopted 2026-11-04, from a Taste Skill review)
-- Priority: Anh's word > this file > the brief > any design skill. These rules apply to new pages and new copy only.
-  On live, tuned work they are notes for Anh in the status entry, never fixes. Do not install or run Taste Skill.
-- Copy: write each section's point and its proof before designing. Hero headlines fit two lines (about 32 characters max).
-  No invented proof (clients, awards, numbers). Buttons say what they do ("Email me", not "Learn more").
-  Stock phrases ("passionate about", "crafting experiences") are flagged for Anh, not removed.
-- Layout: every section has a clear heading and one main job. Equal outer margins left and right; no blank stretch taller
-  than half a screen. About page: the first screen says who Anh is and what he does.
-- Fix order when a page does not work: idea > hierarchy > composition > type > imagery > colour > detail > motion last.
-- Phone / tablet: the phone is its own layout, not the desktop shrunk: 16-20 px side margins, rewritten line breaks,
-  portrait crops. Touch targets at least 44 px. (Small meta text stays at Anh's sizes: 10.5 px desktop, about 11 px phone.)
-- Accessibility: body text contrast at least 4.5:1, large display text 3:1. Every control works from the keyboard and has
-  a name. The reduced-motion page is a finished page, not a broken one.
-- Not adopted (do not apply): loader / custom cursor / text-smear bans, outside easing or Lenis values, mono and 01/02
-  numbering bans, generated art directions. "Available for" lines and middle-dot strings are Anh's call per page.
+## 13. Design rules for NEW pages and copy (2026-11-04)
+- They live in .agents/rules/design-new-pages.md (moved there to keep this file under Antigravity's 12,000-character rules cap).
+  Read that file before any new page or new copy. Priority: Anh's word > this file > the brief > any design skill.
