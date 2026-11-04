@@ -47,12 +47,16 @@ All six items in `docs/codex/R53.md` matched the current `work-v2` source cleanl
    - `git log -S 'expect' -p -- work/index.html` finding: `<link rel="expect" href="#pxh" blocking="render" />` was added in `5eaeca56` ("R45c round 3") and deliberately removed in `ffa2cb5f` ("R45c cleanup: drop the round 4 canvas layer and the work/ rel=expect (the view-transition hold covers both)"), which left the stale `<!-- R45c3: render-block... -->` comment behind. Updated the comment in `work/index.html` to describe the view-transition hold + `#pxh` script without adding the tag back.
    - Build check: `npm run build` + `npm run owners -- --side desktop` OK.
 
-## Final Tier Browser Checks Status
-All browser / Playwright checks are marked **not run (sandbox), for the final check**:
-- `npm run compare -- --sizes 1920x1080,2560x1440`: not run (sandbox), for the final check.
-- Tall smoke test at `390x844` (home, menu, one project): not run (sandbox), for the final check.
-- `?gl=0` and `prefers-reduced-motion: reduce`: not run (sandbox), for the final check.
-- Leak check (`Work -> project -> Work` back flight, phone menu open/close, `Home -> Work`) and contact sheets: not run (sandbox), for the final check.
+## Final Tier results (Claude Code, 2026-11-04)
+- Pushed: branch pushed with upstream set (`git push -u origin desktop/r53-review-fixes`).
+- Clean-clone build (`git clone` of the branch, `npm ci`, `npm run build`): PASSED (layout checks + vite build, built in 1.34 s).
+- `npm run compare -- --sizes 1920x1080,2560x1440`: NOT 542/542 on this machine: 135/360 (1920) and 124/360 (2560). The SAME run against an
+  untouched `origin/work-v2` (4d08004, port 5201) gives the identical 135/360 at 1920, so this is not caused by R53. Cause seen: in headless
+  Chrome here `document.documentElement.scrollHeight` stays 1080 after `__siteReady` (ready after ~6.8 s on both branches), so `scrollTo` does
+  nothing and every local value stays at its rest state. Not investigated further (stop rule: a check failed).
+- NOT RUN because of the stop: tall smoke 390x844, `?gl=0` / reduced motion, leak cycle, and the per-step browser checks of steps 1-5
+  (restJobs, glLedger / frame callbacks, burger tap during takeover, ink diff, forced canvas fallback). Still open.
+- Cloudflare preview build: not checked.
 
 ## Shared & Lite-Owned Files Touched (Merge Note)
 - **Lite-owned files**:
