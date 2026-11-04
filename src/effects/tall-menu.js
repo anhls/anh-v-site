@@ -26,6 +26,7 @@ const hcmcTime = () => {
   return `${p} GMT+7`;
 };
 const sm = (q) => { q = Math.min(1, Math.max(0, q)); return q * q * (3 - 2 * q); };
+let inkCtx;
 
 export function mountTallMenu() {
   const about = data.about;
@@ -68,7 +69,7 @@ export function mountTallMenu() {
   const stopTime = () => { clearTimeout(timeT); timeT = 0; };
 
   // ---- the menu's ink layout (nav cap top, the current-page line, the clock's right edge on the wordmark's V)
-  const inkOf = (font, text) => { const c = document.createElement('canvas').getContext('2d'); c.font = font; const m = c.measureText(text), f = m.fontBoundingBoxAscent ?? 0, d = m.fontBoundingBoxDescent ?? 0; c.font = font.replace(/(\d+(?:\.\d+)?)px/, (_, n) => `${n * 10}px`); const g = c.measureText(text); return { fa: f, fd: d, adv: m.width, asc: g.actualBoundingBoxAscent / 10, left: g.actualBoundingBoxLeft / 10, right: g.actualBoundingBoxRight / 10 }; };
+  const inkOf = (font, text) => { const c = (inkCtx ||= document.createElement('canvas').getContext('2d')); c.font = font; const m = c.measureText(text), f = m.fontBoundingBoxAscent ?? 0, d = m.fontBoundingBoxDescent ?? 0; c.font = font.replace(/(\d+(?:\.\d+)?)px/, (_, n) => `${n * 10}px`); const g = c.measureText(text); return { fa: f, fd: d, adv: m.width, asc: g.actualBoundingBoxAscent / 10, left: g.actualBoundingBoxLeft / 10, right: g.actualBoundingBoxRight / 10 }; };
   let vInk = 0; // the V's right ink edge as a share of the wordmark image's width (scanned once from the picture itself; the big wordmark is 81.875vw wide at x 0)
   const scanV = () => {
     const im = new Image();
