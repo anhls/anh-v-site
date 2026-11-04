@@ -10,6 +10,7 @@ import { setPagePaused, isPagePaused } from '../util/page-pause.js';
 import { weakReason } from '../util/device.js';
 import { writeMenuHome, clearMenuHome } from './menu-home.js';
 import { offList } from '../util/off.js';
+import { hcmcTime } from '../util/clock.js';
 
 // R24a / R48: the burger + full-screen menu of the tall mode (phones, tablet portrait).
 // Layout (R48 r5, placed by ink in placeMenu()): burger TOP-LEFT (two thin lines that pivot into an X), two flavour lines, the clock (two right-aligned lines on the flavour rows, right ink edge on the big wordmark's V),
@@ -20,12 +21,8 @@ import { offList } from '../util/off.js';
 // (z-index in tall.css); on the pages where it is small (Work, projects) the menu grows THAT element small -> big on open (big -> small on close). Reduced motion, ?gl=0, Save-Data, a weak device or no WebGL2 = a plain fade.
 const PAUSE_SHARE = 0.3; // R48 r14
 
-let hcmcFmt = null; // (made once: constructing an Intl formatter costs ~10 ms on a phone, never in the tap frame)
-const hcmcTime = () => {
-  const p = (hcmcFmt ||= new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })).format(new Date());
-  return `${p} GMT+7`;
-};
 const sm = (q) => { q = Math.min(1, Math.max(0, q)); return q * q * (3 - 2 * q); };
+let inkCtx;
 
 export function mountTallMenu() {
   const about = data.about;
@@ -68,7 +65,7 @@ export function mountTallMenu() {
   const stopTime = () => { clearTimeout(timeT); timeT = 0; };
 
   // ---- the menu's ink layout (nav cap top, the current-page line, the clock's right edge on the wordmark's V)
-  const inkOf = (font, text) => { const c = document.createElement('canvas').getContext('2d'); c.font = font; const m = c.measureText(text), f = m.fontBoundingBoxAscent ?? 0, d = m.fontBoundingBoxDescent ?? 0; c.font = font.replace(/(\d+(?:\.\d+)?)px/, (_, n) => `${n * 10}px`); const g = c.measureText(text); return { fa: f, fd: d, adv: m.width, asc: g.actualBoundingBoxAscent / 10, left: g.actualBoundingBoxLeft / 10, right: g.actualBoundingBoxRight / 10 }; };
+  const inkOf = (font, text) => { const c = (inkCtx ||= document.createElement('canvas').getContext('2d')); c.font = font; const m = c.measureText(text), f = m.fontBoundingBoxAscent ?? 0, d = m.fontBoundingBoxDescent ?? 0; c.font = font.replace(/(\d+(?:\.\d+)?)px/, (_, n) => `${n * 10}px`); const g = c.measureText(text); return { fa: f, fd: d, adv: m.width, asc: g.actualBoundingBoxAscent / 10, left: g.actualBoundingBoxLeft / 10, right: g.actualBoundingBoxRight / 10 }; };
   let vInk = 0; // the V's right ink edge as a share of the wordmark image's width (scanned once from the picture itself; the big wordmark is 81.875vw wide at x 0)
   const scanV = () => {
     const im = new Image();
@@ -203,10 +200,12 @@ export function mountTallMenu() {
   // R48 r13: the page lock (inert on the page + overflow hidden = a big style / hit-test invalidation) is NOT done in the tap frames: after the sweep on open, when the menu is gone on close
   const lockPage = (on) => { document.documentElement.classList.toggle('tmenu-lock', on); pageEls().forEach((el) => { if (on) el.setAttribute('inert', ''); else el.removeAttribute('inert'); }); };
   const mark = (name) => { try { (window.__tmLabels ||= []).push(name + ' @' + (performance.now() - (window.__tmTap || 0)).toFixed(1)); } catch { /* */ } };
-  const finishSweep = () => { sweeping = false; restoreText(); if (pending) { const q = pending; pending = null; set(q[0], q[1]); } };
+  let takingOver = false, takeOverResolve = null;
+  const endTakeOver = () => { if (!takingOver && !takeOverResolve) return; takingOver = false; const r = takeOverResolve; takeOverResolve = null; r?.(); };
+  const finishSweep = () => { sweeping = false; restoreText(); endTakeOver(); if (pending) { const q = pending; pending = null; set(q[0], q[1]); } };
   const afterReflow = (fn) => { void menu.offsetWidth; fn(); };
-  let takingOver = false;
   const set = (on, view = 'list') => {
+    if (takingOver && on) return;
     const tapT = performance.now(); if (on) { window.__tmTap = tapT; window.__tmLabels = []; }
     if (sweeping && on !== open) { pending = [on, view]; return; } // (a tap during the sweep waits for it to end)
     if (on === open && menu.dataset.view === view) return;
@@ -252,8 +251,8 @@ export function mountTallMenu() {
         tl.timeScale(MENU_SWEEP.closeDiv).reverse();
         sweeping = true; panel.style.clipPath = 'none'; wmRun(false, secClose, bandDelay);
         const ok = smear.play({ open: false, sec: secClose, delay: bandDelay, onFrame: ({ clip, f }) => { panel.style.clipPath = clip; fadeText(f); }, onDone: () => { done(); finishSweep(); } });
-        if (!ok) { sweeping = false; restoreText(); tl?.kill(); menu.classList.add('is-plain'); hideT = setTimeout(done, 260); wmRun(false, 0.25, 0); heroPause(false); }
-      } else { tl?.kill(); menu.classList.remove('is-open'); hideT = setTimeout(done, 260); wmRun(false, 0.25, 0); heroPause(false); }
+        if (!ok) { sweeping = false; restoreText(); tl?.kill(); menu.classList.add('is-plain'); hideT = setTimeout(() => { done(); endTakeOver(); }, 260); wmRun(false, 0.25, 0); heroPause(false); }
+      } else { tl?.kill(); menu.classList.remove('is-open'); hideT = setTimeout(() => { done(); endTakeOver(); }, 260); wmRun(false, 0.25, 0); heroPause(false); }
       if (!takingOver) btn.focus({ preventScroll: true }); // (R52: arriving on Home by the AV: nothing was focused, the focus ring must not show on the burger)
     }
   };
@@ -270,7 +269,7 @@ export function mountTallMenu() {
   });
   addEventListener('resize', () => { placeMenu(); });
   // R45b: close with no animation (the Home -> Work flight starts from the tapped link and IS the transition)
-  const closeNow = () => { heroPause(false); smear?.cancel(); sweeping = false; pending = null; restoreText(); clearTimeout(hideT); cancelAnimationFrame(wmRaf); setPagePaused(false); tl?.kill(); open = false; btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-label', 'Open menu'); document.documentElement.classList.remove('tmenu-open'); wmLabel(false); clearTimeout(lockT); lockPage(false); menu.classList.remove('is-open'); menu.hidden = true; menu.setAttribute('inert', ''); stopTime(); lineNow(); };
+  const closeNow = () => { heroPause(false); smear?.cancel(); sweeping = false; pending = null; restoreText(); clearTimeout(hideT); cancelAnimationFrame(wmRaf); setPagePaused(false); tl?.kill(); open = false; btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-label', 'Open menu'); document.documentElement.classList.remove('tmenu-open'); wmLabel(false); clearTimeout(lockT); lockPage(false); menu.classList.remove('is-open'); menu.hidden = true; menu.setAttribute('inert', ''); stopTime(); lineNow(); endTakeOver(); };
 
   // ---- R52: the big AV in the open menu = Home, played as a menu CLOSE on the homepage.
   // On Home: just the normal close. Elsewhere (Work, a project, in place or a document): the snapshot of this open menu goes into the record `pxm`, the page navigates to '/' at once (the menu already covers
@@ -324,8 +323,7 @@ export function mountTallMenu() {
     for (let i = 0; i < 4; i++) await new Promise((r) => requestAnimationFrame(r)); // (a few frames under the cover: the first raster / composite of the live menu and the smear layer must not fall into the close's first frame)
     try { window.__r45vt?.skipTransition(); } catch { /* */ } // (the held Work frame; the layer has the same picture)
     layer?.remove(); document.documentElement.classList.remove('pxg-on');
-    takingOver = true; set(false); takingOver = false;
-    await new Promise((r) => { const iv = setInterval(() => { if (!open && !sweeping) { clearInterval(iv); r(); } }, 50); });
+    await new Promise((r) => { takeOverResolve = r; takingOver = true; set(false); });
   };
 
   // ---- ?debug=menu: what the sweep does on this device (for Anh's phone)

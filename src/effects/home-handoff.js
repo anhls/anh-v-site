@@ -18,12 +18,22 @@ export async function saveHeroFrame(video) {
     const vw = video.videoWidth, vh = video.videoHeight;
     if (!vw || !vh || video.readyState < 2) { localStorage.removeItem('pxhf'); localStorage.removeItem('pxhft'); return; }
     const w = Math.min(1600, vw), h = Math.round((w * vh) / vw);
-    const bmp = await createImageBitmap(video, { resizeWidth: w, resizeHeight: h, resizeQuality: 'medium' }), c = new OffscreenCanvas(w, h);
-    c.getContext('2d').drawImage(bmp, 0, 0); bmp.close();
-    const blob = await c.convertToBlob({ type: 'image/jpeg', quality: 0.82 });
-    const url = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(blob); });
-    writeHeroFrame(url);
-  } catch { try { localStorage.removeItem('pxhf'); } catch { /* */ } }
+    try {
+      if (localStorage.getItem('dbg-handoff-canvas') === '1') throw new Error('forced');
+      const bmp = await createImageBitmap(video, { resizeWidth: w, resizeHeight: h, resizeQuality: 'medium' }), c = new OffscreenCanvas(w, h);
+      c.getContext('2d').drawImage(bmp, 0, 0); bmp.close();
+      const blob = await c.convertToBlob({ type: 'image/jpeg', quality: 0.82 });
+      const url = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(blob); });
+      writeHeroFrame(url);
+      dbg('saveHeroFrame', 'offscreen');
+      return;
+    } catch {
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(video, 0, 0, w, h);
+      writeHeroFrame(c.toDataURL('image/jpeg', 0.82));
+      dbg('saveHeroFrame', 'canvas2d');
+    }
+  } catch { try { localStorage.removeItem('pxhf'); localStorage.removeItem('pxhft'); } catch { /* */ } }
 }
 export const writeHeroFrame = (url) => { try { localStorage.setItem('pxhf', url); localStorage.setItem('pxhft', String(Date.now())); } catch { /* */ } };
 // timestamped like the records: ignored after 10 s, deleted when read

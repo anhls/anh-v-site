@@ -659,6 +659,7 @@ swap.attach({
   begin: (slug) => { const it = items[frameOf(slug)]; if (it) openStart(it); },
   pause() {
     paused = true; savedY = scrollY;
+    rest.interrupt();
     clearTimeout(preT); clearTimeout(rt);
     gsap.ticker.remove(tick); gsap.ticker.remove(lenisStep);
     scrollGain.destroy(); lenis.destroy();
@@ -993,14 +994,14 @@ const tick = (_time, deltaMs) => {
 gsap.ticker.add(tick);
 // the pictures that are not near yet are requested a moment after load (one at a time, so a scroll never waits for a first upload)
 // R43: on the desktop the far pictures load one per slice at rest (idleLoad), nearest to the centre first: the old 15 ms stagger uploaded 7 textures in the first seconds, right under the first scroll (152 ms frame on an integrated GPU)
-if (!back) setTimeout(() => { if (mode.tap) items.forEach((it, i) => setTimeout(() => { if (!transitionBusy) activate(it); }, i * 15)); else idleLoad(true); }, 800);
+if (!back) setTimeout(() => { if (mode.tap) items.forEach((it, i) => setTimeout(() => { if (!paused && !transitionBusy) activate(it); }, i * 15)); else idleLoad(true); }, 800);
 // R31: the way back loads the rest after the transition: one picture per slice while the page is idle, the one nearest to the view centre along the strip first
 const idleLoad = (first = false) => {
   if (!first) pm('back:idle-load-start');
   const step = () => {
     const left = items.filter((it) => !it.active);
     if (!left.length) { if (!first) pm('back:idle-load-end'); return; }
-    if (TC.on || TP.q >= 0 || !rest.ok()) { setTimeout(step, 60); return; } // (R41d: a picture upload only at rest)
+    if (paused || TC.on || TP.q >= 0 || !rest.ok()) { setTimeout(step, 60); return; } // (R41d: a picture upload only at rest)
     const c = vertical ? H / 2 : W / 2, a = vertical ? py : px;
     let best = left[0], bd = Infinity;
     for (const it of left) { const d = Math.abs(a[it.idx] - c); if (d < bd) { bd = d; best = it; } }

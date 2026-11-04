@@ -112,7 +112,7 @@ export function initHomeToWork({ hero, nav, link: linkOpt, video: videoOpt, wrap
     const fade = [...lift, ...(clone ? [clone] : []), ...document.querySelectorAll('.nav a')];
     gsap.to(fade, { opacity: 0, duration: F.fadeSec, ease: 'none' });
     try { sessionStorage.removeItem('work-lite-place'); } catch { /* */ } // the phone Work page opens on the first card, not on the place it was left at
-    saveHeroFrame(video); // the grow flight on the way back starts from this frame (async, off the main thread)
+    const saveP = saveHeroFrame(video); // the grow flight on the way back starts from this frame (async, off the main thread; canvas2d fallback on iOS Safari)
     let lost = false; fl.onLost = () => { lost = true; playFlight.cancel?.(); };
     const lay = workStartLayout(), nbs = nbIms.filter((x) => fl.has(x.slot)).map((x) => ({ slot: x.slot, rect: x.n.rect, start: x.n.start }));
     await playFlight(fl, { hero: heroBox, card, dir: 'in', neighbours: nbs, vertical: lay.vertical, onFrame: (st) => nav?.drive(1 - st.size) });
@@ -120,6 +120,7 @@ export function initHomeToWork({ hero, nav, link: linkOpt, video: videoOpt, wrap
     writeHandoff('pxh', { W: innerWidth, H: innerHeight, rect: [card.x, card.y, card.w, card.h], slug: project.slug, src: cardIm.currentSrc || cardIm.src, cards: nbIms.filter((x) => fl && fl.has(x.slot)).map((x) => ({ rect: [x.n.rect.x, x.n.rect.y, x.n.rect.w, x.n.rect.h], slug: x.slug, src: x.im.currentSrc || x.im.src })), wm: wm ? { src: wm.querySelector('img')?.getAttribute('src'), style: wm.style.cssText + `;position:fixed;left:0;top:0;width:${wm.offsetWidth}px;height:${wm.offsetHeight}px;z-index:9` } : liftSel ? { src: data.hero.wordmark, auto: 1, style: `position:fixed;left:${TALL.wmSmall.x}vw;top:${TALL.wmSmall.y}vh;width:${TALL.wmSmall.width}vw;z-index:9` } /* live fix 03.11: the landing layer's wordmark at the phone's CURRENT small spot (top-centre, R48), not the old top-left one: it showed as a 2nd wordmark */ : null, title: liftSel ? liteTitle(project, card) : null });
     pm('home:land');
     if (lost) { /* the overlay holds the last drawn frame; the Work page paints its own */ }
+    await Promise.race([saveP, new Promise((r) => setTimeout(r, 150))]);
     location.href = '/work/';
   });
   arm();

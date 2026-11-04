@@ -106,10 +106,10 @@ Read first: CLAUDE.md (house rules), docs/requests.md (open work: the first item
 - Cowork merges into work-v2 often, one branch at a time. Builders never merge into or push work-v2. R24c rotation mode switching
   starts only after both sides have been merged.
 - Separate dev ports: desktop 5199 (default), lite 5200. Use `PORT=5200 npx vite` in POSIX shells, or
-  `$env:PORT=5200; npx vite` in PowerShell. Compare the matching server with `npm run compare -- --port 5200`.
+  `$env:PORT=5200; npx vite` in PowerShell. Compare the matching server with `npm run compare -- --local "http://localhost:5200/?home=full"` (always `?home=full`, see CLAUDE.md).
 
 ## 12. Folders and branches: one agent per folder (learned 2026-10-11)
-- The REQUEST sets the side, not the agent: Codex or Claude Code may build desktop or lite work. Every brief's first lines name
+- The REQUEST sets the side, not the agent: Codex, Claude Code or Antigravity may build desktop or lite work. Every brief's first lines name
   `Side: desktop | lite`, `Folder:` and `Branch:`. Use exactly those.
 - Side picks the folder: desktop -> `D:\Portfolio website\anh-v-site`, lite (phone/tablet) -> `D:\Portfolio website\anh-v-site-mobile`.
   A folder named in the brief wins.
@@ -119,4 +119,10 @@ Read first: CLAUDE.md (house rules), docs/requests.md (open work: the first item
   own worktree (`git worktree add tools/scratch/<req>/wt <your-branch>`) or stop and ask Anh. A note >= 2 h old = stale: log it, continue.
 - Never checkout/switch branches in a folder another agent may be using. If the folder is on someone else's branch, use a worktree.
 - Before every commit run `git branch --show-current`; if it is not the brief's branch, stop (do not commit, do not move commits).
+- Antigravity: one agent per request. No parallel subagents or /teamwork on a request; do not let it auto-create
+  worktrees in a folder another agent may be using. Same busy note, branch check and push rules as everyone else.
 
+
+## 13. Design rules for NEW pages and copy (2026-11-04)
+- They live in .agents/rules/design-new-pages.md (moved there to keep this file under Antigravity's 12,000-character rules cap).
+  Read that file before any new page or new copy. Priority: Anh's word > this file > the brief > any design skill.
