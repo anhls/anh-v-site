@@ -127,7 +127,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
   gl.attachShader(post, compile(gl.FRAGMENT_SHADER, POST_FRAG));
   gl.linkProgram(post);
   const postOk = gl.getProgramParameter(post, gl.LINK_STATUS);
-  const P = Object.fromEntries(['uScene', 'uRes', 'uAmt', 'uShape', 'uMargin', 'uSym', 'uPinchDown', 'uBow', 'uFrame', 'uGrain', 'uSeed', 'uAxis'].map((k) => [k, gl.getUniformLocation(post, k)]));
+  const P = Object.fromEntries(['uScene', 'uRes', 'uAmt', 'uShape', 'uMargin', 'uSym', 'uBow', 'uFrame', 'uGrain', 'uSeed', 'uAxis'].map((k) => [k, gl.getUniformLocation(post, k)]));
   let postF = null, PF = null; // the main images' warp program (Work page)
   if (layers) {
     postF = gl.createProgram();
@@ -436,7 +436,6 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     gl.uniform2f(Pu.uMargin, fb.mx / W, fb.my / H);
     gl.uniform1f(Pu.uSym, WP.sym);
     if (!img) {
-      gl.uniform1f(P.uPinchDown, WARP_DIR > 0 ? WARP.pinchDown : WARP.pinch);
       gl.uniform4f(P.uFrame, 0, 0, 0, 0);
     }
     gl.uniform1f(Pu.uGrain, grainAmt);

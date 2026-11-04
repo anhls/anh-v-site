@@ -60,7 +60,7 @@
       })();
     </script>
     <link rel="stylesheet" href="/src/styles/base.css" />
-    <!-- R45c3: render-block the first paint until the landing layer (#pxh, painted by the inline script at the start of <body>) is in the DOM: the first frame IS the landed cards, never the bare page (Chrome 124+; no layer = unblocked when parsing ends) -->
+    <!-- R45c: the view-transition hold above and the inline #pxh script at the start of <body> cover the first frame on arrival from Home (rel="expect" was removed in ffa2cb5) -->
     <script>window.__anhvThemeSync(); delete window.__anhvThemeSync;</script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="description" content="Works by Anh V, art director." />

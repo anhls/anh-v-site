@@ -10,6 +10,7 @@ import { setPagePaused, isPagePaused } from '../util/page-pause.js';
 import { weakReason } from '../util/device.js';
 import { writeMenuHome, clearMenuHome } from './menu-home.js';
 import { offList } from '../util/off.js';
+import { hcmcTime } from '../util/clock.js';
 
 // R24a / R48: the burger + full-screen menu of the tall mode (phones, tablet portrait).
 // Layout (R48 r5, placed by ink in placeMenu()): burger TOP-LEFT (two thin lines that pivot into an X), two flavour lines, the clock (two right-aligned lines on the flavour rows, right ink edge on the big wordmark's V),
@@ -20,11 +21,6 @@ import { offList } from '../util/off.js';
 // (z-index in tall.css); on the pages where it is small (Work, projects) the menu grows THAT element small -> big on open (big -> small on close). Reduced motion, ?gl=0, Save-Data, a weak device or no WebGL2 = a plain fade.
 const PAUSE_SHARE = 0.3; // R48 r14
 
-let hcmcFmt = null; // (made once: constructing an Intl formatter costs ~10 ms on a phone, never in the tap frame)
-const hcmcTime = () => {
-  const p = (hcmcFmt ||= new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })).format(new Date());
-  return `${p} GMT+7`;
-};
 const sm = (q) => { q = Math.min(1, Math.max(0, q)); return q * q * (3 - 2 * q); };
 let inkCtx;
 

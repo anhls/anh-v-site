@@ -73,7 +73,7 @@ export function createFrameGL(handles, atEnd) {
   if (!quad || !post) { glClose(gl, 'hero'); return null; }
   const uniforms = (p, names) => Object.fromEntries(names.map((k) => [k, gl.getUniformLocation(p, k)]));
   const Q = uniforms(quad, ['uView', 'uRect', 'uA', 'uB', 'uUvA', 'uUvB', 'uMix', 'uColor', 'uMode', 'uAlpha', 'uBias']);
-  const P = uniforms(post, ['uScene', 'uRes', 'uAmt', 'uShape', 'uMargin', 'uSym', 'uPinchDown', 'uZoom', 'uBow', 'uFrame', 'uGrain', 'uSeed']);
+  const P = uniforms(post, ['uScene', 'uRes', 'uAmt', 'uShape', 'uMargin', 'uSym', 'uZoom', 'uBow', 'uFrame', 'uGrain', 'uSeed']);
   const emptyVao = gl.createVertexArray();
   gl.bindVertexArray(emptyVao);
   gl.enable(gl.BLEND);
