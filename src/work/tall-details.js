@@ -13,6 +13,7 @@ import { createScrollLine } from '../util/scroll-line.js';
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const pad = (n) => String(n).padStart(2, '0');
+let inkCtx;
 
 export function createTallDetails({ projects, reduced, title }) {
   const N = projects.length;
@@ -123,7 +124,7 @@ export function createTallDetails({ projects, reduced, title }) {
 
   // ---- layout: every element is placed by its INK (see TALL_DETAILS)
   const ink = (font, text, scale = 10) => {
-    const c = document.createElement('canvas').getContext('2d'); c.font = font;
+    const c = (inkCtx ||= document.createElement('canvas').getContext('2d')); c.font = font;
     const m = c.measureText(text), fa = m.fontBoundingBoxAscent ?? 0, fd = m.fontBoundingBoxDescent ?? 0, adv = m.width;
     c.font = font.replace(/(\d+(?:\.\d+)?)px/, (_, n) => `${n * scale}px`); // (the glyph edges at 10x, so the sub-pixel part is not rounded away)
     const g = c.measureText(text);

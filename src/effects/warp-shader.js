@@ -31,7 +31,6 @@ uniform float uAmt;           // signed warp, -1..1 (x strength); + = scrolling 
 uniform vec4 uShape;          // curl, camera distance (positive side), camera distance (negative side), reach (R16h: the frame canvas uses this same cylinder in its own space)
 uniform vec2 uMargin;         // overscan of the offscreen buffer, as a share of the screen width / height (each side)
 uniform float uSym;           // weight of the leading side (1 = both sides alike)
-uniform float uPinchDown;     // frame mode: pinch while scrolling down; uShape.x is the pinch for scrolling up
 uniform float uZoom;           // frame mode (R16g): magnify the picture about the frame centre so the warped frame still covers its rectangle
 uniform vec2 uBow;            // cylinder mode: dome depth while scrolling down / up (rows bow, sides pinch)
 uniform vec4 uFrame;          // frame space: centre x, centre y, width, height in device px (width <= 0 = screen space, cylinder)

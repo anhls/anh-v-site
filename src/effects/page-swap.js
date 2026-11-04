@@ -98,7 +98,7 @@ export function createPageSwap() {
     try { v.destroy(true); } catch { /* */ } // before resume: the project's Lenis must not move the window under the strip's new Lenis
     ctl.resume({ slug, shrink });
     try {
-      playBack({ rec, target: ctl.frameRect(slug), fade: ctl.fadeEls, onPush: ctl.backPush, done: () => { ctl.finish(); view = null; state = 'work'; warmNext(); } });
+      playBack({ rec, target: ctl.frameRect(slug), fade: ctl.fadeEls, onPush: ctl.backPush, done: () => { ctl.finish(); view = null; state = 'work'; } });
     } catch (e) { root.remove(); ctl.finish(); view = null; state = 'work'; }
   }
   // the centred project's page, built hidden while the strip rests (one at a time; replaced when another project is centred)
@@ -126,7 +126,6 @@ export function createPageSwap() {
       } catch { pre = null; }
     }, 1500), 120);
   };
-  const warmNext = () => {};
 
   // R41g Part B: our own swipe-right back. A horizontal swipe right that starts away from the screen edge (the edge swipe stays Safari's: it plays its own slide) goes back
   // exactly like the Back button (history.back -> popstate -> glide if scrolled + shrink into the strip). Horizontal intent = dx > 2x |dy| within the first 12 px, else the touch is

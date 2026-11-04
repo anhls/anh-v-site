@@ -113,7 +113,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
   gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FRAG));
   gl.bindAttribLocation(prog, 0, 'a');
   gl.linkProgram(prog);
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return null;
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { glClose(gl, 'strip'); return null; }
   gl.useProgram(prog);
   const U = Object.fromEntries(['uView', 'uCenter', 'uSize', 'uBend', 'uShape', 'uCover', 'uTex', 'uGrain', 'uSeed', 'uFlat', 'uGrid', 'uFx', 'uFxP', 'uFxS', 'uPad', 'uMarg', 'uScr'].map((k) => [k, gl.getUniformLocation(prog, k)]));
   gl.uniform1i(U.uTex, 0);
@@ -127,14 +127,14 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
   gl.attachShader(post, compile(gl.FRAGMENT_SHADER, POST_FRAG));
   gl.linkProgram(post);
   const postOk = gl.getProgramParameter(post, gl.LINK_STATUS);
-  const P = Object.fromEntries(['uScene', 'uRes', 'uAmt', 'uShape', 'uMargin', 'uSym', 'uPinchDown', 'uBow', 'uFrame', 'uGrain', 'uSeed', 'uAxis'].map((k) => [k, gl.getUniformLocation(post, k)]));
+  const P = Object.fromEntries(['uScene', 'uRes', 'uAmt', 'uShape', 'uMargin', 'uSym', 'uBow', 'uFrame', 'uGrain', 'uSeed', 'uAxis'].map((k) => [k, gl.getUniformLocation(post, k)]));
   let postF = null, PF = null; // the main images' warp program (Work page)
   if (layers) {
     postF = gl.createProgram();
     gl.attachShader(postF, compile(gl.VERTEX_SHADER, POST_VERT));
     gl.attachShader(postF, compile(gl.FRAGMENT_SHADER, FRAME_POST_FRAG));
     gl.linkProgram(postF);
-    if (!gl.getProgramParameter(postF, gl.LINK_STATUS)) return null;
+    if (!gl.getProgramParameter(postF, gl.LINK_STATUS)) { glClose(gl, 'strip'); return null; }
     PF = Object.fromEntries(['uScene', 'uRes', 'uAmt', 'uShape', 'uMargin', 'uSym', 'uBow', 'uGrain', 'uSeed', 'uAxis', 'uShift'].map((k) => [k, gl.getUniformLocation(postF, k)]));
   }
   const emptyVao = gl.createVertexArray();
@@ -343,11 +343,12 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     if (vtex[i]) { gl.deleteTexture(vtex[i]); vtex[i] = null; }
   };
   // Video textures: the element's current frame, uploaded only when the browser says a new one is ready (and the card is visible).
+  const vfcHandles = new Int32Array(n);
   els.forEach((el, i) => {
     if (!isVideo[i]) return;
     if (el.requestVideoFrameCallback) {
-      const cb = () => { vFrame[i] = 1; el.requestVideoFrameCallback(cb); };
-      el.requestVideoFrameCallback(cb);
+      const cb = () => { if ((api && !api.active) || lost) return; vFrame[i] = 1; vfcHandles[i] = el.requestVideoFrameCallback(cb); };
+      vfcHandles[i] = el.requestVideoFrameCallback(cb);
     }
   });
   const uploadVideo = (i) => {
@@ -370,6 +371,7 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
   let shift = 0; // R24i: the image pass's axis shift now (screen lengths; read by diag / the checks)
   let grainStep = -1;
   let grainSpeed = 0;
+  let warmT = 0;
 
   const resize = (w, h) => {
     W = w;
@@ -386,7 +388,8 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     computeWeights();
     dirty = true;
     // build the offscreen buffers and compile the warp shader a moment after load / resize, not on the first fast scroll
-    if (postOk) setTimeout(() => { if (lost) return; ensureFb(); gl.bindFramebuffer(gl.FRAMEBUFFER, fb.ms); gl.clear(gl.COLOR_BUFFER_BIT); postPass(0.01, 0, 0); if (layers) postPass(0.01, 0, 0, true, true); gl.clear(gl.COLOR_BUFFER_BIT); dirty = true; }, 400);
+    clearTimeout(warmT);
+    if (postOk) warmT = setTimeout(() => { if (!api.active || lost) return; ensureFb(); gl.bindFramebuffer(gl.FRAMEBUFFER, fb.ms); gl.clear(gl.COLOR_BUFFER_BIT); postPass(0.01, 0, 0); if (layers) postPass(0.01, 0, 0, true, true); gl.clear(gl.COLOR_BUFFER_BIT); dirty = true; }, 400);
   };
 
   // Warm-up: one tiny draw now (during the loader), so the driver compiles the shaders before the first card is needed.
@@ -433,7 +436,6 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     gl.uniform2f(Pu.uMargin, fb.mx / W, fb.my / H);
     gl.uniform1f(Pu.uSym, WP.sym);
     if (!img) {
-      gl.uniform1f(P.uPinchDown, WARP_DIR > 0 ? WARP.pinchDown : WARP.pinch);
       gl.uniform4f(P.uFrame, 0, 0, 0, 0);
     }
     gl.uniform1f(Pu.uGrain, grainAmt);
@@ -643,7 +645,11 @@ export function createCardsGL({ section, els, cards, bx, by, bw, bh, onLost, ben
     drawn: (i) => (firstDrawn[i] === undefined ? -1 : drawSeq - firstDrawn[i]),
     coverRatio: (i) => (aspect[i] ? (bw[i] / bh[i]) * (cover[i * 4 + 1] / cover[i * 4]) / aspect[i] : 0), // R24i check: drawn picture's x scale / y scale (1 = no stretch)
     stats: () => ({ textureMb: used / 1048576, loaded: tex.filter(Boolean).length, bend: bend.x, bendRaw: bend.x }),
-    destroy: () => { canvas.remove(); api.active = false; glClose(gl, 'strip'); },
+    destroy: () => {
+      clearTimeout(warmT);
+      els.forEach((el, i) => { if (vfcHandles[i]) { el.cancelVideoFrameCallback?.(vfcHandles[i]); vfcHandles[i] = 0; } });
+      canvas.remove(); api.active = false; glClose(gl, 'strip');
+    },
   };
   return api;
 }
